@@ -1,0 +1,410 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "Propify API",
+        "description": "API documentation cho hệ thống Propify - Quản lý bất động sản",
+        "contact": {
+            "email": "admin@propify.vn"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000",
+            "description": "Local Dev Server"
+        }
+    ],
+    "paths": {
+        "/api/auth/register": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Đăng ký tài khoản",
+                "operationId": "d764dd091cc4494ae0baf360b03319f3",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "full_name",
+                                    "phone",
+                                    "email",
+                                    "password",
+                                    "password_confirmation"
+                                ],
+                                "properties": {
+                                    "full_name": {
+                                        "type": "string",
+                                        "example": "Nguyen Van A"
+                                    },
+                                    "phone": {
+                                        "type": "string",
+                                        "example": "0901234567"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "user@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "123456"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Đăng ký thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Đăng ký thành công"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "user": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "full_name": {
+                                                            "type": "string",
+                                                            "example": "Nguyen Van A"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "example": "user@example.com"
+                                                        },
+                                                        "phone": {
+                                                            "type": "string",
+                                                            "example": "0901234567"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "eyJ0eXAiOiJKV1Q..."
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Dữ liệu không hợp lệ",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Dữ liệu không hợp lệ"
+                                        },
+                                        "error_code": {
+                                            "type": "integer",
+                                            "example": 2001
+                                        },
+                                        "errors": {
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/login": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Đăng nhập",
+                "operationId": "8dcb70df1020986038d098cc08d05dae",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "user@example.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Đăng nhập thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Đăng nhập thành công"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "eyJ0eXAiOiJKV1Q..."
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Sai thông tin đăng nhập",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Email hoặc mật khẩu không đúng"
+                                        },
+                                        "error_code": {
+                                            "type": "integer",
+                                            "example": 1001
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/auth/logout": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Đăng xuất",
+                "operationId": "69281b12abb272c76871f19cb17ca563",
+                "responses": {
+                    "200": {
+                        "description": "Đăng xuất thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Đăng xuất thành công"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Chưa xác thực"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/auth/refresh": {
+            "post": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Làm mới token",
+                "operationId": "b2eae7a8032954d25b46c7ec6f489c68",
+                "responses": {
+                    "200": {
+                        "description": "Token đã được làm mới",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Token đã được làm mới"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "eyJ0eXAiOiJKV1Q..."
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Chưa xác thực"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/auth/me": {
+            "get": {
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Lấy thông tin user hiện tại",
+                "operationId": "b9abb1a7a74670a19c215c2c133f14d8",
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "status": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Thành công"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "full_name": {
+                                                    "type": "string",
+                                                    "example": "Nguyen Van A"
+                                                },
+                                                "email": {
+                                                    "type": "string",
+                                                    "example": "user@example.com"
+                                                },
+                                                "phone": {
+                                                    "type": "string",
+                                                    "example": "0901234567"
+                                                },
+                                                "role": {
+                                                    "type": "string",
+                                                    "example": "USER"
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "example": "A"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Chưa xác thực"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "description": "JWT Bearer Token. Lấy token từ API login, nhập vào đây.",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Authentication",
+            "description": "Authentication"
+        }
+    ]
+}
