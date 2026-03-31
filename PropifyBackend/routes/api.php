@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\Auth\GoogleController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,15 +20,19 @@ Route::prefix('v1/auth')->as('auth.')->group(function () {
     Route::post('/register', [AuthController::class, 'register'])
         ->middleware('throttle:5,1')
         ->name('register');
-        
+
     Route::post('/login', [AuthController::class, 'login'])
         ->middleware('throttle:5,1')
         ->name('login');
+    Route::get('/google', [GoogleController::class, 'redirectToGoogle'])
+        ->name('google');
+    Route::get('/google/callback', [GoogleController::class, 'handleGoogleCallback'])
+        ->name('google.callback');
 
     // ===== PROTECTED ROUTES (Requires JWT token) =====
     Route::middleware('auth:api')->group(function () {
-        Route::post('/logout',  [AuthController::class, 'logout'])->name('logout');
+        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
-        Route::get('/me',       [AuthController::class, 'me'])->name('me');
+        Route::get('/me', [AuthController::class, 'me'])->name('me');
     });
 });
