@@ -25,4 +25,9 @@ class EloquentUserRepository implements UserRepository
     {
         return $this->model->find($id);
     }
+
+    public function findByGoogleId(string $googleId): ?Users
+    {
+        return $this->model->where('google_id', $googleId)->first();
+    }
 }

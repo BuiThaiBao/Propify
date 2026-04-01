@@ -20,4 +20,9 @@ interface UserRepository
      * Find a user by their ID.
      */
     public function findById(int $id): ?Users;
+
+    /**
+     * Find a user by their Google ID.
+     */
+    public function findByGoogleId(string $googleId): ?Users;
 }

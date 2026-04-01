@@ -1,9 +1,8 @@
 <?php
 
 namespace App\Services\Impl;
-use App\DTOs\Auth\AuthResultDto;
+
 use App\Enums\UserRole;
-use App\Models\Users;
 use App\Enums\UserStatus;
 use App\Repositories\UserRepository;
 use App\Services\AuthGoogleService;
@@ -17,6 +16,7 @@ class AuthGoogleServiceImpl implements AuthGoogleService
         private readonly UserRepository $userRepository,
     ) {
     }
+
     public function redirectToGoogle(): RedirectResponse
     {
         return Socialite::driver('google')
@@ -28,26 +28,33 @@ class AuthGoogleServiceImpl implements AuthGoogleService
     {
         $googleUser = Socialite::driver('google')->stateless()->user();
 
-        $user = Users::where('google_id', $googleUser->getId())->first();
+        // 1) Tìm user theo google_id
+        $user = $this->userRepository->findByGoogleId($googleUser->getId());
 
         if (!$user) {
-            $user = Users::where('email', $googleUser->getEmail())->first();
+            // 2) Tìm theo email (user đã register bằng email trước đó)
+            $user = $this->userRepository->findByEmail($googleUser->getEmail());
+
             if ($user) {
+                // Liên kết google_id vào tài khoản hiện có
                 $user->update([
                     'google_id' => $googleUser->getId(),
                 ]);
             } else {
-                $user = Users::create([
+                // 3) Tạo user mới
+                $user = $this->userRepository->create([
                     'full_name' => $googleUser->getName(),
-                    'email' => $googleUser->getEmail(),
+                    'email'     => $googleUser->getEmail(),
                     'google_id' => $googleUser->getId(),
-                    'password' => null,
-                    'role' => UserRole::User->value,
-                    'status' => UserStatus::Active->value,
+                    'password'  => null,
+                    'role'      => UserRole::User->value,
+                    'status'    => UserStatus::Active->value,
                 ]);
             }
         }
+
         $token = JWTAuth::fromUser($user);
-        return redirect(config("app.frontend_url") . "/login-success?token=$token");
+
+        return redirect(config('app.frontend_url') . "/login-success?token=$token");
     }
 }

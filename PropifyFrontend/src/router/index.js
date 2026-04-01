@@ -1,0 +1,48 @@
+import { createRouter, createWebHistory } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
+import Home from "../pages/Home.vue";
+
+const routes = [
+  {
+    path: "/",
+    name: "Home",
+    component: Home,
+  },
+  {
+    path: "/login",
+    name: "Login",
+    component: () => import("@/pages/Login.vue"),
+  },
+  {
+    path: "/register",
+    name: "Register",
+    component: () => import("@/pages/Register.vue"),
+  },
+  {
+    path: "/login-success",
+    name: "LoginSuccess",
+    component: () => import("@/pages/LoginSuccess.vue"),
+  },
+];
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+});
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore();
+
+  // Route cần auth mà chưa login → redirect login
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    return next({ name: "Login", query: { redirect: to.fullPath } });
+  }
+
+  // Đã login mà vào trang login/register → redirect home
+  if (to.meta.guestOnly && authStore.isAuthenticated) {
+    return next({ name: "Home" });
+  }
+
+  next();
+});
+
+export default router;
