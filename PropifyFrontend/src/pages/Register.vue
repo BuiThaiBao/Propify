@@ -94,7 +94,7 @@
         @click="handleRegister"
         class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl py-3.5 text-sm transition mb-4"
       >
-        Đăng ký
+        Đăng kí
       </button>
 
       <!-- Divider -->
