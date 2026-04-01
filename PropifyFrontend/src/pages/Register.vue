@@ -109,7 +109,7 @@
         @click="handleGoogleLogin"
         class="w-full border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium rounded-xl py-3.5 text-sm transition mb-5"
       >
-        Đăng kí test 6 với Google
+        Đăng kí test 5 với Google
       </button>
 
       <!-- Switch to login -->
