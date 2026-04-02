@@ -35,18 +35,6 @@
       <p v-if="fieldErrors?.fullName" class="text-red-500 text-xs mb-2">
         {{ fieldErrors.fullName[0] }}
       </p>
-
-      <!-- Phone -->
-      <input
-        v-model="form.phone"
-        type="tel"
-        placeholder="Số điện thoại"
-        class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-2 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-      />
-      <p v-if="fieldErrors?.phone" class="text-red-500 text-xs mb-2">
-        {{ fieldErrors.phone[0] }}
-      </p>
-
       <!-- Email -->
       <input
         v-model="form.email"
@@ -109,7 +97,7 @@
         @click="handleGoogleLogin"
         class="w-full border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium rounded-xl py-3.5 text-sm transition mb-5"
       >
-        Đăng kí test 12312ghf với Google
+        Đăng nhập với Google
       </button>
 
       <!-- Switch to login -->
@@ -140,7 +128,6 @@ const emit = defineEmits(["close", "success", "switchToLogin"]);
 
 const form = ref({
   fullName: "",
-  phone: "",
   email: "",
   password: "",
   passwordConfirmation: "",

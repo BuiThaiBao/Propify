@@ -17,16 +17,13 @@ class AuthTokenResource extends JsonResource
         /** @var \App\DTOs\Auth\AuthResultDto $this */
         return [
             'user' => [
-                'id'        => $this->userId,
+                'id' => $this->userId,
                 'full_name' => $this->fullName,
-                'email'     => $this->email,
-                'phone'     => $this->phone,
-                'role'      => $this->role,
-                'status'    => $this->status,
+                'role' => $this->role,
             ],
             'access_token' => $this->accessToken,
-            'token_type'   => $this->tokenType,
-            'expires_in'   => $this->expiresIn,
+            'token_type' => $this->tokenType,
+            'expires_in' => $this->expiresIn,
         ];
     }
 }

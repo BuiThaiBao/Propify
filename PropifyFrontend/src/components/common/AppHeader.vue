@@ -184,7 +184,7 @@ function handleAuthSuccess() {
   showLoginPopup.value = false;
   showRegisterPopup.value = false;
   // Người dùng đăng nhập thành công vì họ click Đăng tin, nên ta chuyển hướng họ
-  router.push("/post-listing");
+  router.push("/");
 }
 
 async function handleLogout() {

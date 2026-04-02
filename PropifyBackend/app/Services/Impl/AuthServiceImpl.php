@@ -21,7 +21,8 @@ class AuthServiceImpl implements AuthService
     public function __construct(
         private readonly UserRepository $userRepository,
         private readonly AuthFactory $authFactory
-    ) {}
+    ) {
+    }
 
 
     /**
@@ -32,7 +33,7 @@ class AuthServiceImpl implements AuthService
     public function login(LoginCredentialsDto $dto): AuthResultDto
     {
         $credentials = [
-            'email'    => $dto->email,
+            'email' => $dto->email,
             'password' => $dto->password,
         ];
 
@@ -46,12 +47,12 @@ class AuthServiceImpl implements AuthService
 
         /** @var Users $user */
         $user = $this->authFactory->guard('api')->user();
-        
+
         Log::info('User logged in', ['user_id' => $user->id]);
 
         return AuthResultDto::fromUserAndToken(
-            $user, 
-            $token, 
+            $user,
+            $token,
             $this->authFactory->guard('api')->factory()->getTTL()
         );
     }
@@ -65,11 +66,10 @@ class AuthServiceImpl implements AuthService
         return DB::transaction(function () use ($dto) {
             $user = $this->userRepository->create([
                 'full_name' => $dto->fullName,
-                'phone'     => $dto->phone,
-                'email'     => $dto->email,
-                'password'  => Hash::make($dto->password),
-                'role'      => UserRole::User->value,
-                'status'    => UserStatus::Active->value,
+                'email' => $dto->email,
+                'password' => Hash::make($dto->password),
+                'role' => UserRole::User->value,
+                'status' => UserStatus::Active->value,
             ]);
 
             Log::info('New user registered', ['user_id' => $user->id]);
@@ -78,8 +78,8 @@ class AuthServiceImpl implements AuthService
             $token = $this->authFactory->guard('api')->login($user);
 
             return AuthResultDto::fromUserAndToken(
-                $user, 
-                $token, 
+                $user,
+                $token,
                 $this->authFactory->guard('api')->factory()->getTTL()
             );
         });
@@ -92,13 +92,13 @@ class AuthServiceImpl implements AuthService
     {
         /** @var Users $user */
         $user = $this->authFactory->guard('api')->user();
-        
+
         if ($user) {
             Log::info('User logged out', ['user_id' => $user->id]);
         }
-        
+
         // This invalidates the current token
-        $this->authFactory->guard('api')->logout(); 
+        $this->authFactory->guard('api')->logout();
     }
 
     /**
