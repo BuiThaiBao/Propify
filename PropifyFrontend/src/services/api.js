@@ -27,6 +27,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Bỏ qua nếu chính request refresh bị lỗi 401 (ngăn vòng lặp vô hạn)
+    if (originalRequest.url === "/v1/auth/refresh" || originalRequest.url.includes("/refresh")) {
+      localStorage.removeItem("access_token");
+      return Promise.reject(error);
+    }
+
     // Nếu 401 và chưa thử refresh → thử refresh token
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
