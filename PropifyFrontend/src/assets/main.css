@@ -168,6 +168,13 @@
     text-wrap: pretty;
     overflow-wrap: break-word;
   }
+
+  button,
+  [role="button"],
+  label[for],
+  select {
+    cursor: pointer;
+  }
 }
 
 /* ============================================

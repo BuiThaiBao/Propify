@@ -28,39 +28,93 @@
       </div>
 
       <!-- Actions desktop -->
-      <div class="hidden md:flex items-center gap-3">
-        <button class="text-muted-foreground p-2 hover:text-foreground transition-colors">
-          ❤️
+      <div class="hidden md:flex items-center gap-2">
+        <!-- Heart icon (SVG outline) -->
+        <button
+          class="p-2 text-muted-foreground hover:text-rose-500 transition-colors rounded-lg hover:bg-rose-50"
+          title="Yêu thích"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+            />
+          </svg>
         </button>
-        
+
+        <!-- Chưa đăng nhập: hiện link text "Đăng nhập" -->
         <template v-if="!authStore.isAuthenticated">
           <button
-            @click="handlePostListing"
-            class="hero-gradient text-primary-foreground px-4 py-2 rounded-lg hover:opacity-90 active:scale-[0.97] transition-all font-medium"
+            @click="showLoginPopup = true"
+            class="text-sm font-medium text-primary underline underline-offset-2 hover:text-primary/80 transition-colors px-2 py-2"
           >
-            Đăng tin
+            Đăng nhập
           </button>
         </template>
-        
+
+        <!-- Đã đăng nhập: hiện Account icon với dropdown -->
         <template v-else>
-          <div class="flex items-center gap-4">
-            <span class="text-sm font-medium text-foreground">
-              {{ authStore.user?.full_name }}
-            </span>
+          <div class="relative" ref="accountDropdownRef">
             <button
-              @click="handleLogout"
-              class="text-sm text-muted-foreground hover:text-destructive transition-colors"
+              @click="accountMenuOpen = !accountMenuOpen"
+              class="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
+              title="Tài khoản"
             >
-              Đăng xuất
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
             </button>
-            <button
-              @click="handlePostListing"
-              class="hero-gradient text-primary-foreground px-4 py-2 rounded-lg hover:opacity-90 active:scale-[0.97] transition-all font-medium"
+
+            <!-- Dropdown -->
+            <div
+              v-if="accountMenuOpen"
+              class="absolute right-0 top-full mt-2 w-52 bg-card border border-border rounded-xl shadow-lg py-1 z-50"
             >
-              Đăng tin
-            </button>
+              <div class="px-4 py-2.5 border-b border-border/50">
+                <p class="text-sm font-medium text-foreground truncate">
+                  {{ authStore.user?.full_name }}
+                </p>
+                <p class="text-xs text-muted-foreground truncate">
+                  {{ authStore.user?.email }}
+                </p>
+              </div>
+              <button
+                @click="handleLogout"
+                class="w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                Đăng xuất
+              </button>
+            </div>
           </div>
         </template>
+
+        <!-- Đăng tin button (luôn hiện) -->
+        <button
+          @click="handlePostListing"
+          class="hero-gradient text-primary-foreground px-4 py-2 rounded-lg hover:opacity-90 active:scale-[0.97] transition-all font-medium text-sm ml-1"
+        >
+          Đăng tin
+        </button>
       </div>
 
       <!-- Mobile menu button -->
@@ -90,24 +144,33 @@
         <div class="flex flex-col gap-2 mt-3 pt-3 border-t border-border">
           <template v-if="!authStore.isAuthenticated">
             <button
-              @click="handlePostListing(); mobileMenuOpen = false"
-              class="w-full hero-gradient text-primary-foreground rounded-lg py-3 font-medium text-center"
+              @click="showLoginPopup = true; mobileMenuOpen = false"
+              class="w-full border border-primary/30 text-primary hover:bg-primary/10 rounded-lg py-3 font-medium text-center transition-colors"
             >
-              Đăng tin
+              Đăng nhập
             </button>
           </template>
           <template v-else>
-             <div class="py-2 text-center border rounded-lg bg-muted/20">
-              <span class="text-sm font-medium text-foreground">
+            <div class="py-2 px-3 border rounded-lg bg-muted/20 flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="text-muted-foreground shrink-0"
+              >
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              <span class="text-sm font-medium text-foreground truncate">
                 {{ authStore.user?.full_name }}
               </span>
             </div>
-            <button
-              @click="handlePostListing(); mobileMenuOpen = false"
-              class="w-full hero-gradient text-primary-foreground rounded-lg py-3 font-medium text-center"
-            >
-              Đăng tin
-            </button>
             <button
               @click="handleLogout(); mobileMenuOpen = false"
               class="w-full border border-destructive/20 text-destructive hover:bg-destructive/10 rounded-lg py-3 font-medium text-center transition-colors"
@@ -115,6 +178,12 @@
               Đăng xuất
             </button>
           </template>
+          <button
+            @click="handlePostListing(); mobileMenuOpen = false"
+            class="w-full hero-gradient text-primary-foreground rounded-lg py-3 font-medium text-center"
+          >
+            Đăng tin
+          </button>
         </div>
       </div>
     </div>
@@ -136,13 +205,15 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter, useRoute } from "vue-router";
 import Login from "@/pages/Auth/Login.vue";
 import Register from "@/pages/Auth/Register.vue";
 
 const mobileMenuOpen = ref(false);
+const accountMenuOpen = ref(false);
+const accountDropdownRef = ref(null);
 const authStore = useAuthStore();
 const router = useRouter();
 const route = useRoute();
@@ -165,25 +236,36 @@ const showRegisterPopup = ref(false);
 
 function handlePostListing() {
   if (!authStore.isAuthenticated) {
-    // Chưa login → hiện popup đăng nhập
     showLoginPopup.value = true;
     return;
   }
-  // Đã login → đi tới trang đăng tin
   router.push("/post-listing");
 }
 
 function handleAuthSuccess() {
   showLoginPopup.value = false;
   showRegisterPopup.value = false;
-  // Người dùng đăng nhập thành công vì họ click Đăng tin, nên ta chuyển hướng họ
   router.push("/");
 }
 
 async function handleLogout() {
+  accountMenuOpen.value = false;
   await authStore.logout();
   router.push("/");
 }
+
+// Đóng dropdown khi click ra ngoài
+function handleClickOutside(e) {
+  if (
+    accountDropdownRef.value &&
+    !accountDropdownRef.value.contains(e.target)
+  ) {
+    accountMenuOpen.value = false;
+  }
+}
+
+onMounted(() => document.addEventListener("click", handleClickOutside));
+onUnmounted(() => document.removeEventListener("click", handleClickOutside));
 </script>
 
 <style lang="scss" scoped></style>
