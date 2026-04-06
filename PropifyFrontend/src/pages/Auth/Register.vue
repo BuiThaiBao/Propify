@@ -28,10 +28,18 @@
         <!-- Logo -->
         <div class="flex flex-col items-center mb-6">
           <div class="flex items-center gap-2">
-            <div class="w-9 h-9 rounded-xl hero-gradient flex items-center justify-center shadow-md">
-              <span class="w-4 h-4 bg-white rounded-sm block"></span>
-            </div>
-            <span class="text-xl font-bold text-gray-900">Rent<span class="text-gradient">House</span></span>
+            <svg width="36" height="36" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="32" height="32" rx="12" fill="url(#logo_register)"/>
+              <path d="M21.3337 14.6667C21.3337 17.9953 17.641 21.462 16.401 22.5327C16.2855 22.6195 16.1449 22.6665 16.0003 22.6665C15.8558 22.6665 15.7152 22.6195 15.5997 22.5327C14.3597 21.462 10.667 17.9953 10.667 14.6667C10.667 13.2522 11.2289 11.8956 12.2291 10.8954C13.2293 9.89525 14.5858 9.33334 16.0003 9.33334C17.4148 9.33334 18.7714 9.89525 19.7716 10.8954C20.7718 11.8956 21.3337 13.2522 21.3337 14.6667Z" stroke="white" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 16.6667C17.1046 16.6667 18 15.7712 18 14.6667C18 13.5621 17.1046 12.6667 16 12.6667C14.8954 12.6667 14 13.5621 14 14.6667C14 15.7712 14.8954 16.6667 16 16.6667Z" stroke="white" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
+              <defs>
+                <linearGradient id="logo_register" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#0DA2E7"/>
+                  <stop offset="1" stop-color="#0DA2E7"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <span class="text-xl font-bold text-gray-900">Propify</span>
           </div>
           <span class="text-[11px] text-gray-400 mt-1 tracking-wide uppercase">Nền tảng bất động sản</span>
         </div>
