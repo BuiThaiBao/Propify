@@ -21,9 +21,25 @@ Route::prefix('v1/auth')->as('auth.')->group(function () {
         ->middleware('throttle:5,1')
         ->name('register');
 
+    Route::post('/resend-register-otp', [AuthController::class, 'resendRegisterOtp'])
+        ->middleware('throttle:5,1')
+        ->name('resend-register-otp');
+
     Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])
         ->middleware('throttle:10,1')
         ->name('verify-otp');
+
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])
+        ->middleware('throttle:5,1')
+        ->name('forgot-password');
+
+    Route::post('/check-reset-otp', [AuthController::class, 'checkResetOtp'])
+        ->middleware('throttle:10,1')
+        ->name('check-reset-otp');
+
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])
+        ->middleware('throttle:10,1')
+        ->name('reset-password');
 
     Route::post('/login', [AuthController::class, 'login'])
         ->middleware('throttle:5,1')

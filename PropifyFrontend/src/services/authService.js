@@ -36,6 +36,14 @@ const authService = {
   },
 
   /**
+   * Resend OTP for registration
+   * @param {string} email
+   */
+  resendRegisterOtp(email) {
+    return api.post("/v1/auth/resend-register-otp", { email });
+  },
+
+  /**
    * Get the currently authenticated user's profile.
    * Token is attached automatically via interceptor.
    *
@@ -63,6 +71,39 @@ const authService = {
    */
   verifyOtp(email, otp) {
     return api.post("/v1/auth/verify-otp", { email, otp });
+  },
+
+  /**
+   * Gửi OTP đặt lại mật khẩu.
+   * @param {string} email
+   */
+  forgotPassword(email) {
+    return api.post("/v1/auth/forgot-password", { email });
+  },
+
+  /** Bước 2: kiểm tra OTP mà không xóa (để dùng lại ở bước 3) */
+  checkResetOtp(email, otp) {
+    return api.post("/v1/auth/check-reset-otp", { email, otp });
+  },
+
+  /**
+   * Đặt lại mật khẩu bằng OTP.
+   * @param {string} email
+   * @param {string} otp
+   * @param {string} password
+   * @param {string} passwordConfirmation
+   */
+  resetPassword(email, otp, password, passwordConfirmation) {
+    return api.post("/v1/auth/reset-password", {
+      email,
+      otp,
+      password,
+      password_confirmation: passwordConfirmation,
+    });
+  },
+
+  refreshToken() {
+    return api.post("/v1/auth/refresh");
   },
 };
 

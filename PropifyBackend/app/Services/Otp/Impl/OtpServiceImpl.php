@@ -4,6 +4,7 @@ namespace App\Services\Otp\Impl;
 
 use App\Enums\MailType;
 use App\Enums\NotificationChanelType;
+use App\Enums\OtpContext;
 use App\Models\User;
 use App\Services\Notification\NotificationService;
 use App\Services\Otp\OtpService;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Redis;
 
 final class OtpServiceImpl implements OtpService
 {
-    /** TTL của OTP tính bằng giây — 3 phút */
+    /** TTL của OTP — 3 phút */
     private const OTP_TTL_SECONDS = 180;
 
     /** Độ dài OTP */
@@ -21,20 +22,27 @@ final class OtpServiceImpl implements OtpService
         private readonly NotificationService $notificationService
     ) {}
 
-    /**
-     * Sinh OTP, lưu Redis 3 phút, gửi mail cho user.
-     */
-    public function generate(User $user): string
+    public function generate(User $user, OtpContext $context): string
     {
         $otp = $this->generateOtp();
+        $key = $this->redisKey($user, $context);
 
-        // ⚠️ Không dùng named args — Redis facade dùng __call() nên phải positional
-        Redis::setex($this->redisKey($user), self::OTP_TTL_SECONDS, $otp);
+        // Dùng pipeline để DEL + SETEX là một batch nguyên tử
+        // → đảm bảo OTP cũ bị xóa TRƯỚC khi OTP mới được ghi
+        // → tránh trường hợp user dùng được OTP cũ khi vừa yêu cầu lại
+        Redis::pipeline(function ($pipe) use ($key, $otp) {
+            $pipe->del($key);
+            $pipe->setex($key, self::OTP_TTL_SECONDS, $otp);
+        });
 
-        // Gửi mail chứa OTP
+        $mailType = match ($context) {
+            OtpContext::REGISTER       => MailType::VERIFY_EMAIL,
+            OtpContext::RESET_PASSWORD => MailType::FORGOT_PASSWORD,
+        };
+
         $this->notificationService->send(
             user: $user,
-            template: MailType::VERIFY_EMAIL,
+            template: $mailType,
             data: ['otp' => $otp],
             channels: [NotificationChanelType::EMAIL],
         );
@@ -42,46 +50,53 @@ final class OtpServiceImpl implements OtpService
         return $otp;
     }
 
-    /**
-     * Xác thực OTP. Đúng → xóa Redis, trả true.
-     */
-    public function verify(User $user, string $otp): bool
+    public function verify(User $user, string $otp, OtpContext $context): bool
     {
-        $stored = Redis::get($this->redisKey($user));
+        $stored = Redis::get($this->redisKey($user, $context));
 
         if (!$stored || !hash_equals($stored, $otp)) {
             return false;
         }
 
-        $this->invalidate($user);
+        $this->invalidate($user, $context);
 
         return true;
     }
 
     /**
-     * Xóa OTP khỏi Redis.
+     * Kiểm tra OTP hợp lệ mà KHÔNG xóa Redis.
+     * Step 2: check → step 3: reset (verify + xóa thật sự).
      */
-    public function invalidate(User $user): void
+    public function peek(User $user, string $otp, OtpContext $context): bool
     {
-        Redis::del($this->redisKey($user));
+        $stored = Redis::get($this->redisKey($user, $context));
+
+        return $stored && hash_equals($stored, $otp);
+    }
+
+    public function invalidate(User $user, OtpContext $context): void
+    {
+        Redis::del($this->redisKey($user, $context));
     }
 
     // =========================================================
     //  PRIVATE HELPERS
     // =========================================================
 
-    private function redisKey(User $user): string
+    private function redisKey(User $user, OtpContext $context): string
     {
-        return "otp:register:{$user->id}";
+        return "otp:{$context->value}:{$user->id}";
+        // register → otp:register:1
+        // reset    → otp:reset:1
     }
 
     private function generateOtp(): string
     {
         return str_pad(
-            string: (string) random_int(0, 10 ** self::OTP_LENGTH - 1),
-            length: self::OTP_LENGTH,
-            pad_string: '0',
-            pad_type: STR_PAD_LEFT
+            (string) random_int(0, 10 ** self::OTP_LENGTH - 1),
+            self::OTP_LENGTH,
+            '0',
+            STR_PAD_LEFT
         );
     }
 }

@@ -2,22 +2,29 @@
 
 namespace App\Services\Otp;
 
+use App\Enums\OtpContext;
 use App\Models\User;
 
 interface OtpService
 {
     /**
-     * Tạo OTP ngẫu nhiên, lưu Redis với TTL 3 phút, gửi qua notification.
+     * Sinh OTP, lưu Redis TTL 3 phút, gửi mail.
      */
-    public function generate(User $user): string;
+    public function generate(User $user, OtpContext $context): string;
 
     /**
-     * Xác thực OTP. Trả về true nếu hợp lệ và xóa khỏi Redis.
+     * Xác thực OTP. Đúng → xóa Redis, trả true.
      */
-    public function verify(User $user, string $otp): bool;
+    public function verify(User $user, string $otp, OtpContext $context): bool;
 
     /**
-     * Xóa OTP khỏi Redis (dùng sau khi verify thành công).
+     * Kiểm tra OTP hợp lệ mà KHÔNG xóa Redis.
+     * Dùng cho step 2 quên mật khẩu — step 3 vẫn cần OTP để reset.
      */
-    public function invalidate(User $user): void;
+    public function peek(User $user, string $otp, OtpContext $context): bool;
+
+    /**
+     * Xóa OTP khỏi Redis.
+     */
+    public function invalidate(User $user, OtpContext $context): void;
 }

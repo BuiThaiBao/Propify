@@ -18,7 +18,15 @@ const api = axios.create({
 });
 
 /** Public endpoints that should NOT send the JWT token */
-const PUBLIC_ENDPOINTS = ["/v1/auth/login", "/v1/auth/register"];
+const PUBLIC_ENDPOINTS = [
+  "/v1/auth/login",
+  "/v1/auth/register",
+  "/v1/auth/resend-register-otp",
+  "/v1/auth/verify-otp",
+  "/v1/auth/forgot-password",
+  "/v1/auth/check-reset-otp",
+  "/v1/auth/reset-password",
+];
 
 /**
  * Request interceptor — automatically attach JWT token to every request,

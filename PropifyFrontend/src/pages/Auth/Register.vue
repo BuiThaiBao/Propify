@@ -190,6 +190,24 @@ async function handleRegister() {
   errorMessage.value = '';
   fieldErrors.value = null;
 
+  // Validate cơ bản phía client trước khi gọi API
+  if (!form.value.fullName.trim()) {
+    fieldErrors.value = { full_name: ['Vui lòng nhập họ và tên'] };
+    return;
+  }
+  if (!form.value.email || !/\S+@\S+\.\S+/.test(form.value.email)) {
+    fieldErrors.value = { email: ['Vui lòng nhập email hợp lệ'] };
+    return;
+  }
+  if (form.value.password.length < 8) {
+    fieldErrors.value = { password: ['Mật khẩu phải có ít nhất 8 ký tự'] };
+    return;
+  }
+  if (form.value.password !== form.value.passwordConfirmation) {
+    fieldErrors.value = { password: ['Mật khẩu xác nhận không khớp'] };
+    return;
+  }
+
   const result = await authStore.register(form.value);
 
   if (result.success) {
@@ -202,8 +220,7 @@ async function handleRegister() {
 }
 
 async function handleResend() {
-  // Gửi lại = đăng ký lại với cùng email
-  await authStore.register(form.value);
+  await authStore.resendRegisterOtp(form.value.email);
 }
 
 function handleGoogleLogin() {

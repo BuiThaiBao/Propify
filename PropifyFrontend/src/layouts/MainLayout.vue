@@ -1,6 +1,5 @@
 <template>
   <div class="layout">
-    <AppHeader />
     <HeroSection />
     <CategorySection />
 
@@ -13,7 +12,6 @@
 </template>
 
 <script setup>
-import AppHeader from "@/components/common/AppHeader.vue";
 import AppFooter from "@/components/common/AppFooter.vue";
 import HeroSection from "@/components/common/Home/HeroSection.vue";
 import CategorySection from "@/components/common/Home/CategorySection.vue";

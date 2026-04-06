@@ -6,17 +6,14 @@ use App\Enums\MailType;
 use App\Enums\NotificationChanelType;
 use App\Events\Auth\UserRegistered;
 use App\Services\Notification\NotificationService;
-use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Queue\InteractsWithQueue;
 
 /**
  * Gửi email chào mừng sau khi user đăng ký thành công.
- * Implement ShouldQueue để chạy trong background, không block request.
+ * Sử dụng thẻ afterResponse() để gửi email SAU khi API trả về kết quả cho Frontend,
+ * giúp Frontend không bị lag (không cần queue worker).
  */
-final class SendWelcomeNotification implements ShouldQueue
+final class SendWelcomeNotification
 {
-    use InteractsWithQueue;
-
     public function __construct(
         private readonly NotificationService $notificationService
     ) {}

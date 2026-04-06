@@ -21,13 +21,27 @@ export const useAuthStore = defineStore("auth", () => {
 
   /**
    * Khởi tạo auth khi app mount.
-   * Đọc token từ localStorage → nếu có thì gọi /me để lấy user.
+   * Đọc token từ localStorage → restore user từ sessionStorage (cache),
+   * chỉ gọi /me nếu cache bị miss.
    */
   async function initAuth() {
     const savedToken = localStorage.getItem(TOKEN_KEY);
     if (!savedToken) return;
 
     token.value = savedToken;
+
+    // Thử restore user từ sessionStorage cache trước (tránh gọi /me mỗi lần)
+    const cachedUser = sessionStorage.getItem('auth_user');
+    if (cachedUser) {
+      try {
+        user.value = JSON.parse(cachedUser);
+        return; // Cache hit — không cần gọi API
+      } catch {
+        sessionStorage.removeItem('auth_user');
+      }
+    }
+
+    // Cache miss → gọi /me để lấy thông tin user
     try {
       await fetchUser();
     } catch {
@@ -84,6 +98,22 @@ export const useAuthStore = defineStore("auth", () => {
   }
 
   /**
+   * Sinh lại OTP cho user đang đăng ký (Tránh lỗi 422 rules unique email của register module)
+   */
+  async function resendRegisterOtp(email) {
+    loading.value = true;
+    try {
+      await authService.resendRegisterOtp(email);
+      return { success: true };
+    } catch (error) {
+      const message = error.response?.data?.message || "Không thể gửi lại OTP";
+      return { success: false, message };
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
    * Xác thực OTP sau đăng ký.
    *
    * @param {string} email
@@ -115,6 +145,8 @@ export const useAuthStore = defineStore("auth", () => {
   async function fetchUser() {
     const res = await authService.getMe();
     user.value = res.data.data;
+    // Lưu vào sessionStorage để tránh gọi /me lần sau khi chuyển route
+    sessionStorage.setItem('auth_user', JSON.stringify(user.value));
   }
 
   /**
@@ -136,6 +168,7 @@ export const useAuthStore = defineStore("auth", () => {
     user.value = null;
     token.value = null;
     localStorage.removeItem(TOKEN_KEY);
+    sessionStorage.removeItem('auth_user');
   }
 
   /**
@@ -156,6 +189,58 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
+  /**
+   * Gửi OTP quên mật khẩu tới email.
+   * @param {string} email
+   */
+  async function forgotPassword(email) {
+    loading.value = true;
+    try {
+      await authService.forgotPassword(email);
+      return { success: true };
+    } catch (error) {
+      const message = error.response?.data?.message || "Có lỗi xảy ra";
+      const errors  = error.response?.data?.errors  || null;
+      return { success: false, message, errors };
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /** Bước 2: verify OTP mà không xóa — để dùng lại ở bước 3 */
+  async function checkResetOtp(email, otp) {
+    loading.value = true;
+    try {
+      await authService.checkResetOtp(email, otp);
+      return { success: true };
+    } catch (error) {
+      const message = error.response?.data?.message || "Mã OTP không hợp lệ";
+      return { success: false, message };
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * Đặt lại mật khẩu bằng OTP.
+   * @param {string} email
+   * @param {string} otp
+   * @param {string} password
+   * @param {string} passwordConfirmation
+   */
+  async function resetPassword(email, otp, password, passwordConfirmation) {
+    loading.value = true;
+    try {
+      await authService.resetPassword(email, otp, password, passwordConfirmation);
+      return { success: true };
+    } catch (error) {
+      const message = error.response?.data?.message || "Đặt lại mật khẩu thất bại";
+      return { success: false, message };
+    } finally {
+      loading.value = false;
+    }
+  }
+
   return {
     user,
     token,
@@ -164,7 +249,11 @@ export const useAuthStore = defineStore("auth", () => {
     initAuth,
     login,
     register,
+    resendRegisterOtp,
     verifyOtp,
+    forgotPassword,
+    checkResetOtp,
+    resetPassword,
     fetchUser,
     logout,
     setTokenFromGoogle,

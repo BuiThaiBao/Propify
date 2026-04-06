@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\DTOs\Auth\LoginCredentialsDto;
 use App\DTOs\Auth\RegisterUserDto;
 use App\Helpers\ApiResponse;
+use App\Http\Requests\Auth\CheckResetOtpRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\Auth\VerifyOtpRequest;
 use App\Http\Resources\AuthTokenResource;
 use App\Http\Resources\UserResource;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use OpenApi\Attributes as OA;
 
 #[OA\Info(version: "1.0.0", description: "L5-Swagger OpenApi description", title: "Propify API Documentation")]
@@ -45,6 +49,27 @@ final class AuthController
 
         return ApiResponse::success(
             message: 'Đăng ký thành công. Vui lòng kiểm tra email để nhập mã OTP.',
+            statusCode: 202
+        );
+    }
+
+    // Resend Register OTP
+    #[OA\Post(path: "/api/v1/auth/resend-register-otp", operationId: "resendRegisterOtp", summary: "Resend registration OTP", security: [], tags: ["Authentication"])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ["email"],
+        properties: [
+            new OA\Property(property: "email", format: "email", type: "string", example: "user@example.com"),
+        ]
+    ))]
+    #[OA\Response(response: 202, description: "OTP resent successfully")]
+    public function resendRegisterOtp(Request $request): JsonResponse
+    {
+        $request->validate(['email' => ['required', 'email']]);
+        
+        $this->authService->resendRegisterOtp($request->input('email'));
+
+        return ApiResponse::success(
+            message: 'Mã OTP đã được gửi lại tới email của bạn.',
             statusCode: 202
         );
     }
@@ -132,9 +157,66 @@ final class AuthController
         return ApiResponse::success(
             data: [
                 'access_token' => $token,
-                'token_type' => 'bearer',
+                'token_type'   => 'bearer',
             ],
             message: 'Token đã được làm mới'
         );
     }
+
+    // Forgot Password
+    #[OA\Post(path: "/api/v1/auth/forgot-password", operationId: "forgotPassword", summary: "Send password reset OTP", security: [], tags: ["Authentication"])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ["email"],
+        properties: [new OA\Property(property: "email", format: "email", type: "string")]
+    ))]
+    #[OA\Response(response: 200, description: "OTP sent")]
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        $this->authService->forgotPassword($request->validated('email'));
+
+        return ApiResponse::success(
+            message: 'Mã OTP đã được gửi tới email của bạn.'
+        );
+    }
+
+    // Check Reset OTP (bước 2 — kiểm tra OTP trước khi cho nhập mật khẩu)
+    #[OA\Post(path: "/api/v1/auth/check-reset-otp", operationId: "checkResetOtp", summary: "Check reset OTP without consuming it", security: [], tags: ["Authentication"])]
+    public function checkResetOtp(CheckResetOtpRequest $request): JsonResponse
+    {
+        $this->authService->checkResetOtp(
+            email: $request->validated('email'),
+            otp: $request->validated('otp'),
+        );
+
+        return ApiResponse::success(message: 'Mã OTP hợp lệ');
+    }
+
+    // Reset Password
+    #[OA\Post(path: "/api/v1/auth/reset-password", operationId: "resetPassword", summary: "Reset password with OTP", security: [], tags: ["Authentication"])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ["email", "otp", "password", "password_confirmation"],
+        properties: [
+            new OA\Property(property: "email", format: "email", type: "string"),
+            new OA\Property(property: "otp", type: "string", example: "123456"),
+            new OA\Property(property: "password", type: "string"),
+            new OA\Property(property: "password_confirmation", type: "string"),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: "Password reset successfully")]
+    #[OA\Response(response: 401, description: "Invalid OTP")]
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $this->authService->resetPassword(
+            email: $data['email'],
+            otp: $data['otp'],
+            password: $data['password'],
+        );
+
+        return ApiResponse::success(
+            message: 'Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập.'
+        );
+    }
 }
+

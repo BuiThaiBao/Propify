@@ -14,79 +14,102 @@
           <span class="text-[11px] text-gray-400 mt-1 tracking-wide uppercase">Nền tảng bất động sản</span>
         </div>
 
-        <!-- Icon check mail -->
-        <div class="flex justify-center mb-4">
-          <div class="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="4" width="20" height="16" rx="3"/>
-              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+        <!-- Success State -->
+        <div v-if="isSuccess" class="py-4 flex flex-col items-center animate-in fade-in zoom-in duration-300">
+          <div class="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mb-5 text-green-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
             </svg>
           </div>
-        </div>
-
-        <!-- Heading -->
-        <h1 class="text-2xl font-bold text-gray-900 text-center mb-1">Xác thực email</h1>
-        <p class="text-sm text-gray-500 text-center mb-1">
-          Mã OTP đã được gửi tới
-        </p>
-        <p class="text-sm font-semibold text-blue-600 text-center mb-5 truncate">{{ email }}</p>
-
-        <!-- OTP inputs (6 ô riêng lẻ) -->
-        <div class="flex gap-2 justify-center mb-2">
-          <input
-            v-for="(_, i) in 6"
-            :key="i"
-            :ref="el => otpInputs[i] = el"
-            type="text"
-            inputmode="numeric"
-            maxlength="1"
-            :value="otpDigits[i]"
-            @input="handleInput(i, $event)"
-            @keydown="handleKeydown(i, $event)"
-            @paste="handlePaste($event)"
-            class="w-11 h-12 text-center text-xl font-bold border-2 rounded-xl outline-none transition-all"
-            :class="[
-              otpDigits[i] ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-900',
-              errorMessage && 'border-red-400 bg-red-50'
-            ]"
-          />
-        </div>
-
-        <!-- Error -->
-        <p v-if="errorMessage" class="text-red-500 text-xs text-center mb-3 flex items-center justify-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          {{ errorMessage }}
-        </p>
-
-        <!-- Countdown -->
-        <p class="text-xs text-center text-gray-400 mb-5">
-          <span v-if="countdown > 0">
-            Mã hết hạn sau <span class="font-semibold text-gray-600">{{ formattedCountdown }}</span>
-          </span>
-          <span v-else class="text-red-500">Mã OTP đã hết hạn</span>
-        </p>
-
-        <!-- Verify button -->
-        <button
-          @click="handleVerify"
-          :disabled="authStore.loading || otpValue.length < 6"
-          class="w-full hero-gradient text-white font-semibold rounded-xl py-3.5 text-sm mb-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98] shadow-md shadow-blue-200"
-        >
-          {{ authStore.loading ? 'Đang xác thực...' : 'Xác nhận' }}
-        </button>
-
-        <!-- Resend -->
-        <p class="text-center text-xs text-gray-500">
-          Không nhận được mã?
-          <button
-            @click="$emit('resend')"
-            class="text-blue-500 hover:underline font-medium ml-1"
-            :disabled="countdown > 0"
-            :class="{ 'opacity-40 cursor-not-allowed': countdown > 0 }"
+          <h2 class="text-2xl font-bold text-gray-900 mb-2">Đăng ký thành công!</h2>
+          <p class="text-gray-500 text-center mb-8 px-2 text-sm leading-relaxed">
+            Tuyệt vời! Tài khoản của bạn đã được xác thực và kích hoạt. Chào mừng bạn đến với Propify.
+          </p>
+          <button 
+            @click="$emit('success')" 
+            class="w-full hero-gradient text-white font-semibold rounded-xl py-3.5 text-sm transition-all hover:opacity-90 active:scale-[0.98] shadow-md shadow-blue-200"
           >
-            Gửi lại
+            Khám phá ngay
           </button>
-        </p>
+        </div>
+
+        <!-- Default OTP State -->
+        <div v-else class="animate-in fade-in duration-300">
+          <!-- Icon check mail -->
+          <div class="flex justify-center mb-4">
+            <div class="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="3"/>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Heading -->
+          <h1 class="text-2xl font-bold text-gray-900 text-center mb-1">Xác thực email</h1>
+          <p class="text-sm text-gray-500 text-center mb-1">
+            Mã OTP đã được gửi tới
+          </p>
+          <p class="text-sm font-semibold text-blue-600 text-center mb-5 truncate">{{ email }}</p>
+
+          <!-- OTP inputs (6 ô riêng lẻ) -->
+          <div class="flex gap-2 justify-center mb-2">
+            <input
+              v-for="(_, i) in 6"
+              :key="i"
+              :ref="el => otpInputs[i] = el"
+              type="text"
+              inputmode="numeric"
+              maxlength="1"
+              :value="otpDigits[i]"
+              @input="handleInput(i, $event)"
+              @keydown="handleKeydown(i, $event)"
+              @paste="handlePaste($event)"
+              class="w-11 h-12 text-center text-xl font-bold border-2 rounded-xl outline-none transition-all focus:border-blue-500 focus:bg-blue-50"
+              :class="[
+                otpDigits[i] ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-900',
+                errorMessage && 'border-red-400 bg-red-50'
+              ]"
+            />
+          </div>
+
+          <!-- Error -->
+          <p v-if="errorMessage" class="text-red-500 text-xs text-center mb-3 flex items-center justify-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            {{ errorMessage }}
+          </p>
+
+          <!-- Countdown -->
+          <p class="text-xs text-center text-gray-400 mb-5 mt-3">
+            <span v-if="countdown > 0">
+              Mã hết hạn sau <span class="font-semibold text-gray-600">{{ formattedCountdown }}</span>
+            </span>
+            <span v-else class="text-red-500 font-medium">Mã OTP đã hết hạn</span>
+          </p>
+
+          <!-- Verify button -->
+          <button
+            @click="handleVerify"
+            :disabled="authStore.loading || otpValue.length < 6"
+            class="w-full hero-gradient text-white font-semibold rounded-xl py-3.5 text-sm mb-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98] shadow-md shadow-blue-200"
+          >
+            {{ authStore.loading ? 'Đang xác thực...' : 'Xác nhận' }}
+          </button>
+
+          <!-- Resend -->
+          <p class="text-center text-xs text-gray-500 mt-2">
+            Không nhận được mã?
+            <button
+              @click="$emit('resend')"
+              class="text-blue-500 hover:underline font-medium ml-1"
+              :disabled="countdown > 0"
+              :class="{ 'opacity-40 cursor-not-allowed': countdown > 0 }"
+            >
+              Gửi lại
+            </button>
+          </p>
+        </div>
 
       </div>
     </div>
@@ -109,6 +132,7 @@ const authStore = useAuthStore();
 const otpDigits = ref(['', '', '', '', '', '']);
 const otpInputs = ref([]);
 const errorMessage = ref('');
+const isSuccess = ref(false);
 
 const otpValue = computed(() => otpDigits.value.join(''));
 
@@ -199,7 +223,7 @@ async function handleVerify() {
   const result = await authStore.verifyOtp(props.email, otpValue.value);
 
   if (result.success) {
-    emit('success');
+    isSuccess.value = true;
   } else {
     errorMessage.value = result.message;
     // Shake animation — clear inputs

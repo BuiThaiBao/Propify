@@ -1,6 +1,14 @@
 <template>
   <Teleport to="body">
+    <!-- Forgot Password modal -->
+    <ForgotPassword
+      v-if="showForgotPassword"
+      @close="showForgotPassword = false"
+      @switchToLogin="showForgotPassword = false"
+    />
+
     <div
+      v-else
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
     >
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm px-7 py-8 relative">
@@ -77,6 +85,16 @@
           {{ errorMessage }}
         </p>
 
+        <!-- Quên mật khẩu -->
+        <div class="flex justify-end mb-3">
+          <button
+            @click="showForgotPassword = true"
+            class="text-xs text-blue-500 hover:underline"
+          >
+            Quên mật khẩu?
+          </button>
+        </div>
+
         <!-- Login button -->
         <button
           @click="handleLogin"
@@ -135,6 +153,7 @@
 <script setup>
 import { ref } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import ForgotPassword from "./ForgotPassword.vue";
 
 const authStore = useAuthStore();
 const emit = defineEmits(["close", "success", "switchToRegister"]);
@@ -143,6 +162,7 @@ const email = ref("");
 const password = ref("");
 const showPassword = ref(false);
 const errorMessage = ref("");
+const showForgotPassword = ref(false);
 
 async function handleLogin() {
   if (authStore.loading) return;
