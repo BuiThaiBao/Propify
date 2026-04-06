@@ -30,7 +30,21 @@
       <!-- Actions desktop -->
       <div class="hidden md:flex items-center gap-2">
         <!-- Heart icon (SVG outline) -->
-        <button
+      
+        <!-- Chưa đăng nhập: hiện link text "Đăng nhập" -->
+        <template v-if="!authStore.isAuthenticated">
+          <button
+            @click="showLoginPopup = true"
+            class="text-sm font-medium text-primary underline underline-offset-2 hover:text-primary/80 transition-colors px-2 py-2"
+          >
+            Đăng nhập
+          </button>
+        </template>
+
+        <!-- Đã đăng nhập: hiện Account icon với dropdown -->
+        <template v-else>
+          <div class="relative" ref="accountDropdownRef">
+            <button
           class="p-2 text-muted-foreground hover:text-rose-500 transition-colors rounded-lg hover:bg-rose-50"
           title="Yêu thích"
         >
@@ -50,20 +64,6 @@
             />
           </svg>
         </button>
-
-        <!-- Chưa đăng nhập: hiện link text "Đăng nhập" -->
-        <template v-if="!authStore.isAuthenticated">
-          <button
-            @click="showLoginPopup = true"
-            class="text-sm font-medium text-primary underline underline-offset-2 hover:text-primary/80 transition-colors px-2 py-2"
-          >
-            Đăng nhập
-          </button>
-        </template>
-
-        <!-- Đã đăng nhập: hiện Account icon với dropdown -->
-        <template v-else>
-          <div class="relative" ref="accountDropdownRef">
             <button
               @click="accountMenuOpen = !accountMenuOpen"
               class="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted"
