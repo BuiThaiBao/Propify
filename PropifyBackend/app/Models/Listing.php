@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Listings extends Model
+final class Listing extends Model
 {
     protected $table = 'listings';
 
@@ -29,38 +31,38 @@ class Listings extends Model
     // ==================== Relationships ====================
 
     /** Bất động sản của listing */
-    public function property()
+    public function property(): BelongsTo
     {
-        return $this->belongsTo(Properties::class, 'property_id');
+        return $this->belongsTo(Property::class, 'property_id');
     }
 
     /** Gói tin đã mua */
-    public function package()
+    public function package(): BelongsTo
     {
-        return $this->belongsTo(Packages::class, 'package_id');
+        return $this->belongsTo(Package::class, 'package_id');
     }
 
     /** Danh sách hình ảnh */
-    public function images()
+    public function images(): HasMany
     {
-        return $this->hasMany(Listing_Images::class, 'listing_id');
+        return $this->hasMany(ListingImage::class, 'listing_id');
     }
 
     /** Danh sách lịch hẹn */
-    public function appointments()
+    public function appointments(): HasMany
     {
-        return $this->hasMany(Appointments::class, 'listing_id');
+        return $this->hasMany(Appointment::class, 'listing_id');
     }
 
     /** Danh sách giao dịch */
-    public function transactions()
+    public function transactions(): HasMany
     {
-        return $this->hasMany(Transactions::class, 'listing_id');
+        return $this->hasMany(Transaction::class, 'listing_id');
     }
 
     /** Danh sách yêu thích */
-    public function favorites()
+    public function favorites(): HasMany
     {
-        return $this->hasMany(User_Favorites::class, 'listing_id');
+        return $this->hasMany(UserFavorite::class, 'listing_id');
     }
 }

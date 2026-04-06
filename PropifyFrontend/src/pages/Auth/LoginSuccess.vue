@@ -19,7 +19,7 @@ onMounted(async () => {
   if (token) {
     try {
       await authStore.setTokenFromGoogle(token);
-      router.replace("/post-listing"); // replace để không back lại trang này
+      router.replace("/");
     } catch {
       router.replace("/login");
     }

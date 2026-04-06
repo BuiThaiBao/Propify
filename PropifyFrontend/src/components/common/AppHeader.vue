@@ -16,28 +16,14 @@
       <!-- Menu desktop -->
       <div class="hidden md:flex items-center gap-1">
         <a
-          href="#"
-          class="px-4 py-2 rounded-lg text-sm font-medium text-primary bg-primary/10"
+          v-for="item in navLinks"
+          :key="item.href"
+          :href="item.href"
+          :class="isActive(item.href)
+            ? 'px-4 py-2 rounded-lg text-sm font-medium text-primary bg-primary/10'
+            : 'px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted'"
         >
-          Trang chủ
-        </a>
-        <a
-          href="#"
-          class="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          Cho thuê
-        </a>
-        <a
-          href="#"
-          class="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          Tin tức
-        </a>
-        <a
-          href="#"
-          class="px-4 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          Liên hệ
+          {{ item.label }}
         </a>
       </div>
 
@@ -90,22 +76,15 @@
     <div v-if="mobileMenuOpen" class="md:hidden border-t border-border bg-card">
       <div class="p-4 flex flex-col gap-1">
         <a
-          href="#"
-          class="px-4 py-3 rounded-lg text-sm font-medium text-primary bg-primary/10"
+          v-for="item in navLinks"
+          :key="item.href"
+          :href="item.href"
+          :class="isActive(item.href)
+            ? 'px-4 py-3 rounded-lg text-sm font-medium text-primary bg-primary/10'
+            : 'px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted'"
+          @click="mobileMenuOpen = false"
         >
-          Trang chủ
-        </a>
-        <a
-          href="#"
-          class="px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          Cho thuê
-        </a>
-        <a
-          href="#"
-          class="px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted"
-        >
-          Tin tức
+          {{ item.label }}
         </a>
 
         <div class="flex flex-col gap-2 mt-3 pt-3 border-t border-border">
@@ -159,13 +138,27 @@
 <script setup>
 import { ref } from "vue";
 import { useAuthStore } from "@/stores/auth";
-import { useRouter } from "vue-router";
-import Login from "@/pages/Login.vue";
-import Register from "@/pages/Register.vue";
+import { useRouter, useRoute } from "vue-router";
+import Login from "@/pages/Auth/Login.vue";
+import Register from "@/pages/Auth/Register.vue";
 
 const mobileMenuOpen = ref(false);
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
+
+const navLinks = [
+  { label: "Trang chủ", href: "/" },
+  { label: "Mua bán", href: "/sales" },
+  { label: "Cho thuê", href: "/rent" },
+  { label: "Tin tức", href: "/news" },
+  { label: "Liên hệ", href: "/contact" },
+];
+
+function isActive(href) {
+  if (href === "/") return route.path === "/";
+  return route.path.startsWith(href);
+}
 
 const showLoginPopup = ref(false);
 const showRegisterPopup = ref(false);

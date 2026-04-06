@@ -11,17 +11,24 @@ const routes = [
   {
     path: "/login",
     name: "Login",
-    component: () => import("@/pages/Login.vue"),
+    component: () => import("@/pages/Auth/Login.vue"),
+    meta: { guestOnly: true },
   },
   {
     path: "/register",
     name: "Register",
-    component: () => import("@/pages/Register.vue"),
+    component: () => import("@/pages/Auth/Register.vue"),
+    meta: { guestOnly: true },
   },
   {
     path: "/login-success",
     name: "LoginSuccess",
-    component: () => import("@/pages/LoginSuccess.vue"),
+    component: () => import("@/pages/Auth/LoginSuccess.vue"),
+  },
+  {
+    path: "/sales",
+    name: "Sales",
+    component: () => import("@/pages/Sale/index.vue"),
   },
 ];
 
@@ -29,6 +36,10 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 });
+
+/**
+ * Navigation guard — enforce auth/guest route restrictions.
+ */
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore();
 

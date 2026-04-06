@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Appointments extends Model
+final class Appointment extends Model
 {
     protected $table = 'appointments';
 
@@ -25,20 +26,20 @@ class Appointments extends Model
     // ==================== Relationships ====================
 
     /** Listing được hẹn xem */
-    public function listing()
+    public function listing(): BelongsTo
     {
-        return $this->belongsTo(Listings::class, 'listing_id');
+        return $this->belongsTo(Listing::class, 'listing_id');
     }
 
     /** Người xem */
-    public function viewer()
+    public function viewer(): BelongsTo
     {
-        return $this->belongsTo(Users::class, 'viewer_id');
+        return $this->belongsTo(User::class, 'viewer_id');
     }
 
     /** Người đăng */
-    public function poster()
+    public function poster(): BelongsTo
     {
-        return $this->belongsTo(Users::class, 'poster_id');
+        return $this->belongsTo(User::class, 'poster_id');
     }
 }

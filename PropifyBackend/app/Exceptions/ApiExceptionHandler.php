@@ -11,16 +11,18 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Throwable;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
-use Throwable;
 
-class ApiExceptionHandler
+final class ApiExceptionHandler
 {
     /**
-     * Exception mapping to [ErrorCode, HTTP Status]
+     * Exception mapping to ErrorCode.
      * Used to reduce duplicated render logic for common framework exceptions.
+     *
+     * @var array<class-string<Throwable>, ErrorCode>
      */
     protected static array $exceptionMap = [
         AuthenticationException::class     => ErrorCode::AuthUnauthorized,
@@ -58,7 +60,7 @@ class ApiExceptionHandler
         // 3. Handle Framework Exceptions via Map
         $exceptions->render(function (Throwable $e, Request $request) {
             if (!self::isApiRequest($request)) {
-                return null; // Let Laravel handle web requests
+                return null;
             }
 
             // Check if exception exists in our predefined map
@@ -72,7 +74,7 @@ class ApiExceptionHandler
                 }
             }
 
-            // Fallback: Generic Server Error
+            // Fallback: Generic Server Error — never expose details in production
             return ApiResponse::error(
                 message: config('app.debug') ? $e->getMessage() : ErrorCode::ServerError->message(),
                 statusCode: ErrorCode::ServerError->httpStatus(),

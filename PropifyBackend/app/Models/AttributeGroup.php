@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Attribute_Groups extends Model
+final class AttributeGroup extends Model
 {
     protected $table = 'attribute_groups';
 
@@ -22,8 +23,8 @@ class Attribute_Groups extends Model
     // ==================== Relationships ====================
 
     /** Danh sách thuộc tính trong nhóm */
-    public function attributes()
+    public function attributes(): HasMany
     {
-        return $this->hasMany(Attributes::class, 'group_id');
+        return $this->hasMany(Attribute::class, 'group_id');
     }
 }

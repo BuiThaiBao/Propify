@@ -2,7 +2,7 @@
 
 namespace App\DTOs\Auth;
 
-use App\Models\Users;
+use App\Models\User;
 
 final readonly class AuthResultDto
 {
@@ -16,7 +16,7 @@ final readonly class AuthResultDto
     ) {
     }
 
-    public static function fromUserAndToken(Users $user, string $token, int $expiresInMinutes): self
+    public static function fromUserAndToken(User $user, string $token, int $expiresInMinutes): self
     {
         return new self(
             userId: $user->id,
@@ -24,7 +24,7 @@ final readonly class AuthResultDto
             role: $user->role?->value ?? (is_string($user->role) ? $user->role : ''),
             accessToken: $token,
             tokenType: 'bearer',
-            expiresIn: $expiresInMinutes * 60, // Convert to seconds
+            expiresIn: $expiresInMinutes * 60,
         );
     }
 }

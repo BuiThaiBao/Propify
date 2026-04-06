@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class User_Favorites extends Model
+final class UserFavorite extends Model
 {
     protected $table = 'user_favorites';
 
@@ -21,14 +22,14 @@ class User_Favorites extends Model
     // ==================== Relationships ====================
 
     /** User yêu thích */
-    public function user()
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Users::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /** Listing được yêu thích */
-    public function listing()
+    public function listing(): BelongsTo
     {
-        return $this->belongsTo(Listings::class, 'listing_id');
+        return $this->belongsTo(Listing::class, 'listing_id');
     }
 }

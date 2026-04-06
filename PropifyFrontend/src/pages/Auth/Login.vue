@@ -43,9 +43,10 @@
       <!-- Login button -->
       <button
         @click="handleLogin"
-        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl py-3.5 text-sm mb-4"
+        :disabled="authStore.loading"
+        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl py-3.5 text-sm mb-4 disabled:opacity-50 disabled:cursor-not-allowed transition"
       >
-        Đăng nhập
+        {{ authStore.loading ? 'Đang đăng nhập...' : 'Đăng nhập' }}
       </button>
 
       <!-- Divider -->
@@ -80,11 +81,8 @@
 
 <script setup>
 import { ref } from "vue";
-import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 
-const router = useRouter();
-const route = useRoute();
 const authStore = useAuthStore();
 
 const emit = defineEmits(["close", "success", "switchToRegister"]);
@@ -94,6 +92,8 @@ const password = ref("");
 const errorMessage = ref("");
 
 async function handleLogin() {
+  if (authStore.loading) return;
+
   errorMessage.value = "";
   const result = await authStore.login(email.value, password.value);
 
@@ -104,7 +104,7 @@ async function handleLogin() {
   }
 }
 
-// Đăng nhập bằng Google — redirect sang backend
+/** Redirect to backend Google OAuth endpoint */
 function handleGoogleLogin() {
   window.location.href = import.meta.env.VITE_GOOGLE_AUTH_URL;
 }

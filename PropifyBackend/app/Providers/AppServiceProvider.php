@@ -8,9 +8,11 @@ use App\Services\AuthGoogleService;
 use App\Services\AuthService;
 use App\Services\Impl\AuthGoogleServiceImpl;
 use App\Services\Impl\AuthServiceImpl;
+use App\Services\Impl\TokenProcessServiceImpl;
+use App\Services\TokenProcessService;
 use Illuminate\Support\ServiceProvider;
 
-class AppServiceProvider extends ServiceProvider
+final class AppServiceProvider extends ServiceProvider
 {
     /**
      * Register any application services.
@@ -21,6 +23,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(UserRepository::class, EloquentUserRepository::class);
         $this->app->bind(AuthService::class, AuthServiceImpl::class);
         $this->app->bind(AuthGoogleService::class, AuthGoogleServiceImpl::class);
+        $this->app->bind(TokenProcessService::class, TokenProcessServiceImpl::class);
     }
 
     /**

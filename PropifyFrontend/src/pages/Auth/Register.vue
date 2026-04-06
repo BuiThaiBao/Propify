@@ -80,9 +80,10 @@
       <!-- Register button -->
       <button
         @click="handleRegister"
-        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl py-3.5 text-sm transition mb-4"
+        :disabled="authStore.loading"
+        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl py-3.5 text-sm transition mb-4 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Đăng kí
+        {{ authStore.loading ? 'Đang đăng ký...' : 'Đăng kí' }}
       </button>
 
       <!-- Divider -->
@@ -117,11 +118,8 @@
 
 <script setup>
 import { ref } from "vue";
-import { useRouter, useRoute } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 
-const router = useRouter();
-const route = useRoute();
 const authStore = useAuthStore();
 
 const emit = defineEmits(["close", "success", "switchToLogin"]);
@@ -136,6 +134,8 @@ const errorMessage = ref("");
 const fieldErrors = ref(null);
 
 async function handleRegister() {
+  if (authStore.loading) return;
+
   errorMessage.value = "";
   fieldErrors.value = null;
 
@@ -149,6 +149,7 @@ async function handleRegister() {
   }
 }
 
+/** Redirect to backend Google OAuth endpoint */
 function handleGoogleLogin() {
   window.location.href = import.meta.env.VITE_GOOGLE_AUTH_URL;
 }

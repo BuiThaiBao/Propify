@@ -24,15 +24,22 @@ Route::prefix('v1/auth')->as('auth.')->group(function () {
     Route::post('/login', [AuthController::class, 'login'])
         ->middleware('throttle:5,1')
         ->name('login');
+
     Route::get('/google', [GoogleController::class, 'redirectToGoogle'])
+        ->middleware('throttle:10,1')
         ->name('google');
+
     Route::get('/google/callback', [GoogleController::class, 'handleGoogleCallback'])
+        ->middleware('throttle:10,1')
         ->name('google.callback');
 
-    // ===== PROTECTED ROUTES (Requires JWT token) =====
+    // ===== TOKEN REFRESH (Requires current JWT, even if expired) =====
+    Route::post('/refresh', [AuthController::class, 'refresh'])
+        ->name('refresh');
+
+    // ===== PROTECTED ROUTES (Requires valid JWT token) =====
     Route::middleware('auth:api')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-        Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
         Route::get('/me', [AuthController::class, 'me'])->name('me');
     });
 });

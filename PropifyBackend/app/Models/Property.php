@@ -3,8 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Properties extends Model
+final class Property extends Model
 {
     protected $table = 'properties';
 
@@ -34,20 +37,20 @@ class Properties extends Model
     // ==================== Relationships ====================
 
     /** Chủ sở hữu bất động sản */
-    public function owner()
+    public function owner(): BelongsTo
     {
-        return $this->belongsTo(Users::class, 'owner_id');
+        return $this->belongsTo(User::class, 'owner_id');
     }
 
     /** Danh sách listings của bất động sản */
-    public function listings()
+    public function listings(): HasMany
     {
-        return $this->hasMany(Listings::class, 'property_id');
+        return $this->hasMany(Listing::class, 'property_id');
     }
 
     /** Danh sách thuộc tính (many-to-many qua bảng property_attributes) */
-    public function attributes()
+    public function attributes(): BelongsToMany
     {
-        return $this->belongsToMany(Attributes::class, 'property_attributes', 'property_id', 'attribute_id');
+        return $this->belongsToMany(Attribute::class, 'property_attributes', 'property_id', 'attribute_id');
     }
 }

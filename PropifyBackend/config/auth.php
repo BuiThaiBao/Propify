@@ -14,7 +14,7 @@
 //
 // 2. PROVIDER (Nhà cung cấp) - Xác định LẤY USER TỪ ĐÂU:
 //    - 'eloquent': Dùng Eloquent model để query DB
-//    - model => App\Models\Users::class: Dùng model Users
+//    - model => App\Models\User::class: Dùng model User
 //    → Sau khi guard giải mã token lấy được user_id,
 //      provider dùng Users::find($id) để lấy user object
 //
@@ -51,7 +51,7 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model'  => App\Models\Users::class,
+            'model'  => App\Models\User::class,
         ],
     ],
 

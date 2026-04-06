@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Listing_Images extends Model
+final class ListingImage extends Model
 {
     protected $table = 'listing_images';
 
@@ -21,8 +22,8 @@ class Listing_Images extends Model
     // ==================== Relationships ====================
 
     /** Listing chứa hình ảnh */
-    public function listing()
+    public function listing(): BelongsTo
     {
-        return $this->belongsTo(Listings::class, 'listing_id');
+        return $this->belongsTo(Listing::class, 'listing_id');
     }
 }

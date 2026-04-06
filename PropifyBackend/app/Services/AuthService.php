@@ -6,7 +6,7 @@ use App\DTOs\Auth\AuthResultDto;
 use App\DTOs\Auth\LoginCredentialsDto;
 use App\DTOs\Auth\RegisterUserDto;
 use App\Exceptions\AuthenticationFailedException;
-use App\Models\Users;
+use App\Models\User;
 
 interface AuthService
 {
@@ -35,5 +35,10 @@ interface AuthService
     /**
      * Get the authenticated user.
      */
-    public function me(): ?Users;
+    public function me(): ?User;
+
+    /**
+     * Process the current token for blacklisting.
+     */
+    public function processToken(): void;
 }

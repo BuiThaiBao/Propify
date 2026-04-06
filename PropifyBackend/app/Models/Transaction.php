@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Transactions extends Model
+final class Transaction extends Model
 {
     protected $table = 'transactions';
 
@@ -27,20 +28,20 @@ class Transactions extends Model
     // ==================== Relationships ====================
 
     /** User thực hiện giao dịch */
-    public function user()
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Users::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /** Listing liên quan */
-    public function listing()
+    public function listing(): BelongsTo
     {
-        return $this->belongsTo(Listings::class, 'listing_id');
+        return $this->belongsTo(Listing::class, 'listing_id');
     }
 
     /** Gói tin đã mua */
-    public function package()
+    public function package(): BelongsTo
     {
-        return $this->belongsTo(Packages::class, 'package_id');
+        return $this->belongsTo(Package::class, 'package_id');
     }
 }

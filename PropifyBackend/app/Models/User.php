@@ -5,10 +5,11 @@ namespace App\Models;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
-class Users extends Authenticatable implements JWTSubject
+final class User extends Authenticatable implements JWTSubject
 {
     use HasFactory;
 
@@ -40,6 +41,7 @@ class Users extends Authenticatable implements JWTSubject
     protected $casts = [
         'role' => UserRole::class,
         'status' => UserStatus::class,
+        'password' => 'hashed',
     ];
 
     // ==================== JWT Methods ====================
@@ -47,15 +49,17 @@ class Users extends Authenticatable implements JWTSubject
     /**
      * Get the identifier that will be stored in the subject claim of the JWT.
      */
-    public function getJWTIdentifier()
+    public function getJWTIdentifier(): mixed
     {
         return $this->getKey();
     }
 
     /**
      * Return a key value array, containing any custom claims to be added to the JWT.
+     *
+     * @return array<string, mixed>
      */
-    public function getJWTCustomClaims()
+    public function getJWTCustomClaims(): array
     {
         return [
             'role' => $this->role?->value,
@@ -66,28 +70,28 @@ class Users extends Authenticatable implements JWTSubject
 
     // ==================== Relationships ====================
 
-    public function properties()
+    public function properties(): HasMany
     {
-        return $this->hasMany(Properties::class, 'owner_id');
+        return $this->hasMany(Property::class, 'owner_id');
     }
 
-    public function viewerAppointments()
+    public function viewerAppointments(): HasMany
     {
-        return $this->hasMany(Appointments::class, 'viewer_id');
+        return $this->hasMany(Appointment::class, 'viewer_id');
     }
 
-    public function posterAppointments()
+    public function posterAppointments(): HasMany
     {
-        return $this->hasMany(Appointments::class, 'poster_id');
+        return $this->hasMany(Appointment::class, 'poster_id');
     }
 
-    public function transactions()
+    public function transactions(): HasMany
     {
-        return $this->hasMany(Transactions::class, 'user_id');
+        return $this->hasMany(Transaction::class, 'user_id');
     }
 
-    public function favorites()
+    public function favorites(): HasMany
     {
-        return $this->hasMany(User_Favorites::class, 'user_id');
+        return $this->hasMany(UserFavorite::class, 'user_id');
     }
 }

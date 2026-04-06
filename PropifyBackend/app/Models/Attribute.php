@@ -3,8 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-class Attributes extends Model
+final class Attribute extends Model
 {
     protected $table = 'attributes';
 
@@ -22,14 +24,14 @@ class Attributes extends Model
     // ==================== Relationships ====================
 
     /** Nhóm thuộc tính */
-    public function group()
+    public function group(): BelongsTo
     {
-        return $this->belongsTo(Attribute_Groups::class, 'group_id');
+        return $this->belongsTo(AttributeGroup::class, 'group_id');
     }
 
     /** Danh sách bất động sản có thuộc tính này (many-to-many) */
-    public function properties()
+    public function properties(): BelongsToMany
     {
-        return $this->belongsToMany(Properties::class, 'property_attributes', 'attribute_id', 'property_id');
+        return $this->belongsToMany(Property::class, 'property_attributes', 'attribute_id', 'property_id');
     }
 }

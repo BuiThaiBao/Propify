@@ -48,12 +48,12 @@
                                     "password": {
                                         "type": "string",
                                         "format": "password",
-                                        "example": "password123"
+                                        "example": "Password1"
                                     },
                                     "password_confirmation": {
                                         "type": "string",
                                         "format": "password",
-                                        "example": "password123"
+                                        "example": "Password1"
                                     }
                                 },
                                 "type": "object"
@@ -97,7 +97,7 @@
                                     "password": {
                                         "type": "string",
                                         "format": "password",
-                                        "example": "password123"
+                                        "example": "Password1"
                                     }
                                 },
                                 "type": "object"

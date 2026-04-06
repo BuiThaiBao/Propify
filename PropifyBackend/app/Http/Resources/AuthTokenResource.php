@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class AuthTokenResource extends JsonResource
+final class AuthTokenResource extends JsonResource
 {
     /**
      * Transform the resource into an array.

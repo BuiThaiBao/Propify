@@ -3,8 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Packages extends Model
+final class Package extends Model
 {
     protected $table = 'packages';
 
@@ -26,14 +27,14 @@ class Packages extends Model
     // ==================== Relationships ====================
 
     /** Danh sách listings sử dụng gói này */
-    public function listings()
+    public function listings(): HasMany
     {
-        return $this->hasMany(Listings::class, 'package_id');
+        return $this->hasMany(Listing::class, 'package_id');
     }
 
     /** Danh sách giao dịch của gói này */
-    public function transactions()
+    public function transactions(): HasMany
     {
-        return $this->hasMany(Transactions::class, 'package_id');
+        return $this->hasMany(Transaction::class, 'package_id');
     }
 }

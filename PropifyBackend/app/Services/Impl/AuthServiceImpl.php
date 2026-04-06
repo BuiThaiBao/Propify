@@ -8,22 +8,24 @@ use App\DTOs\Auth\RegisterUserDto;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Exceptions\AuthenticationFailedException;
-use App\Models\Users;
+use App\Models\User;
 use App\Repositories\UserRepository;
 use App\Services\AuthService;
+use App\Services\TokenProcessService;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
-class AuthServiceImpl implements AuthService
+final class AuthServiceImpl implements AuthService
 {
     public function __construct(
         private readonly UserRepository $userRepository,
-        private readonly AuthFactory $authFactory
+        private readonly AuthFactory $authFactory,
+        private readonly TokenProcessService $tokenProcessService
     ) {
     }
-
 
     /**
      * Authenticate a user and return a token payload.
@@ -37,7 +39,6 @@ class AuthServiceImpl implements AuthService
             'password' => $dto->password,
         ];
 
-        // Attempt login via via api guard
         $token = $this->authFactory->guard('api')->attempt($credentials);
 
         if (!$token) {
@@ -45,7 +46,7 @@ class AuthServiceImpl implements AuthService
             throw new AuthenticationFailedException();
         }
 
-        /** @var Users $user */
+        /** @var User $user */
         $user = $this->authFactory->guard('api')->user();
 
         Log::info('User logged in', ['user_id' => $user->id]);
@@ -74,7 +75,6 @@ class AuthServiceImpl implements AuthService
 
             Log::info('New user registered', ['user_id' => $user->id]);
 
-            // Automatically log them in by generating a token
             $token = $this->authFactory->guard('api')->login($user);
 
             return AuthResultDto::fromUserAndToken(
@@ -90,14 +90,14 @@ class AuthServiceImpl implements AuthService
      */
     public function logout(): void
     {
-        /** @var Users $user */
+        /** @var User $user */
         $user = $this->authFactory->guard('api')->user();
+        $this->processToken();
 
-        if ($user) {
-            Log::info('User logged out', ['user_id' => $user->id]);
-        }
+        Log::info('User logged out', [
+            'user_id' => $user?->id,
+        ]);
 
-        // This invalidates the current token
         $this->authFactory->guard('api')->logout();
     }
 
@@ -106,18 +106,42 @@ class AuthServiceImpl implements AuthService
      */
     public function refresh(): string
     {
-        /** @var string $token */
-        $token = $this->authFactory->guard('api')->refresh();
-        return $token;
+        $this->processToken();
+
+        /** @var string $newToken */
+        $newToken = $this->authFactory->guard('api')->refresh();
+
+        return $newToken;
     }
 
     /**
      * Get the authenticated user.
      */
-    public function me(): ?Users
+    public function me(): ?User
     {
-        /** @var ?Users $user */
+        /** @var ?User $user */
         $user = $this->authFactory->guard('api')->user();
+
         return $user;
+    }
+
+    /**
+     * Process the current token for blacklisting before refresh/logout.
+     */
+    public function processToken(): void
+    {
+        $token = JWTAuth::getToken();
+
+        if ($token) {
+            $payload = JWTAuth::getPayload($token);
+            $exp = $payload->get('exp');
+            $ttl = max(0, $exp - time());
+
+            if ($ttl <= 0) {
+                return;
+            }
+
+            $this->tokenProcessService->addTokenToBlacklist((string) $token, $ttl);
+        }
     }
 }

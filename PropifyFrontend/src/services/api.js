@@ -1,6 +1,14 @@
 import axios from "axios";
+import router from "@/router";
 
-// 1) Tạo instance với base URL từ .env
+/** Named constants to avoid magic strings */
+const API_REFRESH_URL = "/v1/auth/refresh";
+const TOKEN_KEY = "access_token";
+
+/**
+ * Axios instance pre-configured with base URL and JSON headers.
+ * All API calls should use this instance.
+ */
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   headers: {
@@ -9,48 +17,54 @@ const api = axios.create({
   },
 });
 
-// 2) Request interceptor — tự gắn token vào mọi request
+/**
+ * Request interceptor — automatically attach JWT token to every request.
+ */
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const token = localStorage.getItem(TOKEN_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// 3) Response interceptor — xử lý lỗi 401 (token hết hạn)
+/**
+ * Response interceptor — handle 401 errors with automatic token refresh.
+ * If refresh fails, clear auth state and redirect to login.
+ */
 api.interceptors.response.use(
-  // Nếu response OK → trả về bình thường
   (response) => response,
 
-  // Nếu lỗi
   async (error) => {
     const originalRequest = error.config;
 
-    // Bỏ qua nếu chính request refresh bị lỗi 401 (ngăn vòng lặp vô hạn)
-    if (originalRequest.url === "/v1/auth/refresh" || originalRequest.url.includes("/refresh")) {
-      localStorage.removeItem("access_token");
+    // Prevent infinite loop: skip refresh if the failing request IS the refresh call
+    if (
+      originalRequest.url === API_REFRESH_URL ||
+      originalRequest.url.includes("/refresh")
+    ) {
+      localStorage.removeItem(TOKEN_KEY);
+      router.push({ name: "Home" });
       return Promise.reject(error);
     }
 
-    // Nếu 401 và chưa thử refresh → thử refresh token
+    // If 401 and haven't retried yet → attempt token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        // Gọi refresh bằng token cũ
-        const res = await api.post("/v1/auth/refresh");
+        const res = await api.post(API_REFRESH_URL);
         const newToken = res.data.data.access_token;
 
-        // Lưu token mới
-        localStorage.setItem("access_token", newToken);
+        localStorage.setItem(TOKEN_KEY, newToken);
 
-        // Retry request cũ với token mới
+        // Retry original request with new token
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh cũng fail → xóa token, user tự login lại
-        localStorage.removeItem("access_token");
+        // Refresh also failed → clear everything, redirect to login
+        localStorage.removeItem(TOKEN_KEY);
+        router.push({ name: "Home" });
         return Promise.reject(refreshError);
       }
     }

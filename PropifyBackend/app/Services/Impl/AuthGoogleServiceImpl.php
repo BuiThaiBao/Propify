@@ -6,11 +6,12 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Repositories\UserRepository;
 use App\Services\AuthGoogleService;
+use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
-class AuthGoogleServiceImpl implements AuthGoogleService
+final class AuthGoogleServiceImpl implements AuthGoogleService
 {
     public function __construct(
         private readonly UserRepository $userRepository,
@@ -45,6 +46,8 @@ class AuthGoogleServiceImpl implements AuthGoogleService
                     $user->update([
                         'google_id' => $googleUser->getId(),
                     ]);
+
+                    Log::info('Google account linked to existing user', ['user_id' => $user->id]);
                 } else {
                     // 3) Tạo user mới
                     $user = $this->userRepository->create([
@@ -55,6 +58,8 @@ class AuthGoogleServiceImpl implements AuthGoogleService
                         'role'      => UserRole::User->value,
                         'status'    => UserStatus::Active->value,
                     ]);
+
+                    Log::info('New user registered via Google', ['user_id' => $user->id]);
                 }
             }
 
@@ -62,7 +67,11 @@ class AuthGoogleServiceImpl implements AuthGoogleService
 
             return redirect(config('app.frontend_url') . "/login-success?token=$token");
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Google Auth Error: ' . $e->getMessage());
+            Log::error('Google Auth Error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return redirect(config('app.frontend_url') . "/?error=google_auth_failed");
         }
     }
