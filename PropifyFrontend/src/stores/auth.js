@@ -71,7 +71,29 @@ export const useAuthStore = defineStore("auth", () => {
   async function register(formData) {
     loading.value = true;
     try {
-      const res = await authService.register(formData);
+      await authService.register(formData);
+      // Backend trả 202 — chưa có token, cần verify OTP trước
+      return { success: true };
+    } catch (error) {
+      const message = error.response?.data?.message || "Đăng ký thất bại";
+      const errors = error.response?.data?.errors || null;
+      return { success: false, message, errors };
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /**
+   * Xác thực OTP sau đăng ký.
+   *
+   * @param {string} email
+   * @param {string} otp
+   * @returns {Promise<{success: boolean, message?: string}>}
+   */
+  async function verifyOtp(email, otp) {
+    loading.value = true;
+    try {
+      const res = await authService.verifyOtp(email, otp);
       const data = res.data.data;
 
       token.value = data.access_token;
@@ -80,9 +102,8 @@ export const useAuthStore = defineStore("auth", () => {
 
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || "Đăng ký thất bại";
-      const errors = error.response?.data?.errors || null;
-      return { success: false, message, errors };
+      const message = error.response?.data?.message || "Mã OTP không hợp lệ";
+      return { success: false, message };
     } finally {
       loading.value = false;
     }
@@ -143,6 +164,7 @@ export const useAuthStore = defineStore("auth", () => {
     initAuth,
     login,
     register,
+    verifyOtp,
     fetchUser,
     logout,
     setTokenFromGoogle,

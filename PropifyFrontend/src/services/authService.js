@@ -55,12 +55,14 @@ const authService = {
   },
 
   /**
-   * Refresh the current JWT token.
+   * Verify OTP after registration.
    *
+   * @param {string} email
+   * @param {string} otp - 6 digit OTP
    * @returns {Promise<import('axios').AxiosResponse>}
    */
-  refreshToken() {
-    return api.post("/v1/auth/refresh");
+  verifyOtp(email, otp) {
+    return api.post("/v1/auth/verify-otp", { email, otp });
   },
 };
 

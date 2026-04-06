@@ -7,6 +7,7 @@ use App\DTOs\Auth\RegisterUserDto;
 use App\Helpers\ApiResponse;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\VerifyOtpRequest;
 use App\Http\Resources\AuthTokenResource;
 use App\Http\Resources\UserResource;
 use App\Services\AuthService;
@@ -40,11 +41,35 @@ final class AuthController
     public function register(RegisterRequest $request): JsonResponse
     {
         $dto = $request->toDto();
-        $result = $this->authService->register($dto);
+        $this->authService->register($dto);
 
-        return ApiResponse::created(
+        return ApiResponse::success(
+            message: 'Đăng ký thành công. Vui lòng kiểm tra email để nhập mã OTP.',
+            statusCode: 202
+        );
+    }
+
+    // Verify OTP
+    #[OA\Post(path: "/api/v1/auth/verify-otp", operationId: "verifyOtp", summary: "Verify OTP after registration", security: [], tags: ["Authentication"])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ["email", "otp"],
+        properties: [
+            new OA\Property(property: "email", format: "email", type: "string", example: "user@example.com"),
+            new OA\Property(property: "otp", type: "string", example: "123456"),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: "OTP verified, token returned")]
+    #[OA\Response(response: 401, description: "Invalid or expired OTP")]
+    public function verifyOtp(VerifyOtpRequest $request): JsonResponse
+    {
+        $result = $this->authService->verifyOtp(
+            email: $request->validated('email'),
+            otp: $request->validated('otp'),
+        );
+
+        return ApiResponse::success(
             data: new AuthTokenResource($result),
-            message: 'Đăng ký thành công'
+            message: 'Xác thực OTP thành công'
         );
     }
 

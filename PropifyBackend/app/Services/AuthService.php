@@ -6,6 +6,7 @@ use App\DTOs\Auth\AuthResultDto;
 use App\DTOs\Auth\LoginCredentialsDto;
 use App\DTOs\Auth\RegisterUserDto;
 use App\Exceptions\AuthenticationFailedException;
+use App\Exceptions\OtpInvalidException;
 use App\Models\User;
 
 interface AuthService
@@ -18,9 +19,18 @@ interface AuthService
     public function login(LoginCredentialsDto $dto): AuthResultDto;
 
     /**
-     * Register a new user and return their token payload.
+     * Register a new user (status = Pending), generate & send OTP.
+     * Returns void — chưa cấp token, phải verify OTP trước.
      */
-    public function register(RegisterUserDto $dto): AuthResultDto;
+    public function register(RegisterUserDto $dto): void;
+
+    /**
+     * Verify OTP, activate user (status = Active), return token.
+     *
+     * @throws OtpInvalidException
+     * @throws AuthenticationFailedException
+     */
+    public function verifyOtp(string $email, string $otp): AuthResultDto;
 
     /**
      * Invalidate the current token.

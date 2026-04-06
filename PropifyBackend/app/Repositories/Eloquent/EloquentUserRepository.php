@@ -31,4 +31,11 @@ final class EloquentUserRepository implements UserRepository
     {
         return $this->model->where('google_id', $googleId)->first();
     }
+
+    public function update(int $id, array $attributes): User
+    {
+        $user = $this->model->findOrFail($id);
+        $user->update($attributes);
+        return $user;
+    }
 }

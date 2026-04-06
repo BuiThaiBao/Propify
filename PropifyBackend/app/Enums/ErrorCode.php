@@ -7,12 +7,15 @@ use Illuminate\Http\Response;
 enum ErrorCode: int
 {
     // ==================== Auth (1xxx) ====================
-    case AuthLoginFailed = 1001;
-    case AuthTokenInvalid = 1002;
-    case AuthTokenExpired = 1003;
-    case AuthUnauthorized = 1004;
-    case AuthForbidden = 1005;
+    case AuthLoginFailed    = 1001;
+    case AuthTokenInvalid   = 1002;
+    case AuthTokenExpired   = 1003;
+    case AuthUnauthorized   = 1004;
+    case AuthForbidden      = 1005;
     case AuthRegisterFailed = 1006;
+    case AuthOtpInvalid     = 1007;  // OTP sai hoặc đã dùng
+    case AuthOtpExpired     = 1008;  // OTP hết hạn (Redis TTL)
+    case AuthNotVerified    = 1009;  // Tài khoản chưa xác thực OTP
 
     // ==================== Validation (2xxx) ====================
     case ValidationError = 2001;
@@ -38,12 +41,15 @@ enum ErrorCode: int
     public function message(): string
     {
         return match ($this) {
-            self::AuthLoginFailed => 'Email hoặc mật khẩu không đúng',
-            self::AuthTokenInvalid => 'Token không hợp lệ',
-            self::AuthTokenExpired => 'Token đã hết hạn',
-            self::AuthUnauthorized => 'Chưa xác thực',
-            self::AuthForbidden => 'Không có quyền truy cập',
+            self::AuthLoginFailed    => 'Email hoặc mật khẩu không đúng',
+            self::AuthTokenInvalid   => 'Token không hợp lệ',
+            self::AuthTokenExpired   => 'Token đã hết hạn',
+            self::AuthUnauthorized   => 'Chưa xác thực',
+            self::AuthForbidden      => 'Không có quyền truy cập',
             self::AuthRegisterFailed => 'Đăng ký thất bại',
+            self::AuthOtpInvalid     => 'Mã OTP không hợp lệ',
+            self::AuthOtpExpired     => 'Mã OTP đã hết hạn',
+            self::AuthNotVerified    => 'Tài khoản chưa được xác thực',
             self::ValidationError => 'Dữ liệu không hợp lệ',
             self::UserNotFound => 'Không tìm thấy người dùng',
             self::UserAlreadyExists => 'Người dùng đã tồn tại',
@@ -66,7 +72,10 @@ enum ErrorCode: int
             self::AuthLoginFailed,
             self::AuthTokenInvalid,
             self::AuthTokenExpired,
-            self::AuthUnauthorized => Response::HTTP_UNAUTHORIZED,
+            self::AuthUnauthorized,
+            self::AuthOtpInvalid,
+            self::AuthOtpExpired,
+            self::AuthNotVerified => Response::HTTP_UNAUTHORIZED,
 
             self::AuthForbidden => Response::HTTP_FORBIDDEN,
 

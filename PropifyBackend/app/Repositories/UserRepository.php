@@ -27,4 +27,11 @@ interface UserRepository
      * Find a user by their Google ID.
      */
     public function findByGoogleId(string $googleId): ?User;
+
+    /**
+     * Update a user record by ID.
+     *
+     * @param array<string, mixed> $attributes
+     */
+    public function update(int $id, array $attributes): User;
 }

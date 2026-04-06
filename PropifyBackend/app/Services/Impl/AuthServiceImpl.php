@@ -7,10 +7,13 @@ use App\DTOs\Auth\LoginCredentialsDto;
 use App\DTOs\Auth\RegisterUserDto;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Events\Auth\UserRegistered;
 use App\Exceptions\AuthenticationFailedException;
+use App\Exceptions\OtpInvalidException;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use App\Services\AuthService;
+use App\Services\Otp\OtpService;
 use App\Services\TokenProcessService;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Support\Facades\DB;
@@ -21,11 +24,11 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 final class AuthServiceImpl implements AuthService
 {
     public function __construct(
-        private readonly UserRepository $userRepository,
-        private readonly AuthFactory $authFactory,
-        private readonly TokenProcessService $tokenProcessService
-    ) {
-    }
+        private readonly UserRepository    $userRepository,
+        private readonly AuthFactory       $authFactory,
+        private readonly TokenProcessService $tokenProcessService,
+        private readonly OtpService        $otpService,
+    ) {}
 
     /**
      * Authenticate a user and return a token payload.
@@ -35,11 +38,13 @@ final class AuthServiceImpl implements AuthService
     public function login(LoginCredentialsDto $dto): AuthResultDto
     {
         $credentials = [
-            'email' => $dto->email,
+            'email'    => $dto->email,
             'password' => $dto->password,
         ];
 
-        $token = $this->authFactory->guard('api')->attempt($credentials);
+        /** @var \Tymon\JWTAuth\JWTGuard $guard */
+        $guard = $this->authFactory->guard('api');
+        $token = $guard->attempt($credentials);
 
         if (!$token) {
             Log::warning('Failed login attempt', ['email' => $dto->email]);
@@ -47,42 +52,66 @@ final class AuthServiceImpl implements AuthService
         }
 
         /** @var User $user */
-        $user = $this->authFactory->guard('api')->user();
+        $user = $guard->user();
 
         Log::info('User logged in', ['user_id' => $user->id]);
 
-        return AuthResultDto::fromUserAndToken(
-            $user,
-            $token,
-            $this->authFactory->guard('api')->factory()->getTTL()
-        );
+        return AuthResultDto::fromUserAndToken($user, $token, $guard->factory()->getTTL());
     }
 
     /**
-     * Register a new user and return their token payload.
-     * Uses a DB transaction to ensure data integrity.
+     * Register: tạo user status=Pending, sinh OTP, gửi mail.
+     * KHÔNG trả token — client phải verify OTP trước.
      */
-    public function register(RegisterUserDto $dto): AuthResultDto
+    public function register(RegisterUserDto $dto): void
     {
-        return DB::transaction(function () use ($dto) {
+        DB::transaction(function () use ($dto) {
             $user = $this->userRepository->create([
                 'full_name' => $dto->fullName,
-                'email' => $dto->email,
-                'password' => Hash::make($dto->password),
-                'role' => UserRole::User->value,
-                'status' => UserStatus::Active->value,
+                'email'     => $dto->email,
+                'password'  => Hash::make($dto->password),
+                'role'      => UserRole::User->value,
+                'status'    => UserStatus::Pending->value,  // Chưa active
             ]);
 
-            Log::info('New user registered', ['user_id' => $user->id]);
+            Log::info('New user registered (pending OTP)', ['user_id' => $user->id]);
 
-            $token = $this->authFactory->guard('api')->login($user);
-
-            return AuthResultDto::fromUserAndToken(
-                $user,
-                $token,
-                $this->authFactory->guard('api')->factory()->getTTL()
-            );
+            // Sinh OTP → lưu Redis 3 phút → gửi email
+            $this->otpService->generate($user);
         });
+    }
+
+    /**
+     * Verify OTP → activate user → trả token.
+     *
+     * @throws OtpInvalidException
+     */
+    public function verifyOtp(string $email, string $otp): AuthResultDto
+    {
+        /** @var User|null $user */
+        $user = $this->userRepository->findByEmail($email);
+
+        if (!$user || !$this->otpService->verify($user, $otp)) {
+            throw new OtpInvalidException();
+        }
+
+        // Kích hoạt tài khoản
+        $this->userRepository->update($user->id, [
+            'status' => UserStatus::Active->value,
+        ]);
+
+        $user->refresh();
+
+        Log::info('User OTP verified, account activated', ['user_id' => $user->id]);
+
+        // Fire welcome event
+        UserRegistered::dispatch($user);
+
+        /** @var \Tymon\JWTAuth\JWTGuard $guard */
+        $guard = $this->authFactory->guard('api');
+        $token = $guard->login($user);
+
+        return AuthResultDto::fromUserAndToken($user, $token, $guard->factory()->getTTL());
     }
 
     /**
@@ -90,15 +119,16 @@ final class AuthServiceImpl implements AuthService
      */
     public function logout(): void
     {
+        /** @var \Tymon\JWTAuth\JWTGuard $guard */
+        $guard = $this->authFactory->guard('api');
+
         /** @var User $user */
-        $user = $this->authFactory->guard('api')->user();
+        $user = $guard->user();
         $this->processToken();
 
-        Log::info('User logged out', [
-            'user_id' => $user?->id,
-        ]);
+        Log::info('User logged out', ['user_id' => $user?->id]);
 
-        $this->authFactory->guard('api')->logout();
+        $guard->logout();
     }
 
     /**
@@ -108,8 +138,11 @@ final class AuthServiceImpl implements AuthService
     {
         $this->processToken();
 
+        /** @var \Tymon\JWTAuth\JWTGuard $guard */
+        $guard = $this->authFactory->guard('api');
+
         /** @var string $newToken */
-        $newToken = $this->authFactory->guard('api')->refresh();
+        $newToken = $guard->refresh();
 
         return $newToken;
     }
@@ -119,10 +152,11 @@ final class AuthServiceImpl implements AuthService
      */
     public function me(): ?User
     {
-        /** @var ?User $user */
-        $user = $this->authFactory->guard('api')->user();
+        /** @var \Tymon\JWTAuth\JWTGuard $guard */
+        $guard = $this->authFactory->guard('api');
 
-        return $user;
+        /** @var ?User $user */
+        return $guard->user();
     }
 
     /**
@@ -134,8 +168,8 @@ final class AuthServiceImpl implements AuthService
 
         if ($token) {
             $payload = JWTAuth::getPayload($token);
-            $exp = $payload->get('exp');
-            $ttl = max(0, $exp - time());
+            $exp     = $payload->get('exp');
+            $ttl     = max(0, $exp - time());
 
             if ($ttl <= 0) {
                 return;

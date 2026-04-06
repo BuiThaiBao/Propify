@@ -1,6 +1,16 @@
 <template>
   <Teleport to="body">
+    <!-- OTP modal — hiện sau khi đăng ký thành công -->
+    <VerifyOtp
+      v-if="showOtp"
+      :email="form.email"
+      @success="$emit('success')"
+      @resend="handleResend"
+    />
+
+    <!-- Register modal -->
     <div
+      v-else
       class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto"
     >
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm px-7 py-8 relative my-8">
@@ -99,14 +109,9 @@
             :type="showPassword ? 'text' : 'password'"
             placeholder="Nhập lại mật khẩu"
             class="w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm"
-            :class="{ 'border-red-400': fieldErrors?.password_confirmation }"
             @keyup.enter="handleRegister"
           />
         </div>
-        <p v-if="fieldErrors?.password_confirmation" class="text-red-500 text-xs mb-2 flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          {{ fieldErrors.password_confirmation[0] }}
-        </p>
 
         <!-- General error -->
         <p v-if="errorMessage" class="text-red-500 text-xs mb-3 flex items-center gap-1">
@@ -120,7 +125,7 @@
           :disabled="authStore.loading"
           class="w-full hero-gradient text-white font-semibold rounded-xl py-3.5 text-sm mb-4 disabled:opacity-60 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98] shadow-md shadow-blue-200"
         >
-          {{ authStore.loading ? 'Đang đăng ký...' : 'Tạo tài khoản' }}
+          {{ authStore.loading ? 'Đang xử lý...' : 'Tạo tài khoản' }}
         </button>
 
         <!-- Divider -->
@@ -147,10 +152,7 @@
         <!-- Switch to login -->
         <p class="text-center text-xs text-gray-500 mb-4">
           Đã có tài khoản?
-          <button
-            class="text-blue-500 hover:underline font-medium ml-1"
-            @click="$emit('switchToLogin')"
-          >
+          <button class="text-blue-500 hover:underline font-medium ml-1" @click="$emit('switchToLogin')">
             Đăng nhập
           </button>
         </p>
@@ -169,36 +171,39 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useAuthStore } from "@/stores/auth";
+import { ref } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+import VerifyOtp from './VerifyOtp.vue';
 
 const authStore = useAuthStore();
-const emit = defineEmits(["close", "success", "switchToLogin"]);
+const emit = defineEmits(['close', 'success', 'switchToLogin']);
 
+const showOtp = ref(false);
 const showPassword = ref(false);
-const form = ref({
-  fullName: "",
-  email: "",
-  password: "",
-  passwordConfirmation: "",
-});
-const errorMessage = ref("");
+const form = ref({ fullName: '', email: '', password: '', passwordConfirmation: '' });
+const errorMessage = ref('');
 const fieldErrors = ref(null);
 
 async function handleRegister() {
   if (authStore.loading) return;
 
-  errorMessage.value = "";
+  errorMessage.value = '';
   fieldErrors.value = null;
 
   const result = await authStore.register(form.value);
 
   if (result.success) {
-    emit("success");
+    // Đăng ký OK → chuyển sang nhập OTP
+    showOtp.value = true;
   } else {
     errorMessage.value = result.message;
     fieldErrors.value = result.errors;
   }
+}
+
+async function handleResend() {
+  // Gửi lại = đăng ký lại với cùng email
+  await authStore.register(form.value);
 }
 
 function handleGoogleLogin() {
