@@ -27,7 +27,7 @@
           </div>
 
           <!-- Listings -->
-          <div>
+          <div class="flex flex-col gap-6">
             <ListingCard 
               v-for="item in 3" 
               :key="item"

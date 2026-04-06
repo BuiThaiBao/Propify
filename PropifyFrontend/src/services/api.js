@@ -17,13 +17,20 @@ const api = axios.create({
   },
 });
 
+/** Public endpoints that should NOT send the JWT token */
+const PUBLIC_ENDPOINTS = ["/v1/auth/login", "/v1/auth/register"];
+
 /**
- * Request interceptor — automatically attach JWT token to every request.
+ * Request interceptor — automatically attach JWT token to every request,
+ * except for public endpoints (login, register) to avoid sending stale tokens.
  */
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  const isPublic = PUBLIC_ENDPOINTS.some((url) => config.url?.includes(url));
+  if (!isPublic) {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -38,13 +45,22 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Prevent infinite loop: skip refresh if the failing request IS the refresh call
-    if (
+    // Skip refresh for: the refresh endpoint itself, and public endpoints (login/register)
+    // Public endpoints returning 401 should surface their own error message, not a refresh error
+    const isPublicEndpoint = PUBLIC_ENDPOINTS.some((url) =>
+      originalRequest.url?.includes(url),
+    );
+    const isRefreshEndpoint =
       originalRequest.url === API_REFRESH_URL ||
-      originalRequest.url.includes("/refresh")
-    ) {
+      originalRequest.url.includes("/refresh");
+
+    if (isRefreshEndpoint) {
       localStorage.removeItem(TOKEN_KEY);
       router.push({ name: "Home" });
+      return Promise.reject(error);
+    }
+
+    if (isPublicEndpoint) {
       return Promise.reject(error);
     }
 
