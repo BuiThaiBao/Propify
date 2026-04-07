@@ -30,6 +30,11 @@ const routes = [
     name: "Sales",
     component: () => import("@/pages/Sale/index.vue"),
   },
+  {
+    path: "/rent",
+    name: "Rent",
+    component: () => import("@/pages/Rent/index.vue"),
+  },
 ];
 
 const router = createRouter({
