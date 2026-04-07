@@ -1,7 +1,6 @@
 <template>
   <div class="layout">
     <HeroSection />
-    <CategorySection />
 
     <main class="main-content">
       <slot />
@@ -14,7 +13,6 @@
 <script setup>
 import AppFooter from "@/components/common/AppFooter.vue";
 import HeroSection from "@/components/common/Home/HeroSection.vue";
-import CategorySection from "@/components/common/Home/CategorySection.vue";
 </script>
 
 <style scoped>
