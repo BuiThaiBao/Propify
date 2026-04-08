@@ -2,6 +2,19 @@ import { createRouter, createWebHistory } from 'vue-router'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 
+/**
+ * Promise resolved sau khi initAuth() hoàn thành.
+ * Guard sẽ await promise này trước khi kiểm tra auth state,
+ * tránh race condition khi reload trang.
+ */
+let authReadyResolve
+export const authReady = new Promise((resolve) => {
+  authReadyResolve = resolve
+})
+export function resolveAuthReady() {
+  authReadyResolve()
+}
+
 const routes = [
   {
     path: '/login',
@@ -55,10 +68,14 @@ const router = createRouter({
 
 /**
  * Global navigation guard.
+ * - Await authReady trước — đảm bảo initAuth() đã chạy xong khi reload
  * - requiresAuth: chỉ cho phép admin đã đăng nhập truy cập
  * - requiresGuest: redirect về Dashboard nếu đã đăng nhập rồi
  */
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
+  // Chờ initAuth() hoàn thành trước khi kiểm tra (xử lý trường hợp reload)
+  await authReady
+
   const auth = useAuthStore()
 
   if (to.meta.requiresAuth) {

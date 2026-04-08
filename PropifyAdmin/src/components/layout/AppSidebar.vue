@@ -1,7 +1,7 @@
 <script setup>
-import { computed } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { useRoute, RouterLink, useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
+import { useAuthStore } from '@/stores/auth'
 import {
   LayoutDashboard,
   FileText,
@@ -11,10 +11,13 @@ import {
   BarChart3,
   ChevronLeft,
   Building2,
+  LogOut,
 } from 'lucide-vue-next'
 
 const route = useRoute()
+const router = useRouter()
 const admin = useAdminStore()
+const auth = useAuthStore()
 
 const menuItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
@@ -28,6 +31,11 @@ const menuItems = [
 function isActive(url) {
   if (url === '/') return route.path === '/'
   return route.path.startsWith(url)
+}
+
+async function handleLogout() {
+  await auth.logout()
+  router.push({ name: 'Login' })
 }
 </script>
 
@@ -63,6 +71,30 @@ function isActive(url) {
         <span v-if="!admin.sidebarCollapsed">{{ item.title }}</span>
       </RouterLink>
     </nav>
+
+    <!-- User info + Logout -->
+    <div class="sidebar-footer">
+      <div class="user-info" :title="auth.user?.email">
+        <div class="user-avatar">
+          {{ auth.user?.full_name?.charAt(0)?.toUpperCase() || 'A' }}
+        </div>
+        <div v-if="!admin.sidebarCollapsed" class="user-details">
+          <span class="user-name">{{ auth.user?.full_name || 'Admin' }}</span>
+          <span class="user-email">{{ auth.user?.email }}</span>
+        </div>
+      </div>
+
+      <button
+        id="logout-btn"
+        class="logout-btn"
+        :title="admin.sidebarCollapsed ? 'Đăng xuất' : ''"
+        :disabled="auth.loading"
+        @click="handleLogout"
+      >
+        <LogOut :size="18" class="flex-shrink-0" />
+        <span v-if="!admin.sidebarCollapsed">Đăng xuất</span>
+      </button>
+    </div>
 
     <!-- Collapse -->
     <button class="collapse-btn" @click="admin.toggleSidebar()">
@@ -170,6 +202,89 @@ function isActive(url) {
 
 .nav-item--default:hover .icon--default {
   color: hsl(var(--foreground));
+}
+
+/* Footer: user + logout */
+.sidebar-footer {
+  flex-shrink: 0;
+  padding: 12px;
+  border-top: 1px solid hsl(var(--border));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7));
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-email {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: hsl(var(--muted-foreground));
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  width: 100%;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.logout-btn:hover:not(:disabled) {
+  background-color: hsl(0 84% 60% / 0.1);
+  color: hsl(0 84% 60%);
+}
+
+.logout-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Collapse button */

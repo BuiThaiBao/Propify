@@ -34,14 +34,6 @@ const searchValue = ref('')
       </button>
 
       <!-- Admin profile -->
-      <div class="admin-profile" id="admin-profile">
-        <div class="admin-avatar gradient-primary">A</div>
-        <div class="admin-info">
-          <p class="admin-name">Admin</p>
-          <p class="admin-role">Quản trị viên</p>
-        </div>
-        <ChevronDown :size="16" class="text-muted-foreground" />
-      </div>
     </div>
   </header>
 </template>
