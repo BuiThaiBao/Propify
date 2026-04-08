@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Colors mapped from the original CSS variables */
+  --color-background: hsl(210, 20%, 98%);
+  --color-foreground: hsl(220, 20%, 10%);
+
+  --color-card: hsl(0, 0%, 100%);
+  --color-card-foreground: hsl(220, 20%, 10%);
+
+  --color-primary: hsl(217, 91%, 60%);
+  --color-primary-foreground: hsl(0, 0%, 100%);
+
+  --color-secondary: hsl(214, 32%, 91%);
+  --color-secondary-foreground: hsl(220, 20%, 20%);
+
+  --color-muted: hsl(210, 20%, 96%);
+  --color-muted-foreground: hsl(215, 16%, 47%);
+
+  --color-accent: hsl(210, 40%, 96%);
+  --color-accent-foreground: hsl(220, 20%, 10%);
+
+  --color-destructive: hsl(0, 84%, 60%);
+  --color-destructive-foreground: hsl(0, 0%, 100%);
+
+  --color-success: hsl(142, 71%, 45%);
+  --color-success-foreground: hsl(0, 0%, 100%);
+
+  --color-warning: hsl(38, 92%, 50%);
+  --color-warning-foreground: hsl(0, 0%, 100%);
+
+  --color-border: hsl(214, 20%, 92%);
+
+  --color-sidebar: hsl(0, 0%, 100%);
+  --color-sidebar-foreground: hsl(220, 10%, 40%);
+  --color-sidebar-accent: hsl(217, 91%, 97%);
+  --color-sidebar-accent-foreground: hsl(217, 91%, 50%);
+  --color-sidebar-border: hsl(214, 20%, 94%);
+}
+
+:root {
+  --background: 210 20% 98%;
+  --foreground: 220 20% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 20% 10%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 214 32% 91%;
+  --secondary-foreground: 220 20% 20%;
+  --muted: 210 20% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 210 40% 96%;
+  --accent-foreground: 220 20% 10%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
+  --warning: 38 92% 50%;
+  --warning-foreground: 0 0% 100%;
+  --border: 214 20% 92%;
+  --radius: 0.75rem;
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 220 10% 40%;
+  --sidebar-accent: 217 91% 97%;
+  --sidebar-accent-foreground: 217 91% 50%;
+  --sidebar-border: 214 20% 94%;
+  --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(230 80% 65%));
+  --shadow-card: 0 1px 3px 0 hsl(220 20% 10% / 0.04), 0 1px 2px -1px hsl(220 20% 10% / 0.04);
+  --shadow-card-hover: 0 4px 12px 0 hsl(220 20% 10% / 0.08);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  border-color: hsl(var(--border));
+}
+
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: hsl(var(--muted)); }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+
+/* Utility classes matching the original source */
+.gradient-primary {
+  background: var(--gradient-primary);
+}
+.gradient-primary-hover:hover {
+  background: linear-gradient(135deg, hsl(217 91% 55%), hsl(230 80% 60%));
+}
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}
+.shadow-card-hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Color helper classes */
+.bg-card { background-color: hsl(var(--card)); }
+.bg-muted { background-color: hsl(var(--muted)); }
+.bg-background { background-color: hsl(var(--background)); }
+.bg-accent { background-color: hsl(var(--accent)); }
+
+.text-foreground { color: hsl(var(--foreground)); }
+.text-muted-foreground { color: hsl(var(--muted-foreground)); }
+.text-primary { color: hsl(var(--primary)); }
+.text-success { color: hsl(var(--success)); }
+.text-destructive { color: hsl(var(--destructive)); }
+.text-warning { color: hsl(var(--warning)); }
+.text-primary-foreground { color: hsl(var(--primary-foreground)); }
+
+.border-border { border-color: hsl(var(--border)); }
+
+.bg-primary\/10 { background-color: hsl(var(--primary) / 0.1); }
+.bg-success\/10 { background-color: hsl(var(--success) / 0.1); }
+.bg-destructive\/10 { background-color: hsl(var(--destructive) / 0.1); }
+.bg-warning\/10 { background-color: hsl(var(--warning) / 0.1); }
+
+/* Sidebar specific */
+.bg-sidebar-accent { background-color: hsl(var(--sidebar-accent)); }
+.text-sidebar-accent-foreground { color: hsl(var(--sidebar-accent-foreground)); }
+.text-sidebar-foreground { color: hsl(var(--sidebar-foreground)); }

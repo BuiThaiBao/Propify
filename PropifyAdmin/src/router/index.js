@@ -1,0 +1,81 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import AdminLayout from '@/layouts/AdminLayout.vue'
+import { useAuthStore } from '@/stores/auth'
+
+const routes = [
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/pages/LoginPage.vue'),
+    meta: { requiresGuest: true },
+  },
+  {
+    path: '/',
+    component: AdminLayout,
+    meta: { requiresAuth: true },
+    children: [
+      {
+        path: '',
+        name: 'Dashboard',
+        component: () => import('@/pages/DashboardPage.vue'),
+      },
+      {
+        path: 'posts',
+        name: 'Posts',
+        component: () => import('@/pages/PostsPage.vue'),
+      },
+      {
+        path: 'packages',
+        name: 'Packages',
+        component: () => import('@/pages/PackagesPage.vue'),
+      },
+      {
+        path: 'users',
+        name: 'Users',
+        component: () => import('@/pages/UsersPage.vue'),
+      },
+      {
+        path: 'utilities',
+        name: 'Utilities',
+        component: () => import('@/pages/UtilitiesPage.vue'),
+      },
+      {
+        path: 'revenue',
+        name: 'Revenue',
+        component: () => import('@/pages/RevenuePage.vue'),
+      },
+    ],
+  },
+]
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
+})
+
+/**
+ * Global navigation guard.
+ * - requiresAuth: chỉ cho phép admin đã đăng nhập truy cập
+ * - requiresGuest: redirect về Dashboard nếu đã đăng nhập rồi
+ */
+router.beforeEach((to) => {
+  const auth = useAuthStore()
+
+  if (to.meta.requiresAuth) {
+    // Chưa có token → về Login
+    if (!auth.isAuthenticated) {
+      return { name: 'Login' }
+    }
+    // Có token nhưng không phải admin (edge case sau initAuth) → về Login
+    if (auth.user && !auth.isAdmin) {
+      auth.clearAuth()
+      return { name: 'Login' }
+    }
+  }
+
+  if (to.meta.requiresGuest && auth.isAuthenticated) {
+    return { name: 'Dashboard' }
+  }
+})
+
+export default router
