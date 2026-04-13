@@ -98,10 +98,26 @@
                   {{ authStore.user?.email }}
                 </p>
               </div>
+              <router-link
+                to="/profile"
+                @click="accountMenuOpen = false"
+                class="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                  <circle cx="12" cy="7" r="4"/>
+                </svg>
+                Thông tin tài khoản
+              </router-link>
               <button
                 @click="handleLogout"
-                class="w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
+                class="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
               >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
                 Đăng xuất
               </button>
             </div>
@@ -237,6 +253,11 @@ const showRegisterPopup = ref(false);
 function handlePostListing() {
   if (!authStore.isAuthenticated) {
     showLoginPopup.value = true;
+    return;
+  }
+  // Chưa cập nhật SĐT → chuyển sang trang profile để bổ sung
+  if (!authStore.user?.phone) {
+    router.push({ name: "Profile", query: { require: "phone" } });
     return;
   }
   router.push("/post-listing");

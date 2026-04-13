@@ -14,9 +14,11 @@ final class UpdateProfileRequest extends FormRequest
 
     public function rules(): array
     {
+        $userId = $this->user()?->id;
+
         return [
             'full_name' => 'required|string|max:100',
-            'phone' => 'nullable|string|max:10',
+            'phone'     => ['nullable', 'string', 'regex:/^[0-9]{10}$/', 'unique:users,phone,' . $userId],
         ];
     }
 
@@ -25,7 +27,8 @@ final class UpdateProfileRequest extends FormRequest
         return [
             'full_name.required' => 'Họ tên không được để trống',
             'full_name.max' => 'Họ tên không được vượt quá 100 ký tự',
-            'phone.max' => 'Số điện thoại không được vượt quá 10 ký tự',
+            'phone.regex'  => 'Số điện thoại phải đúng 10 chữ số.',
+            'phone.unique' => 'Số điện thoại này đã được sử dụng.',
         ];
     }
     public function toDto(): UpdateProfileDto

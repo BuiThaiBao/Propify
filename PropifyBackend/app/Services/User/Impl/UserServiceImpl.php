@@ -28,10 +28,13 @@ final class UserServiceImpl implements UserService
         /** @var User $user */
         $user = $this->authFactory->guard('api')->user();
 
-        $updated = $this->userRepository->update($user->id, [
-            'full_name' => $dto->fullName,
-            'phone' => $dto->phone,
-        ]);
+        $data = ['full_name' => $dto->fullName];
+
+        if ($dto->phone !== null) {
+            $data['phone'] = $dto->phone;
+        }
+
+        $updated = $this->userRepository->update($user->id, $data);
 
         Log::info('User profile updated', ['user_id' => $user->id]);
 

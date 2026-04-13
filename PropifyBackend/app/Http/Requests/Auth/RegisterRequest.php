@@ -32,6 +32,19 @@ final class RegisterRequest extends FormRequest
     }
 
     /**
+     * Trim password trước khi validate (BR.ACC.03)
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('password')) {
+            $this->merge([
+                'password' => trim($this->input('password')),
+                'password_confirmation' => trim($this->input('password_confirmation', '')),
+            ]);
+        }
+    }
+
+    /**
      * @return array<string, string>
      */
     public function messages(): array
