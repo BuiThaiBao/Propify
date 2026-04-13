@@ -77,14 +77,16 @@ final class User extends Authenticatable implements JWTSubject
         return $this->hasMany(Property::class, 'owner_id');
     }
 
-    public function viewerAppointments(): HasMany
+    /** Các slot lịch hẹn mà user đã tạo (với tư cách người đăng) */
+    public function appointmentSlots(): HasMany
     {
-        return $this->hasMany(Appointment::class, 'viewer_id');
+        return $this->hasMany(AppointmentSlot::class, 'poster_id');
     }
 
-    public function posterAppointments(): HasMany
+    /** Các booking mà user đã đặt (với tư cách người xem) */
+    public function appointmentBookings(): HasMany
     {
-        return $this->hasMany(Appointment::class, 'poster_id');
+        return $this->hasMany(AppointmentBooking::class, 'viewer_id');
     }
 
     public function transactions(): HasMany

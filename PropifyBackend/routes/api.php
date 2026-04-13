@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\GoogleController;
+use App\Http\Controllers\Api\V1\User\UserController;
 use App\Http\Controllers\Api\V1\ListingController;
 use Illuminate\Support\Facades\Route;
 
@@ -63,6 +64,18 @@ Route::prefix('v1/auth')->as('auth.')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/me', [AuthController::class, 'me'])->name('me');
     });
+
+});
+Route::prefix('v1/user')->as('user.')->middleware('auth:api')->group(function () {
+    Route::get('/profile', [UserController::class, 'getProfile'])->name('profile.show');
+    Route::put('/profile', [UserController::class, 'updateProfile'])->name('profile.update');
+    Route::put('/change-password', [UserController::class, 'changePassword'])->name('password.change');
+});
+
+// ==================== APPOINTMENT ROUTES ====================
+Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('auth:api')->group(function () {
+    Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'index'])
+        ->name('index');
 });
 
 Route::prefix('v1')->middleware('auth:api')->group(function () {

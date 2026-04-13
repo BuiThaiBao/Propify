@@ -181,6 +181,15 @@ final class AuthController
 
     // Check Reset OTP (bước 2 — kiểm tra OTP trước khi cho nhập mật khẩu)
     #[OA\Post(path: "/api/v1/auth/check-reset-otp", operationId: "checkResetOtp", summary: "Check reset OTP without consuming it", security: [], tags: ["Authentication"])]
+    #[OA\RequestBody(required: true, content: new OA\JsonContent(
+        required: ["email", "otp"],
+        properties: [
+            new OA\Property(property: "email", format: "email", type: "string"),
+            new OA\Property(property: "otp", type: "string", example: "123456"),
+        ]
+    ))]
+    #[OA\Response(response: 200, description: "OTP is valid")]
+    #[OA\Response(response: 401, description: "Invalid or expired OTP")]
     public function checkResetOtp(CheckResetOtpRequest $request): JsonResponse
     {
         $this->authService->checkResetOtp(

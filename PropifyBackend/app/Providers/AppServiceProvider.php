@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Events\Auth\UserRegistered;
 use App\Listeners\Auth\SendWelcomeNotification;
+use App\Repositories\AppointmentSlotRepository;
+use App\Repositories\Eloquent\EloquentAppointmentSlotRepository;
 use App\Repositories\Eloquent\EloquentListingRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
 use App\Repositories\ListingRepository;
@@ -24,7 +26,11 @@ use App\Services\Otp\Adapters\RedisOtpStorageAdapter;
 use App\Services\Otp\Impl\OtpServiceImpl;
 use App\Services\Otp\OtpService;
 use App\Services\Otp\OtpStoragePort;
+use App\Services\Appointment\AppointmentSlotService;
+use App\Services\Appointment\Impl\AppointmentSlotServiceImpl;
 use App\Services\TokenProcessService;
+use App\Services\User\Impl\UserServiceImpl;
+use App\Services\User\UserService;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -37,6 +43,7 @@ final class AppServiceProvider extends ServiceProvider
     {
         // ── Repository bindings ───────────────────────────────────────────
         $this->app->bind(UserRepository::class, EloquentUserRepository::class);
+        $this->app->bind(AppointmentSlotRepository::class, EloquentAppointmentSlotRepository::class);
         $this->app->bind(ListingRepository::class, EloquentListingRepository::class);
 
         // ── Auth bindings ─────────────────────────────────────────────────
@@ -44,6 +51,9 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(AuthGoogleService::class, AuthGoogleServiceImpl::class);
         $this->app->bind(TokenProcessService::class, TokenProcessServiceImpl::class);
         $this->app->bind(UserUpsertService::class, UserUpsertServiceImpl::class);
+
+        // ── Appointment bindings ──────────────────────────────────────────
+        $this->app->bind(AppointmentSlotService::class, AppointmentSlotServiceImpl::class);
         $this->app->bind(ListingService::class, ListingServiceImpl::class);
 
         // ── Notification bindings ─────────────────────────────────────────
@@ -61,6 +71,9 @@ final class AppServiceProvider extends ServiceProvider
         // Production: Redis. Test: swap sang CacheOtpStorageAdapter
         $this->app->bind(OtpStoragePort::class, RedisOtpStorageAdapter::class);
         $this->app->bind(OtpService::class, OtpServiceImpl::class);
+
+        //USER
+        $this->app->bind(UserService::class, UserServiceImpl::class);
     }
 
     /**

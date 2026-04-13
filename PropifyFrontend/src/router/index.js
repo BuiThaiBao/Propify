@@ -36,6 +36,12 @@ const routes = [
     component: () => import("@/pages/Rent/index.vue"),
   },
   {
+    path: "/profile",
+    name: "Profile",
+    component: () => import("@/pages/Profile/index.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/post-listing",
     name: "PostListing",
     component: () => import("@/pages/PostListing.vue"),

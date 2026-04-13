@@ -23,6 +23,18 @@ final class LoginRequest extends FormRequest
     }
 
     /**
+     * Trim password trước khi validate (BR.ACC.03)
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('password')) {
+            $this->merge([
+                'password' => trim($this->input('password')),
+            ]);
+        }
+    }
+
+    /**
      * @return array<string, string>
      */
     public function messages(): array
