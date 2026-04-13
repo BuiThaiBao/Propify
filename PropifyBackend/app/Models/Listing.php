@@ -48,10 +48,10 @@ final class Listing extends Model
         return $this->hasMany(ListingImage::class, 'listing_id');
     }
 
-    /** Danh sách lịch hẹn */
-    public function appointments(): HasMany
+    /** Danh sách slot lịch hẹn */
+    public function appointmentSlots(): HasMany
     {
-        return $this->hasMany(Appointment::class, 'listing_id');
+        return $this->hasMany(AppointmentSlot::class, 'listing_id');
     }
 
     /** Danh sách giao dịch */
