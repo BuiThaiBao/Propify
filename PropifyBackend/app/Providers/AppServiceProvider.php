@@ -6,6 +6,8 @@ use App\Events\Auth\UserRegistered;
 use App\Listeners\Auth\SendWelcomeNotification;
 use App\Repositories\Eloquent\EloquentUserRepository;
 use App\Repositories\UserRepository;
+use App\Services\Auth\Impl\UserUpsertServiceImpl;
+use App\Services\Auth\UserUpsertService;
 use App\Services\AuthGoogleService;
 use App\Services\AuthService;
 use App\Services\Impl\AuthGoogleServiceImpl;
@@ -34,6 +36,7 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(AuthService::class, AuthServiceImpl::class);
         $this->app->bind(AuthGoogleService::class, AuthGoogleServiceImpl::class);
         $this->app->bind(TokenProcessService::class, TokenProcessServiceImpl::class);
+        $this->app->bind(UserUpsertService::class, UserUpsertServiceImpl::class);
 
         // ── Notification bindings ─────────────────────────────────────────
         // NotificationServiceImpl nhận array $channels qua constructor

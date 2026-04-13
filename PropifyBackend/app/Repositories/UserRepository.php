@@ -29,6 +29,12 @@ interface UserRepository
     public function findByGoogleId(string $googleId): ?User;
 
     /**
+     * Find a user by social provider name and provider ID.
+     * Example: findByProviderId('google', '123456789')
+     */
+    public function findByProviderId(string $provider, string $providerId): ?User;
+
+    /**
      * Update a user record by ID.
      *
      * @param array<string, mixed> $attributes

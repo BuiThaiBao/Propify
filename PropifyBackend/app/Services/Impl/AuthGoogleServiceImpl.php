@@ -2,21 +2,23 @@
 
 namespace App\Services\Impl;
 
-use App\Enums\UserRole;
-use App\Enums\UserStatus;
-use App\Repositories\UserRepository;
+use App\Services\Auth\Adapters\GoogleSocialiteAdapter;
+use App\Services\Auth\UserUpsertService;
 use App\Services\AuthGoogleService;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
+/**
+ * Chỉ xử lý OAuth flow (redirect + callback).
+ * Logic upsert user được delegate cho UserUpsertService (SRP).
+ */
 final class AuthGoogleServiceImpl implements AuthGoogleService
 {
     public function __construct(
-        private readonly UserRepository $userRepository,
-    ) {
-    }
+        private readonly UserUpsertService $userUpsertService,
+    ) {}
 
     public function redirectToGoogle(): RedirectResponse
     {
@@ -32,36 +34,12 @@ final class AuthGoogleServiceImpl implements AuthGoogleService
                 return redirect(config('app.frontend_url') . "/?error=google_auth_failed");
             }
 
+            // Lấy user từ Google OAuth → bọc bằng Adapter
             $googleUser = Socialite::driver('google')->stateless()->user();
+            $adapted = new GoogleSocialiteAdapter($googleUser);
 
-            // 1) Tìm user theo google_id
-            $user = $this->userRepository->findByGoogleId($googleUser->getId());
-
-            if (!$user) {
-                // 2) Tìm theo email (user đã register bằng email trước đó)
-                $user = $this->userRepository->findByEmail($googleUser->getEmail());
-
-                if ($user) {
-                    // Liên kết google_id vào tài khoản hiện có
-                    $user->update([
-                        'google_id' => $googleUser->getId(),
-                    ]);
-
-                    Log::info('Google account linked to existing user', ['user_id' => $user->id]);
-                } else {
-                    // 3) Tạo user mới
-                    $user = $this->userRepository->create([
-                        'full_name' => $googleUser->getName(),
-                        'email'     => $googleUser->getEmail(),
-                        'google_id' => $googleUser->getId(),
-                        'password'  => null,
-                        'role'      => UserRole::User->value,
-                        'status'    => UserStatus::Active->value,
-                    ]);
-
-                    Log::info('New user registered via Google', ['user_id' => $user->id]);
-                }
-            }
+            // Delegate logic tìm/tạo/liên kết user cho UserUpsertService
+            $user = $this->userUpsertService->upsertFromSocial($adapted);
 
             $token = JWTAuth::fromUser($user);
 

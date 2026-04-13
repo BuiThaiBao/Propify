@@ -38,4 +38,11 @@ final class EloquentUserRepository implements UserRepository
         $user->update($attributes);
         return $user;
     }
+
+    public function findByProviderId(string $provider, string $providerId): ?User
+    {
+        $column = $provider . '_id'; // 'google_id', 'facebook_id', ...
+
+        return $this->model->where($column, $providerId)->first();
+    }
 }
