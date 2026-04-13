@@ -8,7 +8,7 @@ use App\Enums\OtpContext;
 use App\Models\User;
 use App\Services\Notification\NotificationService;
 use App\Services\Otp\OtpService;
-use Illuminate\Support\Facades\Redis;
+use App\Services\Otp\OtpStoragePort;
 
 final class OtpServiceImpl implements OtpService
 {
@@ -19,21 +19,17 @@ final class OtpServiceImpl implements OtpService
     private const OTP_LENGTH = 6;
 
     public function __construct(
-        private readonly NotificationService $notificationService
+        private readonly NotificationService $notificationService,
+        private readonly OtpStoragePort $storage, // ← inject qua interface, không hardcode Redis
     ) {}
 
     public function generate(User $user, OtpContext $context): string
     {
         $otp = $this->generateOtp();
-        $key = $this->redisKey($user, $context);
+        $key = $this->storageKey($user, $context);
 
-        // Dùng pipeline để DEL + SETEX là một batch nguyên tử
-        // → đảm bảo OTP cũ bị xóa TRƯỚC khi OTP mới được ghi
-        // → tránh trường hợp user dùng được OTP cũ khi vừa yêu cầu lại
-        Redis::pipeline(function ($pipe) use ($key, $otp) {
-            $pipe->del($key);
-            $pipe->setex($key, self::OTP_TTL_SECONDS, $otp);
-        });
+        // Delegate cho OtpStoragePort — không biết Redis hay Cache
+        $this->storage->store($key, $otp, self::OTP_TTL_SECONDS);
 
         $mailType = match ($context) {
             OtpContext::REGISTER       => MailType::VERIFY_EMAIL,
@@ -52,7 +48,7 @@ final class OtpServiceImpl implements OtpService
 
     public function verify(User $user, string $otp, OtpContext $context): bool
     {
-        $stored = Redis::get($this->redisKey($user, $context));
+        $stored = $this->storage->retrieve($this->storageKey($user, $context));
 
         if (!$stored || !hash_equals($stored, $otp)) {
             return false;
@@ -64,26 +60,26 @@ final class OtpServiceImpl implements OtpService
     }
 
     /**
-     * Kiểm tra OTP hợp lệ mà KHÔNG xóa Redis.
+     * Kiểm tra OTP hợp lệ mà KHÔNG xóa storage.
      * Step 2: check → step 3: reset (verify + xóa thật sự).
      */
     public function peek(User $user, string $otp, OtpContext $context): bool
     {
-        $stored = Redis::get($this->redisKey($user, $context));
+        $stored = $this->storage->retrieve($this->storageKey($user, $context));
 
         return $stored && hash_equals($stored, $otp);
     }
 
     public function invalidate(User $user, OtpContext $context): void
     {
-        Redis::del($this->redisKey($user, $context));
+        $this->storage->delete($this->storageKey($user, $context));
     }
 
     // =========================================================
     //  PRIVATE HELPERS
     // =========================================================
 
-    private function redisKey(User $user, OtpContext $context): string
+    private function storageKey(User $user, OtpContext $context): string
     {
         return "otp:{$context->value}:{$user->id}";
         // register → otp:register:1

@@ -16,8 +16,10 @@ use App\Services\Impl\TokenProcessServiceImpl;
 use App\Services\Notification\Channel\EmailChannel;
 use App\Services\Notification\Impl\NotificationServiceImpl;
 use App\Services\Notification\NotificationService;
+use App\Services\Otp\Adapters\RedisOtpStorageAdapter;
 use App\Services\Otp\Impl\OtpServiceImpl;
 use App\Services\Otp\OtpService;
+use App\Services\Otp\OtpStoragePort;
 use App\Services\TokenProcessService;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -49,7 +51,9 @@ final class AppServiceProvider extends ServiceProvider
             ]);
         });
 
-        // ── OTP binding ───────────────────────────────────────────────────
+        // ── OTP bindings ──────────────────────────────────────────────────
+        // Production: Redis. Test: swap sang CacheOtpStorageAdapter
+        $this->app->bind(OtpStoragePort::class, RedisOtpStorageAdapter::class);
         $this->app->bind(OtpService::class, OtpServiceImpl::class);
     }
 
