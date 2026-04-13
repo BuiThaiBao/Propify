@@ -26,15 +26,18 @@ final class UserController
     public function updateProfile(UpdateProfileRequest $request): JsonResponse
     {
         $user = $this->userService->updateProfile($request->toDto());
-        return response()->json([
-            'data' => $user,
-        ]);
+
+        return ApiResponse::success(
+            data: new UserResource($user),
+            message: 'Cập nhật thông tin thành công.',
+        );
     }
     public function changePassword(ChangePasswordRequest $request): JsonResponse
     {
         $this->userService->changePassword($request->toDto());
-        return response()->json([
-            'message' => 'Password changed successfully',
-        ]);
+
+        return ApiResponse::success(
+            message: 'Đổi mật khẩu thành công.',
+        );
     }
 }

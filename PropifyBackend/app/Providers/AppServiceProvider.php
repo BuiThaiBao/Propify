@@ -21,6 +21,8 @@ use App\Services\Otp\Impl\OtpServiceImpl;
 use App\Services\Otp\OtpService;
 use App\Services\Otp\OtpStoragePort;
 use App\Services\TokenProcessService;
+use App\Services\User\Impl\UserServiceImpl;
+use App\Services\User\UserService;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -55,6 +57,9 @@ final class AppServiceProvider extends ServiceProvider
         // Production: Redis. Test: swap sang CacheOtpStorageAdapter
         $this->app->bind(OtpStoragePort::class, RedisOtpStorageAdapter::class);
         $this->app->bind(OtpService::class, OtpServiceImpl::class);
+
+        //USER
+        $this->app->bind(UserService::class, UserServiceImpl::class);
     }
 
     /**
