@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Events\Auth\UserRegistered;
 use App\Listeners\Auth\SendWelcomeNotification;
+use App\Repositories\AppointmentSlotRepository;
+use App\Repositories\Eloquent\EloquentAppointmentSlotRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
 use App\Repositories\UserRepository;
 use App\Services\Auth\Impl\UserUpsertServiceImpl;
@@ -20,6 +22,8 @@ use App\Services\Otp\Adapters\RedisOtpStorageAdapter;
 use App\Services\Otp\Impl\OtpServiceImpl;
 use App\Services\Otp\OtpService;
 use App\Services\Otp\OtpStoragePort;
+use App\Services\Appointment\AppointmentSlotService;
+use App\Services\Appointment\Impl\AppointmentSlotServiceImpl;
 use App\Services\TokenProcessService;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -33,12 +37,16 @@ final class AppServiceProvider extends ServiceProvider
     {
         // ── Repository bindings ───────────────────────────────────────────
         $this->app->bind(UserRepository::class, EloquentUserRepository::class);
+        $this->app->bind(AppointmentSlotRepository::class, EloquentAppointmentSlotRepository::class);
 
         // ── Auth bindings ─────────────────────────────────────────────────
         $this->app->bind(AuthService::class, AuthServiceImpl::class);
         $this->app->bind(AuthGoogleService::class, AuthGoogleServiceImpl::class);
         $this->app->bind(TokenProcessService::class, TokenProcessServiceImpl::class);
         $this->app->bind(UserUpsertService::class, UserUpsertServiceImpl::class);
+
+        // ── Appointment bindings ──────────────────────────────────────────
+        $this->app->bind(AppointmentSlotService::class, AppointmentSlotServiceImpl::class);
 
         // ── Notification bindings ─────────────────────────────────────────
         // NotificationServiceImpl nhận array $channels qua constructor

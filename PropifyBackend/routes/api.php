@@ -63,3 +63,9 @@ Route::prefix('v1/auth')->as('auth.')->group(function () {
         Route::get('/me', [AuthController::class, 'me'])->name('me');
     });
 });
+
+// ==================== APPOINTMENT ROUTES ====================
+Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('auth:api')->group(function () {
+    Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'index'])
+        ->name('index');
+});
