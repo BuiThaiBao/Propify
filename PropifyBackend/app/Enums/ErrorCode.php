@@ -31,6 +31,10 @@ enum ErrorCode: int
     case ResourceUpdateFailed = 4003;
     case ResourceDeleteFailed = 4004;
 
+    // ==================== Appointment (6xxx) ====================
+    case ListingNotFound          = 6001;
+    case AppointmentSlotNotFound  = 6002;
+
     // ==================== Server (5xxx) ====================
     case ServerError = 5001;
     case ServiceUnavailable = 5002;
@@ -58,6 +62,8 @@ enum ErrorCode: int
             self::ResourceCreateFailed => 'Tạo tài nguyên thất bại',
             self::ResourceUpdateFailed => 'Cập nhật tài nguyên thất bại',
             self::ResourceDeleteFailed => 'Xóa tài nguyên thất bại',
+            self::ListingNotFound => 'Không tìm thấy bài đăng',
+            self::AppointmentSlotNotFound => 'Bạn không có cấu hình lịch hẹn nào cho bài đăng này hoặc bạn không có quyền truy cập',
             self::ServerError => 'Lỗi hệ thống',
             self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
         };
@@ -82,7 +88,9 @@ enum ErrorCode: int
             self::ValidationError => Response::HTTP_UNPROCESSABLE_ENTITY,
 
             self::UserNotFound,
-            self::ResourceNotFound => Response::HTTP_NOT_FOUND,
+            self::ResourceNotFound,
+            self::ListingNotFound,
+            self::AppointmentSlotNotFound => Response::HTTP_NOT_FOUND,
 
             self::UserAlreadyExists => Response::HTTP_CONFLICT,
 

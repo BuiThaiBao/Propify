@@ -70,3 +70,9 @@ Route::prefix('v1/user')->as('user.')->middleware('auth:api')->group(function ()
     Route::put('/profile', [UserController::class, 'updateProfile'])->name('profile.update');
     Route::put('/change-password', [UserController::class, 'changePassword'])->name('password.change');
 });
+
+// ==================== APPOINTMENT ROUTES ====================
+Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('auth:api')->group(function () {
+    Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'index'])
+        ->name('index');
+});
