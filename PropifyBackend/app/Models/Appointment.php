@@ -14,6 +14,9 @@ final class Appointment extends Model
         'viewer_id',
         'poster_id',
         'meet_time',
+        'contact_name',
+        'contact_phone',
+        'contact_email',
         'note',
         'status',
     ];

@@ -7,15 +7,16 @@ use Illuminate\Http\Response;
 enum ErrorCode: int
 {
     // ==================== Auth (1xxx) ====================
-    case AuthLoginFailed    = 1001;
-    case AuthTokenInvalid   = 1002;
-    case AuthTokenExpired   = 1003;
-    case AuthUnauthorized   = 1004;
-    case AuthForbidden      = 1005;
+    case AuthLoginFailed = 1001;
+    case AuthTokenInvalid = 1002;
+    case AuthTokenExpired = 1003;
+    case AuthUnauthorized = 1004;
+    case AuthForbidden = 1005;
     case AuthRegisterFailed = 1006;
-    case AuthOtpInvalid     = 1007;  // OTP sai hoặc đã dùng
-    case AuthOtpExpired     = 1008;  // OTP hết hạn (Redis TTL)
-    case AuthNotVerified    = 1009;  // Tài khoản chưa xác thực OTP
+    case AuthOtpInvalid = 1007;
+    case AuthOtpExpired = 1008;
+    case AuthNotVerified = 1009;
+    case AuthPhoneNotVerified = 1010;
 
     // ==================== Validation (2xxx) ====================
     case ValidationError = 2001;
@@ -35,37 +36,32 @@ enum ErrorCode: int
     case ServerError = 5001;
     case ServiceUnavailable = 5002;
 
-    /**
-     * Get the descriptive message for the error code.
-     */
     public function message(): string
     {
         return match ($this) {
-            self::AuthLoginFailed    => 'Email hoặc mật khẩu không đúng',
-            self::AuthTokenInvalid   => 'Token không hợp lệ',
-            self::AuthTokenExpired   => 'Token đã hết hạn',
-            self::AuthUnauthorized   => 'Chưa xác thực',
-            self::AuthForbidden      => 'Không có quyền truy cập',
-            self::AuthRegisterFailed => 'Đăng ký thất bại',
-            self::AuthOtpInvalid     => 'Mã OTP không hợp lệ',
-            self::AuthOtpExpired     => 'Mã OTP đã hết hạn',
-            self::AuthNotVerified    => 'Tài khoản chưa được xác thực',
-            self::ValidationError => 'Dữ liệu không hợp lệ',
-            self::UserNotFound => 'Không tìm thấy người dùng',
-            self::UserAlreadyExists => 'Người dùng đã tồn tại',
-            self::UserBanned => 'Tài khoản đã bị khóa',
-            self::ResourceNotFound => 'Không tìm thấy tài nguyên',
-            self::ResourceCreateFailed => 'Tạo tài nguyên thất bại',
-            self::ResourceUpdateFailed => 'Cập nhật tài nguyên thất bại',
-            self::ResourceDeleteFailed => 'Xóa tài nguyên thất bại',
-            self::ServerError => 'Lỗi hệ thống',
-            self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
+            self::AuthLoginFailed => 'Email hoac mat khau khong dung',
+            self::AuthTokenInvalid => 'Token khong hop le',
+            self::AuthTokenExpired => 'Token da het han',
+            self::AuthUnauthorized => 'Chua xac thuc',
+            self::AuthForbidden => 'Khong co quyen truy cap',
+            self::AuthRegisterFailed => 'Dang ky that bai',
+            self::AuthOtpInvalid => 'Ma OTP khong hop le',
+            self::AuthOtpExpired => 'Ma OTP da het han',
+            self::AuthNotVerified => 'Tai khoan chua duoc xac thuc',
+            self::AuthPhoneNotVerified => 'Ban can xac thuc so dien thoai truoc khi dang tin',
+            self::ValidationError => 'Du lieu khong hop le',
+            self::UserNotFound => 'Khong tim thay nguoi dung',
+            self::UserAlreadyExists => 'Nguoi dung da ton tai',
+            self::UserBanned => 'Tai khoan da bi khoa',
+            self::ResourceNotFound => 'Khong tim thay tai nguyen',
+            self::ResourceCreateFailed => 'Tao tai nguyen that bai',
+            self::ResourceUpdateFailed => 'Cap nhat tai nguyen that bai',
+            self::ResourceDeleteFailed => 'Xoa tai nguyen that bai',
+            self::ServerError => 'Loi he thong',
+            self::ServiceUnavailable => 'Dich vu tam thoi khong kha dung',
         };
     }
 
-    /**
-     * Get the appropriate HTTP status code for this business error.
-     */
     public function httpStatus(): int
     {
         return match ($this) {
@@ -77,7 +73,8 @@ enum ErrorCode: int
             self::AuthOtpExpired,
             self::AuthNotVerified => Response::HTTP_UNAUTHORIZED,
 
-            self::AuthForbidden => Response::HTTP_FORBIDDEN,
+            self::AuthForbidden,
+            self::AuthPhoneNotVerified => Response::HTTP_FORBIDDEN,
 
             self::ValidationError => Response::HTTP_UNPROCESSABLE_ENTITY,
 

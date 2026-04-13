@@ -21,6 +21,7 @@ final class User extends Authenticatable implements JWTSubject
     protected $fillable = [
         'full_name',
         'phone',
+        'phone_verified_at',
         'email',
         'password',
         'google_id',
@@ -41,6 +42,7 @@ final class User extends Authenticatable implements JWTSubject
     protected $casts = [
         'role' => UserRole::class,
         'status' => UserStatus::class,
+        'phone_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
 

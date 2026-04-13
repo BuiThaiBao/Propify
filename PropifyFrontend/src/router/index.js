@@ -35,6 +35,12 @@ const routes = [
     name: "Rent",
     component: () => import("@/pages/Rent/index.vue"),
   },
+  {
+    path: "/post-listing",
+    name: "PostListing",
+    component: () => import("@/pages/PostListing.vue"),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({

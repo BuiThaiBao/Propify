@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Events\Auth\UserRegistered;
 use App\Listeners\Auth\SendWelcomeNotification;
+use App\Repositories\Eloquent\EloquentListingRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
+use App\Repositories\ListingRepository;
 use App\Repositories\UserRepository;
 use App\Services\Auth\Impl\UserUpsertServiceImpl;
 use App\Services\Auth\UserUpsertService;
@@ -12,7 +14,9 @@ use App\Services\AuthGoogleService;
 use App\Services\AuthService;
 use App\Services\Impl\AuthGoogleServiceImpl;
 use App\Services\Impl\AuthServiceImpl;
+use App\Services\Impl\ListingServiceImpl;
 use App\Services\Impl\TokenProcessServiceImpl;
+use App\Services\ListingService;
 use App\Services\Notification\Channel\EmailChannel;
 use App\Services\Notification\Impl\NotificationServiceImpl;
 use App\Services\Notification\NotificationService;
@@ -33,12 +37,14 @@ final class AppServiceProvider extends ServiceProvider
     {
         // ── Repository bindings ───────────────────────────────────────────
         $this->app->bind(UserRepository::class, EloquentUserRepository::class);
+        $this->app->bind(ListingRepository::class, EloquentListingRepository::class);
 
         // ── Auth bindings ─────────────────────────────────────────────────
         $this->app->bind(AuthService::class, AuthServiceImpl::class);
         $this->app->bind(AuthGoogleService::class, AuthGoogleServiceImpl::class);
         $this->app->bind(TokenProcessService::class, TokenProcessServiceImpl::class);
         $this->app->bind(UserUpsertService::class, UserUpsertServiceImpl::class);
+        $this->app->bind(ListingService::class, ListingServiceImpl::class);
 
         // ── Notification bindings ─────────────────────────────────────────
         // NotificationServiceImpl nhận array $channels qua constructor
