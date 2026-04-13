@@ -12,8 +12,8 @@ use App\Services\Otp\OtpStoragePort;
 
 final class OtpServiceImpl implements OtpService
 {
-    /** TTL của OTP — 3 phút */
-    private const OTP_TTL_SECONDS = 180;
+    /** TTL của OTP — 5 phút (BR.ACC.05) */
+    private const OTP_TTL_SECONDS = 300;
 
     /** Độ dài OTP */
     private const OTP_LENGTH = 6;

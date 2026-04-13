@@ -25,6 +25,18 @@ final class ChangePasswordRequest extends FormRequest
             ],
         ];
     }
+
+    /**
+     * Trim password trước khi validate (BR.ACC.03)
+     */
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'current_password' => trim($this->input('current_password', '')),
+            'new_password' => trim($this->input('new_password', '')),
+            'new_password_confirmation' => trim($this->input('new_password_confirmation', '')),
+        ]);
+    }
     public function messages(): array
     {
         return [

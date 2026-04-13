@@ -15,8 +15,8 @@ final readonly class ChangePasswordDto
     public static function fromRequest(Request $request): self
     {
         return new self(
-            currentPassword: $request->validate('current_password'),
-            newPassword: $request->validate('new_password')
+            currentPassword: $request->input('current_password'),
+            newPassword: $request->input('new_password')
         );
     }
 }

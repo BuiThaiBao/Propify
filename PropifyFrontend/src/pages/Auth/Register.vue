@@ -207,8 +207,26 @@ async function handleRegister() {
     fieldErrors.value = { email: ['Vui lòng nhập email hợp lệ'] };
     return;
   }
-  if (form.value.password.length < 8) {
+  // Trim password (BR.ACC.03)
+  form.value.password = form.value.password.trim();
+  form.value.passwordConfirmation = form.value.passwordConfirmation.trim();
+
+  // Validate password format (BR.ACC.03)
+  const pwd = form.value.password;
+  if (pwd.length < 8) {
     fieldErrors.value = { password: ['Mật khẩu phải có ít nhất 8 ký tự'] };
+    return;
+  }
+  if (!/[a-z]/.test(pwd)) {
+    fieldErrors.value = { password: ['Mật khẩu phải chứa ít nhất 1 chữ thường'] };
+    return;
+  }
+  if (!/[A-Z]/.test(pwd)) {
+    fieldErrors.value = { password: ['Mật khẩu phải chứa ít nhất 1 chữ hoa'] };
+    return;
+  }
+  if (!/[0-9]/.test(pwd)) {
+    fieldErrors.value = { password: ['Mật khẩu phải chứa ít nhất 1 chữ số'] };
     return;
   }
   if (form.value.password !== form.value.passwordConfirmation) {

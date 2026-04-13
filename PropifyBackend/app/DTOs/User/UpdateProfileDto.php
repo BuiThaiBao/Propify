@@ -7,8 +7,8 @@ use Illuminate\Http\Request;
 final readonly class UpdateProfileDto
 {
     public function __construct(
-        public string $fullName,
-        public ?string $phone,
+        public string  $fullName,
+        public ?string $phone = null,
     ) {
     }
 
@@ -16,7 +16,7 @@ final readonly class UpdateProfileDto
     {
         return new self(
             fullName: $request->input('full_name'),
-            phone: $request->input('phone')
+            phone: $request->input('phone'),
         );
     }
 }
