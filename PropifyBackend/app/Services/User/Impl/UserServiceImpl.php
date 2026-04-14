@@ -30,7 +30,8 @@ final class UserServiceImpl implements UserService
 
         $data = ['full_name' => $dto->fullName];
 
-        if ($dto->phone !== null) {
+        // Chỉ cho phép cập nhật SĐT nếu user chưa có SĐT
+        if ($dto->phone !== null && empty($user->phone)) {
             $data['phone'] = $dto->phone;
         }
 

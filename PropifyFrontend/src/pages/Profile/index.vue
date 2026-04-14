@@ -149,19 +149,26 @@
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                 </svg>
+                <!-- Nếu đã có SĐT → luôn disable, icon khóa -->
                 <input
                   id="phone"
                   v-model="profileForm.phone"
                   type="tel"
                   placeholder="Nhập số điện thoại"
-                  :disabled="!isEditing"
+                  :disabled="phoneAlreadySet || !isEditing"
                   ref="phoneInputRef"
                   :class="['w-full pl-9 pr-3.5 py-2.5 border-[1.5px] rounded-lg text-sm outline-none transition-all',
-                    !isEditing ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
+                    phoneAlreadySet ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
+                      : !isEditing ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
                       : requirePhone ? 'bg-white border-amber-400 ring-[3px] ring-amber-400/15'
                       : 'bg-white border-sky-500']"
                 />
+                <!-- Icon khóa khi đã có SĐT -->
+                <svg v-if="phoneAlreadySet" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
               </div>
+              <span v-if="phoneAlreadySet" class="text-xs text-slate-400">Số điện thoại đã xác nhận, không thể thay đổi.</span>
             </div>
 
             <div class="flex gap-3 pt-2">
@@ -271,7 +278,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, nextTick } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRoute, useRouter } from 'vue-router';
 import userService from '@/services/userService';
@@ -286,6 +293,9 @@ const activeTab = ref('profile');
 // ── Phone required from đăng tin ──
 const requirePhone = ref(false);
 const phoneInputRef = ref(null);
+
+// ── Phone đã có → không cho sửa ──
+const phoneAlreadySet = computed(() => !!authStore.user?.phone);
 
 // ── Sidebar expand/collapse ──
 const expandedSections = reactive({
