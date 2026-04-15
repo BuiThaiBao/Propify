@@ -12,13 +12,14 @@ const userService = {
   },
 
   /**
-   * Cập nhật thông tin cá nhân (chỉ full_name).
-   * @param {{ fullName: string }} data
+   * Cập nhật thông tin cá nhân.
+   * @param {{ fullName: string, phone?: string, avatarUrl?: string }} data
    */
   updateProfile(data) {
     return api.put("/v1/user/profile", {
       full_name: data.fullName,
       phone: data.phone || undefined,
+      avatar_url: data.avatarUrl || undefined,
     });
   },
 

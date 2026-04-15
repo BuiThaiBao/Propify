@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\GoogleController;
+use App\Http\Controllers\Api\V1\CloudinaryController;
 use App\Http\Controllers\Api\V1\User\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -70,6 +71,14 @@ Route::prefix('v1/user')->as('user.')->middleware('auth:api')->group(function ()
     Route::put('/profile', [UserController::class, 'updateProfile'])->name('profile.update');
     Route::put('/change-password', [UserController::class, 'changePassword'])->name('password.change');
 });
+
+// ==================== CLOUDINARY ROUTES ====================
+Route::prefix('v1/cloudinary')->as('cloudinary.')->middleware('auth:api')->group(function () {
+    // Tạo signed signature để frontend upload ảnh trực tiếp lên Cloudinary
+    // Query param: ?type=avatar | ?type=listing
+    Route::post('/sign', [CloudinaryController::class, 'sign'])->name('sign');
+});
+
 
 // ==================== APPOINTMENT ROUTES ====================
 Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('auth:api')->group(function () {

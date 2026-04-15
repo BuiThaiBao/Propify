@@ -35,6 +35,11 @@ final class UserServiceImpl implements UserService
             $data['phone'] = $dto->phone;
         }
 
+        // Cập nhật avatar_url nếu có
+        if ($dto->avatarUrl !== null) {
+            $data['avatar_url'] = $dto->avatarUrl;
+        }
+
         $updated = $this->userRepository->update($user->id, $data);
 
         Log::info('User profile updated', ['user_id' => $user->id]);
