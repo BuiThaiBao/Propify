@@ -34,6 +34,10 @@ enum ErrorCode: int
     // ==================== Appointment (6xxx) ====================
     case ListingNotFound          = 6001;
     case AppointmentSlotNotFound  = 6002;
+    case BookingSelfSlot          = 6003;
+    case BookingInvalidDate       = 6004;
+    case BookingSlotNotFound      = 6005;
+    case BookingDuplicate         = 6006;
 
     // ==================== Server (5xxx) ====================
     case ServerError = 5001;
@@ -64,6 +68,10 @@ enum ErrorCode: int
             self::ResourceDeleteFailed => 'Xóa tài nguyên thất bại',
             self::ListingNotFound => 'Không tìm thấy bài đăng',
             self::AppointmentSlotNotFound => 'Bạn không có cấu hình lịch hẹn nào cho bài đăng này hoặc bạn không có quyền truy cập',
+            self::BookingSelfSlot => 'Bạn không thể đặt lịch hẹn cho chính bài đăng của mình',
+            self::BookingInvalidDate => 'Ngày hoặc giờ hẹn không hợp lệ',
+            self::BookingSlotNotFound => 'Khung giờ hẹn không tồn tại hoặc đã bị vô hiệu hóa',
+            self::BookingDuplicate => 'Bạn đã đặt lịch hẹn cho khung giờ này vào ngày này rồi',
             self::ServerError => 'Lỗi hệ thống',
             self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
         };
@@ -91,6 +99,14 @@ enum ErrorCode: int
             self::ResourceNotFound,
             self::ListingNotFound,
             self::AppointmentSlotNotFound => Response::HTTP_NOT_FOUND,
+
+            self::BookingSelfSlot => Response::HTTP_FORBIDDEN,
+
+            self::BookingInvalidDate => Response::HTTP_UNPROCESSABLE_ENTITY,
+
+            self::BookingSlotNotFound => Response::HTTP_NOT_FOUND,
+
+            self::BookingDuplicate => Response::HTTP_CONFLICT,
 
             self::UserAlreadyExists => Response::HTTP_CONFLICT,
 

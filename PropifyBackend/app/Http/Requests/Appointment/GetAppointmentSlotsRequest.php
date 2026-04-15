@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Appointment;
 
+use App\DTOs\Appointment\GetAppointmentSlotsDto;
 use Illuminate\Foundation\Http\FormRequest;
 
 final class GetAppointmentSlotsRequest extends FormRequest
@@ -31,5 +32,13 @@ final class GetAppointmentSlotsRequest extends FormRequest
             'listing_id.integer'  => 'listing_id phải là số nguyên.',
             'listing_id.exists'   => 'Listing không tồn tại.',
         ];
+    }
+
+    public function toDto(): GetAppointmentSlotsDto
+    {
+        return new GetAppointmentSlotsDto(
+            listingId: (int) $this->input('listing_id'),
+            posterId: (int) auth('api')->id()
+        );
     }
 }

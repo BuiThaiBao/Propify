@@ -2,14 +2,15 @@
 
 namespace App\Services\Appointment;
 
-use Illuminate\Database\Eloquent\Collection;
+use App\DTOs\Appointment\GetAppointmentSlotsDto;
 
 interface AppointmentSlotService
 {
     /**
      * Get all active appointment slots for a listing uploaded by a specific poster.
+     * Trả về danh sách ngày cụ thể (tuần hiện tại + tuần sau) với các slot tương ứng.
      *
-     * @return Collection<int, \App\Models\AppointmentSlot>
+     * @return array<int, array{date: string, slots: array}>
      */
-    public function getSlotsByListingAndPoster(int $listingId, int $posterId): Collection;
+    public function getSlotsByListingAndPoster(GetAppointmentSlotsDto $dto): array;
 }

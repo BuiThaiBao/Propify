@@ -76,3 +76,8 @@ Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('aut
     Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'index'])
         ->name('index');
 });
+
+Route::prefix('v1/appointment-bookings')->as('appointment-bookings.')->middleware('auth:api')->group(function () {
+    Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentBookingController::class, 'store'])
+        ->name('store');
+});
