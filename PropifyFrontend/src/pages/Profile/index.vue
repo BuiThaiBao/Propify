@@ -133,12 +133,12 @@
             </div>
 
             <div class="flex flex-col gap-1.5">
-              <label for="email" class="text-[0.85rem] font-semibold text-slate-700">Email</label>
+              <label for="email" class="text-[0.85rem] font-semibold text-slate-700 after:content-['*'] after:text-red-500 after:ml-1">Email</label>
               <div class="relative">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
                 </svg>
-                <input id="email" :value="authStore.user?.email" type="email" disabled
+                <input required="" id="email" :value="authStore.user?.email" type="email" disabled
                   class="w-full pl-9 pr-3.5 py-2.5 border-[1.5px] border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed outline-none" />
               </div>
             </div>
@@ -164,9 +164,7 @@
                       : 'bg-white border-sky-500']"
                 />
                 <!-- Icon khóa khi đã có SĐT -->
-                <svg v-if="phoneAlreadySet" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
+                
               </div>
               <span v-if="phoneAlreadySet" class="text-xs text-slate-400">Số điện thoại đã xác nhận, không thể thay đổi.</span>
             </div>
