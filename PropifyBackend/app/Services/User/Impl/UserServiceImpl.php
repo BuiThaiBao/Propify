@@ -30,8 +30,14 @@ final class UserServiceImpl implements UserService
 
         $data = ['full_name' => $dto->fullName];
 
-        if ($dto->phone !== null) {
+        // Chỉ cho phép cập nhật SĐT nếu user chưa có SĐT
+        if ($dto->phone !== null && empty($user->phone)) {
             $data['phone'] = $dto->phone;
+        }
+
+        // Cập nhật avatar_url nếu có
+        if ($dto->avatarUrl !== null) {
+            $data['avatar_url'] = $dto->avatarUrl;
         }
 
         $updated = $this->userRepository->update($user->id, $data);

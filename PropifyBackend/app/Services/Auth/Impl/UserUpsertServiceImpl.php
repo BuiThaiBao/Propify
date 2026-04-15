@@ -40,9 +40,14 @@ final class UserUpsertServiceImpl implements UserUpsertService
         $user = $this->userRepository->findByEmail($socialUser->getEmail());
 
         if ($user) {
-            $this->userRepository->update($user->id, [
-                $providerField => $socialUser->getProviderId(),
-            ]);
+            // Liên kết provider_id, cập nhật avatar nếu user chưa có
+            $updateData = [$providerField => $socialUser->getProviderId()];
+
+            if (empty($user->avatar_url) && $socialUser->getAvatarUrl()) {
+                $updateData['avatar_url'] = $socialUser->getAvatarUrl();
+            }
+
+            $this->userRepository->update($user->id, $updateData);
             $user->refresh();
 
             Log::info('Social account linked to existing user', [
@@ -53,11 +58,12 @@ final class UserUpsertServiceImpl implements UserUpsertService
             return $user;
         }
 
-        // 3) Tạo user mới
+        // 3) Tạo user mới — lưu avatar Google ngay từ đầu
         $user = $this->userRepository->create([
             'full_name'    => $socialUser->getName(),
             'email'        => $socialUser->getEmail(),
             $providerField => $socialUser->getProviderId(),
+            'avatar_url'   => $socialUser->getAvatarUrl(),
             'password'     => null,
             'role'         => UserRole::User->value,
             'status'       => UserStatus::Active->value,

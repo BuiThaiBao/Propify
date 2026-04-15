@@ -1,10 +1,18 @@
 <template>
   <div class="max-w-[1100px] mx-auto mt-20 mb-8 px-4 flex gap-8 min-h-[calc(100vh-200px)] max-md:flex-col">
-    <!-- Sidebar -->
+<!-- Sidebar (chỉ giữ nguyên icon tóm tắt) -->
     <aside class="w-[260px] shrink-0 max-md:w-full">
       <div class="text-center p-6 bg-white rounded-xl shadow-sm mb-4">
-        <div class="w-[72px] h-[72px] rounded-full bg-gradient-to-br from-sky-100 to-sky-200 text-sky-500 flex items-center justify-center mx-auto mb-3">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <div
+          class="w-[72px] h-[72px] rounded-full overflow-hidden bg-gradient-to-br from-sky-100 to-sky-200 text-sky-500 flex items-center justify-center mx-auto mb-3"
+        >
+          <img
+            v-if="authStore.user?.avatar_url"
+            :src="authStore.user.avatar_url"
+            alt="Avatar"
+            class="w-full h-full object-cover"
+          />
+          <svg v-else xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
           </svg>
         </div>
@@ -96,15 +104,96 @@
         <!-- Avatar Card -->
         <div class="border border-slate-200 rounded-lg p-6 mb-5">
           <h3 class="text-[0.95rem] font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100">Ảnh đại diện</h3>
-          <div class="flex items-center gap-4">
-            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-sky-100 to-sky-200 text-sky-500 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-              </svg>
+          <div class="flex items-center gap-5">
+            <!-- Avatar preview -->
+            <div class="relative group w-20 h-20 shrink-0">
+              <div
+                class="w-20 h-20 rounded-full overflow-hidden bg-gradient-to-br from-sky-100 to-sky-200 text-sky-500 flex items-center justify-center cursor-pointer ring-2 ring-sky-200 ring-offset-2 transition-all group-hover:ring-sky-400"
+                @click="triggerAvatarInput"
+              >
+                <img
+                  v-if="avatarPreview || authStore.user?.avatar_url"
+                  :src="avatarPreview || authStore.user.avatar_url"
+                  alt="Avatar"
+                  class="w-full h-full object-cover"
+                />
+                <svg v-else xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                <!-- Overlay camera icon on hover -->
+                <div class="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+                  </svg>
+                </div>
+              </div>
+              <!-- Input ẩn -->
+              <input
+                ref="avatarInputRef"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                class="hidden"
+                @change="handleAvatarSelected"
+              />
             </div>
-            <div>
+
+            <!-- Info + actions -->
+            <div class="flex-1 min-w-0">
               <p class="text-[0.95rem] font-semibold text-slate-800">{{ authStore.user?.full_name }}</p>
-              <p class="text-xs text-sky-500 cursor-pointer hover:underline">Thay đổi ảnh đại diện</p>
+
+              <!-- Trạng thái khi đã chọn ảnh nhưng chưa upload -->
+              <p v-if="avatarPreview && !avatarUploading" class="text-xs text-amber-600 mb-2"></p>
+              <p v-else class="text-xs text-slate-400 mb-3">JPG, PNG, WebP · Tối đa 5 MB</p>
+
+              <!-- Progress bar -->
+              <div v-if="avatarUploading" class="mb-3">
+                <div class="flex justify-between text-xs text-slate-500 mb-1">
+                  <span>Đang tải lên...</span>
+                  <span>{{ avatarUploadProgress }}%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-1.5">
+                  <div
+                    class="bg-sky-500 h-1.5 rounded-full transition-all duration-300"
+                    :style="{ width: avatarUploadProgress + '%' }"
+                  />
+                </div>
+              </div>
+
+              <!-- Message -->
+              <p v-if="avatarMessage" :class="['text-xs mb-2', avatarSuccess ? 'text-green-600' : 'text-red-500']">{{ avatarMessage }}</p>
+
+              <div class="flex gap-2">
+                <!-- Nút chọn ảnh -->
+                <button
+                  type="button"
+                  :disabled="avatarUploading"
+                  class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  @click="triggerAvatarInput"
+                >
+                  {{ avatarPreview ? 'Chọn ảnh khác' : 'Chọn ảnh' }}
+                </button>
+
+                <!-- Nút xác nhận upload — chỉ hiện khi đã chọn ảnh và chưa upload -->
+                <button
+                  v-if="avatarPreview"
+                  type="button"
+                  :disabled="avatarUploading"
+                  class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-sky-500 text-white hover:bg-sky-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  @click="uploadAvatar"
+                >
+                  {{ avatarUploading ? 'Đang xử lý...' : 'Cập nhật ảnh' }}
+                </button>
+
+                <!-- Nút hủy -->
+                <button
+                  v-if="avatarPreview && !avatarUploading"
+                  type="button"
+                  class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all"
+                  @click="cancelAvatarSelection"
+                >
+                  Hủy
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -133,12 +222,12 @@
             </div>
 
             <div class="flex flex-col gap-1.5">
-              <label for="email" class="text-[0.85rem] font-semibold text-slate-700">Email</label>
+              <label for="email" class="text-[0.85rem] font-semibold text-slate-700 after:content-['*'] after:text-red-500 after:ml-1">Email</label>
               <div class="relative">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
                 </svg>
-                <input id="email" :value="authStore.user?.email" type="email" disabled
+                <input required="" id="email" :value="authStore.user?.email" type="email" disabled
                   class="w-full pl-9 pr-3.5 py-2.5 border-[1.5px] border-slate-200 rounded-lg text-sm bg-slate-100 text-slate-500 cursor-not-allowed outline-none" />
               </div>
             </div>
@@ -149,19 +238,24 @@
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                 </svg>
+                <!-- Nếu đã có SĐT → luôn disable, icon khóa -->
                 <input
                   id="phone"
                   v-model="profileForm.phone"
                   type="tel"
                   placeholder="Nhập số điện thoại"
-                  :disabled="!isEditing"
+                  :disabled="phoneAlreadySet || !isEditing"
                   ref="phoneInputRef"
                   :class="['w-full pl-9 pr-3.5 py-2.5 border-[1.5px] rounded-lg text-sm outline-none transition-all',
-                    !isEditing ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
+                    phoneAlreadySet ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
+                      : !isEditing ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
                       : requirePhone ? 'bg-white border-amber-400 ring-[3px] ring-amber-400/15'
                       : 'bg-white border-sky-500']"
                 />
+                <!-- Icon khóa khi đã có SĐT -->
+                
               </div>
+              <span v-if="phoneAlreadySet" class="text-xs text-slate-400">Số điện thoại đã xác nhận, không thể thay đổi.</span>
             </div>
 
             <div class="flex gap-3 pt-2">
@@ -271,14 +365,94 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, nextTick } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRoute, useRouter } from 'vue-router';
 import userService from '@/services/userService';
+import cloudinaryService from '@/services/cloudinaryService';
 
 const authStore = useAuthStore();
 const route = useRoute();
 const router = useRouter();
+
+// ── Avatar upload ──
+const avatarInputRef = ref(null);
+const avatarPreview = ref(null);
+const avatarFile = ref(null);
+const avatarUploading = ref(false);
+const avatarUploadProgress = ref(0);
+const avatarMessage = ref('');
+const avatarSuccess = ref(false);
+
+function triggerAvatarInput() {
+  avatarInputRef.value?.click();
+}
+
+function handleAvatarSelected(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+
+  // Validate size (5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    avatarMessage.value = 'Ảnh không được vượt quá 5 MB.';
+    avatarSuccess.value = false;
+    return;
+  }
+
+  avatarFile.value = file;
+  avatarMessage.value = '';
+  avatarSuccess.value = false;
+
+  // Chỉ preview tức thì — KHÔNG upload, đợi user nhấn "Cập nhật ảnh"
+  const reader = new FileReader();
+  reader.onload = (e) => { avatarPreview.value = e.target.result; };
+  reader.readAsDataURL(file);
+}
+
+function cancelAvatarSelection() {
+  avatarPreview.value = null;
+  avatarFile.value = null;
+  avatarMessage.value = '';
+  if (avatarInputRef.value) avatarInputRef.value.value = '';
+}
+
+async function uploadAvatar() {
+  if (!avatarFile.value) return;
+
+  avatarUploading.value = true;
+  avatarUploadProgress.value = 0;
+  avatarMessage.value = '';
+
+  try {
+    const result = await cloudinaryService.uploadImage(avatarFile.value, 'avatar', (percent) => {
+      avatarUploadProgress.value = percent;
+    });
+
+    const newAvatarUrl = result.secure_url;
+
+    const res = await userService.updateProfile({
+      fullName: authStore.user?.full_name || profileForm.fullName,
+      avatarUrl: newAvatarUrl,
+    });
+
+    const updatedUser = res.data.data;
+    authStore.user = { ...authStore.user, ...updatedUser };
+    sessionStorage.setItem('auth_user', JSON.stringify(authStore.user));
+
+    avatarPreview.value = null;
+    avatarFile.value = null;
+    avatarSuccess.value = true;
+    avatarMessage.value = 'Cập nhật ảnh đại diện thành công!';
+  } catch (error) {
+    avatarSuccess.value = false;
+    avatarMessage.value = error.response?.data?.message || error.message || 'Upload ảnh thất bại. Vui lòng thử lại.';
+    avatarPreview.value = null;
+    avatarFile.value = null;
+  } finally {
+    avatarUploading.value = false;
+    if (avatarInputRef.value) avatarInputRef.value.value = '';
+  }
+}
 
 // ── Tabs ──
 const activeTab = ref('profile');
@@ -286,6 +460,9 @@ const activeTab = ref('profile');
 // ── Phone required from đăng tin ──
 const requirePhone = ref(false);
 const phoneInputRef = ref(null);
+
+// ── Phone đã có → không cho sửa ──
+const phoneAlreadySet = computed(() => !!authStore.user?.phone);
 
 // ── Sidebar expand/collapse ──
 const expandedSections = reactive({
@@ -307,7 +484,15 @@ const profileForm = reactive({
   phone: '',
 });
 
-onMounted(() => {
+onMounted(async () => {
+  // Luôn fetch fresh user để đảm bảo avatar_url mới nhất từ DB
+  // (sessionStorage cache có thể không có avatar_url nếu đăng nhập trước khi tích hợp Cloudinary)
+  try {
+    await authStore.fetchUser();
+  } catch {
+    // Giữ nguyên data cũ nếu fetch thất bại
+  }
+
   profileForm.fullName = authStore.user?.full_name || '';
   profileForm.phone = authStore.user?.phone || '';
 

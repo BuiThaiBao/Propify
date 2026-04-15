@@ -29,6 +29,8 @@ use App\Services\Appointment\AppointmentSlotService;
 use App\Services\Appointment\Impl\AppointmentBookingServiceImpl;
 use App\Services\Appointment\Impl\AppointmentSlotServiceImpl;
 use App\Services\TokenProcessService;
+use App\Services\Cloudinary\CloudinaryService;
+use App\Services\Cloudinary\Impl\CloudinaryServiceImpl;
 use App\Services\User\Impl\UserServiceImpl;
 use App\Services\User\UserService;
 use Illuminate\Support\Facades\Event;
@@ -72,8 +74,11 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(OtpStoragePort::class, RedisOtpStorageAdapter::class);
         $this->app->bind(OtpService::class, OtpServiceImpl::class);
 
-        //USER
+        // ── User bindings ─────────────────────────────────────────────────
         $this->app->bind(UserService::class, UserServiceImpl::class);
+
+        // ── Cloudinary bindings ───────────────────────────────────────────
+        $this->app->bind(CloudinaryService::class, CloudinaryServiceImpl::class);
     }
 
     /**
