@@ -65,7 +65,9 @@ export const useAuthStore = defineStore("auth", () => {
 
       token.value = data.access_token;
       localStorage.setItem(TOKEN_KEY, data.access_token);
-      user.value = data.user;
+
+      // Fetch full user data (avatar_url, phone, ...) thay vì dùng data rút gọn từ login response
+      await fetchUser();
 
       return { success: true };
     } catch (error) {
@@ -128,7 +130,9 @@ export const useAuthStore = defineStore("auth", () => {
 
       token.value = data.access_token;
       localStorage.setItem(TOKEN_KEY, data.access_token);
-      user.value = data.user;
+
+      // Fetch full user data
+      await fetchUser();
 
       return { success: true };
     } catch (error) {
