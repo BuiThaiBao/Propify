@@ -1,14 +1,20 @@
 <template>
-  <div class="chat-page">
+  <div class="flex h-[calc(100vh-70px)] bg-[#0f1117] font-[Inter,sans-serif]">
     <!-- Sidebar: Danh sách conversations -->
-    <aside class="chat-sidebar" :class="{ 'sidebar-hidden': activeConversation && isMobile }">
-      <div class="sidebar-header">
-        <h2 class="sidebar-title">
+    <aside
+      class="w-[340px] min-w-[340px] bg-[#161b27] border-r border-white/[0.06] flex flex-col overflow-hidden"
+      :class="{ 'hidden md:flex': activeConversation && isMobile, 'max-md:hidden': activeConversation && isMobile }"
+    >
+      <div class="px-5 pt-5 pb-4 border-b border-white/[0.06]">
+        <h2 class="flex items-center gap-2.5 text-[1.1rem] font-bold text-slate-200 m-0">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
           Tin nhắn
-          <span v-if="totalUnread > 0" class="unread-badge">{{ totalUnread }}</span>
+          <span
+            v-if="totalUnread > 0"
+            class="bg-gradient-to-br from-indigo-500 to-violet-500 text-white text-[0.7rem] font-bold px-[7px] py-0.5 rounded-full min-w-[20px] text-center"
+          >{{ totalUnread }}</span>
         </h2>
       </div>
 
@@ -21,59 +27,81 @@
     </aside>
 
     <!-- Main: Khung chat -->
-    <main class="chat-main" :class="{ 'main-visible': activeConversation || !isMobile }">
+    <main
+      class="flex-1 flex flex-col overflow-hidden bg-[#0f1117]"
+      :class="isMobile && !activeConversation ? 'hidden' : 'flex'"
+    >
       <!-- Placeholder khi chưa chọn conversation -->
-      <div v-if="!activeConversation" class="chat-empty">
-        <div class="empty-icon">
+      <div v-if="!activeConversation" class="flex-1 flex flex-col items-center justify-center gap-4 text-slate-500 text-center p-10">
+        <div class="size-[100px] flex items-center justify-center bg-indigo-500/[0.08] rounded-full text-indigo-500">
           <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
           </svg>
         </div>
-        <h3>Chọn cuộc trò chuyện</h3>
-        <p>Chọn một cuộc trò chuyện bên trái để bắt đầu nhắn tin</p>
+        <h3 class="text-[1.25rem] font-semibold text-slate-400 m-0">Chọn cuộc trò chuyện</h3>
+        <p class="text-[0.9rem] m-0 max-w-[300px] leading-relaxed">Chọn một cuộc trò chuyện bên trái để bắt đầu nhắn tin</p>
       </div>
 
       <!-- Chat area -->
       <template v-else>
         <!-- Header -->
-        <div class="chat-header">
-          <button v-if="isMobile" class="btn-back" @click="activeConversation = null">
+        <div class="flex items-center gap-3.5 px-5 py-3.5 border-b border-white/[0.06] bg-[#161b27]">
+          <button
+            v-if="isMobile"
+            class="bg-transparent border-none text-slate-400 cursor-pointer p-1 flex items-center rounded-lg transition-colors hover:bg-white/[0.08]"
+            @click="activeConversation = null"
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="15 18 9 12 15 6"/>
             </svg>
           </button>
-          <div class="chat-partner-info">
-            <div class="partner-avatar">
+
+          <div class="flex items-center gap-3 flex-1">
+            <div class="size-10 rounded-full overflow-hidden bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-[0.85rem] font-bold text-white shrink-0">
               <img
                 v-if="activeConversation.other_user?.avatar_url"
                 :src="activeConversation.other_user.avatar_url"
                 :alt="activeConversation.other_user.full_name"
+                class="w-full h-full object-cover"
               />
               <span v-else>{{ getInitials(activeConversation.other_user?.full_name) }}</span>
             </div>
             <div>
-              <div class="partner-name">{{ activeConversation.other_user?.full_name }}</div>
-              <div v-if="isPartnerTyping" class="typing-indicator">
-                <span class="dot" /><span class="dot" /><span class="dot" />
-                <span class="typing-text">đang nhập...</span>
+              <div class="text-[0.95rem] font-semibold text-slate-200">{{ activeConversation.other_user?.full_name }}</div>
+              <div v-if="isPartnerTyping" class="flex items-center gap-1 mt-0.5">
+                <span class="typing-dot" /><span class="typing-dot" /><span class="typing-dot" />
+                <span class="text-[0.75rem] text-slate-500 ml-0.5">đang nhập...</span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Messages area -->
-        <div class="messages-container" ref="messagesContainer" @scroll="onScroll">
+        <div
+          class="flex-1 overflow-y-auto p-5 flex flex-col gap-1.5 scroll-smooth messages-scroll"
+          ref="messagesContainer"
+          @scroll="onScroll"
+        >
           <!-- Load more button -->
-          <div v-if="hasMore" class="load-more-wrapper">
-            <button class="btn-load-more" :disabled="loadingMessages" @click="loadMoreMessages">
+          <div v-if="hasMore" class="flex justify-center mb-3">
+            <button
+              class="bg-indigo-500/[0.12] text-indigo-400 border border-indigo-500/20 px-[18px] py-1.5 rounded-full text-[0.8rem] cursor-pointer transition-all hover:bg-indigo-500/[0.22] disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="loadingMessages"
+              @click="loadMoreMessages"
+            >
               <span v-if="loadingMessages">Đang tải...</span>
               <span v-else>↑ Tải thêm tin nhắn cũ</span>
             </button>
           </div>
 
           <!-- Loading skeleton -->
-          <div v-if="loadingMessages && messages.length === 0" class="messages-loading">
-            <div v-for="i in 5" :key="i" class="skeleton-msg" :class="i % 2 === 0 ? 'skeleton-right' : 'skeleton-left'" />
+          <div v-if="loadingMessages && messages.length === 0" class="flex flex-col gap-3 p-2.5">
+            <div
+              v-for="i in 5"
+              :key="i"
+              class="h-10 rounded-2xl max-w-[60%] animate-[msgShimmer_1.5s_ease-in-out_infinite]"
+              :class="i % 2 === 0 ? 'self-end bg-indigo-500/[0.08]' : 'self-start bg-white/[0.05]'"
+            />
           </div>
 
           <!-- Message list -->
@@ -105,7 +133,6 @@ import ConversationList from '@/components/chat/ConversationList.vue';
 import MessageBubble from '@/components/chat/MessageBubble.vue';
 import ChatInput from '@/components/chat/ChatInput.vue';
 
-// ============ Stores ============
 const chatStore = useChatStore();
 const authStore = useAuthStore();
 
@@ -128,17 +155,13 @@ const {
 
 const currentUserId = computed(() => authStore.user?.id);
 
-// ============ Responsive ============
 const { width } = useWindowSize();
 const isMobile = computed(() => width.value < 768);
 
-// ============ Refs ============
 const messagesContainer = ref(null);
 
-// ============ Typing ============
 const isPartnerTyping = computed(() => typingUsers.size > 0);
 
-// ============ Methods ============
 function getInitials(name) {
   if (!name) return '?';
   return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
@@ -168,20 +191,15 @@ function scrollToBottom(smooth = true) {
 }
 
 function onScroll() {
-  // Infinite scroll — khi scroll lên gần top thì load thêm messages cũ
   if (messagesContainer.value?.scrollTop === 0 && hasMore) {
     loadMoreMessages();
   }
 }
 
-// Auto scroll khi có message mới
 watch(() => messages.length, (newLen, oldLen) => {
-  if (newLen > oldLen) {
-    scrollToBottom();
-  }
+  if (newLen > oldLen) scrollToBottom();
 });
 
-// ============ Lifecycle ============
 onMounted(async () => {
   await loadConversations();
 });
@@ -192,285 +210,39 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.chat-page {
-  display: flex;
-  height: calc(100vh - 70px);
-  background: #0f1117;
-  font-family: 'Inter', sans-serif;
-}
-
-/* ===== SIDEBAR ===== */
-.chat-sidebar {
-  width: 340px;
-  min-width: 340px;
-  background: #161b27;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.sidebar-header {
-  padding: 20px 20px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.sidebar-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #e2e8f0;
-  margin: 0;
-}
-
-.unread-badge {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 99px;
-  min-width: 20px;
-  text-align: center;
-}
-
-/* ===== MAIN CHAT ===== */
-.chat-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: #0f1117;
-}
-
-/* ===== EMPTY STATE ===== */
-.chat-empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  color: #64748b;
-  text-align: center;
-  padding: 40px;
-}
-
-.empty-icon {
-  width: 100px;
-  height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(99, 102, 241, 0.08);
-  border-radius: 50%;
-  color: #6366f1;
-}
-
-.chat-empty h3 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #94a3b8;
-  margin: 0;
-}
-
-.chat-empty p {
-  font-size: 0.9rem;
-  margin: 0;
-  max-width: 300px;
-  line-height: 1.6;
-}
-
-/* ===== CHAT HEADER ===== */
-.chat-header {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  background: #161b27;
-}
-
-.btn-back {
-  background: none;
-  border: none;
-  color: #94a3b8;
-  cursor: pointer;
-  padding: 4px;
-  display: flex;
-  align-items: center;
-  border-radius: 8px;
-  transition: background 0.2s;
-}
-
-.btn-back:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.chat-partner-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-}
-
-.partner-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: white;
-  flex-shrink: 0;
-}
-
-.partner-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.partner-name {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #e2e8f0;
-}
-
-/* ===== TYPING INDICATOR ===== */
-.typing-indicator {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 2px;
-}
-
-.dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #6366f1;
-  animation: bounce 1.2s ease-in-out infinite;
-}
-
-.dot:nth-child(2) { animation-delay: 0.2s; }
-.dot:nth-child(3) { animation-delay: 0.4s; }
-
-.typing-text {
-  font-size: 0.75rem;
-  color: #64748b;
-  margin-left: 2px;
-}
-
-@keyframes bounce {
-  0%, 60%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-4px); }
-}
-
-/* ===== MESSAGES ===== */
-.messages-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  scroll-behavior: smooth;
-}
-
-.messages-container::-webkit-scrollbar {
-  width: 4px;
-}
-
-.messages-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.messages-container::-webkit-scrollbar-thumb {
+/* Scrollbar — không thể dùng Tailwind */
+.messages-scroll::-webkit-scrollbar { width: 4px; }
+.messages-scroll::-webkit-scrollbar-track { background: transparent; }
+.messages-scroll::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 99px;
 }
 
-/* ===== LOAD MORE ===== */
-.load-more-wrapper {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 12px;
+/* Typing animation dots */
+.typing-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #6366f1;
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
 }
 
-.btn-load-more {
-  background: rgba(99, 102, 241, 0.12);
-  color: #818cf8;
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  padding: 6px 18px;
-  border-radius: 99px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-load-more:hover:not(:disabled) {
-  background: rgba(99, 102, 241, 0.22);
-}
-
-.btn-load-more:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ===== SKELETON ===== */
-.messages-loading {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 10px;
-}
-
-.skeleton-msg {
-  height: 40px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  animation: shimmer 1.5s ease-in-out infinite;
-  max-width: 60%;
-}
-
-.skeleton-right {
-  align-self: flex-end;
-  background: rgba(99, 102, 241, 0.08);
-}
-
-.skeleton-left {
-  align-self: flex-start;
-}
-
-@keyframes shimmer {
+@keyframes msgShimmer {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }
 
-/* ===== RESPONSIVE ===== */
+/* Responsive sidebar */
 @media (max-width: 767px) {
-  .sidebar-hidden {
-    display: none;
-  }
-
-  .chat-main {
-    display: none;
-  }
-
-  .main-visible {
-    display: flex;
-  }
-
-  .chat-sidebar {
-    width: 100%;
-    min-width: 100%;
-  }
+  aside { display: none; }
+  aside.force-show { display: flex; }
 }
 </style>
