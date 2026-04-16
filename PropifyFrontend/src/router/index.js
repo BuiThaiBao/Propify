@@ -41,6 +41,12 @@ const routes = [
     component: () => import("@/pages/Profile/index.vue"),
     meta: { requiresAuth: true },
   },
+  {
+    path: "/chat",
+    name: "Chat",
+    component: () => import("@/pages/Chat/index.vue"),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({

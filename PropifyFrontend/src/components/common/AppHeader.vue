@@ -64,6 +64,20 @@
                 />
               </svg>
             </button>
+            <!-- Chat button với unread badge -->
+            <router-link
+              to="/chat"
+              class="relative p-2 text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/15"
+              title="Tin nhắn"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span
+                v-if="totalUnread > 0"
+                class="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1"
+              >{{ totalUnread > 9 ? '9+' : totalUnread }}</span>
+            </router-link>
             <button
               @click="accountMenuOpen = !accountMenuOpen"
               class="p-2 text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/15"
@@ -221,8 +235,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import { useChatStore } from "@/stores/chat";
 import { useRouter, useRoute } from "vue-router";
 import Login from "@/pages/Auth/Login.vue";
 import Register from "@/pages/Auth/Register.vue";
@@ -231,6 +246,8 @@ const mobileMenuOpen = ref(false);
 const accountMenuOpen = ref(false);
 const accountDropdownRef = ref(null);
 const authStore = useAuthStore();
+const chatStore = useChatStore();
+const totalUnread = computed(() => chatStore.totalUnread);
 const router = useRouter();
 const route = useRoute();
 
