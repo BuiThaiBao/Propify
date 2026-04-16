@@ -239,7 +239,7 @@ const navLinks = [
   { label: "Mua bán", href: "/sales" },
   { label: "Cho thuê", href: "/rent" },
   { label: "Tin tức", href: "/news" },
-  { label: "Liên hệ", href: "/contact" },
+  { label: "Liên hệê", href: "/contact" },
 ];
 
 function isActive(href) {
