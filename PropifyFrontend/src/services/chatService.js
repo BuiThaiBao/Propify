@@ -67,6 +67,14 @@ const chatService = {
   markAsRead(conversationId) {
     return api.post(`/v1/chat/conversations/${conversationId}/read`);
   },
+
+  /**
+   * Tìm user theo số điện thoại để bắt đầu chat.
+   * @param {string} phone
+   */
+  searchUserByPhone(phone) {
+    return api.get('/v1/user/search', { params: { phone } });
+  },
 };
 
 export default chatService;

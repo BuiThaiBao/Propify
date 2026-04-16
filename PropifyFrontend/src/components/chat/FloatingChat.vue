@@ -50,6 +50,16 @@
             </div>
 
             <div class="flex gap-1">
+              <!-- New chat button (only on inbox view) -->
+              <button
+                v-if="!activeConversation"
+                class="size-7 rounded-full bg-transparent border-none cursor-pointer flex items-center justify-center transition-all duration-150"
+                :class="showSearch ? 'bg-indigo-500/20 text-indigo-400' : 'text-slate-400 hover:bg-white/[0.08] hover:text-slate-200'"
+                @click="toggleSearch"
+                title="Tin nhắn mới"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
               <button class="size-7 rounded-full bg-transparent border-none text-slate-400 cursor-pointer flex items-center justify-center transition-all duration-150 hover:bg-white/[0.08] hover:text-slate-200" @click="isOpen = false" title="Thu nhỏ">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
@@ -58,6 +68,53 @@
               </button>
             </div>
           </div>
+
+          <!-- SEARCH PANEL (tìm user theo SĐT) -->
+          <Transition name="search-slide">
+            <div v-if="showSearch && !activeConversation" class="px-3.5 py-3 border-b border-white/[0.06] bg-[#0f1117] shrink-0">
+              <!-- Input -->
+              <form class="flex gap-2" @submit.prevent="searchUser">
+                <input
+                  v-model="searchPhone"
+                  type="tel"
+                  class="flex-1 bg-white/[0.06] border border-white/[0.08] rounded-xl px-3 py-1.5 text-slate-200 text-[0.82rem] outline-none placeholder-slate-600 transition-colors focus:border-indigo-500/50 focus:bg-white/[0.08]"
+                  placeholder="Nhập số điện thoại..."
+                  autocomplete="off"
+                />
+                <button
+                  type="submit"
+                  class="px-3 py-1.5 rounded-xl text-[0.8rem] font-medium transition-all shrink-0 disabled:opacity-50"
+                  :class="searchPhone.trim() ? 'bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30' : 'bg-white/[0.04] text-slate-600 cursor-not-allowed'"
+                  :disabled="!searchPhone.trim() || searchLoading"
+                >
+                  <span v-if="searchLoading">...</span>
+                  <span v-else>Tìm</span>
+                </button>
+              </form>
+
+              <!-- Result -->
+              <div v-if="searchResult" class="mt-2.5 flex items-center gap-2.5 p-2.5 bg-white/[0.04] rounded-xl">
+                <div class="size-9 rounded-full overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center text-[0.75rem] font-bold text-white shrink-0">
+                  <img v-if="searchResult.avatar_url" :src="searchResult.avatar_url" class="w-full h-full object-cover" />
+                  <span v-else>{{ initials(searchResult.full_name) }}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-[0.85rem] font-semibold text-slate-200 truncate">{{ searchResult.full_name }}</div>
+                  <div class="text-[0.72rem] text-slate-500">{{ searchResult.phone }}</div>
+                </div>
+                <button
+                  class="px-3 py-1 rounded-lg bg-gradient-to-br from-indigo-600 to-violet-700 text-white text-[0.75rem] font-medium shrink-0 transition-opacity hover:opacity-85 disabled:opacity-50"
+                  :disabled="startingChat"
+                  @click="startChatWithFound"
+                >
+                  {{ startingChat ? '...' : 'Nhắn tin' }}
+                </button>
+              </div>
+
+              <!-- Error -->
+              <p v-if="searchError" class="mt-2 text-[0.78rem] text-red-400 m-0">{{ searchError }}</p>
+            </div>
+          </Transition>
 
           <!-- BODY: conversation list -->
           <div v-if="!activeConversation" class="flex-1 overflow-y-auto cw-body-scroll">
@@ -248,6 +305,7 @@ import { ref, computed, watch, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useChatStore } from '@/stores/chat';
 import { useAuthStore } from '@/stores/auth';
+import chatService from '@/services/chatService';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/vi';
@@ -276,6 +334,14 @@ const inputEl = ref(null);
 const currentUserId = computed(() => authStore.user?.id);
 const isTyping = computed(() => typingUsers.value.size > 0);
 
+// ── Phone search state ─────────────────────────
+const showSearch   = ref(false);
+const searchPhone  = ref('');
+const searchResult = ref(null);
+const searchError  = ref('');
+const searchLoading = ref(false);
+const startingChat  = ref(false);
+
 function initials(name) {
   if (!name) return '?';
   return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -294,6 +360,52 @@ function toggleChat() {
   isOpen.value = !isOpen.value;
   if (isOpen.value && conversations.value.length === 0) {
     safeLoadConversations();
+  }
+  if (!isOpen.value) resetSearch();
+}
+
+function toggleSearch() {
+  showSearch.value = !showSearch.value;
+  if (!showSearch.value) resetSearch();
+}
+
+function resetSearch() {
+  showSearch.value  = false;
+  searchPhone.value = '';
+  searchResult.value = null;
+  searchError.value  = '';
+}
+
+async function searchUser() {
+  if (!searchPhone.value.trim()) return;
+  searchLoading.value = true;
+  searchResult.value  = null;
+  searchError.value   = '';
+  try {
+    const res = await chatService.searchUserByPhone(searchPhone.value.trim());
+    searchResult.value = res.data?.data ?? null;
+  } catch (err) {
+    searchError.value = err?.response?.data?.message ?? 'Không tìm thấy người dùng.';
+  } finally {
+    searchLoading.value = false;
+  }
+}
+
+async function startChatWithFound() {
+  if (!searchResult.value) return;
+  startingChat.value = true;
+  try {
+    const res = await chatService.getOrCreateConversation(searchResult.value.id);
+    const conv = res.data?.data;
+    if (conv) {
+      resetSearch();
+      await openConversation(conv);
+      nextTick(() => scrollBottom(false));
+    }
+  } catch {
+    searchError.value = 'Không thể bắt đầu cuộc trò chuyện.';
+  } finally {
+    startingChat.value = false;
   }
 }
 
@@ -387,6 +499,13 @@ watch(() => authStore.isAuthenticated, (auth) => {
 .float-pulse {
   animation: cwPulseRing 2s ease-out infinite;
 }
+
+/* ── Search panel slide transition ───────────────── */
+.search-slide-enter-active { transition: max-height 0.25s ease, opacity 0.2s ease; }
+.search-slide-leave-active { transition: max-height 0.2s ease, opacity 0.15s ease; }
+.search-slide-enter-from, .search-slide-leave-to { max-height: 0; opacity: 0; overflow: hidden; }
+.search-slide-enter-to, .search-slide-leave-from { max-height: 200px; opacity: 1; }
+
 
 /* ── Message fade-in ─────────────────────────────── */
 .cw-msg-fadein {
