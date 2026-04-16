@@ -99,17 +99,20 @@ final class ChatServiceImpl implements ChatService
     // ==================== Private Guard ====================
 
     /**
-     * Kiểm tra user có phải participant không. Throw 403 nếu không.
+     * Kiểm tra user có phải participant không — 1 query duy nhất (participant_a OR participant_b).
+     * Throw 404 nếu conversation không tồn tại.
+     * Throw 403 nếu user không phải participant.
      */
     private function assertParticipant(int $conversationId, int $userId): void
     {
-        $conversation = $this->chatRepository->findById($conversationId);
+        $conversation = $this->chatRepository->conversationBelongsToUser($conversationId, $userId);
 
         if (!$conversation) {
-            throw new ConversationNotFoundException();
-        }
-
-        if (!$this->chatRepository->isParticipant($conversationId, $userId)) {
+            // Kiểm tra thêm: conversation có tồn tại không?
+            $exists = $this->chatRepository->findById($conversationId);
+            if (!$exists) {
+                throw new ConversationNotFoundException();
+            }
             throw new UnauthorizedConversationAccessException();
         }
     }

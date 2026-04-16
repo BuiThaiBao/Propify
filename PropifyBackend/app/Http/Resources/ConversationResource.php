@@ -20,8 +20,8 @@ final class ConversationResource extends JsonResource
             ? $this->participantB
             : $this->participantA;
 
-        // Last message
-        $lastMessage = $this->latestMessage->first();
+        // Last message (HasOne latestOfMany — truy cập trực tiếp, không cần ->first())
+        $lastMessage = $this->latestMessage;
 
         // Unread count từ pivot (participant của current user)
         $myParticipant = $this->conversationParticipants->first();

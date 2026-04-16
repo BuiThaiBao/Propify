@@ -64,4 +64,10 @@ interface ChatRepository
      * Cập nhật last_seen_at cho participant.
      */
     public function updateLastSeen(int $conversationId, int $userId): void;
+
+    /**
+     * Kiểm tra conversation tồn tại và user là participant — 1 query duy nhất.
+     * Trả về Conversation nếu hợp lệ, null nếu không có quyền.
+     */
+    public function conversationBelongsToUser(int $conversationId, int $userId): ?Conversation;
 }

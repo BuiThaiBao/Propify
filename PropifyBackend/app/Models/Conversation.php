@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 final class Conversation extends Model
 {
@@ -46,9 +47,13 @@ final class Conversation extends Model
         return $this->hasMany(ConversationParticipant::class, 'conversation_id');
     }
 
-    public function latestMessage(): HasMany
+    /**
+     * Latest message — dùng latestOfMany() để eager load hiệu quả.
+     * SQL: SELECT * FROM messages WHERE id IN (SELECT MAX(id) FROM messages GROUP BY conversation_id)
+     */
+    public function latestMessage(): HasOne
     {
-        return $this->hasMany(Message::class, 'conversation_id')->latest()->limit(1);
+        return $this->hasOne(Message::class, 'conversation_id')->latestOfMany();
     }
 
     // ==================== Helpers ====================

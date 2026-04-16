@@ -6,20 +6,22 @@ use App\Http\Resources\MessageResource;
 use App\Models\Message;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
  * Event broadcast real-time khi có message mới.
  *
- * Implements ShouldBroadcast (queue-based via Redis) — không block HTTP request.
- * Để dev nhanh, bạn có thể đổi sang ShouldBroadcastNow.
+ * Dùng ShouldBroadcastNow → broadcast ngay lập tức, không qua queue.
+ * Phù hợp cho dev và production (Reverb xử lý async ở phía server).
+ *
+ * Nếu muốn dùng queue, đổi sang ShouldBroadcast và đặt $connection, $queue.
  *
  * Channel: private-conversation.{conversationId}
  * Authorization: routes/channels.php
  */
-final class MessageSent implements ShouldBroadcast
+final class MessageSent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

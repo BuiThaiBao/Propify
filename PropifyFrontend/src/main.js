@@ -15,22 +15,38 @@ app.use(pinia);
 app.use(router);
 
 const authStore = useAuthStore();
+
+// 1. Khởi tạo auth (restore token từ localStorage)
 authStore.initAuth().finally(() => {
-  // Khởi tạo Echo ngay sau auth nếu đã login
-  if (authStore.isAuthenticated && authStore.token) {
-    initEcho(authStore.token);
-  }
+  // 2. LUÔN mount app dù auth thành công hay thất bại
   app.mount("#app");
+
+  // 3. Khởi tạo Echo SAU khi mount — lỗi Echo không làm trắng trang
+  if (authStore.isAuthenticated && authStore.token) {
+    safeInitEcho(authStore.token);
+  }
 });
 
-// Lắng nghe thay đổi auth để init/destroy Echo
+// Theo dõi thay đổi auth state để init/destroy Echo
 watch(
   () => authStore.isAuthenticated,
   (authenticated) => {
     if (authenticated && authStore.token) {
-      initEcho(authStore.token);
+      safeInitEcho(authStore.token);
     } else {
       destroyEcho();
     }
   },
 );
+
+/**
+ * Khởi tạo Echo an toàn — lỗi kết nối WebSocket KHÔNG crash app.
+ * Reverb có thể chưa khởi động khi dev → không nên block render.
+ */
+function safeInitEcho(token) {
+  try {
+    initEcho(token);
+  } catch (err) {
+    console.warn("[Echo] Không thể kết nối WebSocket:", err?.message ?? err);
+  }
+}

@@ -75,13 +75,7 @@ final class EloquentChatRepository implements ChatRepository
                     $q->where('user_id', $userId);
                 },
             ])
-            ->orderByDesc(function ($query) {
-                return $query->select('created_at')
-                    ->from('messages')
-                    ->whereColumn('conversation_id', 'conversations.id')
-                    ->latest()
-                    ->limit(1);
-            })
+            ->latest('updated_at') // Conversation được touch() khi có message mới
             ->get();
     }
 
@@ -95,9 +89,30 @@ final class EloquentChatRepository implements ChatRepository
             ->cursorPaginate($perPage, ['*'], 'cursor', $cursor);
     }
 
+    /**
+     * Kiểm tra conversation tồn tại và user là participant — 1 query duy nhất.
+     */
+    public function conversationBelongsToUser(int $conversationId, int $userId): ?Conversation
+    {
+        return $this->conversationModel
+            ->where('id', $conversationId)
+            ->where(function ($q) use ($userId) {
+                $q->where('participant_a_id', $userId)
+                  ->orWhere('participant_b_id', $userId);
+            })
+            ->first();
+    }
+
     public function createMessage(array $data): Message
     {
-        return $this->messageModel->create($data);
+        $message = $this->messageModel->create($data);
+
+        // Touch conversation updated_at → dùng để sort conversations (mới nhất lên đầu)
+        $this->conversationModel
+            ->where('id', $data['conversation_id'])
+            ->update(['updated_at' => now()]);
+
+        return $message;
     }
 
     public function isParticipant(int $conversationId, int $userId): bool

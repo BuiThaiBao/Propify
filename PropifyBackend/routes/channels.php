@@ -21,8 +21,12 @@ use Illuminate\Support\Facades\Broadcast;
  * Chỉ participant thực sự của conversation mới được subscribe.
  * Đây là bảo vệ authorization đúng nghĩa — không chỉ authenticated mà còn đúng conversation.
  */
-Broadcast::channel('conversation.{conversationId}', function (User $user, int $conversationId): bool {
-    return ConversationParticipant::where('conversation_id', $conversationId)
-        ->where('user_id', $user->id)
-        ->exists();
-});
+Broadcast::channel(
+    'conversation.{conversationId}',
+    function (User $user, int $conversationId): bool {
+        return ConversationParticipant::where('conversation_id', $conversationId)
+            ->where('user_id', $user->id)
+            ->exists();
+    },
+    ['guards' => ['api']] // ← BẮT BUỘC: dùng JWT guard, không dùng web session guard
+);
