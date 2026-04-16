@@ -1,53 +1,75 @@
 <template>
-  <div class="conversation-list">
+  <div class="flex-1 overflow-y-auto conv-list-scroll">
     <!-- Loading state -->
-    <div v-if="loading" class="conv-loading">
-      <div v-for="i in 5" :key="i" class="conv-skeleton">
-        <div class="skel-avatar" />
-        <div class="skel-content">
-          <div class="skel-name" />
-          <div class="skel-preview" />
+    <div v-if="loading" class="flex flex-col">
+      <div
+        v-for="i in 5"
+        :key="i"
+        class="flex items-center gap-3 px-5 py-3.5 border-b border-white/[0.04]"
+      >
+        <div class="size-[46px] rounded-full bg-white/[0.06] shrink-0 animate-[convPulse_1.5s_ease-in-out_infinite]" />
+        <div class="flex-1 flex flex-col gap-2">
+          <div class="h-3 rounded-md bg-white/[0.06] w-3/5 animate-[convPulse_1.5s_ease-in-out_infinite]" />
+          <div class="h-2.5 rounded-md bg-white/[0.04] w-4/5 animate-[convPulse_1.5s_ease-in-out_infinite_0.2s]" />
         </div>
       </div>
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="conversations.length === 0" class="conv-empty">
+    <div
+      v-else-if="conversations.length === 0"
+      class="flex flex-col items-center justify-center gap-3 py-[50px] px-5 text-slate-600 text-center"
+    >
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
-      <p>Chưa có cuộc trò chuyện nào</p>
+      <p class="text-[0.85rem] m-0">Chưa có cuộc trò chuyện nào</p>
     </div>
 
     <!-- List -->
     <button
       v-for="conv in conversations"
       :key="conv.id"
-      class="conv-item"
-      :class="{ 'conv-active': conv.id === activeId }"
+      class="flex items-center gap-3 px-5 py-3.5 w-full bg-transparent border-none border-b border-white/[0.04] cursor-pointer text-left transition-colors duration-150 relative hover:bg-white/[0.04]"
+      :class="conv.id === activeId
+        ? 'bg-indigo-500/10 !border-l-[3px] border-l-indigo-500 !pl-[17px]'
+        : ''"
       @click="$emit('select', conv)"
     >
       <!-- Avatar -->
-      <div class="conv-avatar">
+      <div
+        class="size-[46px] rounded-full overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 flex items-center justify-center text-[0.9rem] font-bold text-white shrink-0"
+      >
         <img
           v-if="conv.other_user?.avatar_url"
           :src="conv.other_user.avatar_url"
           :alt="conv.other_user?.full_name"
+          class="w-full h-full object-cover"
         />
         <span v-else>{{ getInitials(conv.other_user?.full_name) }}</span>
       </div>
 
       <!-- Info -->
-      <div class="conv-info">
-        <div class="conv-top">
-          <span class="conv-name">{{ conv.other_user?.full_name ?? 'Người dùng' }}</span>
-          <span class="conv-time">{{ formatTime(conv.last_message?.created_at) }}</span>
+      <div class="flex-1 min-w-0">
+        <div class="flex justify-between items-center gap-2 mb-1">
+          <span class="text-[0.9rem] font-semibold text-slate-200 whitespace-nowrap overflow-hidden text-ellipsis">
+            {{ conv.other_user?.full_name ?? 'Người dùng' }}
+          </span>
+          <span class="text-[0.72rem] text-slate-600 whitespace-nowrap shrink-0">
+            {{ formatTime(conv.last_message?.created_at) }}
+          </span>
         </div>
-        <div class="conv-bottom">
-          <span class="conv-preview" :class="{ 'conv-unread-preview': conv.unread_count > 0 }">
+        <div class="flex justify-between items-center gap-2">
+          <span
+            class="text-[0.8rem] text-slate-500 whitespace-nowrap overflow-hidden text-ellipsis flex-1"
+            :class="{ 'text-slate-400 font-medium': conv.unread_count > 0 }"
+          >
             {{ getPreview(conv.last_message) }}
           </span>
-          <span v-if="conv.unread_count > 0" class="conv-unread">
+          <span
+            v-if="conv.unread_count > 0"
+            class="bg-gradient-to-br from-indigo-500 to-violet-500 text-white text-[0.65rem] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 shrink-0"
+          >
             {{ conv.unread_count > 9 ? '9+' : conv.unread_count }}
           </span>
         </div>
@@ -93,198 +115,15 @@ function getPreview(lastMessage) {
 </script>
 
 <style scoped>
-.conversation-list {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.conversation-list::-webkit-scrollbar {
-  width: 3px;
-}
-
-.conversation-list::-webkit-scrollbar-thumb {
+/* Scrollbar — không thể dùng Tailwind cho ::-webkit-scrollbar */
+.conv-list-scroll::-webkit-scrollbar { width: 3px; }
+.conv-list-scroll::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.08);
   border-radius: 99px;
 }
 
-/* ===== ITEM ===== */
-.conv-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  width: 100%;
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  transition: background 0.15s;
-  position: relative;
-}
-
-.conv-item:hover {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.conv-active {
-  background: rgba(99, 102, 241, 0.1) !important;
-  border-left: 3px solid #6366f1;
-  padding-left: 17px;
-}
-
-/* ===== AVATAR ===== */
-.conv-avatar {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: white;
-  flex-shrink: 0;
-}
-
-.conv-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* ===== INFO ===== */
-.conv-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.conv-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.conv-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #e2e8f0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.conv-time {
-  font-size: 0.72rem;
-  color: #475569;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.conv-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-
-.conv-preview {
-  font-size: 0.8rem;
-  color: #64748b;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-}
-
-.conv-unread-preview {
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.conv-unread {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  font-size: 0.65rem;
-  font-weight: 700;
-  min-width: 18px;
-  height: 18px;
-  border-radius: 99px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  flex-shrink: 0;
-}
-
-/* ===== EMPTY ===== */
-.conv-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 50px 20px;
-  color: #475569;
-  text-align: center;
-}
-
-.conv-empty p {
-  font-size: 0.85rem;
-  margin: 0;
-}
-
-/* ===== SKELETON ===== */
-.conv-loading {
-  display: flex;
-  flex-direction: column;
-}
-
-.conv-skeleton {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.skel-avatar {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  flex-shrink: 0;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-.skel-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.skel-name {
-  height: 12px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  width: 60%;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-.skel-preview {
-  height: 10px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.04);
-  width: 80%;
-  animation: pulse 1.5s ease-in-out infinite 0.2s;
-}
-
-@keyframes pulse {
+/* @keyframes — bắt buộc dùng CSS */
+@keyframes convPulse {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
 }

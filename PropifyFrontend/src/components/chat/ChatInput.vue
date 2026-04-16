@@ -1,18 +1,26 @@
 <template>
-  <form class="chat-input-form" @submit.prevent="handleSubmit">
-    <!-- Attach button (placeholder — integrate with Cloudinary) -->
-    <button type="button" class="btn-attach" title="Đính kèm file" @click="onAttach">
+  <form class="flex items-end gap-2.5 px-[18px] py-3.5 bg-[#161b27] border-t border-white/[0.06]" @submit.prevent="handleSubmit">
+    <!-- Attach button -->
+    <button
+      type="button"
+      class="bg-transparent border-none text-slate-500 cursor-pointer p-2 rounded-[10px] flex items-center justify-center transition-all duration-200 shrink-0 mb-0.5 hover:bg-white/[0.06] hover:text-slate-400"
+      title="Đính kèm file"
+      @click="onAttach"
+    >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
       </svg>
     </button>
 
     <!-- Text input -->
-    <div class="input-wrapper">
+    <div
+      class="flex-1 bg-[#0f1117] border border-white/[0.08] rounded-[20px] px-4 py-2.5 transition-all duration-200 focus-within:border-indigo-500/50 focus-within:shadow-[0_0_0_3px_rgba(99,102,241,0.08)]"
+    >
       <textarea
         ref="inputRef"
         v-model="inputText"
-        class="message-input"
+        class="w-full bg-transparent border-none outline-none text-slate-200 text-[0.9rem] font-[inherit] leading-relaxed resize-none max-h-[120px] overflow-hidden block [scrollbar-width:none]"
+        style="scrollbar-width: none;"
         placeholder="Nhập tin nhắn..."
         rows="1"
         :disabled="disabled"
@@ -25,8 +33,8 @@
     <!-- Send button -->
     <button
       type="submit"
-      class="btn-send"
-      :class="{ 'btn-send-active': inputText.trim().length > 0 }"
+      class="bg-indigo-500/15 border border-indigo-500/20 text-indigo-500 cursor-pointer p-[9px] rounded-xl flex items-center justify-center transition-all duration-200 shrink-0 mb-0.5 disabled:opacity-35 disabled:cursor-not-allowed"
+      :class="{ 'bg-gradient-to-br from-indigo-600 to-violet-700 !border-transparent !text-white shadow-[0_4px_15px_rgba(99,102,241,0.35)] scale-105 hover:shadow-[0_6px_20px_rgba(99,102,241,0.5)] hover:scale-[1.08]': inputText.trim().length > 0 }"
       :disabled="disabled || !inputText.trim()"
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -51,9 +59,6 @@ const inputRef = ref(null);
 
 let typingTimer = null;
 
-/**
- * Gửi message: emit 'send' rồi reset input.
- */
 function handleSubmit() {
   const text = inputText.value.trim();
   if (!text || props.disabled) return;
@@ -69,149 +74,33 @@ function newLine() {
   autoResize();
 }
 
-/**
- * Debounced typing indicator — emit mỗi lần user gõ, throtled 2s.
- */
 function onInput() {
   autoResize();
-  if (typingTimer) return; // đang trong window 2s → không emit lại
+  if (typingTimer) return;
   emit('typing');
   typingTimer = setTimeout(() => {
     typingTimer = null;
   }, 2000);
 }
 
-/**
- * Auto-resize textarea theo nội dung (max 5 dòng).
- */
 function autoResize() {
   const el = inputRef.value;
   if (!el) return;
-  el.style.height = 'auto';
+  el.style.height = '0';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 
 function resetHeight() {
   const el = inputRef.value;
-  if (el) {
-    el.style.height = 'auto';
-  }
+  if (el) el.style.height = 'auto';
 }
 
 function onAttach() {
-  // TODO: Tích hợp Cloudinary upload
   alert('Tính năng đính kèm sắp ra mắt!');
 }
 </script>
 
 <style scoped>
-.chat-input-form {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  padding: 14px 18px;
-  background: #161b27;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-/* ===== ATTACH BUTTON ===== */
-.btn-attach {
-  background: none;
-  border: none;
-  color: #64748b;
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  flex-shrink: 0;
-  margin-bottom: 2px;
-}
-
-.btn-attach:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #94a3b8;
-}
-
-/* ===== INPUT ===== */
-.input-wrapper {
-  flex: 1;
-  background: #0f1117;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  padding: 10px 16px;
-  transition: border-color 0.2s;
-}
-
-.input-wrapper:focus-within {
-  border-color: rgba(99, 102, 241, 0.5);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.08);
-}
-
-.message-input {
-  width: 100%;
-  background: none;
-  border: none;
-  outline: none;
-  color: #e2e8f0;
-  font-size: 0.9rem;
-  font-family: 'Inter', sans-serif;
-  line-height: 1.5;
-  resize: none;
-  max-height: 120px;
-  overflow-y: auto;
-}
-
-.message-input::placeholder {
-  color: #475569;
-}
-
-.message-input:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.message-input::-webkit-scrollbar {
-  width: 2px;
-}
-
-.message-input::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-/* ===== SEND BUTTON ===== */
-.btn-send {
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  color: #6366f1;
-  cursor: pointer;
-  padding: 9px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  flex-shrink: 0;
-  margin-bottom: 2px;
-}
-
-.btn-send:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.btn-send-active {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
-  border-color: transparent;
-  color: white;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
-  transform: scale(1.05);
-}
-
-.btn-send-active:hover:not(:disabled) {
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
-  transform: scale(1.08);
-}
+/* Ẩn scrollbar webkit — không thể dùng Tailwind */
+textarea::-webkit-scrollbar { display: none; }
 </style>
