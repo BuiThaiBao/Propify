@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\GoogleController;
 use App\Http\Controllers\Api\V1\CloudinaryController;
 use App\Http\Controllers\Api\V1\User\UserController;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,6 +17,10 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+// ==================== BROADCASTING AUTH (JWT) ====================
+// Overide mặc định /broadcasting/auth để sử dụng JWT thay vì session
+Broadcast::routes(['middleware' => ['auth:api']]);
 
 Route::prefix('v1/auth')->as('auth.')->group(function () {
     // ===== PUBLIC ROUTES (Throttled to prevent brute force) =====
@@ -84,4 +89,27 @@ Route::prefix('v1/cloudinary')->as('cloudinary.')->middleware('auth:api')->group
 Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('auth:api')->group(function () {
     Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'index'])
         ->name('index');
+});
+
+// ==================== CHAT ROUTES ====================
+Route::prefix('v1/chat')->as('chat.')->middleware('auth:api')->group(function () {
+    // Danh sách conversations của user
+    Route::get('/conversations', [\App\Http\Controllers\Api\V1\Chat\ChatController::class, 'getConversations'])
+        ->name('conversations.index');
+
+    // Lấy hoặc tạo conversation (idempotent — không duplicate)
+    Route::post('/conversations', [\App\Http\Controllers\Api\V1\Chat\ChatController::class, 'getOrCreateConversation'])
+        ->name('conversations.get-or-create');
+
+    // Messages với cursor pagination
+    Route::get('/conversations/{conversationId}/messages', [\App\Http\Controllers\Api\V1\Chat\ChatController::class, 'getMessages'])
+        ->name('conversations.messages.index');
+
+    // Gửi message (broadcast async qua queue)
+    Route::post('/conversations/{conversationId}/messages', [\App\Http\Controllers\Api\V1\Chat\ChatController::class, 'sendMessage'])
+        ->name('conversations.messages.send');
+
+    // Đánh dấu đã đọc
+    Route::post('/conversations/{conversationId}/read', [\App\Http\Controllers\Api\V1\Chat\ChatController::class, 'markAsRead'])
+        ->name('conversations.read');
 });

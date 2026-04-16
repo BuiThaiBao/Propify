@@ -29,6 +29,10 @@ use App\Services\Cloudinary\CloudinaryService;
 use App\Services\Cloudinary\Impl\CloudinaryServiceImpl;
 use App\Services\User\Impl\UserServiceImpl;
 use App\Services\User\UserService;
+use App\Repositories\ChatRepository;
+use App\Repositories\Eloquent\EloquentChatRepository;
+use App\Services\Chat\ChatService;
+use App\Services\Chat\Impl\ChatServiceImpl;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -73,6 +77,10 @@ final class AppServiceProvider extends ServiceProvider
 
         // ── Cloudinary bindings ───────────────────────────────────────────
         $this->app->bind(CloudinaryService::class, CloudinaryServiceImpl::class);
+
+        // ── Chat bindings ─────────────────────────────────────────────────
+        $this->app->bind(ChatRepository::class, EloquentChatRepository::class);
+        $this->app->bind(ChatService::class, ChatServiceImpl::class);
     }
 
     /**

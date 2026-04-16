@@ -10,7 +10,7 @@ class ApiResponse
     /**
      * Success response (200)
      */
-    public static function success(mixed $data = null, string $message = 'Thành công', int $statusCode = 200): JsonResponse
+    public static function success(mixed $data = null, string $message = 'Thành công', int $statusCode = 200, ?array $meta = null): JsonResponse
     {
         $response = [
             'status'  => true,
@@ -19,6 +19,10 @@ class ApiResponse
 
         if ($data !== null) {
             $response['data'] = $data;
+        }
+
+        if ($meta !== null) {
+            $response['meta'] = $meta;
         }
 
         return response()->json($response, $statusCode);

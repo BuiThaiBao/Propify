@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
@@ -96,5 +97,19 @@ final class User extends Authenticatable implements JWTSubject
     public function favorites(): HasMany
     {
         return $this->hasMany(UserFavorite::class, 'user_id');
+    }
+
+    /** Các conversation mà user tham gia (với tư cách participant) */
+    public function conversations(): BelongsToMany
+    {
+        return $this->belongsToMany(Conversation::class, 'conversation_participants', 'user_id', 'conversation_id')
+                    ->withPivot(['last_read_at', 'last_seen_at'])
+                    ->withTimestamps();
+    }
+
+    /** Các message mà user đã gửi */
+    public function sentMessages(): HasMany
+    {
+        return $this->hasMany(Message::class, 'sender_id');
     }
 }
