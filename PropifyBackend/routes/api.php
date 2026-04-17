@@ -75,6 +75,8 @@ Route::prefix('v1/user')->as('user.')->middleware('auth:api')->group(function ()
     Route::get('/profile', [UserController::class, 'getProfile'])->name('profile.show');
     Route::put('/profile', [UserController::class, 'updateProfile'])->name('profile.update');
     Route::put('/change-password', [UserController::class, 'changePassword'])->name('password.change');
+    // Tìm user theo SĐT để bắt đầu chat
+    Route::get('/search', [UserController::class, 'searchByPhone'])->name('search');
 });
 
 // ==================== CLOUDINARY ROUTES ====================
