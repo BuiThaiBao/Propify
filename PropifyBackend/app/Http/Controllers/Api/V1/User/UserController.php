@@ -53,7 +53,7 @@ final class UserController
         $phone = $request->query('phone');
 
         if (!$phone || strlen(preg_replace('/\D/', '', $phone)) < 9) {
-            return ApiResponse::error(message: 'Số điện thoại không hợp lệ.', status: 422);
+            return ApiResponse::error(message: 'Số điện thoại không hợp lệ.', statusCode: 422);
         }
 
         $user = User::where('phone', $phone)
@@ -61,7 +61,7 @@ final class UserController
             ->first(['id', 'full_name', 'phone', 'avatar_url']);
 
         if (!$user) {
-            return ApiResponse::error(message: 'Không tìm thấy người dùng với số điện thoại này.', status: 404);
+            return ApiResponse::error(message: 'Không tìm thấy người dùng với số điện thoại này.', statusCode: 404);
         }
 
         return ApiResponse::success(

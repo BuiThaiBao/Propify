@@ -60,10 +60,10 @@
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
-              <button class="size-7 rounded-full bg-transparent border-none text-slate-400 cursor-pointer flex items-center justify-center transition-all duration-150 hover:bg-white/[0.08] hover:text-slate-200" @click="isOpen = false" title="Thu nhỏ">
+              <button class="size-7 rounded-full bg-transparent border-none text-slate-400 cursor-pointer flex items-center justify-center transition-all duration-150 hover:bg-white/[0.08] hover:text-slate-200" @click="closeChat" title="Thu nhỏ">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
-              <button class="size-7 rounded-full bg-transparent border-none text-slate-400 cursor-pointer flex items-center justify-center transition-all duration-150 hover:bg-white/[0.08] hover:text-red-400" @click="isOpen = false" title="Đóng">
+              <button class="size-7 rounded-full bg-transparent border-none text-slate-400 cursor-pointer flex items-center justify-center transition-all duration-150 hover:bg-white/[0.08] hover:text-red-400" @click="closeChat" title="Đóng">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
@@ -258,6 +258,8 @@
               rows="1"
               @keydown.enter.exact.prevent="sendMsg"
               @input="onInputChange"
+              @focus="markReadCurrent"
+              @click="markReadCurrent"
             />
             <button
               class="size-[34px] rounded-full flex items-center justify-center transition-all duration-200 shrink-0 mb-[1px] disabled:opacity-40 disabled:cursor-not-allowed"
@@ -319,7 +321,7 @@ const chatStore = useChatStore();
 const {
   conversations, activeConversation, messages,
   loadingConversations, loadingMessages, sending,
-  hasMore, typingUsers, totalUnread,
+  hasMore, typingUsers, totalUnread, isChatVisible,
 } = storeToRefs(chatStore);
 
 const {
@@ -358,15 +360,39 @@ function preview(msg) {
 
 function toggleChat() {
   isOpen.value = !isOpen.value;
-  if (isOpen.value && conversations.value.length === 0) {
-    safeLoadConversations();
+  if (isOpen.value) {
+    if (conversations.value.length === 0) safeLoadConversations();
+    // Mở lại có conversation đang dở → coi là đang xem + mark as read
+    if (activeConversation.value) {
+      isChatVisible.value = true;
+      chatStore.markAsRead(activeConversation.value.id);
+    }
+  } else {
+    isChatVisible.value = false;
+    resetSearch();
   }
-  if (!isOpen.value) resetSearch();
 }
 
 function toggleSearch() {
   showSearch.value = !showSearch.value;
   if (!showSearch.value) resetSearch();
+}
+
+/** Nút minimize/close trong template */
+function closeChat() {
+  isOpen.value = false;
+  isChatVisible.value = false;
+  resetSearch();
+}
+
+/**
+ * Gọi khi user focus/click vào ô nhập tin nhắn — coi như đã đọc ngay.
+ * Giống Facebook Messenger.
+ */
+function markReadCurrent() {
+  if (!activeConversation.value) return;
+  isChatVisible.value = true;
+  chatStore.markAsRead(activeConversation.value.id);
 }
 
 function resetSearch() {
@@ -400,6 +426,7 @@ async function startChatWithFound() {
     if (conv) {
       resetSearch();
       await openConversation(conv);
+      isChatVisible.value = true;
       nextTick(() => scrollBottom(false));
     }
   } catch {
@@ -411,12 +438,13 @@ async function startChatWithFound() {
 
 async function selectConversation(conv) {
   await openConversation(conv);
+  isChatVisible.value = true;
   nextTick(() => scrollBottom(false));
 }
 
 function closeConversation() {
   unsubscribeActive();
-  activeConversation.value = null;
+  isChatVisible.value = false;
 }
 
 async function sendMsg() {
