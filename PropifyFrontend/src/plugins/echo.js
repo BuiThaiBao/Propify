@@ -36,9 +36,7 @@ export function createEcho(token) {
 }
 
 export function initEcho(token) {
-  if (echoInstance) {
-    echoInstance.disconnect();
-  }
+  if (echoInstance) return echoInstance; // Đã có connection → giữ nguyên
   echoInstance = createEcho(token);
   return echoInstance;
 }
