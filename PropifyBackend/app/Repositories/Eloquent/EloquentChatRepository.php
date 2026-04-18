@@ -8,6 +8,7 @@ use App\Models\Message;
 use App\Repositories\ChatRepository;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 final class EloquentChatRepository implements ChatRepository
@@ -41,7 +42,7 @@ final class EloquentChatRepository implements ChatRepository
     {
         [$minId, $maxId] = $this->normalizeIds($userAId, $userBId);
 
-        return DB::transaction(function () use ($minId, $maxId, $listingId) {
+        $conversation = DB::transaction(function () use ($minId, $maxId, $listingId) {
             $conversation = $this->conversationModel->create([
                 'participant_a_id' => $minId,
                 'participant_b_id' => $maxId,
@@ -60,32 +61,41 @@ final class EloquentChatRepository implements ChatRepository
 
             return $conversation;
         });
+
+        // Invalidate cache cho cả 2 participants
+        Cache::forget("chat:conversations:{$minId}");
+        Cache::forget("chat:conversations:{$maxId}");
+
+        return $conversation;
     }
 
     public function getConversationsForUser(int $userId): Collection
     {
-        return $this->conversationModel
-            ->where('participant_a_id', $userId)
-            ->orWhere('participant_b_id', $userId)
-            ->with([
-                'participantA:id,full_name,avatar_url',
-                'participantB:id,full_name,avatar_url',
-                'latestMessage',
-                'conversationParticipants' => function ($q) use ($userId) {
-                    $q->where('user_id', $userId);
-                },
-            ])
-            ->latest('updated_at') // Conversation được touch() khi có message mới
-            ->get();
+        return Cache::remember("chat:conversations:{$userId}", 30, function () use ($userId) {
+            return $this->conversationModel
+                ->where('participant_a_id', $userId)
+                ->orWhere('participant_b_id', $userId)
+                ->with([
+                    'participantA:id,full_name,avatar_url',
+                    'participantB:id,full_name,avatar_url',
+                    'latestMessage.sender:id,full_name',
+                    'conversationParticipants' => function ($q) use ($userId) {
+                        $q->where('user_id', $userId);
+                    },
+                ])
+                ->latest('updated_at')
+                ->get();
+        });
     }
 
     public function getMessages(int $conversationId, ?string $cursor, int $perPage = 20): CursorPaginator
     {
         return $this->messageModel
+            ->select(['id', 'conversation_id', 'sender_id', 'type', 'body', 'file_url', 'created_at'])
             ->where('conversation_id', $conversationId)
             ->where('is_deleted', false)
             ->with('sender:id,full_name,avatar_url')
-            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->cursorPaginate($perPage, ['*'], 'cursor', $cursor);
     }
 
@@ -111,6 +121,13 @@ final class EloquentChatRepository implements ChatRepository
         $this->conversationModel
             ->where('id', $data['conversation_id'])
             ->update(['updated_at' => now()]);
+
+        // Invalidate conversations cache cho cả 2 participants
+        $conv = $this->conversationModel->find($data['conversation_id']);
+        if ($conv) {
+            Cache::forget("chat:conversations:{$conv->participant_a_id}");
+            Cache::forget("chat:conversations:{$conv->participant_b_id}");
+        }
 
         return $message;
     }

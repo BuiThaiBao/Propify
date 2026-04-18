@@ -70,19 +70,33 @@ export const useChatStore = defineStore('chat', () => {
 
   // ============ ACTIONS ============
 
+  /** Flag + promise lock — ngăn gọi API trùng hoàn toàn */
+  let _loadingPromise = null;
+  let _conversationsLoaded = false;
+
   /**
    * Tải danh sách conversations và subscribe WebSocket cho tất cả.
+   * - Nếu đã load rồi → skip (trừ khi force=true)
+   * - Nếu đang load → trả về promise đang chạy
    */
-  async function loadConversations() {
+  async function loadConversations(force = false) {
+    if (_conversationsLoaded && !force) return;
+    if (_loadingPromise) return _loadingPromise;
+
     loadingConversations.value = true;
-    try {
-      const res = await chatService.getConversations();
-      conversations.value = res.data.data ?? [];
-      // Subscribe tất cả để nhận notification ngay cả khi chưa mở
-      conversations.value.forEach((c) => subscribeChannel(c.id));
-    } finally {
-      loadingConversations.value = false;
-    }
+    _loadingPromise = (async () => {
+      try {
+        const res = await chatService.getConversations();
+        conversations.value = res.data.data ?? [];
+        conversations.value.forEach((c) => subscribeChannel(c.id));
+        _conversationsLoaded = true;
+      } finally {
+        loadingConversations.value = false;
+        _loadingPromise = null;
+      }
+    })();
+
+    return _loadingPromise;
   }
 
   /**
@@ -103,18 +117,40 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   /**
-   * Mở một conversation — tải messages + đánh dấu đã đọc.
-   * Không subscribe lại vì đã subscribe trong loadConversations.
+   * Cache tin nhắn per conversation để không phải gọi API lại mỗi lần chuyển.
+   * Map<conversationId, { msgs: [], cursor: string|null, hasMore: boolean }>
+   */
+  const messageCache = new Map();
+
+  /** Lock mở conversation — ngăn gọi trùng cùng conversation */
+  let _openingConvId = null;
+
+  /**
+   * Mở một conversation — dùng cache nếu có, nếu không thì tải từ API.
+   * Deduplicate: skip nếu đang mở cùng conversation.
    */
   async function openConversation(conversation) {
+    if (_openingConvId === conversation.id) return; // đang mở rồi
+    _openingConvId = conversation.id;
+
     activeConversation.value = conversation;
-    messages.value = [];
-    nextCursor.value = null;
-    hasMore.value = false;
     typingUsers.value = new Set();
 
-    await loadMessages(conversation.id);
-    markAsRead(conversation.id);
+    const cached = messageCache.get(conversation.id);
+    if (cached) {
+      messages.value = cached.msgs;
+      nextCursor.value = cached.cursor;
+      hasMore.value = cached.hasMore;
+    } else {
+      messages.value = [];
+      nextCursor.value = null;
+      hasMore.value = false;
+      await loadMessages(conversation.id);
+    }
+    // Server tự markAsRead khi loadMessages (trang đầu) → chỉ reset UI
+    const conv = conversations.value.find((c) => c.id === conversation.id);
+    if (conv) conv.unread_count = 0;
+    _openingConvId = null;
   }
 
   /**
@@ -144,6 +180,7 @@ export const useChatStore = defineStore('chat', () => {
           const exists = messages.value.some((m) => m.id === incomingMsg.id);
           if (!exists) {
             messages.value.push({ ...incomingMsg, _status: 'received' });
+            saveCache(conversationId);
           }
           updateConversationLastMessage(conversationId, incomingMsg);
           markAsRead(conversationId);
@@ -194,9 +231,21 @@ export const useChatStore = defineStore('chat', () => {
 
       nextCursor.value = data.meta?.next_cursor ?? null;
       hasMore.value = data.meta?.has_more ?? false;
+
+      // Lưu vào cache
+      saveCache(conversationId);
     } finally {
       loadingMessages.value = false;
     }
+  }
+
+  /** Lưu state tin nhắn hiện tại vào cache */
+  function saveCache(convId) {
+    messageCache.set(convId, {
+      msgs: [...messages.value],
+      cursor: nextCursor.value,
+      hasMore: hasMore.value,
+    });
   }
 
   /**
@@ -243,6 +292,7 @@ export const useChatStore = defineStore('chat', () => {
       }
 
       updateConversationLastMessage(activeConversation.value.id, realMsg);
+      saveCache(activeConversation.value.id);
     } catch {
       const idx = messages.value.findIndex((m) => m.id === tempId);
       if (idx !== -1) {
@@ -277,9 +327,15 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   /**
-   * Đánh dấu đã đọc.
+   * Đánh dấu đã đọc — throttle 3s per conversation.
    */
+  const _readTimestamps = new Map();
   async function markAsRead(conversationId) {
+    const now = Date.now();
+    const lastRead = _readTimestamps.get(conversationId) ?? 0;
+    if (now - lastRead < 3000) return; // skip nếu vừa gọi < 3s trước
+    _readTimestamps.set(conversationId, now);
+
     const conv = conversations.value.find((c) => c.id === conversationId);
     if (conv) conv.unread_count = 0;
     try {
@@ -298,6 +354,8 @@ export const useChatStore = defineStore('chat', () => {
       conv.last_message = {
         body: msg.body,
         type: msg.type,
+        sender_id: msg.sender?.id ?? msg.sender_id,
+        sender_name: msg.sender?.full_name ?? msg.sender_name,
         created_at: msg.created_at,
       };
       const idx = conversations.value.indexOf(conv);
@@ -319,6 +377,8 @@ export const useChatStore = defineStore('chat', () => {
       });
     }
     channels.clear();
+    messageCache.clear();
+    _conversationsLoaded = false;
     conversations.value = [];
     activeConversation.value = null;
     messages.value = [];

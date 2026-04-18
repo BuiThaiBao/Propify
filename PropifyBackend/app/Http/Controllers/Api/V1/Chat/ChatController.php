@@ -59,11 +59,18 @@ final class ChatController
      */
     public function getMessages(Request $request, int $conversationId): JsonResponse
     {
+        $cursor = $request->query('cursor');
+
         $paginator = $this->chatService->getMessages(
             conversationId: $conversationId,
             userId: auth()->id(),
-            cursor: $request->query('cursor'),
+            cursor: $cursor,
         );
+
+        // Tự động đánh dấu đã đọc khi load trang đầu tiên (không có cursor)
+        if (!$cursor) {
+            $this->chatService->markAsRead($conversationId, auth()->id());
+        }
 
         return ApiResponse::success(
             data: MessageResource::collection($paginator->items()),
