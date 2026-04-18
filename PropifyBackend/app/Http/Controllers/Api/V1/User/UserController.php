@@ -44,29 +44,27 @@ final class UserController
     }
 
     /**
-     * GET /v1/users/search?phone=0123456789
-     * Tìm user theo số điện thoại (chính xác) để bắt đầu cuộc trò chuyện.
-     * Không trả về chính mình.
+     * GET /v1/users/search?phone=012345
+     * Tìm user theo số điện thoại (partial match, LIKE).
+     * Trả về tối đa 5 kết quả, loại trừ chính mình.
      */
     public function searchByPhone(Request $request): JsonResponse
     {
         $phone = $request->query('phone');
+        $digits = preg_replace('/\D/', '', $phone ?? '');
 
-        if (!$phone || strlen(preg_replace('/\D/', '', $phone)) < 9) {
-            return ApiResponse::error(message: 'Số điện thoại không hợp lệ.', statusCode: 422);
+        if (strlen($digits) < 3) {
+            return ApiResponse::success(data: [], message: 'Nhập ít nhất 3 số.');
         }
 
-        $user = User::where('phone', $phone)
+        $users = User::where('phone', 'LIKE', "%{$digits}%")
             ->where('id', '!=', auth()->id())
-            ->first(['id', 'full_name', 'phone', 'avatar_url']);
-
-        if (!$user) {
-            return ApiResponse::error(message: 'Không tìm thấy người dùng với số điện thoại này.', statusCode: 404);
-        }
+            ->limit(5)
+            ->get(['id', 'full_name', 'phone', 'avatar_url']);
 
         return ApiResponse::success(
-            data: new UserResource($user),
-            message: 'Tìm thấy người dùng.',
+            data: UserResource::collection($users),
+            message: 'Kết quả tìm kiếm.',
         );
     }
 }

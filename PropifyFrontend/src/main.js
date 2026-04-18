@@ -2,7 +2,7 @@ import { createApp } from "vue";
 import { createPinia } from "pinia";
 import { watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
-import { initEcho, destroyEcho } from "@/plugins/echo";
+import { initEcho, destroyEcho, getEcho } from "@/plugins/echo";
 import App from "./App.vue";
 import router from "./router";
 import "./style.css";
@@ -28,11 +28,15 @@ authStore.initAuth().finally(() => {
 });
 
 // Theo dõi thay đổi auth state để init/destroy Echo
+// Chỉ init 1 lần — không disconnect/reconnect khi chuyển route
 watch(
   () => authStore.isAuthenticated,
   (authenticated) => {
     if (authenticated && authStore.token) {
-      safeInitEcho(authStore.token);
+      // Chỉ init nếu chưa có Echo instance
+      if (!getEcho()) {
+        safeInitEcho(authStore.token);
+      }
     } else {
       destroyEcho();
     }
