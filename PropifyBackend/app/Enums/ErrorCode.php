@@ -72,6 +72,12 @@ enum ErrorCode: int
             self::ResourceDeleteFailed => 'Xóa tài nguyên thất bại',
             self::ListingNotFound => 'Không tìm thấy bài đăng',
             self::AppointmentSlotNotFound => 'Bạn không có cấu hình lịch hẹn nào cho bài đăng này hoặc bạn không có quyền truy cập',
+            self::ConversationNotFound => 'Cuộc trò chuyện không tồn tại',
+            self::UnauthorizedConversationAccess => 'Bạn không có quyền truy cập vào cuộc trò chuyện này',
+            self::BookingSelfSlot => 'Bạn không thể đặt lịch hẹn cho chính bài đăng của mình',
+            self::BookingInvalidDate => 'Ngày hoặc giờ hẹn không hợp lệ',
+            self::BookingSlotNotFound => 'Khung giờ hẹn không tồn tại hoặc đã bị vô hiệu hóa',
+            self::BookingDuplicate => 'Bạn đã đặt lịch hẹn cho khung giờ này vào ngày này rồi',
             self::ServerError => 'Lỗi hệ thống',
             self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
         };
