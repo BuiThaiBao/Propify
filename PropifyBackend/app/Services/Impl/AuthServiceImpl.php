@@ -45,6 +45,13 @@ final class AuthServiceImpl implements AuthService
 
         /** @var User $user */
         $user = $guard->user();
+
+        if ($user->status !== UserStatus::Active) {
+            $guard->logout();
+            Log::warning('Login attempt by non-active user', ['user_id' => $user->id, 'status' => $user->status?->value]);
+            throw new \App\Exceptions\AccountNotVerifiedException();
+        }
+
         Log::info('User logged in', ['user_id' => $user->id]);
 
         return AuthResultDto::fromUserAndToken($user, $token, $guard->factory()->getTTL());
@@ -56,15 +63,26 @@ final class AuthServiceImpl implements AuthService
     public function register(RegisterUserDto $dto): void
     {
         DB::transaction(function () use ($dto) {
-            $user = $this->userRepository->create([
-                'full_name' => $dto->fullName,
-                'email'     => $dto->email,
-                'password'  => Hash::make($dto->password),
-                'role'      => UserRole::User->value,
-                'status'    => UserStatus::Pending->value,
-            ]);
+            $user = $this->userRepository->findByEmail($dto->email);
 
-            Log::info('New user registered (pending OTP)', ['user_id' => $user->id]);
+            if ($user) {
+                // User đang Pending (validate đã lọc), cập nhật lại thông tin mới nhất
+                $this->userRepository->update($user->id, [
+                    'full_name' => $dto->fullName,
+                    'password'  => Hash::make($dto->password),
+                ]);
+                $user->refresh(); // Lấy data mới
+                Log::info('Existing pending user re-registered', ['user_id' => $user->id]);
+            } else {
+                $user = $this->userRepository->create([
+                    'full_name' => $dto->fullName,
+                    'email'     => $dto->email,
+                    'password'  => Hash::make($dto->password),
+                    'role'      => UserRole::User->value,
+                    'status'    => UserStatus::Pending->value,
+                ]);
+                Log::info('New user registered (pending OTP)', ['user_id' => $user->id]);
+            }
 
             $this->otpService->generate($user, OtpContext::REGISTER);
         });
