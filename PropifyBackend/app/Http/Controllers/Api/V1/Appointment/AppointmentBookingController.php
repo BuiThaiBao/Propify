@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api\V1\Appointment;
 use App\Helpers\ApiResponse;
 use App\Http\Requests\Appointment\CreateBookingRequest;
 use App\Http\Resources\AppointmentBookingResource;
+use App\Http\Resources\ViewerBookingResource;
 use App\Services\Appointment\AppointmentBookingService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 final class AppointmentBookingController
 {
@@ -30,6 +32,34 @@ final class AppointmentBookingController
         return ApiResponse::created(
             data: new AppointmentBookingResource($booking),
             message: 'Đặt lịch hẹn thành công.'
+        );
+    }
+
+    /**
+     * Lấy danh sách lịch hẹn của tôi (viewer).
+     */
+    public function index(): JsonResponse
+    {
+        $viewerId = (int) auth('api')->id();
+        $bookings = $this->bookingService->getViewerBookings($viewerId);
+
+        return ApiResponse::success(
+            data: ViewerBookingResource::collection($bookings),
+            message: 'Lấy danh sách lịch hẹn thành công.'
+        );
+    }
+
+    /**
+     * Lấy danh sách lịch hẹn nhận được của chủ nhà/môi giới (poster).
+     */
+    public function received(): JsonResponse
+    {
+        $posterId = (int) auth('api')->id();
+        $bookings = $this->bookingService->getPosterBookings($posterId);
+
+        return ApiResponse::success(
+            data: ViewerBookingResource::collection($bookings),
+            message: 'Lấy danh sách lịch hẹn nhận được thành công.'
         );
     }
 }

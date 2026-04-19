@@ -4,6 +4,7 @@ namespace App\Services\Appointment;
 
 use App\DTOs\Appointment\CreateBookingDto;
 use App\Models\AppointmentBooking;
+use Illuminate\Database\Eloquent\Collection;
 
 interface AppointmentBookingService
 {
@@ -15,4 +16,18 @@ interface AppointmentBookingService
      * @throws \App\Exceptions\BookingInvalidDateException
      */
     public function createBooking(CreateBookingDto $dto): AppointmentBooking;
+
+    /**
+     * Lấy danh sách lịch hẹn của người xem (viewer).
+     *
+     * @return Collection<int, AppointmentBooking>
+     */
+    public function getViewerBookings(int $viewerId): Collection;
+
+    /**
+     * Lấy danh sách lịch hẹn mà người tạo (poster) nhận được.
+     *
+     * @return Collection<int, AppointmentBooking>
+     */
+    public function getPosterBookings(int $posterId): Collection;
 }

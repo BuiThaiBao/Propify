@@ -13,6 +13,7 @@ use App\Models\AppointmentSlot;
 use App\Repositories\AppointmentBookingRepository;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection;
 
 final class AppointmentBookingServiceImpl implements \App\Services\Appointment\AppointmentBookingService
 {
@@ -87,5 +88,15 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
             'status'       => BookingStatus::PENDING->value,
             'is_deleted'   => false,
         ]);
+    }
+
+    public function getViewerBookings(int $viewerId): Collection
+    {
+        return $this->bookingRepository->getByViewerId($viewerId);
+    }
+
+    public function getPosterBookings(int $posterId): Collection
+    {
+        return $this->bookingRepository->getByPosterId($posterId);
     }
 }
