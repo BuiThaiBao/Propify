@@ -27,8 +27,10 @@ final class ViewerBookingResource extends JsonResource
             'email'         => $this->email,
             'phone'         => $this->phone_number,
             'note'          => $this->note,
-            'is_deleted'    => $this->is_deleted,
-            'status'        => $this->status,
+            'is_deleted'        => $this->is_deleted,
+            'status'            => $this->status,
+            'confirm_deadline'  => $this->confirm_deadline?->toDateTimeString(),
+            'is_urgent'         => $this->is_urgent,
             'created_at'    => $this->created_at?->toIso8601String(),
             'updated_at'    => $this->updated_at?->toIso8601String(),
         ];

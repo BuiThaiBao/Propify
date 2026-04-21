@@ -3,9 +3,12 @@
 namespace App\Services\Appointment\Impl;
 
 use App\DTOs\Appointment\GetAppointmentSlotsDto;
-use App\Exceptions\AppointmentSlotNotFoundException;
+use App\DTOs\Appointment\UpdateSlotDto;
+use App\Enums\BookingStatus;
 use App\Enums\ErrorCode;
 use App\Exceptions\BusinessException;
+use App\Models\AppointmentBooking;
+use App\Models\AppointmentSlot;
 use App\Repositories\AppointmentSlotRepository;
 use App\Services\Appointment\AppointmentSlotService;
 use Carbon\Carbon;
@@ -27,7 +30,76 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
             throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
         }
 
-        return $slots;
+        return $this->buildDateSlots($slots);
+    }
+
+    public function updateSlot(UpdateSlotDto $dto): AppointmentSlot
+    {
+        // 1. Kiểm tra slot có tồn tại và đang active không
+        $slot = AppointmentSlot::query()
+            ->where('id', $dto->slotId)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$slot) {
+            throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
+        }
+
+        // 2. Kiểm tra poster_id (người gọi API phải là chủ slot)
+        if ($slot->poster_id !== $dto->posterId) {
+            throw new BusinessException(ErrorCode::SlotNotOwner);
+        }
+
+        // 3. Kiểm tra listing_id có khớp với slot không
+        if ($slot->listing_id !== $dto->listingId) {
+            throw new BusinessException(ErrorCode::SlotListingMismatch);
+        }
+
+        // 4. Kiểm tra trùng khung giờ trên cùng listing + cùng day_of_week (trừ slot hiện tại)
+        $overlap = AppointmentSlot::query()
+            ->where('listing_id', $dto->listingId)
+            ->where('poster_id', $dto->posterId)
+            ->where('day_of_week', $dto->newDayOfWeek)
+            ->where('is_active', true)
+            ->where('id', '!=', $dto->slotId)
+            ->where(function ($query) use ($dto) {
+                // Trùng khi: start_time mới < end_time cũ AND end_time mới > start_time cũ
+                $query->where('start_time', '<', $dto->newEndTime)
+                      ->where('end_time', '>', $dto->newStartTime);
+            })
+            ->exists();
+
+        if ($overlap) {
+            throw new BusinessException(ErrorCode::SlotTimeOverlap);
+        }
+
+        // 5. Hủy tất cả booking PENDING và ghi note (booking APPROVED giữ nguyên không động vào)
+        $pendingBookings = AppointmentBooking::query()
+            ->where('slot_id', $dto->slotId)
+            ->where('is_deleted', false)
+            ->where('status', BookingStatus::PENDING->value)
+            ->get();
+        $oldInfo = "Thứ {$slot->day_of_week}, {$slot->start_time} - {$slot->end_time}";
+        $newInfo = "Thứ {$dto->newDayOfWeek}, {$dto->newStartTime} - {$dto->newEndTime}";
+
+        foreach ($pendingBookings as $booking) {
+            $cancelNote = "[Tự động hủy] Chủ nhà đã thay đổi lịch hẹn từ ({$oldInfo}) sang ({$newInfo}).";
+            $existingNote = $booking->note ? $booking->note . ' | ' : '';
+
+            $booking->update([
+                'status' => BookingStatus::CANCELLED->value,
+                'note'   => $existingNote . $cancelNote,
+            ]);
+        }
+
+        // 6. Cập nhật slot
+        $slot->update([
+            'day_of_week' => $dto->newDayOfWeek,
+            'start_time'  => $dto->newStartTime,
+            'end_time'    => $dto->newEndTime,
+        ]);
+
+        return $slot->fresh();
     }
 
     /**
@@ -88,3 +160,4 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
         return $result;
     }
 }
+

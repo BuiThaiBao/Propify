@@ -4,10 +4,9 @@ namespace App\Services\Appointment\Impl;
 
 use App\DTOs\Appointment\CreateBookingDto;
 use App\Enums\BookingStatus;
-use App\Exceptions\BookingDuplicateException;
-use App\Exceptions\BookingSlotNotFoundException;
-use App\Exceptions\BookingInvalidDateException;
-use App\Exceptions\BookingSelfSlotException;
+use App\Enums\ErrorCode;
+use App\Exceptions\BusinessException;
+use App\Jobs\AutoCancelExpiredBookingJob;
 use App\Models\AppointmentBooking;
 use App\Models\AppointmentSlot;
 use App\Repositories\AppointmentBookingRepository;
@@ -31,12 +30,12 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
             ->first();
 
         if (!$slot) {
-            throw new BookingSlotNotFoundException();
+            throw new BusinessException(ErrorCode::BookingSlotNotFound);
         }
 
         // 2. Kiểm tra viewer không được là poster (không tự đặt lịch chính mình)
         if ($dto->viewerId === $slot->poster_id) {
-            throw new BookingSelfSlotException();
+            throw new BusinessException(ErrorCode::BookingSelfSlot);
         }
 
         // 3. Tính meet_time = date + start_time của slot
@@ -49,19 +48,18 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
         $meetDate = Carbon::parse($dto->date)->startOfDay();
 
         if ($meetDate->lt($today) || $meetDate->gt($maxDate)) {
-            throw new BookingInvalidDateException('Ngày hẹn phải nằm trong khoảng từ hôm nay đến 14 ngày tới.');
+            throw new BusinessException(ErrorCode::BookingInvalidDate);
         }
 
         // 5. Kiểm tra ngày chọn phải đúng day_of_week của slot
-        // Carbon: Monday=1 ... Sunday=7 (ISO), trùng với convention trong DB
         $selectedDayOfWeek = Carbon::parse($dto->date)->dayOfWeekIso;
         if ($selectedDayOfWeek !== $slot->day_of_week) {
-            throw new BookingInvalidDateException('Ngày bạn chọn không khớp với ngày trong tuần của khung giờ này.');
+            throw new BusinessException(ErrorCode::BookingInvalidDate);
         }
 
         // 6. Kiểm tra phải đặt trước ít nhất 2 tiếng
         if ($meetTime->diffInHours($now, absolute: false) > -2) {
-            throw new BookingInvalidDateException('Bạn cần đặt lịch trước ít nhất 2 tiếng so với giờ hẹn.');
+            throw new BusinessException(ErrorCode::BookingInvalidDate);
         }
 
         // 7. Kiểm tra trùng lịch: cùng viewer + cùng slot + cùng meet_time
@@ -73,21 +71,55 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
             ->exists();
 
         if ($exists) {
-            throw new BookingDuplicateException();
+            throw new BusinessException(ErrorCode::BookingDuplicate);
         }
 
-        // 8. Tạo booking
-        return $this->bookingRepository->create([
-            'slot_id'      => $dto->slotId,
-            'viewer_id'    => $dto->viewerId,
-            'meet_time'    => $meetTime,
-            'full_name'    => $dto->fullName,
-            'phone_number' => $dto->phone,
-            'email'        => $dto->email,
-            'note'         => $dto->note,
-            'status'       => BookingStatus::PENDING->value,
-            'is_deleted'   => false,
+        // 8. Mỗi khách chỉ 01 lịch chưa hoàn thành trên cùng 1 listing
+        $existsOnListing = AppointmentBooking::query()
+            ->where('viewer_id', $dto->viewerId)
+            ->where('is_deleted', false)
+            ->where('status', BookingStatus::PENDING->value)
+            ->whereHas('slot', function ($query) use ($slot) {
+                $query->where('listing_id', $slot->listing_id);
+            })
+            ->exists();
+
+        if ($existsOnListing) {
+            throw new BusinessException(ErrorCode::BookingExistsOnListing);
+        }
+
+        // 9. Tính confirm_deadline và is_urgent (AF-01: Đặt lịch gấp)
+        $hoursUntilMeet = $now->diffInHours($meetTime, absolute: false);
+        $isUrgent = $hoursUntilMeet < 6;
+
+        if ($isUrgent) {
+            // Đặt gấp: Time-out = (T_hẹn - T_đặt) - 1 giờ
+            $confirmDeadline = $now->addHours(max($hoursUntilMeet - 1, 1));
+        } else {
+            // Bình thường: deadline = meet_time - 2 giờ
+            $confirmDeadline = $meetTime->copy()->subHours(2);
+        }
+
+        // 10. Tạo booking
+        $booking = $this->bookingRepository->create([
+            'slot_id'          => $dto->slotId,
+            'viewer_id'        => $dto->viewerId,
+            'meet_time'        => $meetTime,
+            'full_name'        => $dto->fullName,
+            'phone_number'     => $dto->phone,
+            'email'            => $dto->email,
+            'note'             => $dto->note,
+            'status'           => BookingStatus::PENDING->value,
+            'is_deleted'       => false,
+            'confirm_deadline' => $confirmDeadline,
+            'is_urgent'        => $isUrgent,
         ]);
+
+        // 11. Dispatch job tự động hủy khi quá hạn confirm_deadline
+        AutoCancelExpiredBookingJob::dispatch($booking->id)
+            ->delay($confirmDeadline);
+
+        return $booking;
     }
 
     public function getViewerBookings(int $viewerId): Collection

@@ -17,6 +17,7 @@ enum ErrorCode: int
     case AuthOtpExpired     = 1008;  // OTP hết hạn (Redis TTL)
     case AuthNotVerified    = 1009;  // Tài khoản chưa xác thực OTP
     case AuthPasswordIncorrect = 1010; // Mật khẩu hiện tại không đúng
+    case AuthPhoneNotVerified  = 1011; // Chưa cập nhật SĐT
 
     // ==================== Validation (2xxx) ====================
     case ValidationError = 2001;
@@ -39,6 +40,11 @@ enum ErrorCode: int
     case BookingInvalidDate       = 6004;
     case BookingSlotNotFound      = 6005;
     case BookingDuplicate         = 6006;
+    case SlotNotOwner             = 6007;
+    case SlotTimeOverlap          = 6008;
+    case SlotHasApprovedBooking   = 6009;
+    case SlotListingMismatch      = 6010;
+    case BookingExistsOnListing   = 6011;
 
     // ==================== Chat (7xxx) ====================
     case ConversationNotFound              = 7001;
@@ -78,6 +84,11 @@ enum ErrorCode: int
             self::BookingInvalidDate => 'Ngày hoặc giờ hẹn không hợp lệ',
             self::BookingSlotNotFound => 'Khung giờ hẹn không tồn tại hoặc đã bị vô hiệu hóa',
             self::BookingDuplicate => 'Bạn đã đặt lịch hẹn cho khung giờ này vào ngày này rồi',
+            self::SlotNotOwner => 'Bạn không có quyền chỉnh sửa khung giờ này',
+            self::SlotTimeOverlap => 'Khung giờ này bị trùng với khung giờ đã có trong cùng ngày',
+            self::SlotHasApprovedBooking => 'Không thể sửa vì đã có lịch hẹn được duyệt trong khung giờ này',
+            self::SlotListingMismatch => 'Khung giờ không thuộc bài đăng này',
+            self::BookingExistsOnListing => 'Bạn đã có một lịch hẹn chưa hoàn thành trên căn hộ này',
             self::ServerError => 'Lỗi hệ thống',
             self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
         };
@@ -94,7 +105,8 @@ enum ErrorCode: int
             self::AuthOtpExpired,
             self::AuthNotVerified => Response::HTTP_UNAUTHORIZED,
 
-            self::AuthPasswordIncorrect => Response::HTTP_UNPROCESSABLE_ENTITY,
+            self::AuthPasswordIncorrect,
+            self::AuthPhoneNotVerified => Response::HTTP_UNPROCESSABLE_ENTITY,
 
             self::AuthForbidden => Response::HTTP_FORBIDDEN,
 
@@ -116,6 +128,16 @@ enum ErrorCode: int
             self::BookingSlotNotFound => Response::HTTP_NOT_FOUND,
 
             self::BookingDuplicate => Response::HTTP_CONFLICT,
+
+            self::SlotNotOwner => Response::HTTP_FORBIDDEN,
+
+            self::SlotTimeOverlap => Response::HTTP_CONFLICT,
+
+            self::SlotHasApprovedBooking => Response::HTTP_CONFLICT,
+
+            self::SlotListingMismatch => Response::HTTP_UNPROCESSABLE_ENTITY,
+
+            self::BookingExistsOnListing => Response::HTTP_CONFLICT,
 
             self::UserAlreadyExists => Response::HTTP_CONFLICT,
 

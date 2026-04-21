@@ -3,6 +3,8 @@
 namespace App\Services\Appointment;
 
 use App\DTOs\Appointment\GetAppointmentSlotsDto;
+use App\DTOs\Appointment\UpdateSlotDto;
+use App\Models\AppointmentSlot;
 
 interface AppointmentSlotService
 {
@@ -13,4 +15,11 @@ interface AppointmentSlotService
      * @return array<int, array{date: string, slots: array}>
      */
     public function getSlotsByListingAndPoster(GetAppointmentSlotsDto $dto): array;
+
+    /**
+     * Cập nhật khung giờ hẹn (day_of_week, start_time, end_time).
+     * Tự động hủy các booking PENDING và ghi chú thay đổi.
+     */
+    public function updateSlot(UpdateSlotDto $dto): AppointmentSlot;
 }
+

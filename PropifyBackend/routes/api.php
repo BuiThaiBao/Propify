@@ -90,6 +90,8 @@ Route::prefix('v1/cloudinary')->as('cloudinary.')->middleware('auth:api')->group
 Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('auth:api')->group(function () {
     Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'index'])
         ->name('index');
+    Route::put('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'update'])
+        ->name('update');
 });
 
 Route::prefix('v1/appointment-bookings')->as('appointment-bookings.')->middleware('auth:api')->group(function () {
