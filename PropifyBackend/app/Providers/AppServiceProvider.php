@@ -29,8 +29,14 @@ use App\Services\Otp\OtpStoragePort;
 use App\Services\Appointment\AppointmentSlotService;
 use App\Services\Appointment\Impl\AppointmentSlotServiceImpl;
 use App\Services\TokenProcessService;
+use App\Services\Cloudinary\CloudinaryService;
+use App\Services\Cloudinary\Impl\CloudinaryServiceImpl;
 use App\Services\User\Impl\UserServiceImpl;
 use App\Services\User\UserService;
+use App\Repositories\ChatRepository;
+use App\Repositories\Eloquent\EloquentChatRepository;
+use App\Services\Chat\ChatService;
+use App\Services\Chat\Impl\ChatServiceImpl;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -72,8 +78,15 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(OtpStoragePort::class, RedisOtpStorageAdapter::class);
         $this->app->bind(OtpService::class, OtpServiceImpl::class);
 
-        //USER
+        // ── User bindings ─────────────────────────────────────────────────
         $this->app->bind(UserService::class, UserServiceImpl::class);
+
+        // ── Cloudinary bindings ───────────────────────────────────────────
+        $this->app->bind(CloudinaryService::class, CloudinaryServiceImpl::class);
+
+        // ── Chat bindings ─────────────────────────────────────────────────
+        $this->app->bind(ChatRepository::class, EloquentChatRepository::class);
+        $this->app->bind(ChatService::class, ChatServiceImpl::class);
     }
 
     /**

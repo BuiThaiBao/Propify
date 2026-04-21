@@ -20,7 +20,17 @@ final class RegisterRequest extends FormRequest
     {
         return [
             'full_name' => ['required', 'string', 'max:100'],
-            'email'     => ['required', 'email', 'max:100', 'unique:users,email'],
+            'email'     => [
+                'required',
+                'email',
+                'max:100',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    $user = \App\Models\User::where('email', $value)->first();
+                    if ($user && $user->status !== \App\Enums\UserStatus::Pending) {
+                        $fail('Địa chỉ email này đã được đăng ký.');
+                    }
+                }
+            ],
             'password'  => [
                 'required',
                 'string',
@@ -55,7 +65,6 @@ final class RegisterRequest extends FormRequest
 
             'email.required' => 'Vui lòng nhập địa chỉ email.',
             'email.email'    => 'Địa chỉ email không hợp lệ.',
-            'email.unique'   => 'Địa chỉ email này đã được đăng ký.',
             'email.max'      => 'Địa chỉ email không được vượt quá :max ký tự.',
 
             'password.required'  => 'Vui lòng nhập mật khẩu.',

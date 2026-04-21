@@ -2,8 +2,8 @@
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\GoogleController;
+use App\Http\Controllers\Api\V1\CloudinaryController;
 use App\Http\Controllers\Api\V1\User\UserController;
-use App\Http\Controllers\Api\V1\ListingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,6 +16,10 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+// ==================== BROADCASTING AUTH (JWT) ====================
+// Overide mặc định /broadcasting/auth để sử dụng JWT thay vì session
+Broadcast::routes(['middleware' => ['auth:api']]);
 
 Route::prefix('v1/auth')->as('auth.')->group(function () {
     // ===== PUBLIC ROUTES (Throttled to prevent brute force) =====
@@ -70,14 +74,20 @@ Route::prefix('v1/user')->as('user.')->middleware('auth:api')->group(function ()
     Route::get('/profile', [UserController::class, 'getProfile'])->name('profile.show');
     Route::put('/profile', [UserController::class, 'updateProfile'])->name('profile.update');
     Route::put('/change-password', [UserController::class, 'changePassword'])->name('password.change');
+    // Tìm user theo SĐT để bắt đầu chat
+    Route::get('/search', [UserController::class, 'searchByPhone'])->name('search');
 });
+
+// ==================== CLOUDINARY ROUTES ====================
+Route::prefix('v1/cloudinary')->as('cloudinary.')->middleware('auth:api')->group(function () {
+    // Tạo signed signature để frontend upload ảnh trực tiếp lên Cloudinary
+    // Query param: ?type=avatar | ?type=listing
+    Route::post('/sign', [CloudinaryController::class, 'sign'])->name('sign');
+});
+
 
 // ==================== APPOINTMENT ROUTES ====================
 Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('auth:api')->group(function () {
     Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'index'])
         ->name('index');
-});
-
-Route::prefix('v1')->middleware('auth:api')->group(function () {
-    Route::post('/listings', [ListingController::class, 'store'])->name('listings.store');
 });
