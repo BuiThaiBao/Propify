@@ -16,6 +16,7 @@ enum ErrorCode: int
     case AuthOtpInvalid     = 1007;  // OTP sai hoặc đã dùng
     case AuthOtpExpired     = 1008;  // OTP hết hạn (Redis TTL)
     case AuthNotVerified    = 1009;  // Tài khoản chưa xác thực OTP
+    case AuthPasswordIncorrect = 1010; // Mật khẩu hiện tại không đúng
 
     // ==================== Validation (2xxx) ====================
     case ValidationError = 2001;
@@ -58,6 +59,7 @@ enum ErrorCode: int
             self::AuthOtpInvalid     => 'Mã OTP không hợp lệ',
             self::AuthOtpExpired     => 'Mã OTP đã hết hạn',
             self::AuthNotVerified    => 'Tài khoản chưa được xác thực',
+            self::AuthPasswordIncorrect => 'Mật khẩu hiện tại không đúng',
             self::ValidationError => 'Dữ liệu không hợp lệ',
             self::UserNotFound => 'Không tìm thấy người dùng',
             self::UserAlreadyExists => 'Người dùng đã tồn tại',
@@ -88,6 +90,8 @@ enum ErrorCode: int
             self::AuthOtpInvalid,
             self::AuthOtpExpired,
             self::AuthNotVerified => Response::HTTP_UNAUTHORIZED,
+
+            self::AuthPasswordIncorrect => Response::HTTP_UNPROCESSABLE_ENTITY,
 
             self::AuthForbidden => Response::HTTP_FORBIDDEN,
 
