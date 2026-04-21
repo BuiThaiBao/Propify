@@ -1153,19 +1153,41 @@ async function fetchWardsByDistrict(districtCode) {
 }
 
 function onImagesChange(event) {
-  const files = event.target.files ? Array.from(event.target.files) : [];
+  const newFiles = event.target.files ? Array.from(event.target.files) : [];
 
-  // Nếu người dùng nhấn Cancel, files sẽ rỗng → giữ nguyên ảnh cũ
-  if (files.length === 0) return;
+  // Nếu người dùng Cancel, files rỗng → giữ nguyên ảnh cũ
+  if (newFiles.length === 0) return;
 
-  // Giải phóng object URL cũ trước khi gán mới
-  clearImagePreviews();
-  form.images = files;
-  imagePreviews.value = files.map((file) => ({
-    name: file.name,
-    url: URL.createObjectURL(file),
-    file,
-  }));
+  // Lấy danh sách key của ảnh đã có để tránh trùng lặp (dựa theo tên + size)
+  const existingKeys = new Set(
+    form.images.map((f) => (typeof f === 'string' ? f : `${f.name}_${f.size}`))
+  );
+
+  // Chỉ thêm những file chưa có trong danh sách
+  const uniqueNewFiles = newFiles.filter(
+    (f) => !existingKeys.has(`${f.name}_${f.size}`)
+  );
+
+  if (uniqueNewFiles.length === 0) {
+    event.target.value = '';
+    return;
+  }
+
+  // Giới hạn tối đa 10 ảnh
+  const MAX = 10;
+  const remaining = MAX - form.images.length;
+  const filesToAdd = uniqueNewFiles.slice(0, remaining);
+
+  // Thêm vào cuối danh sách hiện có (không xóa ảnh cũ)
+  form.images = [...form.images, ...filesToAdd];
+  imagePreviews.value = [
+    ...imagePreviews.value,
+    ...filesToAdd.map((file) => ({
+      name: file.name,
+      url: URL.createObjectURL(file),
+      file,
+    })),
+  ];
 
   // Reset input để có thể chọn lại cùng file nếu cần
   event.target.value = '';
