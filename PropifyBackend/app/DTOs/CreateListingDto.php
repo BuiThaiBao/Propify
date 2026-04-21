@@ -2,14 +2,15 @@
 
 namespace App\DTOs;
 
-use Illuminate\Http\UploadedFile;
-
 final readonly class CreateListingDto
 {
     /**
-     * @param string[] $images
-     * @param int[] $attributeIds
-     * @param string[] $legalDocuments
+     * @param string[] $images       Cloudinary URLs
+     * @param int[]    $attributeIds
+     * @param string[] $amenities
+     * @param string[] $legalPaperTypes
+     * @param int[]    $appointmentDays
+     * @param string[] $legalDocuments Cloudinary URLs
      */
     public function __construct(
         public string $demandType,
@@ -45,11 +46,16 @@ final readonly class CreateListingDto
         public array $images,
         public ?string $video,
         public array $attributeIds,
+        public array $amenities,
+        public array $legalPaperTypes,
+        public bool $publicInfoAgreed,
         public bool $requestVerification,
         public ?string $identityCardFront,
         public ?string $identityCardBack,
         public array $legalDocuments,
         public ?string $appointmentAt,
+        public array $appointmentDays,
+        public ?string $appointmentTimeSlot,
         public ?string $appointmentContactName,
         public ?string $appointmentContactPhone,
         public ?string $appointmentContactEmail,
