@@ -5,8 +5,8 @@ namespace App\Services\Chat\Impl;
 use App\DTOs\Chat\GetOrCreateConversationDto;
 use App\DTOs\Chat\SendMessageDto;
 use App\Events\Chat\MessageSent;
-use App\Exceptions\ConversationNotFoundException;
-use App\Exceptions\UnauthorizedConversationAccessException;
+use App\Enums\ErrorCode;
+use App\Exceptions\BusinessException;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Repositories\ChatRepository;
@@ -111,9 +111,9 @@ final class ChatServiceImpl implements ChatService
             // Kiểm tra thêm: conversation có tồn tại không?
             $exists = $this->chatRepository->findById($conversationId);
             if (!$exists) {
-                throw new ConversationNotFoundException();
+                throw new BusinessException(ErrorCode::ConversationNotFound);
             }
-            throw new UnauthorizedConversationAccessException();
+            throw new BusinessException(ErrorCode::UnauthorizedConversationAccess);
         }
     }
 }
