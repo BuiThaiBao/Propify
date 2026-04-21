@@ -48,7 +48,7 @@
           </header>
 
           <div class="mt-3">
-            <p class="field-label">Nhu cầu của bạn *</p>
+            <p class="field-label required">Nhu cầu của bạn</p>
             <div class="mt-2 flex flex-wrap gap-2">
               <button type="button" :class="pillClass(form.demandType === 'SALE')" @click="form.demandType = 'SALE'">Mua bán</button>
               <button type="button" :class="pillClass(form.demandType === 'RENT')" @click="form.demandType = 'RENT'">Cho thuê</button>
@@ -56,8 +56,9 @@
           </div>
 
           <label class="mt-3 block">
-            <span class="field-label">Tiêu đề *</span>
-            <input v-model="form.title" class="input mt-1" maxlength="120" placeholder="Nhập tiêu đề" />
+            <span class="field-label required">Tiêu đề</span>
+            <input v-model="form.title" :class="['input mt-1', fieldError('title') && 'input-error']" maxlength="120" placeholder="Nhập tiêu đề" @blur="touchField('title')" />
+            <p v-if="fieldError('title')" class="field-error">Vui lòng nhập tiêu đề</p>
             <p class="mt-1 text-right text-[12px] text-slate-400">{{ titleCount }}/120 ký tự</p>
           </label>
 
@@ -71,14 +72,15 @@
           </div>
 
           <label class="mt-3 block">
-            <span class="field-label">Mô tả *</span>
-            <textarea v-model="form.description" class="input mt-1 min-h-[140px]" maxlength="5000" placeholder="VD: Giới thiệu các đặc điểm nổi bật của bất động sản:&#10;- Các tiện ích xung quanh: gần công viên, gần trường học&#10;- Thời gian đến khu vực trung tâm, tiện ích xung quanh"></textarea>
+            <span class="field-label required">Mô tả</span>
+            <textarea v-model="form.description" :class="['input mt-1 min-h-[140px]', fieldError('description') && 'input-error']" maxlength="5000" placeholder="VD: Giới thiệu các đặc điểm nổi bật của bất động sản:&#10;- Các tiện ích xung quanh: gần công viên, gần trường học&#10;- Thời gian đến khu vực trung tâm, tiện ích xung quanh" @blur="touchField('description')"></textarea>
+            <p v-if="fieldError('description')" class="field-error">Mô tả phải có ít nhất 20 ký tự</p>
             <p class="mt-1 text-right text-[12px] text-slate-400">{{ descriptionCount }}/5000</p>
           </label>
 
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
-              <span class="field-label">Loại nhà đất *</span>
+              <span class="field-label required">Loại nhà đất</span>
               <select v-model="form.propertyType" class="input mt-1">
                 <option v-for="option in currentPropertyTypeOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
@@ -103,15 +105,17 @@
 
           <div class="mt-3 grid gap-3 md:grid-cols-1">
             <label>
-              <span class="field-label">Diện tích (m2) *</span>
-              <input v-model="form.area" class="input mt-1" type="number" min="0" step="0.1" placeholder="Nhập số" />
+              <span class="field-label required">Diện tích (m2)</span>
+              <input v-model="form.area" :class="['input mt-1', fieldError('area') && 'input-error']" type="number" min="0" step="0.1" placeholder="Nhập số" @input="preventNegative($event, 'area')" @blur="touchField('area')" />
+              <p v-if="fieldError('area')" class="field-error">Vui lòng nhập diện tích</p>
             </label>
           </div>
 
           <div class="mt-3 grid gap-3 md:grid-cols-1">
             <label>
               <span class="field-label">{{ priceLabel }}</span>
-              <input v-model="form.price" class="input mt-1 disabled:bg-slate-100" :disabled="form.isNegotiable" type="number" min="0" placeholder="Nhập số" />
+              <input v-model="form.price" :class="['input mt-1 disabled:bg-slate-100', fieldError('price') && 'input-error']" :disabled="form.isNegotiable" type="number" min="0" placeholder="Nhập số" @input="preventNegative($event, 'price')" @blur="touchField('price')" />
+              <p v-if="fieldError('price')" class="field-error">Vui lòng nhập giá</p>
             </label>
           </div>
 
@@ -128,7 +132,7 @@
           </header>
 
           <label class="mt-3 block">
-            <span class="field-label">Tìm kiếm địa chỉ bất động sản *</span>
+            <span class="field-label required">Tìm kiếm địa chỉ bất động sản</span>
             <div class="mt-1 flex gap-2">
               <input
                 v-model="locationSearchText"
@@ -147,22 +151,24 @@
 
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
-              <span class="field-label">Tỉnh / Thành phố *</span>
-              <select v-model="form.provinceCode" class="input mt-1">
+              <span class="field-label required">Tỉnh / Thành phố</span>
+              <select v-model="form.provinceCode" :class="['input mt-1', fieldError('provinceCode') && 'input-error']" @change="touchField('provinceCode')">
                 <option value="">Chọn Tỉnh/Thành phố</option>
                 <option v-for="province in provinces" :key="province.code" :value="String(province.code)">
                   {{ province.name }}
                 </option>
               </select>
+              <p v-if="fieldError('provinceCode')" class="field-error">Vui lòng chọn tỉnh/thành phố</p>
             </label>
             <label>
-              <span class="field-label">Quận / Huyện *</span>
-              <select v-model="form.districtCode" class="input mt-1" :disabled="!form.provinceCode || districtsLoading">
+              <span class="field-label required">Quận / Huyện</span>
+              <select v-model="form.districtCode" :class="['input mt-1', fieldError('districtCode') && 'input-error']" :disabled="!form.provinceCode || districtsLoading" @change="touchField('districtCode')">
                 <option value="">{{ districtsLoading ? 'Đang tải quận/huyện...' : 'Chọn Quận/Huyện' }}</option>
                 <option v-for="district in districts" :key="district.code" :value="String(district.code)">
                   {{ district.name }}
                 </option>
               </select>
+              <p v-if="fieldError('districtCode')" class="field-error">Vui lòng chọn quận/huyện</p>
             </label>
           </div>
 
@@ -184,7 +190,7 @@
 
           <label class="mt-3 block">
             <span class="field-label">Địa chỉ cụ thể</span>
-            <input v-model="form.addressDetail" class="input mt-1" placeholder="Nhập địa chỉ" />
+            <input v-model="form.addressDetail" class="input mt-1" inputmode="text" autocomplete="off" placeholder="Nhập địa chỉ" />
           </label>
 
           <p v-if="locationLoadError" class="mt-2 text-xs text-red-500">{{ locationLoadError }}</p>
@@ -212,7 +218,7 @@
                 >
                   {{ n }}
                 </button>
-                <input v-model="form.bedrooms" class="quick-input" type="number" min="0" placeholder="Nhập số" />
+                <input v-model="form.bedrooms" class="quick-input" type="number" min="0" placeholder="Nhập số" @input="preventNegative($event, 'bedrooms')" />
               </div>
             </div>
 
@@ -231,7 +237,7 @@
                 >
                   {{ n }}
                 </button>
-                <input v-model="form.bathrooms" class="quick-input" type="number" min="0" placeholder="Nhập số" />
+                <input v-model="form.bathrooms" class="quick-input" type="number" min="0" placeholder="Nhập số" @input="preventNegative($event, 'bathrooms')" />
               </div>
             </div>
           </div>
@@ -240,14 +246,14 @@
             <label>
               <span class="field-label">Mặt tiền</span>
               <div class="unit-input mt-2">
-                <input v-model="form.facadeWidth" class="input" type="number" min="0" step="0.1" placeholder="Nhập số" />
+                <input v-model="form.facadeWidth" class="input" type="number" min="0" step="0.1" placeholder="Nhập số" @input="preventNegative($event, 'facadeWidth')" />
                 <span class="unit-label">m</span>
               </div>
             </label>
             <label>
               <span class="field-label">Chiều sâu</span>
               <div class="unit-input mt-2">
-                <input v-model="form.depth" class="input" type="number" min="0" step="0.1" placeholder="Nhập số" />
+                <input v-model="form.depth" class="input" type="number" min="0" step="0.1" placeholder="Nhập số" @input="preventNegative($event, 'depth')" />
                 <span class="unit-label">m</span>
               </div>
             </label>
@@ -266,14 +272,14 @@
               <label>
                 <span class="field-label">Tầng thứ</span>
                 <div class="unit-input mt-2">
-                  <input v-model="form.floorNumber" class="input" type="number" min="0" placeholder="Nhập số" />
+                  <input v-model="form.floorNumber" class="input" type="number" min="0" placeholder="Nhập số" @input="preventNegative($event, 'floorNumber')" />
                   <span class="unit-label">m</span>
                 </div>
               </label>
               <label>
                 <span class="field-label">Số tầng</span>
                 <div class="unit-input mt-2">
-                  <input v-model="form.floors" class="input" type="number" min="0" placeholder="Nhập số" />
+                  <input v-model="form.floors" class="input" type="number" min="0" placeholder="Nhập số" @input="preventNegative($event, 'floors')" />
                   <span class="unit-label">m</span>
                 </div>
               </label>
@@ -312,7 +318,7 @@
                 >
                   {{ n }}
                 </button>
-                <input v-model="form.balconies" class="quick-input" type="number" min="0" placeholder="Nhập số" />
+                <input v-model="form.balconies" class="quick-input" type="number" min="0" placeholder="Nhập số" @input="preventNegative($event, 'balconies')" />
               </div>
             </div>
           </div>
@@ -357,18 +363,21 @@
 
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
-              <span class="field-label">Họ và tên *</span>
-              <input v-model="form.contactName" class="input mt-1" placeholder="Nhập họ tên" />
+              <span class="field-label required">Họ và tên</span>
+              <input v-model="form.contactName" :class="['input mt-1', fieldError('contactName') && 'input-error']" placeholder="Nhập họ tên" @blur="touchField('contactName')" />
+              <p v-if="fieldError('contactName')" class="field-error">Vui lòng nhập họ tên</p>
             </label>
             <label>
-              <span class="field-label">Số điện thoại *</span>
-              <input v-model="form.contactPhone" class="input mt-1" placeholder="VD: 0912345678" />
+              <span class="field-label required">Số điện thoại</span>
+              <input v-model="form.contactPhone" :class="['input mt-1', fieldError('contactPhone') && 'input-error']" type="tel" inputmode="numeric" maxlength="10" placeholder="VD: 0912345678" @input="onPhoneInput" @blur="touchField('contactPhone')" />
+              <p v-if="fieldError('contactPhone')" class="field-error">Vui lòng nhập số điện thoại (10 chữ số)</p>
             </label>
           </div>
 
           <label class="mt-3 block">
             <span class="field-label">Email</span>
-            <input v-model="form.contactEmail" class="input mt-1" type="email" placeholder="vd_email@example.com" />
+            <input v-model="form.contactEmail" :class="['input mt-1', fieldError('contactEmail') && 'input-error']" type="email" placeholder="vd_email@gmail.com" @blur="touchField('contactEmail')" />
+            <p v-if="fieldError('contactEmail')" class="field-error">Email phải có đuôi @gmail.com</p>
           </label>
         </section>
 
@@ -735,6 +744,7 @@ const form = reactive(createInitialState());
 const loading = ref(false);
 const submitError = ref("");
 const validationErrors = ref({});
+const touchedFields = reactive({});
 const locationSearchText = ref("");
 const mapElement = ref(null);
 let map = null;
@@ -1266,6 +1276,57 @@ function setQuickNumber(field, value) {
   form[field] = value;
 }
 
+// ── Validation helpers ──
+function touchField(field) {
+  touchedFields[field] = true;
+}
+
+function fieldError(field) {
+  if (!touchedFields[field]) return false;
+  const value = form[field];
+  if (field === 'price' && form.isNegotiable) return false;
+  if (field === 'contactPhone') {
+    return !value || !/^[0-9]{10}$/.test(value);
+  }
+  if (field === 'contactEmail') {
+    if (!value || !value.trim()) return false;
+    return !value.trim().toLowerCase().endsWith('@gmail.com');
+  }
+  if (field === 'description') {
+    return !value || value.trim().length < 20;
+  }
+  if (field === 'area' || field === 'price') {
+    return !value || Number(value) <= 0;
+  }
+  if (typeof value === 'string') return !value.trim();
+  return !value;
+}
+
+function preventNegative(event, field) {
+  const val = Number(event.target.value);
+  if (val < 0) {
+    form[field] = 0;
+    event.target.value = 0;
+  }
+}
+
+function onPhoneInput(event) {
+  const digits = event.target.value.replace(/[^0-9]/g, '');
+  form.contactPhone = digits;
+  event.target.value = digits;
+}
+
+function touchAllRequired() {
+  ['title', 'description', 'area', 'price', 'provinceCode', 'districtCode', 'contactName', 'contactPhone'].forEach(f => touchField(f));
+}
+
+function hasRequiredErrors() {
+  return ['title', 'description', 'area', 'provinceCode', 'districtCode', 'contactName', 'contactPhone'].some(f => {
+    touchedFields[f] = true;
+    return fieldError(f);
+  }) || (!form.isNegotiable && fieldError('price'));
+}
+
 function setFurnitureStatus(status) {
   form.furnitureStatus = status;
 }
@@ -1335,6 +1396,13 @@ onBeforeUnmount(() => {
 });
 
 async function submitListing() {
+  // Validate required fields first
+  touchAllRequired();
+  if (hasRequiredErrors()) {
+    submitError.value = 'Vui lòng điền đầy đủ các trường bắt buộc.';
+    return;
+  }
+
   loading.value = true;
   submitError.value = "";
   validationErrors.value = {};
@@ -1502,6 +1570,12 @@ async function submitListing() {
   font-size: 11px;
   font-weight: 600;
   color: #334155;
+}
+
+.field-label.required::after {
+  content: ' *';
+  color: #ef4444;
+  font-weight: 700;
 }
 
 .with-icon {
@@ -1692,6 +1766,18 @@ async function submitListing() {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
   background: #fff;
+}
+
+.input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.field-error {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #ef4444;
+  font-weight: 500;
 }
 
 .upload-box {
