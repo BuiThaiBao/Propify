@@ -16,7 +16,10 @@ enum ErrorCode: int
     case AuthOtpInvalid     = 1007;  // OTP sai hoặc đã dùng
     case AuthOtpExpired     = 1008;  // OTP hết hạn (Redis TTL)
     case AuthNotVerified    = 1009;  // Tài khoản chưa xác thực OTP
-    case AuthPasswordIncorrect = 1010; // Mật khẩu hiện tại không đúng
+    case AuthPasswordIncorrect = 1010;
+
+    case AuthPhoneNotVerified = 1011;
+
 
     // ==================== Validation (2xxx) ====================
     case ValidationError = 2001;
@@ -43,6 +46,9 @@ enum ErrorCode: int
     // ==================== Server (5xxx) ====================
     case ServerError = 5001;
     case ServiceUnavailable = 5002;
+
+
+
 
     public function message(): string
     {

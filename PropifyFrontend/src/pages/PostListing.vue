@@ -27,8 +27,14 @@
           <div v-if="imagePreviews.length" class="mt-3">
             <p class="text-xs font-semibold text-slate-700">Ảnh đã chọn ({{ imagePreviews.length }})</p>
             <div class="preview-grid mt-2">
-              <figure v-for="preview in imagePreviews" :key="preview.url" class="preview-card">
+              <figure v-for="(preview, idx) in imagePreviews" :key="preview.url" class="preview-card group">
                 <img :src="preview.url" :alt="preview.name" class="preview-image" />
+                <button
+                  type="button"
+                  class="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600"
+                  title="Xóa ảnh"
+                  @click="removeImage(idx)"
+                >✕</button>
                 <figcaption class="preview-name" :title="preview.name">{{ preview.name }}</figcaption>
               </figure>
             </div>
@@ -589,6 +595,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import listingService from "@/services/listingService";
+import cloudinaryService from "@/services/cloudinaryService";
 import uploadImageIcon from "@/assets/images/listing/postlisting/uploadImage.png";
 import locationImageIcon from "@/assets/images/listing/postlisting/locationImage.png";
 import informationImageIcon from "@/assets/images/listing/postlisting/information.png";
@@ -1147,12 +1154,30 @@ async function fetchWardsByDistrict(districtCode) {
 
 function onImagesChange(event) {
   const files = event.target.files ? Array.from(event.target.files) : [];
+
+  // Nếu người dùng nhấn Cancel, files sẽ rỗng → giữ nguyên ảnh cũ
+  if (files.length === 0) return;
+
+  // Giải phóng object URL cũ trước khi gán mới
   clearImagePreviews();
   form.images = files;
   imagePreviews.value = files.map((file) => ({
     name: file.name,
     url: URL.createObjectURL(file),
+    file,
   }));
+
+  // Reset input để có thể chọn lại cùng file nếu cần
+  event.target.value = '';
+}
+
+function removeImage(index) {
+  // Giải phóng object URL của ảnh bị xóa
+  const removed = imagePreviews.value[index];
+  if (removed?.url) URL.revokeObjectURL(removed.url);
+
+  imagePreviews.value = imagePreviews.value.filter((_, i) => i !== index);
+  form.images = form.images.filter((_, i) => i !== index);
 }
 
 function toggleLegalDropdown() {
@@ -1316,14 +1341,64 @@ async function submitListing() {
   form.requestVerification = shouldRequestVerification.value;
 
   try {
+    // Helper function to upload an array of files
+    const uploadMultiple = async (files) => {
+      const urls = [];
+      for (const file of files) {
+        if (typeof file === 'string') {
+          urls.push(file); // Already a URL
+        } else {
+          const res = await cloudinaryService.uploadImage(file, 'listing');
+          urls.push(res.secure_url);
+        }
+      }
+      return urls;
+    };
+
+    // Helper function to upload a single file
+    const uploadSingle = async (file) => {
+      if (!file) return null;
+      if (typeof file === 'string') return file;
+      const res = await cloudinaryService.uploadImage(file, 'listing');
+      return res.secure_url;
+    };
+
+    // 1. Upload Images
+    if (form.images && form.images.length > 0) {
+      form.images = await uploadMultiple(form.images);
+    }
+
+    // 2. Upload Video
+    if (form.video) {
+      form.video = await uploadSingle(form.video);
+    }
+
+    // 3. Upload Verification Documents
+    if (form.requestVerification) {
+      if (form.identityCardFront) {
+        form.identityCardFront = await uploadSingle(form.identityCardFront);
+      }
+      if (form.identityCardBack) {
+        form.identityCardBack = await uploadSingle(form.identityCardBack);
+      }
+      if (form.legalDocuments && form.legalDocuments.length > 0) {
+        form.legalDocuments = await uploadMultiple(form.legalDocuments);
+      }
+    }
+
+    // 4. Submit to Backend
     const response = await listingService.create(form);
     submitError.value = "";
     alert(response.data?.message || "Đăng tin thành công");
     resetForm();
   } catch (error) {
-    const data = error.response?.data;
-    validationErrors.value = data?.errors || {};
-    submitError.value = data?.message || "Gọi API thất bại. Kiểm tra token và dữ liệu.";
+    if (error.response && error.response.data) {
+      const data = error.response.data;
+      validationErrors.value = data?.errors || {};
+      submitError.value = data?.message || "Gọi API thất bại. Kiểm tra token và dữ liệu.";
+    } else {
+      submitError.value = error.message || "Có lỗi xảy ra khi tải ảnh hoặc đăng tin.";
+    }
   } finally {
     loading.value = false;
   }
@@ -1663,6 +1738,7 @@ async function submitListing() {
 }
 
 .preview-card {
+  position: relative;
   border: 1px solid #d6e6f7;
   border-radius: 10px;
   overflow: hidden;

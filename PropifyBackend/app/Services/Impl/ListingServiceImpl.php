@@ -3,12 +3,14 @@
 namespace App\Services\Impl;
 
 use App\DTOs\CreateListingDto;
-use App\Exceptions\PhoneNotVerifiedException;
+use App\Enums\ErrorCode;
+use App\Exceptions\BusinessException;
 use App\Models\Listing;
 use App\Models\User;
 use App\Repositories\ListingRepository;
 use App\Services\ListingService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 final class ListingServiceImpl implements ListingService
@@ -20,11 +22,24 @@ final class ListingServiceImpl implements ListingService
 
     public function create(User $user, CreateListingDto $dto): Listing
     {
+        Log::debug('[ListingService] create() called', [
+            'user_id' => $user->id,
+            'user_phone' => $user->phone,
+            'demand_type' => $dto->demandType,
+            'title' => $dto->title,
+            'images_count' => count($dto->images),
+            'images' => $dto->images,
+            'has_video' => $dto->video !== null,
+            'request_verification' => $dto->requestVerification,
+        ]);
+
         if (!$user->phone || trim((string) $user->phone) === '') {
-            throw new PhoneNotVerifiedException();
+            Log::warning('[ListingService] Blocked: user has no phone', ['user_id' => $user->id]);
+            throw new BusinessException(ErrorCode::AuthPhoneNotVerified);
         }
 
         return DB::transaction(function () use ($user, $dto) {
+            Log::debug('[ListingService] DB transaction started');
             $property = $this->listingRepository->createProperty([
                 'owner_id' => $user->id,
                 'type' => $dto->propertyType,
@@ -59,8 +74,11 @@ final class ListingServiceImpl implements ListingService
                 ],
             ]);
 
+            Log::debug('[ListingService] Property created', ['property_id' => $property->id]);
+
             if ($dto->attributeIds !== []) {
                 $property->attributes()->sync($dto->attributeIds);
+                Log::debug('[ListingService] Attributes synced', ['attribute_ids' => $dto->attributeIds]);
             }
 
             $listing = $this->listingRepository->createListing([
@@ -77,68 +95,73 @@ final class ListingServiceImpl implements ListingService
                 'submitted_at' => now(),
             ]);
 
-            foreach ($dto->images as $index => $image) {
-                $path = $image->store('listings/images', 'public');
+            Log::debug('[ListingService] Listing created', ['listing_id' => $listing->id, 'status' => 'PENDING']);
 
+            Log::debug('[ListingService] Saving images', ['count' => count($dto->images)]);
+            foreach ($dto->images as $index => $imageUrl) {
                 $this->listingRepository->createListingImage([
                     'listing_id' => $listing->id,
-                    'image_url' => Storage::disk('public')->url($path),
+                    'image_url' => $imageUrl,
                     'is_thumbnail' => $index === 0,
                     'sort_order' => $index,
                 ]);
+                Log::debug('[ListingService] Image saved', ['index' => $index, 'url' => $imageUrl]);
             }
 
             if ($dto->video !== null) {
-                $videoPath = $dto->video->store('listings/videos', 'public');
-
+                Log::debug('[ListingService] Saving video', ['url' => $dto->video]);
                 $this->listingRepository->createListingVideo([
                     'listing_id' => $listing->id,
-                    'video_url' => Storage::disk('public')->url($videoPath),
-                    'provider' => 'LOCAL',
-                    'mime_type' => $dto->video->getMimeType(),
-                    'file_size' => $dto->video->getSize(),
+                    'video_url' => $dto->video,
+                    'provider' => 'CLOUDINARY',
+                    'mime_type' => 'video/mp4', // Defaulting as mime_type is no longer easily extracted
+                    'file_size' => 0, // Cannot get file size easily, so 0 or nullable if DB allows
                 ]);
             }
 
             if ($dto->requestVerification) {
+                Log::debug('[ListingService] Saving verification documents', [
+                    'has_id_front' => $dto->identityCardFront !== null,
+                    'has_id_back' => $dto->identityCardBack !== null,
+                    'legal_doc_count' => count($dto->legalDocuments),
+                ]);
                 $sortOrder = 0;
 
                 if ($dto->identityCardFront !== null) {
-                    $frontPath = $dto->identityCardFront->store('listings/verification', 'public');
                     $this->listingRepository->createVerificationDocument([
                         'listing_id' => $listing->id,
                         'document_type' => 'ID_FRONT',
-                        'file_url' => Storage::disk('public')->url($frontPath),
-                        'mime_type' => $dto->identityCardFront->getMimeType(),
-                        'file_size' => $dto->identityCardFront->getSize(),
+                        'file_url' => $dto->identityCardFront,
+                        'mime_type' => 'image/jpeg',
+                        'file_size' => 0,
                         'sort_order' => $sortOrder++,
                     ]);
                 }
 
                 if ($dto->identityCardBack !== null) {
-                    $backPath = $dto->identityCardBack->store('listings/verification', 'public');
                     $this->listingRepository->createVerificationDocument([
                         'listing_id' => $listing->id,
                         'document_type' => 'ID_BACK',
-                        'file_url' => Storage::disk('public')->url($backPath),
-                        'mime_type' => $dto->identityCardBack->getMimeType(),
-                        'file_size' => $dto->identityCardBack->getSize(),
+                        'file_url' => $dto->identityCardBack,
+                        'mime_type' => 'image/jpeg',
+                        'file_size' => 0,
                         'sort_order' => $sortOrder++,
                     ]);
                 }
 
-                foreach ($dto->legalDocuments as $document) {
-                    $documentPath = $document->store('listings/verification', 'public');
+                foreach ($dto->legalDocuments as $documentUrl) {
                     $this->listingRepository->createVerificationDocument([
                         'listing_id' => $listing->id,
                         'document_type' => 'LEGAL_DOCUMENT',
-                        'file_url' => Storage::disk('public')->url($documentPath),
-                        'mime_type' => $document->getMimeType(),
-                        'file_size' => $document->getSize(),
+                        'file_url' => $documentUrl,
+                        'mime_type' => 'image/jpeg',
+                        'file_size' => 0,
                         'sort_order' => $sortOrder++,
                     ]);
                 }
             }
+
+            Log::debug('[ListingService] Transaction complete, loading relations', ['listing_id' => $listing->id]);
 
             return $listing->load([
                 'property.attributes.group',

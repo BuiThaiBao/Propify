@@ -50,17 +50,17 @@ final class CreateListingRequest extends FormRequest
             'package_id' => ['nullable', 'integer', 'exists:packages,id'],
 
             'images' => ['required', 'array', 'min:1', 'max:10'],
-            'images.*' => ['file', 'image', 'mimes:jpg,jpeg,png', 'max:30720'],
-            'video' => ['nullable', 'file', 'mimes:mp4', 'max:102400'],
+            'images.*' => ['string', 'url', 'max:2048'],
+            'video' => ['nullable', 'string', 'url', 'max:2048'],
 
             'attribute_ids' => ['nullable', 'array'],
             'attribute_ids.*' => ['integer', 'exists:attributes,id'],
 
             'request_verification' => ['nullable', 'boolean'],
-            'identity_card_front' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png', 'max:10240'],
-            'identity_card_back' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png', 'max:10240'],
+            'identity_card_front' => ['nullable', 'string', 'url', 'max:2048'],
+            'identity_card_back' => ['nullable', 'string', 'url', 'max:2048'],
             'legal_documents' => ['nullable', 'array', 'max:5'],
-            'legal_documents.*' => ['file', 'image', 'mimes:jpg,jpeg,png', 'max:10240'],
+            'legal_documents.*' => ['string', 'url', 'max:2048'],
 
             'appointment_at' => ['nullable', 'date', 'after:now'],
             'appointment_contact_name' => ['nullable', 'string', 'max:100'],
@@ -108,11 +108,11 @@ final class CreateListingRequest extends FormRequest
             $requestVerification = filter_var($this->input('request_verification', false), FILTER_VALIDATE_BOOLEAN);
 
             if ($requestVerification) {
-                if (!$this->hasFile('identity_card_front')) {
+                if (!$this->input('identity_card_front')) {
                     $validator->errors()->add('identity_card_front', 'Can tai len anh CCCD mat truoc de gui yeu cau xac thuc.');
                 }
 
-                if (!$this->hasFile('identity_card_back')) {
+                if (!$this->input('identity_card_back')) {
                     $validator->errors()->add('identity_card_back', 'Can tai len anh CCCD mat sau de gui yeu cau xac thuc.');
                 }
             }
@@ -154,13 +154,13 @@ final class CreateListingRequest extends FormRequest
             posterType: $validated['poster_type'],
             lat: isset($validated['lat']) ? (float) $validated['lat'] : null,
             lng: isset($validated['lng']) ? (float) $validated['lng'] : null,
-            images: $this->file('images', []),
-            video: $this->file('video'),
+            images: $validated['images'] ?? [],
+            video: $validated['video'] ?? null,
             attributeIds: array_map('intval', $validated['attribute_ids'] ?? []),
             requestVerification: (bool) ($validated['request_verification'] ?? false),
-            identityCardFront: $this->file('identity_card_front'),
-            identityCardBack: $this->file('identity_card_back'),
-            legalDocuments: $this->file('legal_documents', []),
+            identityCardFront: $validated['identity_card_front'] ?? null,
+            identityCardBack: $validated['identity_card_back'] ?? null,
+            legalDocuments: $validated['legal_documents'] ?? [],
             appointmentAt: $validated['appointment_at'] ?? null,
             appointmentContactName: isset($validated['appointment_contact_name']) ? trim($validated['appointment_contact_name']) : null,
             appointmentContactPhone: isset($validated['appointment_contact_phone']) ? trim($validated['appointment_contact_phone']) : null,
