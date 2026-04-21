@@ -42,6 +42,11 @@ final class AuthController
     ))]
     #[OA\Response(response: 201, description: "Successful registration")]
     #[OA\Response(response: 422, description: "Validation Error")]
+
+
+
+
+
     public function register(RegisterRequest $request): JsonResponse
     {
         $dto = $request->toDto();
@@ -53,6 +58,9 @@ final class AuthController
         );
     }
 
+
+
+
     // Resend Register OTP
     #[OA\Post(path: "/api/v1/auth/resend-register-otp", operationId: "resendRegisterOtp", summary: "Resend registration OTP", security: [], tags: ["Authentication"])]
     #[OA\RequestBody(required: true, content: new OA\JsonContent(
@@ -62,10 +70,14 @@ final class AuthController
         ]
     ))]
     #[OA\Response(response: 202, description: "OTP resent successfully")]
+
+
+
+
     public function resendRegisterOtp(Request $request): JsonResponse
     {
         $request->validate(['email' => ['required', 'email']]);
-        
+
         $this->authService->resendRegisterOtp($request->input('email'));
 
         return ApiResponse::success(
@@ -85,6 +97,11 @@ final class AuthController
     ))]
     #[OA\Response(response: 200, description: "OTP verified, token returned")]
     #[OA\Response(response: 401, description: "Invalid or expired OTP")]
+
+
+
+
+
     public function verifyOtp(VerifyOtpRequest $request): JsonResponse
     {
         $result = $this->authService->verifyOtp(
@@ -109,6 +126,11 @@ final class AuthController
     ))]
     #[OA\Response(response: 200, description: "Successful login")]
     #[OA\Response(response: 401, description: "Unauthorized/Invalid Credentials")]
+
+
+
+
+
     public function login(LoginRequest $request): JsonResponse
     {
         $dto = LoginCredentialsDto::fromRequest($request);
@@ -124,6 +146,11 @@ final class AuthController
     #[OA\Get(path: "/api/v1/auth/me", operationId: "getAuthenticatedUserInfo", summary: "Get user profile", security: [["bearerAuth" => []]], tags: ["Authentication"])]
     #[OA\Response(response: 200, description: "Successful operation")]
     #[OA\Response(response: 401, description: "Unauthenticated")]
+
+
+
+
+
     public function me(): JsonResponse
     {
         $user = $this->authService->me();
@@ -137,6 +164,10 @@ final class AuthController
     #[OA\Post(path: "/api/v1/auth/logout", operationId: "logoutUser", summary: "Logout user", security: [["bearerAuth" => []]], tags: ["Authentication"])]
     #[OA\Response(response: 200, description: "Successful logout")]
     #[OA\Response(response: 401, description: "Unauthenticated")]
+
+
+
+
     public function logout(): JsonResponse
     {
         $this->authService->logout();
@@ -146,10 +177,16 @@ final class AuthController
         );
     }
 
+
+
     // Refresh Token Documentation
     #[OA\Post(path: "/api/v1/auth/refresh", operationId: "refreshToken", summary: "Refresh access token", security: [["bearerAuth" => []]], tags: ["Authentication"])]
     #[OA\Response(response: 200, description: "Token successfully refreshed")]
     #[OA\Response(response: 401, description: "Unauthenticated")]
+
+
+
+
     public function refresh(): JsonResponse
     {
         $token = $this->authService->refresh();
@@ -157,11 +194,13 @@ final class AuthController
         return ApiResponse::success(
             data: [
                 'access_token' => $token,
-                'token_type'   => 'bearer',
+                'token_type' => 'bearer',
             ],
             message: 'Token đã được làm mới'
         );
     }
+
+
 
     // Forgot Password
     #[OA\Post(path: "/api/v1/auth/forgot-password", operationId: "forgotPassword", summary: "Send password reset OTP", security: [], tags: ["Authentication"])]
@@ -179,6 +218,10 @@ final class AuthController
         );
     }
 
+
+
+
+
     // Check Reset OTP (bước 2 — kiểm tra OTP trước khi cho nhập mật khẩu)
     #[OA\Post(path: "/api/v1/auth/check-reset-otp", operationId: "checkResetOtp", summary: "Check reset OTP without consuming it", security: [], tags: ["Authentication"])]
     #[OA\RequestBody(required: true, content: new OA\JsonContent(
@@ -190,6 +233,11 @@ final class AuthController
     ))]
     #[OA\Response(response: 200, description: "OTP is valid")]
     #[OA\Response(response: 401, description: "Invalid or expired OTP")]
+
+
+
+
+
     public function checkResetOtp(CheckResetOtpRequest $request): JsonResponse
     {
         $this->authService->checkResetOtp(
@@ -199,6 +247,10 @@ final class AuthController
 
         return ApiResponse::success(message: 'Mã OTP hợp lệ');
     }
+
+
+
+
 
     // Reset Password
     #[OA\Post(path: "/api/v1/auth/reset-password", operationId: "resetPassword", summary: "Reset password with OTP", security: [], tags: ["Authentication"])]
@@ -213,6 +265,9 @@ final class AuthController
     ))]
     #[OA\Response(response: 200, description: "Password reset successfully")]
     #[OA\Response(response: 401, description: "Invalid OTP")]
+
+
+
     public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {
         $data = $request->validated();
