@@ -4,7 +4,8 @@ namespace App\Services\User\Impl;
 
 use App\DTOs\User\ChangePasswordDto;
 use App\DTOs\User\UpdateProfileDto;
-use App\Exceptions\AuthenticationFailedException;
+use App\Enums\ErrorCode;
+use App\Exceptions\BusinessException;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use App\Services\User\UserService;
@@ -53,7 +54,7 @@ final class UserServiceImpl implements UserService
 
         // Kiểm tra mật khẩu hiện tại
         if (!Hash::check($dto->currentPassword, $user->password)) {
-            throw new AuthenticationFailedException('Mật khẩu hiện tại không đúng.');
+            throw new BusinessException(ErrorCode::AuthPasswordIncorrect);
         }
 
         $this->userRepository->update($user->id, [

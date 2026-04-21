@@ -6,7 +6,7 @@ use App\Enums\ErrorCode;
 use RuntimeException;
 use Throwable;
 
-abstract class BusinessException extends RuntimeException
+final class BusinessException extends RuntimeException
 {
     public function __construct(
         protected readonly ErrorCode $errorCode,

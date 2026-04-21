@@ -9,8 +9,8 @@ use App\Enums\OtpContext;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Events\Auth\UserRegistered;
-use App\Exceptions\AuthenticationFailedException;
-use App\Exceptions\OtpInvalidException;
+use App\Enums\ErrorCode;
+use App\Exceptions\BusinessException;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use App\Services\AuthService;
@@ -31,7 +31,7 @@ final class AuthServiceImpl implements AuthService
         private readonly OtpService         $otpService,
     ) {}
 
-    /** @throws AuthenticationFailedException */
+    /** @throws BusinessException */
     public function login(LoginCredentialsDto $dto): AuthResultDto
     {
         /** @var \Tymon\JWTAuth\JWTGuard $guard */
@@ -40,7 +40,7 @@ final class AuthServiceImpl implements AuthService
 
         if (!$token) {
             Log::warning('Failed login attempt', ['email' => $dto->email]);
-            throw new AuthenticationFailedException();
+            throw new BusinessException(ErrorCode::AuthLoginFailed);
         }
 
         /** @var User $user */
@@ -49,7 +49,7 @@ final class AuthServiceImpl implements AuthService
         if ($user->status !== UserStatus::Active) {
             $guard->logout();
             Log::warning('Login attempt by non-active user', ['user_id' => $user->id, 'status' => $user->status?->value]);
-            throw new \App\Exceptions\AccountNotVerifiedException();
+            throw new BusinessException(ErrorCode::AuthNotVerified);
         }
 
         Log::info('User logged in', ['user_id' => $user->id]);
@@ -105,7 +105,7 @@ final class AuthServiceImpl implements AuthService
     /**
      * Xác thực OTP đăng ký → Active user → trả token.
      *
-     * @throws OtpInvalidException
+     * @throws BusinessException
      */
     public function verifyOtp(string $email, string $otp): AuthResultDto
     {
@@ -113,7 +113,7 @@ final class AuthServiceImpl implements AuthService
         $user = $this->userRepository->findByEmail($email);
 
         if (!$user || !$this->otpService->verify($user, $otp, OtpContext::REGISTER)) {
-            throw new OtpInvalidException();
+            throw new BusinessException(ErrorCode::AuthOtpInvalid);
         }
 
         $this->userRepository->update($user->id, ['status' => UserStatus::Active->value]);
@@ -149,28 +149,28 @@ final class AuthServiceImpl implements AuthService
      * Bước 2: Kiểm tra OTP hợp lệ mà KHÔNG xóa Redis.
      * Sau khi pass bước này, user mới được vào bước đặt mật khẩu.
      *
-     * @throws OtpInvalidException
+     * @throws BusinessException
      */
     public function checkResetOtp(string $email, string $otp): void
     {
         $user = $this->userRepository->findByEmail($email);
 
         if (!$user || !$this->otpService->peek($user, $otp, OtpContext::RESET_PASSWORD)) {
-            throw new OtpInvalidException();
+            throw new BusinessException(ErrorCode::AuthOtpInvalid);
         }
     }
 
     /**
      * Đặt lại mật khẩu: xác thực OTP → update password.
      *
-     * @throws OtpInvalidException
+     * @throws BusinessException
      */
     public function resetPassword(string $email, string $otp, string $password): void
     {
         $user = $this->userRepository->findByEmail($email);
 
         if (!$user || !$this->otpService->verify($user, $otp, OtpContext::RESET_PASSWORD)) {
-            throw new OtpInvalidException();
+            throw new BusinessException(ErrorCode::AuthOtpInvalid);
         }
 
         $this->userRepository->update($user->id, [
