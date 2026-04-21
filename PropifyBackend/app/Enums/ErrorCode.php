@@ -53,7 +53,7 @@ enum ErrorCode: int
             self::AuthOtpExpired     => 'Mã OTP đã hết hạn',
             self::AuthNotVerified    => 'Tài khoản chưa được xác thực',
             self::ValidationError => 'Dữ liệu không hợp lệ',
-            self::AuthPhoneNotVerified => 'Bạn cần xác thực số điện thoại trước khi đăng tin',
+            self::AuthPhoneNotVerified => 'Bạn cần cập nhật số điện thoại trước khi đăng tin',
             self::UserNotFound => 'Không tìm thấy người dùng',
             self::UserAlreadyExists => 'Người dùng đã tồn tại',
             self::UserBanned => 'Tài khoản đã bị khóa',

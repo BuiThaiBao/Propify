@@ -68,6 +68,11 @@ final class Listing extends Model
         return $this->hasMany(ListingVerificationDocument::class, 'listing_id');
     }
 
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class, 'listing_id');
+    }
+
     /** Danh sách slot lịch hẹn */
     public function appointmentSlots(): HasMany
     {

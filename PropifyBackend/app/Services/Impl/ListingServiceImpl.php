@@ -20,7 +20,7 @@ final class ListingServiceImpl implements ListingService
 
     public function create(User $user, CreateListingDto $dto): Listing
     {
-        if (!$user->phone_verified_at) {
+        if (!$user->phone || trim((string) $user->phone) === '') {
             throw new PhoneNotVerifiedException();
         }
 
@@ -138,20 +138,6 @@ final class ListingServiceImpl implements ListingService
                         'sort_order' => $sortOrder++,
                     ]);
                 }
-            }
-
-            if ($dto->appointmentAt !== null) {
-                $this->listingRepository->createAppointment([
-                    'listing_id' => $listing->id,
-                    'viewer_id' => null,
-                    'poster_id' => $user->id,
-                    'meet_time' => $dto->appointmentAt,
-                    'contact_name' => $dto->appointmentContactName ?? $dto->contactName,
-                    'contact_phone' => $dto->appointmentContactPhone ?? $dto->contactPhone,
-                    'contact_email' => $dto->appointmentContactEmail ?? $dto->contactEmail,
-                    'note' => $dto->appointmentNote,
-                    'status' => 'PENDING',
-                ]);
             }
 
             return $listing->load([
