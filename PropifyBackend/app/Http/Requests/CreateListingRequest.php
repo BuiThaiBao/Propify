@@ -43,7 +43,7 @@ final class CreateListingRequest extends FormRequest
             'furniture_status' => ['nullable', Rule::in(['NONE', 'BASIC', 'FULL'])],
             'contact_name' => ['required', 'string', 'max:100'],
             'contact_phone' => ['required', 'regex:/^(03|05|07|08|09)\d{8}$/'],
-            'contact_email' => ['nullable', 'email', 'max:255'],
+            'contact_email' => ['nullable', 'regex:/^[A-Za-z0-9._%+-]+@gmail\.com$/', 'max:255'],
             'poster_type' => ['required', Rule::in(['OWNER', 'BROKER'])],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
             'lng' => ['nullable', 'numeric', 'between:-180,180'],
@@ -55,6 +55,11 @@ final class CreateListingRequest extends FormRequest
 
             'attribute_ids' => ['nullable', 'array'],
             'attribute_ids.*' => ['integer', 'exists:attributes,id'],
+            'amenities' => ['nullable', 'array'],
+            'amenities.*' => ['string', 'max:100'],
+            'legal_paper_types' => ['nullable', 'array'],
+            'legal_paper_types.*' => ['string', 'max:100'],
+            'public_info_agreed' => ['nullable', 'boolean'],
 
             'request_verification' => ['nullable', 'boolean'],
             'identity_card_front' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png', 'max:10240'],
@@ -63,9 +68,12 @@ final class CreateListingRequest extends FormRequest
             'legal_documents.*' => ['file', 'image', 'mimes:jpg,jpeg,png', 'max:10240'],
 
             'appointment_at' => ['nullable', 'date', 'after:now'],
+            'appointment_days' => ['nullable', 'array'],
+            'appointment_days.*' => ['integer', 'between:0,6'],
+            'appointment_time_slot' => ['nullable', 'string', 'max:50'],
             'appointment_contact_name' => ['nullable', 'string', 'max:100'],
             'appointment_contact_phone' => ['nullable', 'regex:/^(03|05|07|08|09)\d{8}$/'],
-            'appointment_contact_email' => ['nullable', 'email', 'max:255'],
+            'appointment_contact_email' => ['nullable', 'regex:/^[A-Za-z0-9._%+-]+@gmail\.com$/', 'max:255'],
             'appointment_note' => ['nullable', 'string', 'max:500'],
         ];
     }
@@ -87,6 +95,8 @@ final class CreateListingRequest extends FormRequest
             'price.required' => 'Gia bat buoc nhap neu tin dang khong de o che do thuong luong.',
             'price.gt' => 'Gia phai lon hon 0.',
             'contact_phone.regex' => 'So dien thoai lien he khong dung dinh dang.',
+            'contact_email.regex' => 'Email lien he phai co duoi @gmail.com.',
+            'appointment_contact_email.regex' => 'Email lien he lich hen phai co duoi @gmail.com.',
             'appointment_at.after' => 'Khong duoc chon lich hen trong qua khu.',
         ];
     }
@@ -157,11 +167,16 @@ final class CreateListingRequest extends FormRequest
             images: $this->file('images', []),
             video: $this->file('video'),
             attributeIds: array_map('intval', $validated['attribute_ids'] ?? []),
+            amenities: array_values(array_map('strval', $validated['amenities'] ?? [])),
+            legalPaperTypes: array_values(array_map('strval', $validated['legal_paper_types'] ?? [])),
+            publicInfoAgreed: (bool) ($validated['public_info_agreed'] ?? false),
             requestVerification: (bool) ($validated['request_verification'] ?? false),
             identityCardFront: $this->file('identity_card_front'),
             identityCardBack: $this->file('identity_card_back'),
             legalDocuments: $this->file('legal_documents', []),
             appointmentAt: $validated['appointment_at'] ?? null,
+            appointmentDays: array_map('intval', $validated['appointment_days'] ?? []),
+            appointmentTimeSlot: $validated['appointment_time_slot'] ?? null,
             appointmentContactName: isset($validated['appointment_contact_name']) ? trim($validated['appointment_contact_name']) : null,
             appointmentContactPhone: isset($validated['appointment_contact_phone']) ? trim($validated['appointment_contact_phone']) : null,
             appointmentContactEmail: isset($validated['appointment_contact_email']) ? trim($validated['appointment_contact_email']) : null,

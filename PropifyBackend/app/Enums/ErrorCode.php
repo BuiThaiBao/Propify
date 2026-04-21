@@ -17,6 +17,7 @@ enum ErrorCode: int
     case AuthOtpExpired     = 1008;  // OTP hết hạn (Redis TTL)
     case AuthNotVerified    = 1009;  // Tài khoản chưa xác thực OTP
     case AuthPasswordIncorrect = 1010; // Mật khẩu hiện tại không đúng
+    case AuthPhoneNotVerified = 1011; // Số điện thoại chưa được xác thực (dành cho user đăng nhập bằng Google nhưng chưa có số điện thoại)
 
     // ==================== Validation (2xxx) ====================
     case ValidationError = 2001;
@@ -84,7 +85,8 @@ enum ErrorCode: int
             self::AuthUnauthorized,
             self::AuthOtpInvalid,
             self::AuthOtpExpired,
-            self::AuthNotVerified => Response::HTTP_UNAUTHORIZED,
+            self::AuthNotVerified,
+            self::AuthPhoneNotVerified => Response::HTTP_UNAUTHORIZED,
 
             self::AuthPasswordIncorrect => Response::HTTP_UNPROCESSABLE_ENTITY,
 

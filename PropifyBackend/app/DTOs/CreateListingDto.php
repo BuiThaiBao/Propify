@@ -9,6 +9,9 @@ final readonly class CreateListingDto
     /**
      * @param UploadedFile[] $images
      * @param int[] $attributeIds
+        * @param string[] $amenities
+        * @param string[] $legalPaperTypes
+        * @param int[] $appointmentDays
      * @param UploadedFile[] $legalDocuments
      */
     public function __construct(
@@ -45,11 +48,16 @@ final readonly class CreateListingDto
         public array $images,
         public ?UploadedFile $video,
         public array $attributeIds,
+        public array $amenities,
+        public array $legalPaperTypes,
+        public bool $publicInfoAgreed,
         public bool $requestVerification,
         public ?UploadedFile $identityCardFront,
         public ?UploadedFile $identityCardBack,
         public array $legalDocuments,
         public ?string $appointmentAt,
+        public array $appointmentDays,
+        public ?string $appointmentTimeSlot,
         public ?string $appointmentContactName,
         public ?string $appointmentContactPhone,
         public ?string $appointmentContactEmail,

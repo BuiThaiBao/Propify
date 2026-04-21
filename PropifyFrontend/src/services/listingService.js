@@ -67,6 +67,20 @@ const listingService = {
       });
     }
 
+    if (Array.isArray(payload.amenities)) {
+      payload.amenities.forEach((item) => {
+        appendIfPresent(formData, "amenities[]", item);
+      });
+    }
+
+    if (Array.isArray(payload.legalPaperTypes)) {
+      payload.legalPaperTypes.forEach((item) => {
+        appendIfPresent(formData, "legal_paper_types[]", item);
+      });
+    }
+
+    appendBoolean(formData, "public_info_agreed", payload.publicInfoAgreed);
+
     if (payload.identityCardFront) {
       formData.append("identity_card_front", payload.identityCardFront);
     }
@@ -82,6 +96,12 @@ const listingService = {
     }
 
     appendIfPresent(formData, "appointment_at", payload.appointmentAt);
+    if (Array.isArray(payload.appointmentDays)) {
+      payload.appointmentDays.forEach((day) => {
+        appendIfPresent(formData, "appointment_days[]", day);
+      });
+    }
+    appendIfPresent(formData, "appointment_time_slot", payload.appointmentTimeSlot);
     appendIfPresent(formData, "appointment_contact_name", payload.appointmentContactName);
     appendIfPresent(formData, "appointment_contact_phone", payload.appointmentContactPhone);
     appendIfPresent(formData, "appointment_contact_email", payload.appointmentContactEmail);

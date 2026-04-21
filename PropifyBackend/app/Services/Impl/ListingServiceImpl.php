@@ -52,6 +52,9 @@ final class ListingServiceImpl implements ListingService
                 'contact_phone' => $dto->contactPhone,
                 'contact_email' => $dto->contactEmail,
                 'poster_type' => $dto->posterType,
+                'amenities' => $dto->amenities,
+                'legal_paper_types' => $dto->legalPaperTypes,
+                'public_info_agreed' => $dto->publicInfoAgreed,
                 'lat' => $dto->lat,
                 'lng' => $dto->lng,
                 'meta' => [
@@ -74,6 +77,13 @@ final class ListingServiceImpl implements ListingService
                 'is_verified' => false,
                 'has_video' => $dto->video !== null,
                 'request_verification' => $dto->requestVerification,
+                'appointment_at' => $dto->appointmentAt,
+                'appointment_days' => $dto->appointmentDays,
+                'appointment_time_slot' => $dto->appointmentTimeSlot,
+                'appointment_contact_name' => $dto->appointmentContactName,
+                'appointment_contact_phone' => $dto->appointmentContactPhone,
+                'appointment_contact_email' => $dto->appointmentContactEmail,
+                'appointment_note' => $dto->appointmentNote,
                 'submitted_at' => now(),
             ]);
 
