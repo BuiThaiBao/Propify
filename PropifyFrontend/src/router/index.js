@@ -47,6 +47,12 @@ const routes = [
     component: () => import("@/pages/Chat/index.vue"),
     meta: { requiresAuth: true },
   },
+  {
+    path: "/post-listing",
+    name: "PostListing",
+    component: () => import("@/pages/PostListing.vue"),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({
