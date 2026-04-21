@@ -13,9 +13,9 @@ enum ErrorCode: int
     case AuthUnauthorized = 1004;
     case AuthForbidden = 1005;
     case AuthRegisterFailed = 1006;
-    case AuthOtpInvalid     = 1007;  // OTP sai hoặc đã dùng
-    case AuthOtpExpired     = 1008;  // OTP hết hạn (Redis TTL)
-    case AuthNotVerified    = 1009;  // Tài khoản chưa xác thực OTP
+    case AuthOtpInvalid = 1007;  // OTP sai hoặc đã dùng
+    case AuthOtpExpired = 1008;  // OTP hết hạn (Redis TTL)
+    case AuthNotVerified = 1009;  // Tài khoản chưa xác thực OTP
     case AuthPasswordIncorrect = 1010; // Mật khẩu hiện tại không đúng
     case AuthPhoneNotVerified = 1011; // Số điện thoại chưa được xác thực (dành cho user đăng nhập bằng Google nhưng chưa có số điện thoại)
 
@@ -34,29 +34,32 @@ enum ErrorCode: int
     case ResourceDeleteFailed = 4004;
 
     // ==================== Appointment (6xxx) ====================
-    case ListingNotFound          = 6001;
-    case AppointmentSlotNotFound  = 6002;
+    case ListingNotFound = 6001;
+    case AppointmentSlotNotFound = 6002;
 
     // ==================== Chat (7xxx) ====================
-    case ConversationNotFound              = 7001;
-    case UnauthorizedConversationAccess    = 7002;
+    case ConversationNotFound = 7001;
+    case UnauthorizedConversationAccess = 7002;
 
     // ==================== Server (5xxx) ====================
     case ServerError = 5001;
     case ServiceUnavailable = 5002;
 
+
+
+
     public function message(): string
     {
         return match ($this) {
-            self::AuthLoginFailed    => 'Email hoặc mật khẩu không đúng',
-            self::AuthTokenInvalid   => 'Token không hợp lệ',
-            self::AuthTokenExpired   => 'Token đã hết hạn',
-            self::AuthUnauthorized   => 'Chưa xác thực',
-            self::AuthForbidden      => 'Không có quyền truy cập',
+            self::AuthLoginFailed => 'Email hoặc mật khẩu không đúng',
+            self::AuthTokenInvalid => 'Token không hợp lệ',
+            self::AuthTokenExpired => 'Token đã hết hạn',
+            self::AuthUnauthorized => 'Chưa xác thực',
+            self::AuthForbidden => 'Không có quyền truy cập',
             self::AuthRegisterFailed => 'Đăng ký thất bại',
-            self::AuthOtpInvalid     => 'Mã OTP không hợp lệ',
-            self::AuthOtpExpired     => 'Mã OTP đã hết hạn',
-            self::AuthNotVerified    => 'Tài khoản chưa được xác thực',
+            self::AuthOtpInvalid => 'Mã OTP không hợp lệ',
+            self::AuthOtpExpired => 'Mã OTP đã hết hạn',
+            self::AuthNotVerified => 'Tài khoản chưa được xác thực',
             self::AuthPasswordIncorrect => 'Mật khẩu hiện tại không đúng',
             self::ValidationError => 'Dữ liệu không hợp lệ',
             self::AuthPhoneNotVerified => 'Bạn cần cập nhật số điện thoại trước khi đăng tin',

@@ -5,11 +5,14 @@ namespace App\Services\Impl;
 use App\DTOs\CreateListingDto;
 use App\Enums\ErrorCode;
 use App\Exceptions\BusinessException;
+use App\Enums\ErrorCode;
+use App\Exceptions\BusinessException;
 use App\Models\Listing;
 use App\Models\User;
 use App\Repositories\ListingRepository;
 use App\Services\ListingService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,12 +25,26 @@ final class ListingServiceImpl implements ListingService
 
     public function create(User $user, CreateListingDto $dto): Listing
     {
+        Log::debug('[ListingService] create() called', [
+            'user_id' => $user->id,
+            'user_phone' => $user->phone,
+            'demand_type' => $dto->demandType,
+            'title' => $dto->title,
+            'images_count' => count($dto->images),
+            'images' => $dto->images,
+            'has_video' => $dto->video !== null,
+            'request_verification' => $dto->requestVerification,
+        ]);
+
         if (!$user->phone || trim((string) $user->phone) === '') {
+            Log::warning('[ListingService] Blocked: user has no phone', ['user_id' => $user->id]);
+            throw new BusinessException(ErrorCode::AuthPhoneNotVerified);
             Log::warning('[ListingService] Blocked: user has no phone', ['user_id' => $user->id]);
             throw new BusinessException(ErrorCode::AuthPhoneNotVerified);
         }
 
         return DB::transaction(function () use ($user, $dto) {
+            Log::debug('[ListingService] DB transaction started');
             $property = $this->listingRepository->createProperty([
                 'owner_id' => $user->id,
                 'type' => $dto->propertyType,
@@ -65,8 +82,11 @@ final class ListingServiceImpl implements ListingService
                 ],
             ]);
 
+            Log::debug('[ListingService] Property created', ['property_id' => $property->id]);
+
             if ($dto->attributeIds !== []) {
                 $property->attributes()->sync($dto->attributeIds);
+                Log::debug('[ListingService] Attributes synced', ['attribute_ids' => $dto->attributeIds]);
             }
 
             $listing = $this->listingRepository->createListing([
@@ -95,12 +115,15 @@ final class ListingServiceImpl implements ListingService
                 $this->listingRepository->createListingImage([
                     'listing_id' => $listing->id,
                     'image_url' => $imageUrl,
+                    'image_url' => $imageUrl,
                     'is_thumbnail' => $index === 0,
                     'sort_order' => $index,
                 ]);
+                Log::debug('[ListingService] Image saved', ['index' => $index, 'url' => $imageUrl]);
             }
 
             if ($dto->video !== null) {
+                Log::debug('[ListingService] Saving video', ['url' => $dto->video]);
                 Log::debug('[ListingService] Saving video', ['url' => $dto->video]);
                 $this->listingRepository->createListingVideo([
                     'listing_id' => $listing->id,
@@ -112,12 +135,20 @@ final class ListingServiceImpl implements ListingService
             }
 
             if ($dto->requestVerification) {
+                Log::debug('[ListingService] Saving verification documents', [
+                    'has_id_front' => $dto->identityCardFront !== null,
+                    'has_id_back' => $dto->identityCardBack !== null,
+                    'legal_doc_count' => count($dto->legalDocuments),
+                ]);
                 $sortOrder = 0;
 
                 if ($dto->identityCardFront !== null) {
                     $this->listingRepository->createVerificationDocument([
                         'listing_id' => $listing->id,
                         'document_type' => 'ID_FRONT',
+                        'file_url' => $dto->identityCardFront,
+                        'mime_type' => 'image/jpeg',
+                        'file_size' => 0,
                         'file_url' => $dto->identityCardFront,
                         'mime_type' => 'image/jpeg',
                         'file_size' => 0,
@@ -132,10 +163,14 @@ final class ListingServiceImpl implements ListingService
                         'file_url' => $dto->identityCardBack,
                         'mime_type' => 'image/jpeg',
                         'file_size' => 0,
+                        'file_url' => $dto->identityCardBack,
+                        'mime_type' => 'image/jpeg',
+                        'file_size' => 0,
                         'sort_order' => $sortOrder++,
                     ]);
                 }
 
+                foreach ($dto->legalDocuments as $documentUrl) {
                 foreach ($dto->legalDocuments as $documentUrl) {
                     $this->listingRepository->createVerificationDocument([
                         'listing_id' => $listing->id,
@@ -143,10 +178,15 @@ final class ListingServiceImpl implements ListingService
                         'file_url' => $documentUrl,
                         'mime_type' => 'image/jpeg',
                         'file_size' => 0,
+                        'file_url' => $documentUrl,
+                        'mime_type' => 'image/jpeg',
+                        'file_size' => 0,
                         'sort_order' => $sortOrder++,
                     ]);
                 }
             }
+
+            Log::debug('[ListingService] Transaction complete, loading relations', ['listing_id' => $listing->id]);
 
             return $listing->load([
                 'property.attributes.group',

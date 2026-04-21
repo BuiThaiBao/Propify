@@ -29,7 +29,14 @@
             <p class="text-xs font-semibold text-slate-700">Ảnh đã chọn ({{ imagePreviews.length }})</p>
             <div class="preview-grid mt-2">
               <figure v-for="(preview, idx) in imagePreviews" :key="preview.url" class="preview-card group">
+              <figure v-for="(preview, idx) in imagePreviews" :key="preview.url" class="preview-card group">
                 <img :src="preview.url" :alt="preview.name" class="preview-image" />
+                <button
+                  type="button"
+                  class="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600"
+                  title="Xóa ảnh"
+                  @click="removeImage(idx)"
+                >✕</button>
                 <button
                   type="button"
                   class="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600"
@@ -750,6 +757,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import listingService from "@/services/listingService";
+import cloudinaryService from "@/services/cloudinaryService";
 import cloudinaryService from "@/services/cloudinaryService";
 import uploadImageIcon from "@/assets/images/listing/postlisting/uploadImage.png";
 import locationImageIcon from "@/assets/images/listing/postlisting/locationImage.png";
@@ -2069,6 +2077,7 @@ async function submitListing() {
 }
 
 .preview-card {
+  position: relative;
   position: relative;
   border: 1px solid #d6e6f7;
   border-radius: 10px;

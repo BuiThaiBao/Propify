@@ -71,6 +71,8 @@ const listingService = {
     });
 
     return api.post("/v1/listings", data);
+
+    return api.post("/v1/listings", data);
   },
 };
 

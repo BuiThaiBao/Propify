@@ -97,3 +97,9 @@ Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('aut
     Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'index'])
         ->name('index');
 });
+
+Route::prefix('v1/listings')->as('listings.')->middleware('auth:api')->group(function () {
+    Route::post('/', [ListingController::class, 'store'])->name('store');
+});
+
+
