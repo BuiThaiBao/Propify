@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\GoogleController;
 use App\Http\Controllers\Api\V1\Cloudinary\CloudinaryController;
+use App\Http\Controllers\Api\V1\ListingController;
 use App\Http\Controllers\Api\V1\User\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -76,6 +77,11 @@ Route::prefix('v1/user')->as('user.')->middleware('auth:api')->group(function ()
     Route::put('/change-password', [UserController::class, 'changePassword'])->name('password.change');
     // Tìm user theo SĐT để bắt đầu chat
     Route::get('/search', [UserController::class, 'searchByPhone'])->name('search');
+});
+
+// ==================== LISTING ROUTES ====================
+Route::prefix('v1/listings')->as('listings.')->middleware('auth:api')->group(function () {
+    Route::post('/', [ListingController::class, 'store'])->name('store');
 });
 
 // ==================== CLOUDINARY ROUTES ====================
