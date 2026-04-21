@@ -1,117 +1,76 @@
 import api from "./api";
 
-function appendIfPresent(formData, key, value) {
-  if (value === null || value === undefined || value === "") return;
-  formData.append(key, value);
-}
-
-function appendBoolean(formData, key, value) {
-  formData.append(key, value ? "1" : "0");
-}
-
 const listingService = {
   create(payload) {
-    const formData = new FormData();
+    const data = {
+      demand_type: payload.demandType,
+      title: payload.title,
+      description: payload.description,
+      property_type: payload.propertyType,
+      province_code: payload.provinceCode,
+      district_code: payload.districtCode,
+      ward_code: payload.wardCode,
+      street_code: payload.streetCode,
+      project_name: payload.projectName,
+      address_detail: payload.addressDetail,
 
-    appendIfPresent(formData, "demand_type", payload.demandType);
-    appendIfPresent(formData, "title", payload.title);
-    appendIfPresent(formData, "description", payload.description);
-    appendIfPresent(formData, "property_type", payload.propertyType);
-    appendIfPresent(formData, "province_code", payload.provinceCode);
-    appendIfPresent(formData, "district_code", payload.districtCode);
-    appendIfPresent(formData, "ward_code", payload.wardCode);
-    appendIfPresent(formData, "street_code", payload.streetCode);
-    appendIfPresent(formData, "project_name", payload.projectName);
-    appendIfPresent(formData, "address_detail", payload.addressDetail);
+      area: payload.area,
+      price: payload.price,
+      is_negotiable: payload.isNegotiable,
 
-    appendIfPresent(formData, "area", payload.area);
-    appendIfPresent(formData, "price", payload.price);
-    appendBoolean(formData, "is_negotiable", payload.isNegotiable);
+      bedrooms: payload.bedrooms,
+      bathrooms: payload.bathrooms,
+      floors: payload.floors,
+      floor_number: payload.floorNumber,
+      balconies: payload.balconies,
+      facade_width: payload.facadeWidth,
+      depth: payload.depth,
+      road_width: payload.roadWidth,
+      direction_code: payload.directionCode,
+      balcony_direction_code: payload.balconyDirectionCode,
+      furniture_status: payload.furnitureStatus,
 
-    appendIfPresent(formData, "bedrooms", payload.bedrooms);
-    appendIfPresent(formData, "bathrooms", payload.bathrooms);
-    appendIfPresent(formData, "floors", payload.floors);
-    appendIfPresent(formData, "floor_number", payload.floorNumber);
-    appendIfPresent(formData, "balconies", payload.balconies);
-    appendIfPresent(formData, "facade_width", payload.facadeWidth);
-    appendIfPresent(formData, "depth", payload.depth);
-    appendIfPresent(formData, "road_width", payload.roadWidth);
-    appendIfPresent(formData, "direction_code", payload.directionCode);
-    appendIfPresent(formData, "balcony_direction_code", payload.balconyDirectionCode);
-    appendIfPresent(formData, "furniture_status", payload.furnitureStatus);
+      contact_name: payload.contactName,
+      contact_phone: payload.contactPhone,
+      contact_email: payload.contactEmail,
+      poster_type: payload.posterType,
 
-    appendIfPresent(formData, "contact_name", payload.contactName);
-    appendIfPresent(formData, "contact_phone", payload.contactPhone);
-    appendIfPresent(formData, "contact_email", payload.contactEmail);
-    appendIfPresent(formData, "poster_type", payload.posterType);
+      lat: payload.lat,
+      lng: payload.lng,
+      package_id: payload.packageId,
 
-    appendIfPresent(formData, "lat", payload.lat);
-    appendIfPresent(formData, "lng", payload.lng);
-    appendIfPresent(formData, "package_id", payload.packageId);
+      request_verification: payload.requestVerification,
 
-    appendBoolean(formData, "request_verification", payload.requestVerification);
+      // Cloudinary URLs — được upload trước khi gọi hàm này
+      images: payload.images || [],
+      video: payload.video || null,
 
-    if (Array.isArray(payload.images)) {
-      payload.images.forEach((file) => {
-        formData.append("images[]", file);
-      });
-    }
+      attribute_ids: payload.attributeIds || [],
+      amenities: payload.amenities || [],
+      legal_paper_types: payload.legalPaperTypes || [],
+      public_info_agreed: payload.publicInfoAgreed ?? false,
 
-    if (payload.video) {
-      formData.append("video", payload.video);
-    }
+      identity_card_front: payload.identityCardFront || null,
+      identity_card_back: payload.identityCardBack || null,
+      legal_documents: payload.legalDocuments || [],
 
-    if (Array.isArray(payload.attributeIds)) {
-      payload.attributeIds.forEach((id) => {
-        appendIfPresent(formData, "attribute_ids[]", id);
-      });
-    }
+      appointment_at: payload.appointmentAt,
+      appointment_days: payload.appointmentDays || [],
+      appointment_time_slot: payload.appointmentTimeSlot,
+      appointment_contact_name: payload.appointmentContactName,
+      appointment_contact_phone: payload.appointmentContactPhone,
+      appointment_contact_email: payload.appointmentContactEmail,
+      appointment_note: payload.appointmentNote,
+    };
 
-    if (Array.isArray(payload.amenities)) {
-      payload.amenities.forEach((item) => {
-        appendIfPresent(formData, "amenities[]", item);
-      });
-    }
-
-    if (Array.isArray(payload.legalPaperTypes)) {
-      payload.legalPaperTypes.forEach((item) => {
-        appendIfPresent(formData, "legal_paper_types[]", item);
-      });
-    }
-
-    appendBoolean(formData, "public_info_agreed", payload.publicInfoAgreed);
-
-    if (payload.identityCardFront) {
-      formData.append("identity_card_front", payload.identityCardFront);
-    }
-
-    if (payload.identityCardBack) {
-      formData.append("identity_card_back", payload.identityCardBack);
-    }
-
-    if (Array.isArray(payload.legalDocuments)) {
-      payload.legalDocuments.forEach((file) => {
-        formData.append("legal_documents[]", file);
-      });
-    }
-
-    appendIfPresent(formData, "appointment_at", payload.appointmentAt);
-    if (Array.isArray(payload.appointmentDays)) {
-      payload.appointmentDays.forEach((day) => {
-        appendIfPresent(formData, "appointment_days[]", day);
-      });
-    }
-    appendIfPresent(formData, "appointment_time_slot", payload.appointmentTimeSlot);
-    appendIfPresent(formData, "appointment_contact_name", payload.appointmentContactName);
-    appendIfPresent(formData, "appointment_contact_phone", payload.appointmentContactPhone);
-    appendIfPresent(formData, "appointment_contact_email", payload.appointmentContactEmail);
-    appendIfPresent(formData, "appointment_note", payload.appointmentNote);
-
-    return api.post("/v1/listings", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+    // Loại bỏ các key null/undefined/empty string để payload gọn hơn
+    Object.keys(data).forEach((key) => {
+      if (data[key] === null || data[key] === undefined || data[key] === "") {
+        delete data[key];
+      }
     });
+
+    return api.post("/v1/listings", data);
   },
 };
 

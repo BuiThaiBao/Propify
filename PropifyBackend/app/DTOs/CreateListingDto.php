@@ -7,12 +7,12 @@ use Illuminate\Http\UploadedFile;
 final readonly class CreateListingDto
 {
     /**
-     * @param UploadedFile[] $images
+     * @param string[] $images
      * @param int[] $attributeIds
         * @param string[] $amenities
         * @param string[] $legalPaperTypes
         * @param int[] $appointmentDays
-     * @param UploadedFile[] $legalDocuments
+     * @param string[] $legalDocuments
      */
     public function __construct(
         public string $demandType,
@@ -46,14 +46,14 @@ final readonly class CreateListingDto
         public ?float $lat,
         public ?float $lng,
         public array $images,
-        public ?UploadedFile $video,
+        public ?string $video,
         public array $attributeIds,
         public array $amenities,
         public array $legalPaperTypes,
         public bool $publicInfoAgreed,
         public bool $requestVerification,
-        public ?UploadedFile $identityCardFront,
-        public ?UploadedFile $identityCardBack,
+        public ?string $identityCardFront,
+        public ?string $identityCardBack,
         public array $legalDocuments,
         public ?string $appointmentAt,
         public array $appointmentDays,
