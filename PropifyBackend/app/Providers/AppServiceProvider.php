@@ -8,7 +8,9 @@ use App\Repositories\AppointmentBookingRepository;
 use App\Repositories\AppointmentSlotRepository;
 use App\Repositories\Eloquent\EloquentAppointmentBookingRepository;
 use App\Repositories\Eloquent\EloquentAppointmentSlotRepository;
+use App\Repositories\Eloquent\EloquentListingRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
+use App\Repositories\ListingRepository;
 use App\Repositories\UserRepository;
 use App\Services\Auth\Impl\UserUpsertServiceImpl;
 use App\Services\Auth\UserUpsertService;
@@ -16,7 +18,9 @@ use App\Services\AuthGoogleService;
 use App\Services\AuthService;
 use App\Services\Impl\AuthGoogleServiceImpl;
 use App\Services\Impl\AuthServiceImpl;
+use App\Services\Impl\ListingServiceImpl;
 use App\Services\Impl\TokenProcessServiceImpl;
+use App\Services\ListingService;
 use App\Services\Notification\Channel\EmailChannel;
 use App\Services\Notification\Impl\NotificationServiceImpl;
 use App\Services\Notification\NotificationService;
@@ -51,6 +55,7 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(UserRepository::class, EloquentUserRepository::class);
         $this->app->bind(AppointmentSlotRepository::class, EloquentAppointmentSlotRepository::class);
         $this->app->bind(AppointmentBookingRepository::class, EloquentAppointmentBookingRepository::class);
+        $this->app->bind(ListingRepository::class, EloquentListingRepository::class);
 
         // ── Auth bindings ─────────────────────────────────────────────────
         $this->app->bind(AuthService::class, AuthServiceImpl::class);
@@ -61,6 +66,7 @@ final class AppServiceProvider extends ServiceProvider
         // ── Appointment bindings ──────────────────────────────────────────
         $this->app->bind(AppointmentSlotService::class, AppointmentSlotServiceImpl::class);
         $this->app->bind(AppointmentBookingService::class, AppointmentBookingServiceImpl::class);
+        $this->app->bind(ListingService::class, ListingServiceImpl::class);
 
         // ── Notification bindings ─────────────────────────────────────────
         // NotificationServiceImpl nhận array $channels qua constructor

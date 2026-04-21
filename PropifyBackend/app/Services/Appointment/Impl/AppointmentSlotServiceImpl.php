@@ -4,6 +4,8 @@ namespace App\Services\Appointment\Impl;
 
 use App\DTOs\Appointment\GetAppointmentSlotsDto;
 use App\Exceptions\AppointmentSlotNotFoundException;
+use App\Enums\ErrorCode;
+use App\Exceptions\BusinessException;
 use App\Repositories\AppointmentSlotRepository;
 use App\Services\Appointment\AppointmentSlotService;
 use Carbon\Carbon;
@@ -22,10 +24,10 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
         $slots = $this->appointmentSlotRepository->getByListingAndPoster($dto->listingId, $dto->posterId);
 
         if ($slots->isEmpty()) {
-            throw new AppointmentSlotNotFoundException();
+            throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
         }
 
-        return $this->buildDateSlots($slots);
+        return $slots;
     }
 
     /**

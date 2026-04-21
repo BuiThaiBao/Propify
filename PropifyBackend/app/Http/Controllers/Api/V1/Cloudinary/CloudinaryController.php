@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\V1;
+namespace App\Http\Controllers\Api\V1\Cloudinary;
 
 use App\Helpers\ApiResponse;
 use App\Services\Cloudinary\CloudinaryService;

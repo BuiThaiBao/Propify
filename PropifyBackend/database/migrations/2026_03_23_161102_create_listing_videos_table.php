@@ -7,18 +7,19 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up()
     {
-        Schema::create('listing_images', function (Blueprint $table) {
+        Schema::create('listing_videos', function (Blueprint $table) {
             $table->id();
             $table->foreignId('listing_id')->constrained('listings')->cascadeOnDelete();
-            $table->string('image_url', 500);
-            $table->boolean('is_thumbnail')->default(false);
-            $table->integer('sort_order')->default(0);
+            $table->string('video_url', 500);
+            $table->string('provider', 30)->nullable()->comment('LOCAL, YOUTUBE, VIMEO');
+            $table->string('mime_type', 100)->nullable();
+            $table->unsignedBigInteger('file_size')->nullable();
             $table->timestamps();
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('listing_images');
+        Schema::dropIfExists('listing_videos');
     }
 };

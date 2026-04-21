@@ -11,12 +11,15 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('listing_id')->constrained('listings')->cascadeOnDelete();
             // Đặt tên khóa ngoại cụ thể vì trỏ về cùng 1 bảng users
-            $table->foreignId('viewer_id')->constrained('users');
+            $table->foreignId('viewer_id')->nullable()->constrained('users');
             $table->foreignId('poster_id')->constrained('users');
 
             $table->dateTime('meet_time');
+            $table->string('contact_name', 100)->nullable();
+            $table->string('contact_phone', 20)->nullable();
+            $table->string('contact_email', 255)->nullable();
             $table->string('note')->nullable();
-            $table->string('status')->default('PENDING')->comment('PENDING, APPROVED, CANCELLED');
+            $table->string('status')->default('PENDING')->comment('PENDING, CONFIRMED, DECLINED, CANCELLED, COMPLETED');
             $table->timestamps();
         });
     }

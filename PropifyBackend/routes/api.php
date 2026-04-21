@@ -2,9 +2,8 @@
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\GoogleController;
-use App\Http\Controllers\Api\V1\CloudinaryController;
+use App\Http\Controllers\Api\V1\Cloudinary\CloudinaryController;
 use App\Http\Controllers\Api\V1\User\UserController;
-use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 /*

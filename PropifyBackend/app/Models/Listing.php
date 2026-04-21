@@ -12,18 +12,28 @@ final class Listing extends Model
 
     protected $fillable = [
         'property_id',
+        'demand_type',
         'title',
         'description',
         'ai_description',
         'status',
         'package_id',
         'score',
+        'is_verified',
+        'has_video',
+        'request_verification',
+        'rejection_reason',
+        'submitted_at',
         'published_at',
         'expired_at',
     ];
 
     protected $casts = [
         'score' => 'integer',
+        'is_verified' => 'boolean',
+        'has_video' => 'boolean',
+        'request_verification' => 'boolean',
+        'submitted_at' => 'datetime',
         'published_at' => 'datetime',
         'expired_at' => 'datetime',
     ];
@@ -46,6 +56,21 @@ final class Listing extends Model
     public function images(): HasMany
     {
         return $this->hasMany(ListingImage::class, 'listing_id');
+    }
+
+    public function videos(): HasMany
+    {
+        return $this->hasMany(ListingVideo::class, 'listing_id');
+    }
+
+    public function verificationDocuments(): HasMany
+    {
+        return $this->hasMany(ListingVerificationDocument::class, 'listing_id');
+    }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class, 'listing_id');
     }
 
     /** Danh sách slot lịch hẹn */
