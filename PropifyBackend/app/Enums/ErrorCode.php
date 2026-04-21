@@ -38,6 +38,15 @@ enum ErrorCode: int
     // ==================== Appointment (6xxx) ====================
     case ListingNotFound          = 6001;
     case AppointmentSlotNotFound  = 6002;
+    case BookingSelfSlot          = 6003;
+    case BookingInvalidDate       = 6004;
+    case BookingSlotNotFound      = 6005;
+    case BookingDuplicate         = 6006;
+    case SlotNotOwner             = 6007;
+    case SlotTimeOverlap          = 6008;
+    case SlotHasApprovedBooking   = 6009;
+    case SlotListingMismatch      = 6010;
+    case BookingExistsOnListing   = 6011;
 
     // ==================== Chat (7xxx) ====================
     case ConversationNotFound              = 7001;
@@ -76,6 +85,15 @@ enum ErrorCode: int
             self::AppointmentSlotNotFound => 'Bạn không có cấu hình lịch hẹn nào cho bài đăng này hoặc bạn không có quyền truy cập',
             self::ConversationNotFound => 'Cuộc trò chuyện không tồn tại',
             self::UnauthorizedConversationAccess => 'Bạn không có quyền truy cập vào cuộc trò chuyện này',
+            self::BookingSelfSlot => 'Bạn không thể đặt lịch hẹn cho chính bài đăng của mình',
+            self::BookingInvalidDate => 'Ngày hoặc giờ hẹn không hợp lệ',
+            self::BookingSlotNotFound => 'Khung giờ hẹn không tồn tại hoặc đã bị vô hiệu hóa',
+            self::BookingDuplicate => 'Bạn đã đặt lịch hẹn cho khung giờ này vào ngày này rồi',
+            self::SlotNotOwner => 'Bạn không có quyền chỉnh sửa khung giờ này',
+            self::SlotTimeOverlap => 'Khung giờ này bị trùng với khung giờ đã có trong cùng ngày',
+            self::SlotHasApprovedBooking => 'Không thể sửa vì đã có lịch hẹn được duyệt trong khung giờ này',
+            self::SlotListingMismatch => 'Khung giờ không thuộc bài đăng này',
+            self::BookingExistsOnListing => 'Bạn đã có một lịch hẹn chưa hoàn thành trên căn hộ này',
             self::ServerError => 'Lỗi hệ thống',
             self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
         };
@@ -92,7 +110,8 @@ enum ErrorCode: int
             self::AuthOtpExpired,
             self::AuthNotVerified => Response::HTTP_UNAUTHORIZED,
 
-            self::AuthPasswordIncorrect => Response::HTTP_UNPROCESSABLE_ENTITY,
+            self::AuthPasswordIncorrect,
+            self::AuthPhoneNotVerified => Response::HTTP_UNPROCESSABLE_ENTITY,
 
             self::AuthForbidden => Response::HTTP_FORBIDDEN,
 
@@ -105,6 +124,25 @@ enum ErrorCode: int
             self::ConversationNotFound => Response::HTTP_NOT_FOUND,
 
             self::UnauthorizedConversationAccess => Response::HTTP_FORBIDDEN,
+            self::AppointmentSlotNotFound => Response::HTTP_NOT_FOUND,
+
+            self::BookingSelfSlot => Response::HTTP_FORBIDDEN,
+
+            self::BookingInvalidDate => Response::HTTP_UNPROCESSABLE_ENTITY,
+
+            self::BookingSlotNotFound => Response::HTTP_NOT_FOUND,
+
+            self::BookingDuplicate => Response::HTTP_CONFLICT,
+
+            self::SlotNotOwner => Response::HTTP_FORBIDDEN,
+
+            self::SlotTimeOverlap => Response::HTTP_CONFLICT,
+
+            self::SlotHasApprovedBooking => Response::HTTP_CONFLICT,
+
+            self::SlotListingMismatch => Response::HTTP_UNPROCESSABLE_ENTITY,
+
+            self::BookingExistsOnListing => Response::HTTP_CONFLICT,
 
             self::UserAlreadyExists => Response::HTTP_CONFLICT,
 

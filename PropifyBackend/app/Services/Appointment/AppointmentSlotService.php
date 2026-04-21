@@ -2,14 +2,24 @@
 
 namespace App\Services\Appointment;
 
-use Illuminate\Database\Eloquent\Collection;
+use App\DTOs\Appointment\GetAppointmentSlotsDto;
+use App\DTOs\Appointment\UpdateSlotDto;
+use App\Models\AppointmentSlot;
 
 interface AppointmentSlotService
 {
     /**
      * Get all active appointment slots for a listing uploaded by a specific poster.
+     * Trả về danh sách ngày cụ thể (tuần hiện tại + tuần sau) với các slot tương ứng.
      *
-     * @return Collection<int, \App\Models\AppointmentSlot>
+     * @return array<int, array{date: string, slots: array}>
      */
-    public function getSlotsByListingAndPoster(int $listingId, int $posterId): Collection;
+    public function getSlotsByListingAndPoster(GetAppointmentSlotsDto $dto): array;
+
+    /**
+     * Cập nhật khung giờ hẹn (day_of_week, start_time, end_time).
+     * Tự động hủy các booking PENDING và ghi chú thay đổi.
+     */
+    public function updateSlot(UpdateSlotDto $dto): AppointmentSlot;
 }
+
