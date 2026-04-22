@@ -46,7 +46,13 @@
           </svg>
         </button>
         <div v-show="expandedSections.listings" class="bg-slate-50 border-t border-slate-100">
-          <button class="w-full text-left pl-12 pr-5 py-2.5 text-[0.82rem] text-slate-500 hover:bg-slate-200 hover:text-sky-500 transition-all">Danh sách tin đăng</button>
+          <button
+            class="w-full text-left pl-12 pr-5 py-2.5 text-[0.82rem] transition-all"
+            :class="activeTab === 'listings' ? 'bg-sky-100 text-sky-600 font-semibold' : 'text-slate-500 hover:bg-slate-200 hover:text-sky-500'"
+            @click="openListingsTab"
+          >
+            Danh sách tin đăng
+          </button>
           <button class="w-full text-left pl-12 pr-5 py-2.5 text-[0.82rem] text-slate-500 hover:bg-slate-200 hover:text-sky-500 transition-all">Danh sách xác thực BĐS</button>
         </div>
 
@@ -280,6 +286,108 @@
         </div>
       </section>
 
+      <!-- ===== MY LISTINGS TAB ===== -->
+      <section v-if="activeTab === 'listings'" class="bg-white rounded-xl shadow-sm p-8">
+        <h2 class="text-xl font-bold text-slate-800 mb-6">Danh sách tin đăng</h2>
+
+        <div class="grid grid-cols-1 gap-3 mb-4 lg:grid-cols-[1fr_auto_auto]">
+          <input
+            v-model.trim="listingFilters.keyword"
+            type="text"
+            class="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-sky-400"
+            placeholder="Nhập giá trị tìm kiếm..."
+            @keyup.enter="loadMyListings(1)"
+          />
+
+          <select
+            v-model="listingFilters.status"
+            class="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-sky-400"
+            @change="loadMyListings(1)"
+          >
+            <option value="">Trạng thái: Tất cả</option>
+            <option value="PENDING">Chờ duyệt</option>
+            <option value="ACTIVE">Đang đăng</option>
+            <option value="DRAFT">Tin nháp</option>
+            <option value="REJECTED">Từ chối</option>
+            <option value="LOCKED">Tin bị khóa</option>
+            <option value="EXPIRED">Hết hạn</option>
+          </select>
+
+          <select
+            v-model="listingFilters.demandType"
+            class="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-sky-400"
+            @change="loadMyListings(1)"
+          >
+            <option value="">Loại tin: Tất cả</option>
+            <option value="SALE">Mua bán</option>
+            <option value="RENT">Cho thuê</option>
+          </select>
+        </div>
+
+        <div class="overflow-x-auto rounded-lg border border-slate-200">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-left text-xs text-slate-500">
+              <tr>
+                <th class="px-3 py-3">ID</th>
+                <th class="px-3 py-3">Ảnh</th>
+                <th class="px-3 py-3">Mã tin</th>
+                <th class="px-3 py-3">Tin đăng</th>
+                <th class="px-3 py-3">Địa chỉ</th>
+                <th class="px-3 py-3">Giá</th>
+                <th class="px-3 py-3">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="listingsLoading">
+                <td class="px-3 py-6 text-center text-slate-400" colspan="7">Đang tải dữ liệu...</td>
+              </tr>
+              <tr v-else-if="myListings.length === 0">
+                <td class="px-3 py-6 text-center text-slate-400" colspan="7">Bạn chưa có tin đăng nào.</td>
+              </tr>
+              <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100">
+                <td class="px-3 py-3 font-medium text-sky-600">{{ item.id }}</td>
+                <td class="px-3 py-3">
+                  <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-14 rounded-md object-cover" />
+                  <div v-else class="h-12 w-14 rounded-md bg-slate-100"></div>
+                </td>
+                <td class="px-3 py-3 text-slate-500">{{ item.code }}</td>
+                <td class="px-3 py-3 text-slate-700">{{ item.title }}</td>
+                <td class="px-3 py-3 text-slate-500">{{ item.address }}</td>
+                <td class="px-3 py-3 font-semibold text-slate-700">{{ item.price }}</td>
+                <td class="px-3 py-3">
+                  <span :class="['rounded-full px-2 py-1 text-xs font-medium', statusBadgeClass(item.status)]">
+                    {{ statusLabel(item.status) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+          <p>Tổng cộng {{ listingPagination.total }} tin</p>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50"
+              :disabled="listingPagination.currentPage <= 1 || listingsLoading"
+              @click="loadMyListings(listingPagination.currentPage - 1)"
+            >
+              Trước
+            </button>
+            <span>Trang {{ listingPagination.currentPage }}/{{ listingPagination.lastPage }}</span>
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50"
+              :disabled="listingPagination.currentPage >= listingPagination.lastPage || listingsLoading"
+              @click="loadMyListings(listingPagination.currentPage + 1)"
+            >
+              Sau
+            </button>
+          </div>
+        </div>
+      </section>
+
       <!-- ===== PASSWORD TAB ===== -->
       <section v-if="activeTab === 'password'" class="bg-white rounded-xl shadow-sm p-8">
         <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
@@ -370,6 +478,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useRoute, useRouter } from 'vue-router';
 import userService from '@/services/userService';
 import cloudinaryService from '@/services/cloudinaryService';
+import listingService from '@/services/listingService';
 
 const authStore = useAuthStore();
 const route = useRoute();
@@ -456,6 +565,19 @@ async function uploadAvatar() {
 
 // ── Tabs ──
 const activeTab = ref('profile');
+const listingsLoaded = ref(false);
+const listingsLoading = ref(false);
+const myListings = ref([]);
+const listingFilters = reactive({
+  keyword: '',
+  status: '',
+  demandType: '',
+});
+const listingPagination = reactive({
+  currentPage: 1,
+  lastPage: 1,
+  total: 0,
+});
 
 // ── Phone required from đăng tin ──
 const requirePhone = ref(false);
@@ -472,6 +594,96 @@ const expandedSections = reactive({
 
 function toggleSection(key) {
   expandedSections[key] = !expandedSections[key];
+}
+
+function statusLabel(status) {
+  const map = {
+    DRAFT: 'Tin nháp',
+    PENDING: 'Chờ duyệt',
+    ACTIVE: 'Đang đăng',
+    EXPIRED: 'Hết hạn',
+    REJECTED: 'Từ chối',
+    LOCKED: 'Tin bị khóa',
+  };
+  return map[status] || status;
+}
+
+function statusBadgeClass(status) {
+  const map = {
+    DRAFT: 'bg-slate-100 text-slate-600',
+    PENDING: 'bg-amber-100 text-amber-700',
+    ACTIVE: 'bg-emerald-100 text-emerald-700',
+    EXPIRED: 'bg-slate-200 text-slate-600',
+    REJECTED: 'bg-rose-100 text-rose-700',
+    LOCKED: 'bg-red-100 text-red-700',
+  };
+  return map[status] || 'bg-slate-100 text-slate-600';
+}
+
+function toListingCode(id) {
+  return `LH-${String(id).padStart(8, '0')}`;
+}
+
+function formatCurrency(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number) || number <= 0) return 'Thỏa thuận';
+  return number.toLocaleString('vi-VN');
+}
+
+function buildAddress(property) {
+  return property?.address_detail || '';
+}
+
+function normalizeListings(items) {
+  return items.map((item) => {
+    const thumbnail = item?.images?.find((img) => img?.is_thumbnail)?.url || item?.images?.[0]?.url || '';
+    return {
+      id: item.id,
+      code: toListingCode(item.id),
+      title: item.title || '(Không tiêu đề)',
+      thumbnail,
+      address: buildAddress(item.property),
+      price: formatCurrency(item?.property?.price),
+      status: item.status,
+    };
+  });
+}
+
+async function loadMyListings(page = 1) {
+  listingsLoading.value = true;
+  try {
+    const response = await listingService.getMyListings({
+      page,
+      per_page: 10,
+      keyword: listingFilters.keyword || undefined,
+      status: listingFilters.status || undefined,
+      demand_type: listingFilters.demandType || undefined,
+    });
+
+    const data = response?.data?.data || [];
+    const meta = response?.data?.meta || {};
+
+    myListings.value = normalizeListings(data);
+    listingPagination.currentPage = Number(meta.current_page || 1);
+    listingPagination.lastPage = Number(meta.last_page || 1);
+    listingPagination.total = Number(meta.total || 0);
+    listingsLoaded.value = true;
+  } catch {
+    myListings.value = [];
+    listingPagination.currentPage = 1;
+    listingPagination.lastPage = 1;
+    listingPagination.total = 0;
+  } finally {
+    listingsLoading.value = false;
+  }
+}
+
+function openListingsTab() {
+  activeTab.value = 'listings';
+  expandedSections.listings = true;
+  if (!listingsLoaded.value) {
+    loadMyListings(1);
+  }
 }
 
 // ── Profile form ──
@@ -503,6 +715,11 @@ onMounted(async () => {
     nextTick(() => {
       phoneInputRef.value?.focus();
     });
+  }
+
+  // Auto-open listings tab if query param tab=listings (from posting redirect)
+  if (route.query.tab === 'listings') {
+    openListingsTab();
   }
 });
 

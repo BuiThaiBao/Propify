@@ -7,6 +7,7 @@ use App\Enums\UserStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
@@ -72,9 +73,21 @@ final class User extends Authenticatable implements JWTSubject
 
     // ==================== Relationships ====================
 
-    public function properties(): HasMany
+    public function properties(): HasManyThrough
     {
-        return $this->hasMany(Property::class, 'owner_id');
+        return $this->hasManyThrough(
+            Property::class,
+            Listing::class,
+            'owner_id',
+            'id',
+            'id',
+            'property_id',
+        );
+    }
+
+    public function listings(): HasMany
+    {
+        return $this->hasMany(Listing::class, 'owner_id');
     }
 
     /** Các slot lịch hẹn mà user đã tạo (với tư cách người đăng) */

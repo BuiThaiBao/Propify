@@ -9,9 +9,9 @@ use App\Models\Listing;
 use App\Models\User;
 use App\Repositories\ListingRepository;
 use App\Services\ListingService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 final class ListingServiceImpl implements ListingService
 {
@@ -41,7 +41,6 @@ final class ListingServiceImpl implements ListingService
         return DB::transaction(function () use ($user, $dto) {
             Log::debug('[ListingService] DB transaction started');
             $property = $this->listingRepository->createProperty([
-                'owner_id' => $user->id,
                 'type' => $dto->propertyType,
                 'province_code' => $dto->provinceCode,
                 'district_code' => $dto->districtCode,
@@ -86,6 +85,7 @@ final class ListingServiceImpl implements ListingService
 
             $listing = $this->listingRepository->createListing([
                 'property_id' => $property->id,
+                'owner_id' => $user->id,
                 'demand_type' => $dto->demandType,
                 'title' => $dto->title,
                 'description' => $dto->description,
@@ -181,5 +181,16 @@ final class ListingServiceImpl implements ListingService
                 'appointments',
             ]);
         });
+    }
+
+    public function getMyListings(User $user, ?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
+    {
+        return $this->listingRepository->paginateByOwner(
+            ownerId: (int) $user->id,
+            status: $status,
+            demandType: $demandType,
+            keyword: $keyword,
+            perPage: $perPage,
+        );
     }
 }

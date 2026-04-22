@@ -8,6 +8,7 @@ use App\Models\ListingImage;
 use App\Models\ListingVerificationDocument;
 use App\Models\ListingVideo;
 use App\Models\Property;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface ListingRepository
 {
@@ -22,4 +23,6 @@ interface ListingRepository
     public function createVerificationDocument(array $attributes): ListingVerificationDocument;
 
     public function createAppointment(array $attributes): Appointment;
+
+    public function paginateByOwner(int $ownerId, ?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 }

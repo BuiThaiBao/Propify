@@ -10,6 +10,10 @@ function appendBoolean(formData, key, value) {
 }
 
 const listingService = {
+  getMyListings(params = {}) {
+    return api.get("/v1/listings/my", { params });
+  },
+
   create(payload) {
     const data = {
       demand_type: payload.demandType,
@@ -53,12 +57,17 @@ const listingService = {
       images: payload.images || [],
       video: payload.video || null,
       attribute_ids: payload.attributeIds || [],
+      amenities: payload.amenities || [],
+      legal_paper_types: payload.legalPaperTypes || [],
+      public_info_agreed: payload.publicInfoAgreed || false,
       
       identity_card_front: payload.identityCardFront || null,
       identity_card_back: payload.identityCardBack || null,
       legal_documents: payload.legalDocuments || [],
       
       appointment_at: payload.appointmentAt,
+      appointment_days: payload.appointmentDays || [],
+      appointment_time_slot: payload.appointmentTimeSlot || null,
       appointment_contact_name: payload.appointmentContactName,
       appointment_contact_phone: payload.appointmentContactPhone,
       appointment_contact_email: payload.appointmentContactEmail,

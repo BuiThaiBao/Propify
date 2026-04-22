@@ -5,8 +5,11 @@ namespace App\Services;
 use App\DTOs\CreateListingDto;
 use App\Models\Listing;
 use App\Models\User;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface ListingService
 {
     public function create(User $user, CreateListingDto $dto): Listing;
+
+    public function getMyListings(User $user, ?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 }

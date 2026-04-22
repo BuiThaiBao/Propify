@@ -9,7 +9,7 @@
         <section class="section-card">
           <header class="section-title">
             <img :src="uploadImageIcon" alt="upload" class="h-5 w-5" />
-            <h2>Hình ảnh, Video<span class="text-red-500">*</span></h2>
+            <h2 class="required">Hình ảnh, Video</h2>
           </header>
           <p class="section-subtitle"><img :src="uploadImageIcon" alt="upload" class="inline h-3.5 w-3.5 align-[-2px]" /> Tải ảnh và video từ máy tính</p>
 
@@ -106,15 +106,15 @@
           <div class="mt-3 grid gap-3 md:grid-cols-1">
             <label>
               <span class="field-label required">Diện tích (m2)</span>
-              <input v-model="form.area" :class="['input mt-1', fieldError('area') && 'input-error']" type="number" min="0" step="0.1" placeholder="Nhập số" @input="preventNegative($event, 'area')" @blur="touchField('area')" />
+              <input v-model="form.area" :class="['input mt-1', fieldError('area') && 'input-error']" type="text" inputmode="decimal" placeholder="Nhập số" @input="onNumberInput($event, 'area', true)" @blur="touchField('area')" />
               <p v-if="fieldError('area')" class="field-error">Vui lòng nhập diện tích</p>
             </label>
           </div>
 
           <div class="mt-3 grid gap-3 md:grid-cols-1">
             <label>
-              <span class="field-label">{{ priceLabel }}</span>
-              <input v-model="form.price" :class="['input mt-1 disabled:bg-slate-100', fieldError('price') && 'input-error']" :disabled="form.isNegotiable" type="number" min="0" placeholder="Nhập số" @input="preventNegative($event, 'price')" @blur="touchField('price')" />
+              <span class="field-label required">{{ priceLabel }}</span>
+              <input v-model="form.price" :class="['input mt-1 disabled:bg-slate-100', fieldError('price') && 'input-error']" :disabled="form.isNegotiable" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'price', false)" @blur="touchField('price')" />
               <p v-if="fieldError('price')" class="field-error">Vui lòng nhập giá</p>
             </label>
           </div>
@@ -218,7 +218,7 @@
                 >
                   {{ n }}
                 </button>
-                <input v-model="form.bedrooms" class="quick-input" type="number" min="0" placeholder="Nhập số" @input="preventNegative($event, 'bedrooms')" />
+                <input v-model="form.bedrooms" class="quick-input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'bedrooms', false)" />
               </div>
             </div>
 
@@ -237,7 +237,7 @@
                 >
                   {{ n }}
                 </button>
-                <input v-model="form.bathrooms" class="quick-input" type="number" min="0" placeholder="Nhập số" @input="preventNegative($event, 'bathrooms')" />
+                <input v-model="form.bathrooms" class="quick-input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'bathrooms', false)" />
               </div>
             </div>
           </div>
@@ -246,14 +246,14 @@
             <label>
               <span class="field-label">Mặt tiền</span>
               <div class="unit-input mt-2">
-                <input v-model="form.facadeWidth" class="input" type="number" min="0" step="0.1" placeholder="Nhập số" @input="preventNegative($event, 'facadeWidth')" />
+                <input v-model="form.facadeWidth" class="input" type="text" inputmode="decimal" placeholder="Nhập số" @input="onNumberInput($event, 'facadeWidth', true)" />
                 <span class="unit-label">m</span>
               </div>
             </label>
             <label>
               <span class="field-label">Chiều sâu</span>
               <div class="unit-input mt-2">
-                <input v-model="form.depth" class="input" type="number" min="0" step="0.1" placeholder="Nhập số" @input="preventNegative($event, 'depth')" />
+                <input v-model="form.depth" class="input" type="text" inputmode="decimal" placeholder="Nhập số" @input="onNumberInput($event, 'depth', true)" />
                 <span class="unit-label">m</span>
               </div>
             </label>
@@ -272,14 +272,14 @@
               <label>
                 <span class="field-label">Tầng thứ</span>
                 <div class="unit-input mt-2">
-                  <input v-model="form.floorNumber" class="input" type="number" min="0" placeholder="Nhập số" @input="preventNegative($event, 'floorNumber')" />
+                  <input v-model="form.floorNumber" class="input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floorNumber', false)" />
                   <span class="unit-label">m</span>
                 </div>
               </label>
               <label>
                 <span class="field-label">Số tầng</span>
                 <div class="unit-input mt-2">
-                  <input v-model="form.floors" class="input" type="number" min="0" placeholder="Nhập số" @input="preventNegative($event, 'floors')" />
+                  <input v-model="form.floors" class="input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floors', false)" />
                   <span class="unit-label">m</span>
                 </div>
               </label>
@@ -318,7 +318,7 @@
                 >
                   {{ n }}
                 </button>
-                <input v-model="form.balconies" class="quick-input" type="number" min="0" placeholder="Nhập số" @input="preventNegative($event, 'balconies')" />
+                <input v-model="form.balconies" class="quick-input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'balconies', false)" />
               </div>
             </div>
           </div>
@@ -370,7 +370,7 @@
             <label>
               <span class="field-label required">Số điện thoại</span>
               <input v-model="form.contactPhone" :class="['input mt-1', fieldError('contactPhone') && 'input-error']" type="tel" inputmode="numeric" maxlength="10" placeholder="VD: 0912345678" @input="onPhoneInput" @blur="touchField('contactPhone')" />
-              <p v-if="fieldError('contactPhone')" class="field-error">Vui lòng nhập số điện thoại (10 chữ số)</p>
+              <p v-if="fieldError('contactPhone')" class="field-error">Số điện thoại phải có 10 chữ số và bắt đầu bằng 0</p>
             </label>
           </div>
 
@@ -393,7 +393,7 @@
 
           <div v-if="showAppointmentSection" class="mt-4 grid gap-3 md:grid-cols-2">
             <div class="relative">
-              <span class="field-label">* Chọn ngày</span>
+              <span class="field-label required">Chọn ngày</span>
               <button type="button" class="input mt-2 legal-trigger" @click="showDayDropdown = !showDayDropdown">
                 <span class="legal-selected-text">{{ selectedAppointmentDayLabel }}</span>
                 <span class="text-slate-500">⌄</span>
@@ -415,7 +415,7 @@
             </div>
 
             <div class="relative">
-              <span class="field-label">* Chọn giờ</span>
+              <span class="field-label required">Chọn giờ</span>
               <button type="button" class="input mt-2 legal-trigger" @click="showTimeDropdown = !showTimeDropdown">
                 <span class="legal-selected-text">{{ selectedAppointmentTimeLabel }}</span>
                 <span class="text-slate-500">⌄</span>
@@ -448,8 +448,8 @@
           <div v-if="showVerificationSection" class="mt-4 space-y-4">
             <div class="verify-note-box">
               <p class="text-lg tracking-wide">⭐ ⭐ ⭐</p>
-              <p class="mt-1 text-[20px] font-semibold text-amber-900">Xác thực bất động sản tại Meey Land</p>
-              <p class="mt-1 text-sm text-slate-600">Khi hoàn thành, tin đăng sẽ được ưu tiên vị trí hiển thị trên Meey Land</p>
+              <p class="mt-1 text-[20px] font-semibold text-amber-900">Xác thực bất động sản tại Propify</p>
+              <p class="mt-1 text-sm text-slate-600">Khi hoàn thành, tin đăng sẽ được ưu tiên vị trí hiển thị trên Propify</p>
             </div>
 
             <p class="verify-label-row">
@@ -605,6 +605,7 @@ import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import listingService from "@/services/listingService";
 import cloudinaryService from "@/services/cloudinaryService";
+import { useRouter } from "vue-router";
 import uploadImageIcon from "@/assets/images/listing/postlisting/uploadImage.png";
 import locationImageIcon from "@/assets/images/listing/postlisting/locationImage.png";
 import informationImageIcon from "@/assets/images/listing/postlisting/information.png";
@@ -728,11 +729,15 @@ function createInitialState() {
     images: [],
     video: null,
     attributeIds: [],
+    amenities: [],
+    publicInfoAgreed: false,
     requestVerification: false,
     identityCardFront: null,
     identityCardBack: null,
     legalDocuments: [],
     appointmentAt: "",
+    appointmentDays: [],
+    appointmentTimeSlot: "",
     appointmentContactName: "",
     appointmentContactPhone: "",
     appointmentContactEmail: "",
@@ -905,9 +910,14 @@ watch(
   },
 );
 
+// Auto-save form to draft
+watch(form, () => saveFormToDraft(), { deep: true });
+watch([selectedAmenities, publicInfoAgreed, selectedAppointmentDays, appointmentTimeSlot], () => saveFormToDraft(), { deep: true });
+
 onMounted(async () => {
   initializeMap();
   await fetchProvinces();
+  loadFormFromDraft();
 });
 
 function initializeMap() {
@@ -1308,7 +1318,10 @@ function fieldError(field) {
   const value = form[field];
   if (field === 'price' && form.isNegotiable) return false;
   if (field === 'contactPhone') {
-    return !value || !/^[0-9]{10}$/.test(value);
+    if (!value) return true;
+    // Phải đúng 10 chữ số và bắt đầu bằng 0
+    if (!/^0[0-9]{9}$/.test(value)) return true;
+    return false;
   }
   if (field === 'contactEmail') {
     if (!value || !value.trim()) return false;
@@ -1332,10 +1345,31 @@ function preventNegative(event, field) {
   }
 }
 
+function onNumberInput(event, field, allowDecimal = false) {
+  let value = event.target.value;
+  
+  // Xóa toàn bộ ký tự không phải số (và dấu . nếu cho thập phân)
+  if (allowDecimal) {
+    value = value.replace(/[^0-9.]/g, '');
+    // Chỉ giữ 1 dấu . (nếu có nhiều hơn, xóa các dấu . sau)
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+  } else {
+    value = value.replace(/[^0-9]/g, '');
+  }
+  
+  form[field] = value;
+  event.target.value = value;
+}
+
 function onPhoneInput(event) {
   const digits = event.target.value.replace(/[^0-9]/g, '');
-  form.contactPhone = digits;
-  event.target.value = digits;
+  // Giới hạn ở 10 chữ số
+  const limited = digits.slice(0, 10);
+  form.contactPhone = limited;
+  event.target.value = limited;
 }
 
 function touchAllRequired() {
@@ -1359,6 +1393,48 @@ function toggleAmenity(amenity) {
     return;
   }
   selectedAmenities.value = [...selectedAmenities.value, amenity];
+}
+
+// ── Draft/LocalStorage Helpers ──
+const DRAFT_STORAGE_KEY = "postListing_draft";
+let draftSaveTimer = null;
+
+function saveFormToDraft() {
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(() => {
+    const draftData = {
+      form: { ...form },
+      selectedAmenities: [...selectedAmenities.value],
+      publicInfoAgreed: publicInfoAgreed.value,
+      selectedAppointmentDays: [...selectedAppointmentDays.value],
+      appointmentTimeSlot: appointmentTimeSlot.value,
+      legalPaperTypesSelection: [...form.legalPaperTypes],
+      timestamp: new Date().toISOString(),
+    };
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+  }, 1000); // Debounce 1 giây
+}
+
+function loadFormFromDraft() {
+  const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+  if (!savedDraft) return;
+
+  try {
+    const draftData = JSON.parse(savedDraft);
+    // Restore form data (nhưng không restore files/images vì browser security)
+    Object.assign(form, draftData.form);
+    selectedAmenities.value = draftData.selectedAmenities || [];
+    publicInfoAgreed.value = draftData.publicInfoAgreed || false;
+    selectedAppointmentDays.value = draftData.selectedAppointmentDays || [];
+    appointmentTimeSlot.value = draftData.appointmentTimeSlot || "";
+    console.log("✓ Form đã được khôi phục từ bản dự thảo");
+  } catch (error) {
+    console.error("Lỗi khi load dự thảo:", error);
+  }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_STORAGE_KEY);
 }
 
 function pillClass(active) {
@@ -1429,6 +1505,10 @@ async function submitListing() {
   submitError.value = "";
   validationErrors.value = {};
   form.requestVerification = shouldRequestVerification.value;
+  form.amenities = [...selectedAmenities.value];
+  form.publicInfoAgreed = publicInfoAgreed.value;
+  form.appointmentDays = [...selectedAppointmentDays.value];
+  form.appointmentTimeSlot = appointmentTimeSlot.value;
 
   try {
     // Helper function to upload an array of files
@@ -1479,8 +1559,11 @@ async function submitListing() {
     // 4. Submit to Backend
     const response = await listingService.create(form);
     submitError.value = "";
+    clearDraft();
     alert(response.data?.message || "Đăng tin thành công");
     resetForm();
+    // Redirect đến trang danh sách tin đăng
+    useRouter().push('/profile?tab=listings');
   } catch (error) {
     if (error.response && error.response.data) {
       const data = error.response.data;
@@ -1635,6 +1718,7 @@ async function submitListing() {
 .location-map {
   width: 100%;
   height: 290px;
+  z-index: 1;
 }
 
 .legal-trigger {

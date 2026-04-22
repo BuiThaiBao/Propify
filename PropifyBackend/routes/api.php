@@ -95,6 +95,7 @@ Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('aut
 
 Route::prefix('v1/listings')->as('listings.')->middleware('auth:api')->group(function () {
     Route::post('/', [ListingController::class, 'store'])->name('store');
+    Route::get('/my', [ListingController::class, 'myListings'])->name('my');
 });
 
 

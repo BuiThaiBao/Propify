@@ -17,6 +17,13 @@ final class ListingResource extends JsonResource
             'status' => $this->status,
             'is_verified' => $this->is_verified,
             'request_verification' => $this->request_verification,
+            'appointment_at' => $this->appointment_at?->toIso8601String(),
+            'appointment_days' => $this->appointment_days ?? [],
+            'appointment_time_slot' => $this->appointment_time_slot,
+            'appointment_contact_name' => $this->appointment_contact_name,
+            'appointment_contact_phone' => $this->appointment_contact_phone,
+            'appointment_contact_email' => $this->appointment_contact_email,
+            'appointment_note' => $this->appointment_note,
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'property' => [
                 'id' => $this->property?->id,
@@ -45,6 +52,9 @@ final class ListingResource extends JsonResource
                 'contact_phone' => $this->property?->contact_phone,
                 'contact_email' => $this->property?->contact_email,
                 'poster_type' => $this->property?->poster_type,
+                'amenities' => $this->property?->amenities ?? [],
+                'legal_paper_types' => $this->property?->legal_paper_types ?? [],
+                'public_info_agreed' => (bool) ($this->property?->public_info_agreed ?? false),
                 'lat' => $this->property?->lat,
                 'lng' => $this->property?->lng,
                 'attributes' => $this->property?->attributes?->map(fn ($attribute) => [
