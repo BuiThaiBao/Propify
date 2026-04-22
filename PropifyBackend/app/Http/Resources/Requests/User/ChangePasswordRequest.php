@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\User;
+namespace App\Http\Resources\Requests\User;
 
 use App\DTOs\User\ChangePasswordDto;
 use Illuminate\Foundation\Http\FormRequest;

@@ -43,6 +43,16 @@ const routes = [
         component: () => import('@/pages/PackagesPage.vue'),
       },
       {
+        path: 'packages/create',
+        name: 'PackageCreate',
+        component: () => import('@/pages/PackageCreatePage.vue'),
+      },
+      {
+        path: 'packages/:id/edit',
+        name: 'PackageEdit',
+        component: () => import('@/pages/PackageEditPage.vue'),
+      },
+      {
         path: 'users',
         name: 'Users',
         component: () => import('@/pages/UsersPage.vue'),

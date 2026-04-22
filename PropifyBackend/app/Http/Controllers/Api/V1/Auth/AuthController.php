@@ -3,20 +3,18 @@
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\DTOs\Auth\LoginCredentialsDto;
-use App\DTOs\Auth\RegisterUserDto;
 use App\Helpers\ApiResponse;
-use App\Http\Requests\Auth\CheckResetOtpRequest;
-use App\Http\Requests\Auth\ForgotPasswordRequest;
-use App\Http\Requests\Auth\LoginRequest;
-use App\Http\Requests\Auth\RegisterRequest;
-use App\Http\Requests\Auth\ResetPasswordRequest;
-use App\Http\Requests\Auth\VerifyOtpRequest;
 use App\Http\Resources\AuthTokenResource;
+use App\Http\Resources\Requests\Auth\Auth\CheckResetOtpRequest;
+use App\Http\Resources\Requests\Auth\Auth\ForgotPasswordRequest;
+use App\Http\Resources\Requests\Auth\Auth\LoginRequest;
+use App\Http\Resources\Requests\Auth\Auth\RegisterRequest;
+use App\Http\Resources\Requests\Auth\Auth\ResetPasswordRequest;
+use App\Http\Resources\Requests\Auth\Auth\VerifyOtpRequest;
 use App\Http\Resources\UserResource;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-
 
 
 final class AuthController

@@ -2,12 +2,10 @@
 
 namespace App\Http\Resources\Requests\Package;
 
-use App\Enums\PackageType;
 use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Enum;
 
-final class CreatePackageRequest extends FormRequest
+final class UpdatePackageRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -17,7 +15,6 @@ final class CreatePackageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['required', new Enum(PackageType::class)],
             'price' => ['required', 'numeric', 'min:0'],
             'priority' => ['required', 'integer', 'min:1'],
             'multiplier' => ['required', 'numeric', 'min:1'],
@@ -25,6 +22,7 @@ final class CreatePackageRequest extends FormRequest
             'decay_rate' => ['required', 'numeric', 'min:0', 'max:1'],
             'badge' => ['nullable', 'string', 'max:50'],
             'color' => ['nullable', 'string', 'max:50'],
+            'is_active' => ['required', 'boolean'],
         ];
     }
 }
