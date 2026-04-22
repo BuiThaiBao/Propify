@@ -2,10 +2,17 @@
 
 namespace App\Services\Appointment\Impl;
 
+use App\DTOs\Appointment\GetAppointmentSlotsDto;
+use App\DTOs\Appointment\UpdateSlotDto;
+use App\Enums\BookingStatus;
 use App\Enums\ErrorCode;
 use App\Exceptions\BusinessException;
+use App\Models\AppointmentBooking;
+use App\Models\AppointmentSlot;
 use App\Repositories\AppointmentSlotRepository;
 use App\Services\Appointment\AppointmentSlotService;
+use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 
 final class AppointmentSlotServiceImpl implements AppointmentSlotService
@@ -15,15 +22,142 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
     ) {
     }
 
-    public function getSlotsByListingAndPoster(int $listingId, int $posterId): Collection
+    public function getSlotsByListingAndPoster(GetAppointmentSlotsDto $dto): array
     {
-        $slots = $this->appointmentSlotRepository->getByListingAndPoster($listingId, $posterId);
+        $slots = $this->appointmentSlotRepository->getByListingAndPoster($dto->listingId, $dto->posterId);
 
         if ($slots->isEmpty()) {
             throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
         }
 
-        return $slots;
+        return $this->buildDateSlots($slots);
+    }
+
+    public function updateSlot(UpdateSlotDto $dto): AppointmentSlot
+    {
+        // 1. Kiểm tra slot có tồn tại và đang active không
+        $slot = AppointmentSlot::query()
+            ->where('id', $dto->slotId)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$slot) {
+            throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
+        }
+
+        // 2. Kiểm tra poster_id (người gọi API phải là chủ slot)
+        if ($slot->poster_id !== $dto->posterId) {
+            throw new BusinessException(ErrorCode::SlotNotOwner);
+        }
+
+        // 3. Kiểm tra listing_id có khớp với slot không
+        if ($slot->listing_id !== $dto->listingId) {
+            throw new BusinessException(ErrorCode::SlotListingMismatch);
+        }
+
+        // 4. Kiểm tra trùng khung giờ trên cùng listing + cùng day_of_week (trừ slot hiện tại)
+        $overlap = AppointmentSlot::query()
+            ->where('listing_id', $dto->listingId)
+            ->where('poster_id', $dto->posterId)
+            ->where('day_of_week', $dto->newDayOfWeek)
+            ->where('is_active', true)
+            ->where('id', '!=', $dto->slotId)
+            ->where(function ($query) use ($dto) {
+                // Trùng khi: start_time mới < end_time cũ AND end_time mới > start_time cũ
+                $query->where('start_time', '<', $dto->newEndTime)
+                      ->where('end_time', '>', $dto->newStartTime);
+            })
+            ->exists();
+
+        if ($overlap) {
+            throw new BusinessException(ErrorCode::SlotTimeOverlap);
+        }
+
+        // 5. Hủy tất cả booking PENDING và ghi note (booking APPROVED giữ nguyên không động vào)
+        $pendingBookings = AppointmentBooking::query()
+            ->where('slot_id', $dto->slotId)
+            ->where('is_deleted', false)
+            ->where('status', BookingStatus::PENDING->value)
+            ->get();
+        $oldInfo = "Thứ {$slot->day_of_week}, {$slot->start_time} - {$slot->end_time}";
+        $newInfo = "Thứ {$dto->newDayOfWeek}, {$dto->newStartTime} - {$dto->newEndTime}";
+
+        foreach ($pendingBookings as $booking) {
+            $cancelNote = "[Tự động hủy] Chủ nhà đã thay đổi lịch hẹn từ ({$oldInfo}) sang ({$newInfo}).";
+            $existingNote = $booking->note ? $booking->note . ' | ' : '';
+
+            $booking->update([
+                'status' => BookingStatus::CANCELLED->value,
+                'note'   => $existingNote . $cancelNote,
+            ]);
+        }
+
+        // 6. Cập nhật slot
+        $slot->update([
+            'day_of_week' => $dto->newDayOfWeek,
+            'start_time'  => $dto->newStartTime,
+            'end_time'    => $dto->newEndTime,
+        ]);
+
+        return $slot->fresh();
+    }
+
+    /**
+     * Chuyển đổi danh sách slot (chứa day_of_week) thành danh sách ngày cụ thể
+     * cho tuần hiện tại và tuần sau, gộp các khung giờ theo từng ngày.
+     *
+     * @param  Collection<int, \App\Models\AppointmentSlot>  $slots
+     * @return array<int, array{date: string, slots: array}>
+     */
+    private function buildDateSlots(Collection $slots): array
+    {
+        $today = CarbonImmutable::today();
+
+        // Lấy ngày Thứ Hai đầu tuần hiện tại (ISO week: Monday = 1)
+        $startOfCurrentWeek = $today->startOfWeek(Carbon::MONDAY);
+
+        // Gom slot theo day_of_week
+        $slotsByDayOfWeek = $slots->groupBy('day_of_week');
+
+        $result = [];
+
+        // Lặp qua 2 tuần: tuần hiện tại (offset=0) và tuần sau (offset=1)
+        foreach ([0, 1] as $weekOffset) {
+            $weekStart = $startOfCurrentWeek->addWeeks($weekOffset);
+
+            foreach ($slotsByDayOfWeek as $dayOfWeek => $daySlots) {
+                // day_of_week: 1=T2(Monday), 2=T3(Tuesday), ..., 7=CN(Sunday)
+                // Carbon Monday=1, nên offset = dayOfWeek - 1
+                $date = $weekStart->addDays($dayOfWeek - 1);
+
+                // Bỏ qua các ngày đã qua (trước hôm nay)
+                if ($date->lt($today)) {
+                    continue;
+                }
+
+                $dateString = $date->toDateString(); // Y-m-d
+
+                $formattedSlots = $daySlots->map(function ($slot) {
+                    return [
+                        'id'          => $slot->id,
+                        'day_of_week' => $slot->day_of_week,
+                        'start_time'  => $slot->start_time,
+                        'end_time'    => $slot->end_time,
+                        'is_active'   => $slot->is_active,
+                    ];
+                })->values()->toArray();
+
+                $result[] = [
+                    'date'  => $dateString,
+                    'slots' => $formattedSlots,
+                ];
+            }
+        }
+
+        // Sắp xếp theo ngày tăng dần
+        usort($result, fn($a, $b) => strcmp($a['date'], $b['date']));
+
+        return $result;
     }
 }
 

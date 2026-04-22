@@ -19,12 +19,16 @@ final class AppointmentBooking extends Model
         'note',
         'is_deleted',
         'status',
+        'confirm_deadline',
+        'is_urgent',
     ];
 
     protected $casts = [
-        'meet_time'   => 'datetime',
-        'is_deleted'  => 'boolean',
-        'status'      => 'string',
+        'meet_time'        => 'datetime',
+        'confirm_deadline' => 'datetime',
+        'is_deleted'       => 'boolean',
+        'is_urgent'        => 'boolean',
+        'status'           => 'string',
     ];
 
     // ==================== Relationships ====================

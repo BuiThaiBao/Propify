@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Events\Auth\UserRegistered;
 use App\Listeners\Auth\SendWelcomeNotification;
+use App\Repositories\AppointmentBookingRepository;
 use App\Repositories\AppointmentSlotRepository;
+use App\Repositories\Eloquent\EloquentAppointmentBookingRepository;
 use App\Repositories\Eloquent\EloquentAppointmentSlotRepository;
 use App\Repositories\Eloquent\EloquentListingRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
@@ -26,7 +28,9 @@ use App\Services\Otp\Adapters\RedisOtpStorageAdapter;
 use App\Services\Otp\Impl\OtpServiceImpl;
 use App\Services\Otp\OtpService;
 use App\Services\Otp\OtpStoragePort;
+use App\Services\Appointment\AppointmentBookingService;
 use App\Services\Appointment\AppointmentSlotService;
+use App\Services\Appointment\Impl\AppointmentBookingServiceImpl;
 use App\Services\Appointment\Impl\AppointmentSlotServiceImpl;
 use App\Services\TokenProcessService;
 use App\Services\Cloudinary\CloudinaryService;
@@ -50,6 +54,7 @@ final class AppServiceProvider extends ServiceProvider
         // ── Repository bindings ───────────────────────────────────────────
         $this->app->bind(UserRepository::class, EloquentUserRepository::class);
         $this->app->bind(AppointmentSlotRepository::class, EloquentAppointmentSlotRepository::class);
+        $this->app->bind(AppointmentBookingRepository::class, EloquentAppointmentBookingRepository::class);
         $this->app->bind(ListingRepository::class, EloquentListingRepository::class);
 
         // ── Auth bindings ─────────────────────────────────────────────────
@@ -60,6 +65,7 @@ final class AppServiceProvider extends ServiceProvider
 
         // ── Appointment bindings ──────────────────────────────────────────
         $this->app->bind(AppointmentSlotService::class, AppointmentSlotServiceImpl::class);
+        $this->app->bind(AppointmentBookingService::class, AppointmentBookingServiceImpl::class);
         $this->app->bind(ListingService::class, ListingServiceImpl::class);
 
         // ── Notification bindings ─────────────────────────────────────────
