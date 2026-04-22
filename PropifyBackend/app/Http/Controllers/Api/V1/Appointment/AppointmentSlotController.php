@@ -8,6 +8,7 @@ use App\Http\Requests\Appointment\UpdateSlotRequest;
 use App\Http\Resources\AppointmentSlotResource;
 use App\Services\Appointment\AppointmentSlotService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 final class AppointmentSlotController
 {
@@ -44,6 +45,27 @@ final class AppointmentSlotController
         return ApiResponse::success(
             data: new AppointmentSlotResource($slot),
             message: 'Cập nhật khung giờ hẹn thành công.'
+        );
+    }
+
+    /**
+     * Vô hiệu hóa (xóa mềm) khung giờ hẹn.
+     */
+    public function disable(Request $request): JsonResponse
+    {
+        $request->validate([
+            'slot_id' => 'required|integer',
+        ]);
+
+        $posterId = (int) auth('api')->id();
+
+        $this->appointmentSlotService->disableSlot(
+            slotId:   (int) $request->input('slot_id'),
+            posterId: $posterId
+        );
+
+        return ApiResponse::success(
+            message: 'Đã vô hiệu hóa khung giờ hẹn thành công.'
         );
     }
 }

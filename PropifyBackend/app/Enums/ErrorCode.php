@@ -47,6 +47,11 @@ enum ErrorCode: int
     case SlotHasApprovedBooking   = 6009;
     case SlotListingMismatch      = 6010;
     case BookingExistsOnListing   = 6011;
+    case BookingNotPending        = 6012;
+    case BookingNotFound          = 6013;
+    case BookingNotOwner          = 6014;
+    case BookingTooLateToCancel   = 6015;
+    case ListingNotActive         = 6016;
 
     // ==================== Chat (7xxx) ====================
     case ConversationNotFound              = 7001;
@@ -94,6 +99,11 @@ enum ErrorCode: int
             self::SlotHasApprovedBooking => 'Không thể sửa vì đã có lịch hẹn được duyệt trong khung giờ này',
             self::SlotListingMismatch => 'Khung giờ không thuộc bài đăng này',
             self::BookingExistsOnListing => 'Bạn đã có một lịch hẹn chưa hoàn thành trên căn hộ này',
+            self::BookingNotPending => 'Lịch hẹn không ở trạng thái chờ xác nhận',
+            self::BookingNotFound => 'Không tìm thấy lịch hẹn',
+            self::BookingNotOwner => 'Bạn không phải là chủ lịch hẹn',
+            self::BookingTooLateToCancel => 'Chỉ có thể hủy lịch trước giờ hẹn ít nhất 2 tiếng',
+            self::ListingNotActive => 'Bài đăng hiện không khả dụng để đặt lịch',
             self::ServerError => 'Lỗi hệ thống',
             self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
         };
@@ -143,6 +153,16 @@ enum ErrorCode: int
             self::SlotListingMismatch => Response::HTTP_UNPROCESSABLE_ENTITY,
 
             self::BookingExistsOnListing => Response::HTTP_CONFLICT,
+
+            self::BookingNotPending => Response::HTTP_CONFLICT,
+
+            self::BookingNotFound => Response::HTTP_NOT_FOUND,
+
+            self::BookingNotOwner => Response::HTTP_FORBIDDEN,
+
+            self::BookingTooLateToCancel => Response::HTTP_CONFLICT,
+
+            self::ListingNotActive => Response::HTTP_GONE,
 
             self::UserAlreadyExists => Response::HTTP_CONFLICT,
 

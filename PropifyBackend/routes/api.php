@@ -93,6 +93,8 @@ Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('aut
         ->name('index');
     Route::put('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'update'])
         ->name('update');
+    Route::post('/disable', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'disable'])
+        ->name('disable');
 });
 
 Route::prefix('v1/appointment-bookings')->as('appointment-bookings.')->middleware('auth:api')->group(function () {
@@ -102,6 +104,10 @@ Route::prefix('v1/appointment-bookings')->as('appointment-bookings.')->middlewar
         ->name('received');
     Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentBookingController::class, 'store'])
         ->name('store');
+    Route::post('/update-status', [\App\Http\Controllers\Api\V1\Appointment\AppointmentBookingController::class, 'updateStatus'])
+        ->name('update-status');
+    Route::post('/cancel', [\App\Http\Controllers\Api\V1\Appointment\AppointmentBookingController::class, 'cancel'])
+        ->name('cancel');
 });
 
 // ==================== CHAT ROUTES ====================
