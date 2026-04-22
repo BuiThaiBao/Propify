@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -11,18 +12,39 @@ final class Package extends Model
 
     protected $fillable = [
         'name',
+        'slug',
         'price',
-        'duration_days',
-        'priority_level',
-        'features',
+        'priority',
+        'multiplier',
+        'daily_quota',
+        'decay_rate',
+        'badge',
+        'color',
+        'is_active',
     ];
 
     protected $casts = [
-        'price' => 'decimal:2',
-        'duration_days' => 'integer',
-        'priority_level' => 'integer',
-        'features' => 'array',
+        'price'       => 'decimal:2',
+        'priority'    => 'integer',
+        'multiplier'  => 'float',
+        'daily_quota' => 'integer',
+        'decay_rate'  => 'float',
+        'is_active'   => 'boolean',
     ];
+
+    // ==================== Scopes ====================
+
+    /** Chỉ lấy các gói đang active */
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+
+    /** Sắp xếp theo priority giảm dần (gold trước) */
+    public function scopeByPriority(Builder $query): Builder
+    {
+        return $query->orderByDesc('priority');
+    }
 
     // ==================== Relationships ====================
 

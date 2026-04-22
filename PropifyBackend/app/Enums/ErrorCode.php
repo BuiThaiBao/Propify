@@ -61,6 +61,10 @@ enum ErrorCode: int
     case ServerError = 5001;
     case ServiceUnavailable = 5002;
 
+    // Package (8xxx)
+    case PackageAlreadyExists = 8001;
+    case PackageNotFound = 8002;
+
 
 
 
@@ -106,6 +110,8 @@ enum ErrorCode: int
             self::ListingNotActive => 'Bài đăng hiện không khả dụng để đặt lịch',
             self::ServerError => 'Lỗi hệ thống',
             self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
+            self::PackageAlreadyExists => "Gói tin đã tồn tại",
+            self::PackageNotFound => "Không tìm thấy gói tin",
         };
     }
 
@@ -165,6 +171,9 @@ enum ErrorCode: int
             self::ListingNotActive => Response::HTTP_GONE,
 
             self::UserAlreadyExists => Response::HTTP_CONFLICT,
+            self::PackageAlreadyExists => Response::HTTP_CONFLICT,
+            
+            self::PackageNotFound => Response::HTTP_NOT_FOUND,
 
             self::ServerError,
             self::AuthRegisterFailed,

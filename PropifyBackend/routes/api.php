@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\GoogleController;
+use App\Http\Controllers\Api\V1\Chat\ChatController;
 use App\Http\Controllers\Api\V1\Cloudinary\CloudinaryController;
 use App\Http\Controllers\Api\V1\ListingController;
+use App\Http\Controllers\Api\V1\Package\PackageController;
 use App\Http\Controllers\Api\V1\User\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -113,23 +115,23 @@ Route::prefix('v1/appointment-bookings')->as('appointment-bookings.')->middlewar
 // ==================== CHAT ROUTES ====================
 Route::prefix('v1/chat')->as('chat.')->middleware('auth:api')->group(function () {
     // Danh sách conversations của user
-    Route::get('/conversations', [\App\Http\Controllers\Api\V1\Chat\ChatController::class, 'getConversations'])
+    Route::get('/conversations', [ChatController::class, 'getConversations'])
         ->name('conversations.index');
 
     // Lấy hoặc tạo conversation (idempotent — không duplicate)
-    Route::post('/conversations', [\App\Http\Controllers\Api\V1\Chat\ChatController::class, 'getOrCreateConversation'])
+    Route::post('/conversations', [ChatController::class, 'getOrCreateConversation'])
         ->name('conversations.get-or-create');
 
     // Messages với cursor pagination
-    Route::get('/conversations/{conversationId}/messages', [\App\Http\Controllers\Api\V1\Chat\ChatController::class, 'getMessages'])
+    Route::get('/conversations/{conversationId}/messages', [ChatController::class, 'getMessages'])
         ->name('conversations.messages.index');
 
     // Gửi message (broadcast async qua queue)
-    Route::post('/conversations/{conversationId}/messages', [\App\Http\Controllers\Api\V1\Chat\ChatController::class, 'sendMessage'])
+    Route::post('/conversations/{conversationId}/messages', [ChatController::class, 'sendMessage'])
         ->name('conversations.messages.send');
 
     // Đánh dấu đã đọc
-    Route::post('/conversations/{conversationId}/read', [\App\Http\Controllers\Api\V1\Chat\ChatController::class, 'markAsRead'])
+    Route::post('/conversations/{conversationId}/read', [ChatController::class, 'markAsRead'])
         ->name('conversations.read');
 });
 
@@ -137,4 +139,11 @@ Route::prefix('v1/listings')->as('listings.')->middleware('auth:api')->group(fun
     Route::post('/', [ListingController::class, 'store'])->name('store');
 });
 
-
+// ==================== PACKAGES ROUTES ====================
+Route::prefix('v1/packages')->as('packages.')->middleware('auth:api')->group(function () {
+    Route::get('/', [PackageController::class, 'index'])->name('index');
+    Route::get('/{id}', [PackageController::class, 'show'])->name('show');
+    Route::post('/', [PackageController::class, 'create'])->name('create');
+    Route::put('/{id}', [PackageController::class, 'update'])->name('update');
+    Route::delete('/{id}', [PackageController::class, 'destroy'])->name('destroy');
+});

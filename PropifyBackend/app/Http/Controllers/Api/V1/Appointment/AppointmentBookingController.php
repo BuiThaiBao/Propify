@@ -7,10 +7,10 @@ use App\Http\Requests\Appointment\CreateBookingRequest;
 use App\Http\Requests\Appointment\UpdateBookingStatusRequest;
 use App\Http\Requests\Appointment\CancelBookingRequest;
 use App\Http\Resources\AppointmentBookingResource;
+use App\Http\Resources\Requests\Appointment\CreateBookingRequest;
 use App\Http\Resources\ViewerBookingResource;
 use App\Services\Appointment\AppointmentBookingService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 final class AppointmentBookingController
 {
