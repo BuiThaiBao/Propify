@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api\V1\User;
 
 
 use App\Helpers\ApiResponse;
-use App\Http\Requests\User\ChangePasswordRequest;
-use App\Http\Requests\User\UpdateProfileRequest;
+use App\Http\Resources\Requests\User\ChangePasswordRequest;
+use App\Http\Resources\Requests\User\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Services\User\UserService;

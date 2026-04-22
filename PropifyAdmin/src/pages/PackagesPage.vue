@@ -1,29 +1,83 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 import { Plus, Search, Edit, Lock, Unlock, Check, Star, Zap, Crown } from 'lucide-vue-next'
+import { usePackageApi } from '@/composables/usePackageApi'
 
+const router = useRouter()
 const search = ref('')
-const confirmModal = ref({ open: false, title: '', desc: '' })
+const confirmModal = ref({ open: false, title: '', desc: '', action: null })
 
-const packages = ref([
-  { id: 1, name: 'Gói Cơ bản', price: '50,000đ', duration: '7 ngày', features: ['5 tin đăng', 'Hiển thị thường', 'Hỗ trợ email'], active: true, icon: Star, color: 'icon-muted' },
-  { id: 2, name: 'Gói Tiêu chuẩn', price: '150,000đ', duration: '30 ngày', features: ['20 tin đăng', 'Hiển thị ưu tiên', 'Hỗ trợ chat', 'Badge xác thực'], active: true, icon: Zap, color: 'icon-primary' },
-  { id: 3, name: 'Gói Premium', price: '500,000đ', duration: '30 ngày', features: ['Không giới hạn tin', 'Top đầu kết quả', 'Hỗ trợ 24/7', 'Badge Premium', 'Báo cáo chi tiết'], active: true, icon: Crown, color: 'icon-warning' },
-  { id: 4, name: 'Gói Doanh nghiệp', price: '2,000,000đ', duration: '90 ngày', features: ['Không giới hạn tin', 'Trang riêng', 'API truy cập', 'Account manager'], active: false, icon: Crown, color: 'icon-success' },
-])
+const { fetchPackages, deletePackage, loading, error } = usePackageApi()
+const packages = ref([])
+
+onMounted(async () => {
+  await loadPackages()
+})
+
+const loadPackages = async () => {
+  try {
+    const res = await fetchPackages()
+    if (res?.data) {
+      packages.value = res.data
+    }
+  } catch (e) {
+    console.error('Failed to load packages', e)
+  }
+}
 
 const filtered = computed(() => {
   return packages.value.filter(p => !search.value || p.name.toLowerCase().includes(search.value.toLowerCase()))
 })
+
+const getIcon = (slug) => {
+  if (slug === 'gold') return Star
+  if (slug === 'silver') return Zap
+  if (slug === 'diamond') return Crown
+  return Star
+}
+
+const getColorClass = (slug) => {
+  if (slug === 'gold') return 'icon-warning'
+  if (slug === 'silver') return 'icon-muted'
+  if (slug === 'diamond') return 'icon-primary'
+  return 'icon-success'
+}
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
+}
+
+const handleToggleActive = (pkg) => {
+  confirmModal.value = {
+    open: true,
+    title: pkg.is_active ? 'Khóa gói' : 'Kích hoạt gói',
+    desc: `Bạn có chắc chắn muốn ${pkg.is_active ? 'khóa' : 'kích hoạt'} gói "${pkg.name}"?`,
+    action: async () => {
+      try {
+        await deletePackage(pkg.id)
+        await loadPackages()
+      } catch (e) {
+        console.error('Failed to toggle package', e)
+      } finally {
+        confirmModal.value.open = false
+      }
+    }
+  }
+}
+
+const handleEdit = (pkg) => {
+  router.push({ name: 'PackageEdit', params: { id: pkg.id } })
+}
 </script>
 
 <template>
   <div>
     <PageHeader title="Quản lý gói tin" description="Thêm, chỉnh sửa và quản lý các gói dịch vụ">
       <template #actions>
-        <button class="btn-add gradient-primary" id="btn-add-package">
+        <button class="btn-add gradient-primary" id="btn-add-package" @click="router.push({ name: 'PackageCreate' })">
           <Plus :size="16" /> Thêm gói mới
         </button>
       </template>
@@ -41,45 +95,53 @@ const filtered = computed(() => {
       />
     </div>
 
+    <!-- Error/Loading -->
+    <div v-if="loading && packages.length === 0" class="py-8 text-center text-gray-500">Đang tải dữ liệu...</div>
+    <div v-if="error" class="py-4 text-red-500">{{ error }}</div>
+
     <!-- Grid -->
-    <div class="pkg-grid">
+    <div class="pkg-grid" v-if="!loading || packages.length > 0">
       <div
         v-for="pkg in filtered"
         :key="pkg.id"
         class="pkg-card"
-        :class="{ 'pkg-card--inactive': !pkg.active }"
+        :class="{ 'pkg-card--inactive': !pkg.is_active }"
       >
         <!-- Locked badge -->
-        <span v-if="!pkg.active" class="locked-badge">Đã khóa</span>
+        <span v-if="!pkg.is_active" class="locked-badge">Đã khóa</span>
 
         <!-- Icon -->
-        <div class="pkg-icon-wrap" :class="pkg.color">
-          <component :is="pkg.icon" :size="24" color="hsl(var(--primary))" />
+        <div class="pkg-icon-wrap" :class="getColorClass(pkg.slug)" :style="pkg.color ? `background-color: ${pkg.color}20` : ''">
+          <component :is="getIcon(pkg.slug)" :size="24" :color="pkg.color || 'hsl(var(--primary))'" />
         </div>
 
-        <h3 class="pkg-name">{{ pkg.name }}</h3>
-        <p class="pkg-price">{{ pkg.price }}</p>
-        <p class="pkg-duration">{{ pkg.duration }}</p>
+        <h3 class="pkg-name">{{ pkg.name }} <span v-if="pkg.badge" class="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">{{ pkg.badge }}</span></h3>
+        <p class="pkg-price">{{ formatPrice(pkg.price) }}</p>
+        <p class="pkg-duration">Ưu tiên: {{ pkg.priority }} | HS: {{ pkg.multiplier }}x</p>
 
         <ul class="pkg-features">
-          <li v-for="f in pkg.features" :key="f" class="pkg-feature">
+          <li class="pkg-feature">
             <Check :size="16" color="hsl(var(--success))" class="flex-shrink-0" />
-            {{ f }}
+            {{ pkg.daily_quota }} lượt hiển thị/ngày
+          </li>
+          <li class="pkg-feature">
+            <Check :size="16" color="hsl(var(--success))" class="flex-shrink-0" />
+            Tốc độ tụt hạng: {{ pkg.decay_rate }}
           </li>
         </ul>
 
         <!-- Actions -->
         <div class="pkg-actions">
-          <button class="pkg-btn" :id="`edit-pkg-${pkg.id}`">
+          <button class="pkg-btn" @click="handleEdit(pkg)" :id="`edit-pkg-${pkg.id}`">
             <Edit :size="14" /> Sửa
           </button>
           <button
             class="pkg-btn"
             :id="`toggle-pkg-${pkg.id}`"
-            @click="confirmModal = { open: true, title: pkg.active ? 'Khóa gói' : 'Kích hoạt gói', desc: `Bạn có muốn ${pkg.active ? 'khóa' : 'kích hoạt'} &quot;${pkg.name}&quot;?` }"
+            @click="handleToggleActive(pkg)"
           >
-            <component :is="pkg.active ? Lock : Unlock" :size="14" />
-            {{ pkg.active ? 'Khóa' : 'Mở' }}
+            <component :is="pkg.is_active ? Lock : Unlock" :size="14" />
+            {{ pkg.is_active ? 'Khóa' : 'Mở' }}
           </button>
         </div>
       </div>
@@ -90,7 +152,7 @@ const filtered = computed(() => {
       :title="confirmModal.title"
       :description="confirmModal.desc"
       @close="confirmModal.open = false"
-      @confirm="confirmModal.open = false"
+      @confirm="confirmModal.action"
     />
   </div>
 </template>
