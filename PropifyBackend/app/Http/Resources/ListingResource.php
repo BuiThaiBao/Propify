@@ -64,6 +64,12 @@ final class ListingResource extends JsonResource
                     'group_code' => $attribute->group?->code,
                 ])->values() ?? [],
             ],
+            'owner' => [
+                'id' => $this->owner?->id,
+                'full_name' => $this->owner?->full_name,
+                'avatar_url' => $this->owner?->avatar_url,
+                'email' => $this->owner?->email,
+            ],
             'images' => $this->images->map(fn ($image) => [
                 'id' => $image->id,
                 'url' => $image->image_url,

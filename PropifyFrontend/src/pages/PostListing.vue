@@ -1,8 +1,8 @@
 <template>
   <main class="min-h-screen bg-[#f4f8fc] pb-14 pt-24">
     <div class="mx-auto w-full max-w-[1240px] px-4 lg:px-6">
-      <p class="text-xs text-slate-500">Trang chủ &gt; Đăng tin</p>
-      <h1 class="mt-2 text-[24px] font-extrabold tracking-tight text-slate-900">Đăng tin bất động sản</h1>
+      <p class="text-xs text-slate-500">Trang chủ &gt; {{ isEditMode ? 'Chỉnh sửa tin' : 'Đăng tin' }}</p>
+      <h1 class="mt-2 text-[24px] font-extrabold tracking-tight text-slate-900">{{ isEditMode ? 'Chỉnh sửa tin đăng' : 'Đăng tin bất động sản' }}</h1>
 
       <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,760px)_330px] lg:justify-center">
       <form class="space-y-4 lg:w-[760px]" @submit.prevent="submitListing">
@@ -524,12 +524,9 @@
         </section>
 
         <div class="sticky bottom-4 z-20 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-          <div class="flex gap-3">
-            <button type="button" class="flex-1 rounded-xl border border-sky-300 px-4 py-2.5 text-sm font-semibold text-sky-600" @click="resetForm">Xem trước tin đăng</button>
-            <button type="submit" :disabled="loading" class="flex-1 rounded-xl bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60">
-              {{ loading ? 'Đang đăng tin...' : 'Tiếp tục' }}
-            </button>
-          </div>
+          <button type="submit" :disabled="loading" class="w-full rounded-xl bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60">
+            {{ loading ? 'Đang đăng tin...' : 'Tiếp tục' }}
+          </button>
         </div>
       </form>
 
@@ -605,7 +602,7 @@ import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import listingService from "@/services/listingService";
 import cloudinaryService from "@/services/cloudinaryService";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import uploadImageIcon from "@/assets/images/listing/postlisting/uploadImage.png";
 import locationImageIcon from "@/assets/images/listing/postlisting/locationImage.png";
 import informationImageIcon from "@/assets/images/listing/postlisting/information.png";
@@ -746,6 +743,13 @@ function createInitialState() {
 }
 
 const form = reactive(createInitialState());
+const route = useRoute();
+const router = useRouter();
+const isEditMode = computed(() => !!route.params.id);
+const editListingId = computed(() => route.params.id);
+const isHydratingEdit = ref(false);
+const isSyncingAdminFromMap = ref(false);
+const editLoading = ref(false);
 const loading = ref(false);
 const submitError = ref("");
 const validationErrors = ref({});
@@ -873,6 +877,8 @@ watch(
 watch(
   () => form.provinceCode,
   async (newValue) => {
+    if (isHydratingEdit.value || isSyncingAdminFromMap.value) return;
+
     form.districtCode = "";
     form.wardCode = "";
     districts.value = [];
@@ -888,6 +894,8 @@ watch(
 watch(
   () => form.districtCode,
   async (newValue) => {
+    if (isHydratingEdit.value || isSyncingAdminFromMap.value) return;
+
     form.wardCode = "";
     wards.value = [];
 
@@ -917,8 +925,110 @@ watch([selectedAmenities, publicInfoAgreed, selectedAppointmentDays, appointment
 onMounted(async () => {
   initializeMap();
   await fetchProvinces();
-  loadFormFromDraft();
+
+  if (isEditMode.value) {
+    await loadListingForEdit();
+  } else {
+    loadFormFromDraft();
+  }
 });
+
+async function loadListingForEdit() {
+  editLoading.value = true;
+  isHydratingEdit.value = true;
+  try {
+    const response = await listingService.getById(editListingId.value);
+    const data = response.data.data;
+    const p = data.property || {};
+
+    form.demandType = data.demand_type || 'SALE';
+    form.title = data.title || '';
+    form.description = data.description || '';
+    form.propertyType = p.type || 'APARTMENT';
+    form.provinceCode = p.province_code ? String(p.province_code) : '';
+    form.districtCode = '';
+    form.wardCode = '';
+    form.streetCode = p.street_code || '';
+    form.projectName = p.project_name || '';
+    form.addressDetail = p.address_detail || '';
+    form.area = p.area ?? '';
+    form.price = p.price ?? '';
+    form.isNegotiable = p.is_negotiable || false;
+    form.bedrooms = p.bedrooms ?? '';
+    form.bathrooms = p.bathrooms ?? '';
+    form.floors = p.floors ?? '';
+    form.floorNumber = p.floor_number ?? '';
+    form.balconies = p.balconies ?? '';
+    form.facadeWidth = p.facade_width ?? '';
+    form.depth = p.depth ?? '';
+    form.roadWidth = p.road_width ?? '';
+    form.directionCode = p.direction_code || '';
+    form.balconyDirectionCode = p.balcony_direction_code || '';
+    form.furnitureStatus = p.furniture_status || '';
+    form.legalPaperTypes = p.legal_paper_types || [];
+    form.contactName = p.contact_name || '';
+    form.contactPhone = p.contact_phone || '';
+    form.contactEmail = p.contact_email || '';
+    form.posterType = p.poster_type || 'OWNER';
+    form.lat = p.lat ?? '';
+    form.lng = p.lng ?? '';
+    form.amenities = p.amenities || [];
+    form.publicInfoAgreed = Boolean(p.public_info_agreed);
+    selectedAmenities.value = [...(p.amenities || [])];
+    publicInfoAgreed.value = Boolean(p.public_info_agreed);
+
+    // Restore appointment data for edit form
+    form.appointmentAt = data.appointment_at || '';
+    form.appointmentDays = Array.isArray(data.appointment_days) ? data.appointment_days.map((d) => Number(d)) : [];
+    form.appointmentTimeSlot = data.appointment_time_slot || '';
+    form.appointmentContactName = data.appointment_contact_name || '';
+    form.appointmentContactPhone = data.appointment_contact_phone || '';
+    form.appointmentContactEmail = data.appointment_contact_email || '';
+    form.appointmentNote = data.appointment_note || '';
+
+    selectedAppointmentDays.value = [...form.appointmentDays];
+    appointmentTimeSlot.value = form.appointmentTimeSlot;
+
+    // Load existing images as URLs (not File objects)
+    if (data.images && data.images.length > 0) {
+      const sorted = [...data.images].sort((a, b) => a.sort_order - b.sort_order);
+      form.images = sorted.map(img => img.url);
+      imagePreviews.value = sorted.map((img, index) => ({
+        name: `Ảnh ${index + 1}`,
+        url: img.url,
+      }));
+    }
+
+    // Load location dropdowns
+    if (form.provinceCode) {
+      await fetchDistrictsByProvince(form.provinceCode);
+
+      if (p.district_code) {
+        form.districtCode = String(p.district_code);
+      }
+    }
+    if (form.districtCode) {
+      await fetchWardsByDistrict(form.districtCode);
+
+      if (p.ward_code) {
+        form.wardCode = String(p.ward_code);
+      }
+    }
+
+    // Set map marker if lat/lng exists
+    if (form.lat && form.lng) {
+      setTimeout(() => {
+        setMarkerPosition(form.lat, form.lng, 15);
+      }, 500);
+    }
+  } catch (err) {
+    console.error('Failed to load listing for edit:', err);
+    submitError.value = 'Không thể tải dữ liệu tin đăng để chỉnh sửa.';
+  } finally {
+    isHydratingEdit.value = false;
+    editLoading.value = false;
+  }
+}
 
 function initializeMap() {
   if (!mapElement.value || map) return;
@@ -1037,7 +1147,7 @@ async function reverseGeocodeFromLatLng(lat, lng) {
     const houseNumber = data.address?.house_number || "";
     form.addressDetail = [houseNumber, road].filter(Boolean).join(" ").trim();
 
-    await syncAdministrativeCodesFromAddress(data.address || {});
+    await syncAdministrativeCodesFromAddress(data.address || {}, data.display_name || "");
   } catch {
     // Ignore reverse geocode failures.
   }
@@ -1048,7 +1158,7 @@ function normalizeAdminName(value) {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/thanh pho|tinh|quan|huyen|thi xa|thi tran|phuong|xa|tp\.?/g, "")
+    .replace(/thanh pho|tinh|quan|huyen|thi xa|thi tran|phuong|xa|tp\.?|district|ward|commune|city|township|town|village|province/g, "")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -1067,33 +1177,74 @@ function findProvinceByAddress(address) {
   }) || null;
 }
 
-function findDistrictByAddress(address) {
-  const candidates = [address.state_district, address.county, address.city_district].filter(Boolean);
+function extractDistrictFromDisplayName(displayName) {
+  const text = String(displayName || "");
+  if (!text) return "";
+
+  const match = text.match(/(Quận\s+[^,]+|Huyện\s+[^,]+|Thành phố\s+Thủ Đức|Thị xã\s+[^,]+|District\s+[^,]+)/i);
+  return match?.[1]?.trim() || "";
+}
+
+function extractWardFromDisplayName(displayName) {
+  const text = String(displayName || "");
+  if (!text) return "";
+
+  const match = text.match(/(Phường\s+[^,]+|Xã\s+[^,]+|Thị trấn\s+[^,]+|Ward\s+[^,]+|Commune\s+[^,]+)/i);
+  return match?.[1]?.trim() || "";
+}
+
+function findDistrictByAddress(address, displayName = "") {
+  const districtFromDisplay = extractDistrictFromDisplayName(displayName);
+  const candidates = [
+    address.state_district,
+    address.county,
+    address.city_district,
+    address.district,
+    districtFromDisplay,
+    address.borough,
+    address.city,
+    address.town,
+  ].filter(Boolean);
   if (!candidates.length) return null;
+
+  const normalizedCandidates = candidates.map((candidate) => normalizeAdminName(candidate)).filter(Boolean);
+
+  // Ưu tiên exact match trước để tránh match nhầm theo kiểu includes.
+  const exactMatch = districts.value.find((district) => {
+    const districtName = normalizeAdminName(district.name);
+    return normalizedCandidates.some((candidate) => districtName === candidate);
+  });
+  if (exactMatch) return exactMatch;
 
   return districts.value.find((district) => {
     const districtName = normalizeAdminName(district.name);
-    return candidates.some((candidate) => {
-      const normalized = normalizeAdminName(candidate);
-      return districtName === normalized || districtName.includes(normalized) || normalized.includes(districtName);
-    });
+    return normalizedCandidates.some((candidate) => districtName.includes(candidate) || candidate.includes(districtName));
   }) || null;
 }
 
-function findWardByAddress(address) {
-  const candidates = [address.suburb, address.quarter, address.ward, address.village, address.town].filter(Boolean);
+function findWardByAddress(address, displayName = "") {
+  const wardFromDisplay = extractWardFromDisplayName(displayName);
+  const candidates = [address.suburb, address.quarter, address.ward, address.village, address.hamlet, address.neighbourhood, wardFromDisplay].filter(Boolean);
   if (!candidates.length) return null;
+
+  const normalizedCandidates = candidates.map((candidate) => normalizeAdminName(candidate)).filter(Boolean);
+
+  const exactMatch = wards.value.find((ward) => {
+    const wardName = normalizeAdminName(ward.name);
+    return normalizedCandidates.some((candidate) => wardName === candidate);
+  });
+  if (exactMatch) return exactMatch;
 
   return wards.value.find((ward) => {
     const wardName = normalizeAdminName(ward.name);
-    return candidates.some((candidate) => {
-      const normalized = normalizeAdminName(candidate);
-      return wardName === normalized || wardName.includes(normalized) || normalized.includes(wardName);
-    });
+    return normalizedCandidates.some((candidate) => wardName.includes(candidate) || candidate.includes(wardName));
   }) || null;
 }
 
-async function syncAdministrativeCodesFromAddress(address) {
+async function syncAdministrativeCodesFromAddress(address, displayName = "") {
+  isSyncingAdminFromMap.value = true;
+
+  try {
   const province = findProvinceByAddress(address);
   if (!province) return;
 
@@ -1104,8 +1255,14 @@ async function syncAdministrativeCodesFromAddress(address) {
     await fetchDistrictsByProvince(form.provinceCode);
   }
 
-  const district = findDistrictByAddress(address);
-  if (!district) return;
+  const district = findDistrictByAddress(address, displayName);
+  if (!district) {
+    // Không match được quận/huyện mới thì clear dữ liệu cũ để tránh hiển thị sai.
+    form.districtCode = "";
+    form.wardCode = "";
+    wards.value = [];
+    return;
+  }
 
   if (String(district.code) !== form.districtCode) {
     form.districtCode = String(district.code);
@@ -1114,9 +1271,15 @@ async function syncAdministrativeCodesFromAddress(address) {
     await fetchWardsByDistrict(form.districtCode);
   }
 
-  const ward = findWardByAddress(address);
-  if (!ward) return;
+  const ward = findWardByAddress(address, displayName);
+  if (!ward) {
+    form.wardCode = "";
+    return;
+  }
   form.wardCode = String(ward.code);
+  } finally {
+    isSyncingAdminFromMap.value = false;
+  }
 }
 
 async function searchAddressOnMap() {
@@ -1397,6 +1560,7 @@ function toggleAmenity(amenity) {
 
 // ── Draft/LocalStorage Helpers ──
 const DRAFT_STORAGE_KEY = "postListing_draft";
+const DRAFT_TTL_MS = 60 * 1000; // 1 minute
 let draftSaveTimer = null;
 
 function saveFormToDraft() {
@@ -1409,7 +1573,7 @@ function saveFormToDraft() {
       selectedAppointmentDays: [...selectedAppointmentDays.value],
       appointmentTimeSlot: appointmentTimeSlot.value,
       legalPaperTypesSelection: [...form.legalPaperTypes],
-      timestamp: new Date().toISOString(),
+      timestamp: Date.now(),
     };
     localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
   }, 1000); // Debounce 1 giây
@@ -1421,8 +1585,24 @@ function loadFormFromDraft() {
 
   try {
     const draftData = JSON.parse(savedDraft);
+
+    const savedAt = Number(draftData?.timestamp || 0);
+    const isExpired = !savedAt || Date.now() - savedAt > DRAFT_TTL_MS;
+    if (isExpired) {
+      clearDraft();
+      return;
+    }
+
     // Restore form data (nhưng không restore files/images vì browser security)
     Object.assign(form, draftData.form);
+    
+    // Đảm bảo clear các file bị biến thành object rỗng do JSON.stringify
+    form.images = [];
+    form.video = null;
+    form.identityCardFront = null;
+    form.identityCardBack = null;
+    form.legalDocuments = [];
+    
     selectedAmenities.value = draftData.selectedAmenities || [];
     publicInfoAgreed.value = draftData.publicInfoAgreed || false;
     selectedAppointmentDays.value = draftData.selectedAppointmentDays || [];
@@ -1430,6 +1610,7 @@ function loadFormFromDraft() {
     console.log("✓ Form đã được khôi phục từ bản dự thảo");
   } catch (error) {
     console.error("Lỗi khi load dự thảo:", error);
+    clearDraft();
   }
 }
 
@@ -1557,13 +1738,18 @@ async function submitListing() {
     }
 
     // 4. Submit to Backend
-    const response = await listingService.create(form);
+    let response;
+    if (isEditMode.value) {
+      response = await listingService.update(editListingId.value, form);
+    } else {
+      response = await listingService.create(form);
+    }
     submitError.value = "";
     clearDraft();
-    alert(response.data?.message || "Đăng tin thành công");
+    alert(response.data?.message || (isEditMode.value ? "Cập nhật tin thành công" : "Đăng tin thành công"));
     resetForm();
     // Redirect đến trang danh sách tin đăng
-    useRouter().push('/profile?tab=listings');
+    router.push('/profile?tab=listings');
   } catch (error) {
     if (error.response && error.response.data) {
       const data = error.response.data;

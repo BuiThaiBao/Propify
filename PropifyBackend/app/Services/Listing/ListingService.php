@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Listing;
 
 use App\DTOs\CreateListingDto;
 use App\Models\Listing;
@@ -12,4 +12,10 @@ interface ListingService
     public function create(User $user, CreateListingDto $dto): Listing;
 
     public function getMyListings(User $user, ?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
+
+    public function getListingDetails(int $id): Listing;
+
+    public function update(User $user, int $id, CreateListingDto $dto): Listing;
+
+    public function getPublicListings(?string $demandType, int $perPage): LengthAwarePaginator;
 }

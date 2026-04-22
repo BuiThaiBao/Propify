@@ -25,4 +25,18 @@ interface ListingRepository
     public function createAppointment(array $attributes): Appointment;
 
     public function paginateByOwner(int $ownerId, ?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
+
+    public function findById(int $id): Listing;
+
+    public function paginatePublic(?string $demandType, int $perPage): LengthAwarePaginator;
+
+    public function updateProperty(int $id, array $attributes): Property;
+
+    public function updateListing(int $id, array $attributes): Listing;
+
+    public function deleteListingImages(int $listingId): void;
+
+    public function deleteListingVideos(int $listingId): void;
+
+    public function deleteVerificationDocuments(int $listingId): void;
 }

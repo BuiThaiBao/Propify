@@ -335,29 +335,39 @@
                 <th class="px-3 py-3">Địa chỉ</th>
                 <th class="px-3 py-3">Giá</th>
                 <th class="px-3 py-3">Trạng thái</th>
+                <th class="px-3 py-3">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="listingsLoading">
-                <td class="px-3 py-6 text-center text-slate-400" colspan="7">Đang tải dữ liệu...</td>
+                <td class="px-3 py-6 text-center text-slate-400" colspan="8">Đang tải dữ liệu...</td>
               </tr>
               <tr v-else-if="myListings.length === 0">
-                <td class="px-3 py-6 text-center text-slate-400" colspan="7">Bạn chưa có tin đăng nào.</td>
+                <td class="px-3 py-6 text-center text-slate-400" colspan="8">Bạn chưa có tin đăng nào.</td>
               </tr>
-              <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100">
-                <td class="px-3 py-3 font-medium text-sky-600">{{ item.id }}</td>
+              <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="router.push('/listings/' + item.id)">
+                <td class="px-3 py-3 font-medium text-sky-600 group-hover:underline">{{ item.id }}</td>
                 <td class="px-3 py-3">
                   <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-14 rounded-md object-cover" />
                   <div v-else class="h-12 w-14 rounded-md bg-slate-100"></div>
                 </td>
                 <td class="px-3 py-3 text-slate-500">{{ item.code }}</td>
-                <td class="px-3 py-3 text-slate-700">{{ item.title }}</td>
+                <td class="px-3 py-3 font-semibold text-slate-700 group-hover:text-sky-600">{{ item.title }}</td>
                 <td class="px-3 py-3 text-slate-500">{{ item.address }}</td>
                 <td class="px-3 py-3 font-semibold text-slate-700">{{ item.price }}</td>
                 <td class="px-3 py-3">
                   <span :class="['rounded-full px-2 py-1 text-xs font-medium', statusBadgeClass(item.status)]">
                     {{ statusLabel(item.status) }}
                   </span>
+                </td>
+                <td class="px-3 py-3">
+                  <button
+                    class="flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-600 transition hover:bg-sky-100 hover:border-sky-300"
+                    @click.stop="router.push('/listings/' + item.id + '/edit')"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                    Sửa
+                  </button>
                 </td>
               </tr>
             </tbody>

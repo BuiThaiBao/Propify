@@ -75,4 +75,63 @@ final class EloquentListingRepository implements ListingRepository
             ->orderByDesc('id')
             ->paginate($perPage);
     }
+
+    public function findById(int $id): Listing
+    {
+        return Listing::query()
+            ->with([
+                'property.attributes.group',
+                'images',
+                'videos',
+                'verificationDocuments',
+                'appointments',
+                'owner',
+            ])
+            ->findOrFail($id);
+    }
+
+    public function paginatePublic(?string $demandType, int $perPage): LengthAwarePaginator
+    {
+        return Listing::query()
+            ->with([
+                'property',
+                'images',
+                'owner',
+            ])
+            ->where('status', 'ACTIVE')
+            ->when($demandType, function ($query) use ($demandType) {
+                $query->where('demand_type', $demandType);
+            })
+            ->orderByDesc('id')
+            ->paginate($perPage);
+    }
+
+    public function updateProperty(int $id, array $attributes): Property
+    {
+        $property = Property::findOrFail($id);
+        $property->update($attributes);
+        return $property->fresh();
+    }
+
+    public function updateListing(int $id, array $attributes): Listing
+    {
+        $listing = Listing::findOrFail($id);
+        $listing->update($attributes);
+        return $listing->fresh();
+    }
+
+    public function deleteListingImages(int $listingId): void
+    {
+        ListingImage::where('listing_id', $listingId)->delete();
+    }
+
+    public function deleteListingVideos(int $listingId): void
+    {
+        ListingVideo::where('listing_id', $listingId)->delete();
+    }
+
+    public function deleteVerificationDocuments(int $listingId): void
+    {
+        ListingVerificationDocument::where('listing_id', $listingId)->delete();
+    }
 }

@@ -124,8 +124,15 @@
             <tr v-else-if="rows.length === 0">
               <td class="px-3 py-6 text-center text-slate-400" colspan="7">Bạn chưa có tin đăng nào.</td>
             </tr>
-            <tr v-for="row in rows" :key="row.id" class="border-t border-slate-100">
-              <td class="px-3 py-3 font-medium text-sky-600">{{ row.id }}</td>
+            <tr 
+              v-for="row in rows" 
+              :key="row.id" 
+              class="border-t border-slate-100 hover:bg-slate-50 transition cursor-pointer group"
+              @click="goToDetail(row.id)"
+            >
+              <td class="px-3 py-3 font-medium text-sky-600 group-hover:underline">
+                {{ row.id }}
+              </td>
               <td class="px-3 py-3">
                 <img
                   v-if="row.thumbnail"
@@ -136,7 +143,9 @@
                 <div v-else class="h-12 w-14 rounded-md bg-slate-100"></div>
               </td>
               <td class="px-3 py-3 text-slate-500">{{ row.code }}</td>
-              <td class="px-3 py-3 text-slate-700">{{ row.title }}</td>
+              <td class="px-3 py-3 font-semibold text-slate-700 group-hover:text-sky-600">
+                {{ row.title }}
+              </td>
               <td class="px-3 py-3 text-slate-500">{{ row.address }}</td>
               <td class="px-3 py-3 font-semibold text-slate-700">{{ row.price }}</td>
               <td class="px-3 py-3">
@@ -304,6 +313,10 @@ async function reload(page = 1) {
 function selectStatus(status) {
   filters.status = status;
   reload(1);
+}
+
+function goToDetail(id) {
+  router.push('/listings/' + id);
 }
 
 onMounted(() => {

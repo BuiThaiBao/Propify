@@ -3,7 +3,7 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\GoogleController;
 use App\Http\Controllers\Api\V1\Cloudinary\CloudinaryController;
-use App\Http\Controllers\Api\V1\ListingController;
+use App\Http\Controllers\Api\V1\Listing\ListingController;
 use App\Http\Controllers\Api\V1\User\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -127,9 +127,16 @@ Route::prefix('v1/chat')->as('chat.')->middleware('auth:api')->group(function ()
         ->name('conversations.read');
 });
 
-Route::prefix('v1/listings')->as('listings.')->middleware('auth:api')->group(function () {
-    Route::post('/', [ListingController::class, 'store'])->name('store');
-    Route::get('/my', [ListingController::class, 'myListings'])->name('my');
+Route::prefix('v1/listings')->as('listings.')->group(function () {
+    Route::get('/', [ListingController::class, 'index'])->name('index');
+    Route::get('/{id}', [ListingController::class, 'show'])->where('id', '[0-9]+')->name('show');
+    
+    // Yêu cầu đăng nhập
+    Route::middleware('auth:api')->group(function () {
+        Route::post('/', [ListingController::class, 'store'])->name('store');
+        Route::get('/my', [ListingController::class, 'myListings'])->name('my');
+        Route::put('/{id}', [ListingController::class, 'update'])->where('id', '[0-9]+')->name('update');
+    });
 });
 
 
