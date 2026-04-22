@@ -41,6 +41,10 @@ use App\Repositories\ChatRepository;
 use App\Repositories\Eloquent\EloquentChatRepository;
 use App\Services\Chat\ChatService;
 use App\Services\Chat\Impl\ChatServiceImpl;
+use App\Repositories\PackageRepository;
+use App\Repositories\Eloquent\EloquentPackageRepository;
+use App\Services\Packages\PackageService;
+use App\Services\Packages\Impl\PackageServiceImpl;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -93,6 +97,10 @@ final class AppServiceProvider extends ServiceProvider
         // ── Chat bindings ─────────────────────────────────────────────────
         $this->app->bind(ChatRepository::class, EloquentChatRepository::class);
         $this->app->bind(ChatService::class, ChatServiceImpl::class);
+
+        // ── Package bindings ──────────────────────────────────────────────
+        $this->app->bind(PackageRepository::class, EloquentPackageRepository::class);
+        $this->app->bind(PackageService::class, PackageServiceImpl::class);
     }
 
     /**

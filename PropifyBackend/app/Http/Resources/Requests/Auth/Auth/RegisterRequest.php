@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests\Auth;
+namespace App\Http\Resources\Requests\Auth\Auth;
 
 use App\DTOs\Auth\RegisterUserDto;
 use App\Enums\UserStatus;

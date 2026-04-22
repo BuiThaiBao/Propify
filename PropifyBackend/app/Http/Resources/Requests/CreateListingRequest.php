@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Requests;
+namespace App\Http\Resources\Requests;
 
 use App\DTOs\CreateListingDto;
 use Illuminate\Foundation\Http\FormRequest;
