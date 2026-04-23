@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->string('province_code', 20);
             $table->string('district_code', 20);
             $table->string('ward_code', 20)->nullable();
-            $table->string('street_code', 20)->nullable();
+            $table->string('street_code', 255)->nullable();
             $table->string('project_name', 255)->nullable();
             $table->string('address_detail')->nullable();
             $table->decimal('area', 10, 2);
