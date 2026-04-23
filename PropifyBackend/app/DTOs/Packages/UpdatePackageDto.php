@@ -7,6 +7,7 @@ use App\Http\Resources\Requests\Package\UpdatePackageRequest;
 final readonly class UpdatePackageDto
 {
     public function __construct(
+        public string $name,
         public float $price,
         public int $priority,
         public float $multiplier,
@@ -21,6 +22,7 @@ final readonly class UpdatePackageDto
     public static function fromRequest(UpdatePackageRequest $request): self
     {
         return new self(
+            name: $request->input('name'),
             price: (float) $request->input('price'),
             priority: (int) $request->input('priority'),
             multiplier: (float) $request->input('multiplier'),
