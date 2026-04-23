@@ -161,37 +161,26 @@
               <p v-if="fieldError('provinceCode')" class="field-error">Vui lòng chọn tỉnh/thành phố</p>
             </label>
             <label>
-              <span class="field-label required">Quận / Huyện</span>
-              <select v-model="form.districtCode" :class="['input mt-1', fieldError('districtCode') && 'input-error']" :disabled="!form.provinceCode || districtsLoading" @change="touchField('districtCode')">
-                <option value="">{{ districtsLoading ? 'Đang tải quận/huyện...' : 'Chọn Quận/Huyện' }}</option>
-                <option v-for="district in districts" :key="district.code" :value="String(district.code)">
-                  {{ district.name }}
-                </option>
-              </select>
-              <p v-if="fieldError('districtCode')" class="field-error">Vui lòng chọn quận/huyện</p>
-            </label>
-          </div>
-
-          <div class="mt-3 grid gap-3 md:grid-cols-2">
-            <label>
               <span class="field-label">Phường / Xã</span>
-              <select v-model="form.wardCode" class="input mt-1" :disabled="!form.districtCode || wardsLoading">
+              <select v-model="form.wardCode" class="input mt-1" :disabled="!form.provinceCode || wardsLoading">
                 <option value="">{{ wardsLoading ? 'Đang tải phường/xã...' : 'Chọn Phường/Xã' }}</option>
                 <option v-for="ward in wards" :key="ward.code" :value="String(ward.code)">
                   {{ ward.name }}
                 </option>
               </select>
             </label>
-            <label>
-              <span class="field-label">Đường / Phố</span>
-              <input v-model="form.streetCode" class="input mt-1" placeholder="Chọn Đường/Phố" />
-            </label>
           </div>
 
-          <label class="mt-3 block">
-            <span class="field-label">Địa chỉ cụ thể</span>
-            <input v-model="form.addressDetail" class="input mt-1" inputmode="text" autocomplete="off" placeholder="Nhập địa chỉ" />
-          </label>
+          <div class="mt-3 grid gap-3 md:grid-cols-2">
+            <label>
+              <span class="field-label">Đường / Phố</span>
+              <input v-model="form.streetCode" class="input mt-1" placeholder="Nhập đường/phố" />
+            </label>
+            <label>
+              <span class="field-label">Địa chỉ cụ thể</span>
+              <input v-model="form.addressDetail" class="input mt-1" inputmode="text" autocomplete="off" placeholder="Nhập địa chỉ" />
+            </label>
+          </div>
 
           <p v-if="locationLoadError" class="mt-2 text-xs text-red-500">{{ locationLoadError }}</p>
         </section>
@@ -759,10 +748,9 @@ const mapElement = ref(null);
 let map = null;
 let locationMarker = null;
 const provinces = ref([]);
-const districts = ref([]);
 const wards = ref([]);
-const districtsLoading = ref(false);
 const wardsLoading = ref(false);
+
 const locationSearching = ref(false);
 const locationLoadError = ref("");
 const imagePreviews = ref([]);
@@ -786,10 +774,9 @@ const infoFieldCount = computed(() => {
   if (form.description.trim().length >= 20) count++;
   if (form.propertyType.trim()) count++;
   if (form.provinceCode.trim()) count++;
-  if (form.districtCode.trim()) count++;
   return count;
 });
-const infoPercent = computed(() => Math.round((infoFieldCount.value / 5) * 100));
+const infoPercent = computed(() => Math.round((infoFieldCount.value / 4) * 100));
 const infoPoints = computed(() => (infoPercent.value >= 80 ? 2 : infoPercent.value >= 40 ? 1 : 0));
 const infoDone = computed(() => infoPoints.value === 2);
 
@@ -852,15 +839,7 @@ const selectedProvinceName = computed(() => {
   return item?.name || "";
 });
 
-const selectedDistrictName = computed(() => {
-  const item = districts.value.find((district) => String(district.code) === form.districtCode);
-  return item?.name || "";
-});
 
-const selectedWardName = computed(() => {
-  const item = wards.value.find((ward) => String(ward.code) === form.wardCode);
-  return item?.name || "";
-});
 
 watch(
   () => form.demandType,
@@ -879,44 +858,18 @@ watch(
   async (newValue) => {
     if (isHydratingEdit.value || isSyncingAdminFromMap.value) return;
 
-    form.districtCode = "";
     form.wardCode = "";
-    districts.value = [];
     wards.value = [];
 
     if (!newValue) return;
-    await fetchDistrictsByProvince(newValue);
-
+    await fetchWardsByProvince(newValue);
     await geocodeAddressToMap(composeAddressQuery({ includeDetail: false }), 11);
-  },
-);
-
-watch(
-  () => form.districtCode,
-  async (newValue) => {
-    if (isHydratingEdit.value || isSyncingAdminFromMap.value) return;
-
-    form.wardCode = "";
-    wards.value = [];
-
-    if (!newValue) return;
-    await fetchWardsByDistrict(newValue);
-
-    await geocodeAddressToMap(composeAddressQuery({ includeDetail: false }), 13);
   },
 );
 
 watch([selectedAppointmentDays, appointmentTimeSlot], () => {
   form.appointmentAt = buildNextAppointmentDateTime();
 });
-
-watch(
-  () => form.wardCode,
-  async (newValue) => {
-    if (!newValue) return;
-    await geocodeAddressToMap(composeAddressQuery({ includeDetail: false }), 15);
-  },
-);
 
 // Auto-save form to draft
 watch(form, () => saveFormToDraft(), { deep: true });
@@ -999,21 +952,7 @@ async function loadListingForEdit() {
       }));
     }
 
-    // Load location dropdowns
-    if (form.provinceCode) {
-      await fetchDistrictsByProvince(form.provinceCode);
 
-      if (p.district_code) {
-        form.districtCode = String(p.district_code);
-      }
-    }
-    if (form.districtCode) {
-      await fetchWardsByDistrict(form.districtCode);
-
-      if (p.ward_code) {
-        form.wardCode = String(p.ward_code);
-      }
-    }
 
     // Set map marker if lat/lng exists
     if (form.lat && form.lng) {
@@ -1081,8 +1020,6 @@ function composeAddressQuery({ includeDetail = true } = {}) {
     chunks.push(form.streetCode.trim());
   }
 
-  if (selectedWardName.value) chunks.push(selectedWardName.value);
-  if (selectedDistrictName.value) chunks.push(selectedDistrictName.value);
   if (selectedProvinceName.value) chunks.push(selectedProvinceName.value);
 
   chunks.push("Việt Nam");
@@ -1094,16 +1031,9 @@ async function geocodeAddressToMap(address, zoom = 15) {
 
   try {
     locationSearching.value = true;
-    const params = new URLSearchParams({
-      q: address,
-      format: "json",
-      addressdetails: "1",
-      limit: "1",
-      countrycodes: "vn",
-      "accept-language": "vi",
-    });
+    const params = new URLSearchParams({ q: address });
 
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/v1/geocoding/search?${params.toString()}`);
     if (!response.ok) return;
 
     const data = await response.json();
@@ -1125,17 +1055,13 @@ async function reverseGeocodeFromLatLng(lat, lng) {
   try {
     const params = new URLSearchParams({
       lat: String(lat),
-      lon: String(lng),
-      format: "json",
-      addressdetails: "1",
-      zoom: "18",
-      "accept-language": "vi",
+      lng: String(lng),
     });
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`);
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/v1/geocoding/reverse?${params.toString()}`);
     if (!response.ok) return;
 
     const data = await response.json();
-    if (!data) return;
+    if (!data || data.error) return;
 
     locationSearchText.value = data.display_name || "";
 
@@ -1158,86 +1084,49 @@ function normalizeAdminName(value) {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/thanh pho|tinh|quan|huyen|thi xa|thi tran|phuong|xa|tp\.?|district|ward|commune|city|township|town|village|province/g, "")
+    .replace(/thanh pho |tinh |tp\.? ?|city |province /g, "")
+    .replace(/ ?(thanh pho|tinh|tp|city|province)$/g, "")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function findProvinceByAddress(address) {
-  const candidates = [address.city, address.state, address.province, address.region].filter(Boolean);
-  if (!candidates.length) return null;
+/**
+ * Parse display_name từ Nominatim để lấy các segment địa chỉ.
+ * VD: "Sở Tài nguyên, Lê Tự Trọng, Khu phố 3, Phường Sài Gòn, Thành phố Thủ Đức, Thành phố Hồ Chí Minh, 71006, Việt Nam"
+ */
+function parseDisplayNameSegments(displayName) {
+  const text = String(displayName || "");
+  return text
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s && !/^\d{5,}$/.test(s) && s !== "Việt Nam" && s !== "Vietnam");
+}
+
+function findProvinceByAddress(address, displayName = "") {
+  const primaryCandidates = [address.state, address.province, address.county, address.region].filter(Boolean);
+
+  // Nominatim dùng địa chính mới, city có thể không phải province
+  // → parse từ display_name: segment cuối trước "Việt Nam" thường là province
+  const segments = parseDisplayNameSegments(displayName);
+  const tailCandidates = segments.slice(-4).filter(Boolean);
+  const secondaryCandidates = [address.city, address.town].filter(Boolean);
+
+  const allCandidates = [...primaryCandidates, ...tailCandidates, ...secondaryCandidates];
+  if (!allCandidates.length) return null;
+
+  const exactMatch = provinces.value.find((province) => {
+    const provinceName = normalizeAdminName(province.name);
+    return allCandidates.some((c) => normalizeAdminName(c) === provinceName);
+  });
+  if (exactMatch) return exactMatch;
 
   return provinces.value.find((province) => {
     const provinceName = normalizeAdminName(province.name);
-    return candidates.some((candidate) => {
-      const normalized = normalizeAdminName(candidate);
-      return provinceName === normalized || provinceName.includes(normalized) || normalized.includes(provinceName);
+    return allCandidates.some((c) => {
+      const nc = normalizeAdminName(c);
+      return nc && (provinceName.includes(nc) || nc.includes(provinceName));
     });
-  }) || null;
-}
-
-function extractDistrictFromDisplayName(displayName) {
-  const text = String(displayName || "");
-  if (!text) return "";
-
-  const match = text.match(/(Quận\s+[^,]+|Huyện\s+[^,]+|Thành phố\s+Thủ Đức|Thị xã\s+[^,]+|District\s+[^,]+)/i);
-  return match?.[1]?.trim() || "";
-}
-
-function extractWardFromDisplayName(displayName) {
-  const text = String(displayName || "");
-  if (!text) return "";
-
-  const match = text.match(/(Phường\s+[^,]+|Xã\s+[^,]+|Thị trấn\s+[^,]+|Ward\s+[^,]+|Commune\s+[^,]+)/i);
-  return match?.[1]?.trim() || "";
-}
-
-function findDistrictByAddress(address, displayName = "") {
-  const districtFromDisplay = extractDistrictFromDisplayName(displayName);
-  const candidates = [
-    address.state_district,
-    address.county,
-    address.city_district,
-    address.district,
-    districtFromDisplay,
-    address.borough,
-    address.city,
-    address.town,
-  ].filter(Boolean);
-  if (!candidates.length) return null;
-
-  const normalizedCandidates = candidates.map((candidate) => normalizeAdminName(candidate)).filter(Boolean);
-
-  // Ưu tiên exact match trước để tránh match nhầm theo kiểu includes.
-  const exactMatch = districts.value.find((district) => {
-    const districtName = normalizeAdminName(district.name);
-    return normalizedCandidates.some((candidate) => districtName === candidate);
-  });
-  if (exactMatch) return exactMatch;
-
-  return districts.value.find((district) => {
-    const districtName = normalizeAdminName(district.name);
-    return normalizedCandidates.some((candidate) => districtName.includes(candidate) || candidate.includes(districtName));
-  }) || null;
-}
-
-function findWardByAddress(address, displayName = "") {
-  const wardFromDisplay = extractWardFromDisplayName(displayName);
-  const candidates = [address.suburb, address.quarter, address.ward, address.village, address.hamlet, address.neighbourhood, wardFromDisplay].filter(Boolean);
-  if (!candidates.length) return null;
-
-  const normalizedCandidates = candidates.map((candidate) => normalizeAdminName(candidate)).filter(Boolean);
-
-  const exactMatch = wards.value.find((ward) => {
-    const wardName = normalizeAdminName(ward.name);
-    return normalizedCandidates.some((candidate) => wardName === candidate);
-  });
-  if (exactMatch) return exactMatch;
-
-  return wards.value.find((ward) => {
-    const wardName = normalizeAdminName(ward.name);
-    return normalizedCandidates.some((candidate) => wardName.includes(candidate) || candidate.includes(wardName));
   }) || null;
 }
 
@@ -1245,41 +1134,67 @@ async function syncAdministrativeCodesFromAddress(address, displayName = "") {
   isSyncingAdminFromMap.value = true;
 
   try {
-  const province = findProvinceByAddress(address);
-  if (!province) return;
+    const province = findProvinceByAddress(address, displayName);
+    if (!province) return;
 
-  if (String(province.code) !== form.provinceCode) {
-    form.provinceCode = String(province.code);
-    await fetchDistrictsByProvince(form.provinceCode);
-  } else if (!districts.value.length) {
-    await fetchDistrictsByProvince(form.provinceCode);
-  }
+    if (String(province.code) !== form.provinceCode) {
+      form.provinceCode = String(province.code);
+      await fetchWardsByProvince(form.provinceCode);
+    } else if (!wards.value.length) {
+      await fetchWardsByProvince(form.provinceCode);
+    }
 
-  const district = findDistrictByAddress(address, displayName);
-  if (!district) {
-    // Không match được quận/huyện mới thì clear dữ liệu cũ để tránh hiển thị sai.
-    form.districtCode = "";
-    form.wardCode = "";
-    wards.value = [];
-    return;
-  }
-
-  if (String(district.code) !== form.districtCode) {
-    form.districtCode = String(district.code);
-    await fetchWardsByDistrict(form.districtCode);
-  } else if (!wards.value.length) {
-    await fetchWardsByDistrict(form.districtCode);
-  }
-
-  const ward = findWardByAddress(address, displayName);
-  if (!ward) {
-    form.wardCode = "";
-    return;
-  }
-  form.wardCode = String(ward.code);
+    // Thử match phường/xã từ Nominatim
+    const ward = findWardByAddress(address, displayName);
+    form.wardCode = ward ? String(ward.code) : "";
   } finally {
     isSyncingAdminFromMap.value = false;
   }
+}
+
+function normalizeWardName(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/phuong |xa |thi tran |ward |commune /g, "")
+    .replace(/ ?(phuong|xa|thi tran|ward|commune)$/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findWardByAddress(address, displayName = "") {
+  const wardFromDisplay = extractWardFromDisplayName(displayName);
+  const candidates = [
+    address.suburb,
+    address.quarter,
+    address.ward,
+    address.village,
+    address.hamlet,
+    wardFromDisplay,
+  ].filter(Boolean);
+  if (!candidates.length) return null;
+
+  const normalizedCandidates = candidates.map((c) => normalizeWardName(c)).filter(Boolean);
+
+  const exactMatch = wards.value.find((ward) => {
+    const wn = normalizeWardName(ward.name);
+    return normalizedCandidates.some((c) => wn === c);
+  });
+  if (exactMatch) return exactMatch;
+
+  return wards.value.find((ward) => {
+    const wn = normalizeWardName(ward.name);
+    return normalizedCandidates.some((c) => wn.includes(c) || c.includes(wn));
+  }) || null;
+}
+
+function extractWardFromDisplayName(displayName) {
+  const text = String(displayName || "");
+  if (!text) return "";
+  const match = text.match(/\b(Phường\s+[^,]+|Xã\s+[^,]+|Thị trấn\s+[^,]+)/i);
+  return match?.[1]?.trim() || "";
 }
 
 async function searchAddressOnMap() {
@@ -1291,7 +1206,7 @@ async function searchAddressOnMap() {
 async function fetchProvinces() {
   locationLoadError.value = "";
   try {
-    const response = await fetch("https://provinces.open-api.vn/api/p/");
+    const response = await fetch("https://provinces.open-api.vn/api/v2/p/");
     if (!response.ok) {
       throw new Error("Không thể tải danh sách tỉnh/thành phố");
     }
@@ -1301,39 +1216,31 @@ async function fetchProvinces() {
   }
 }
 
-async function fetchDistrictsByProvince(provinceCode) {
-  locationLoadError.value = "";
-  districtsLoading.value = true;
-  try {
-    const response = await fetch(`https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`);
-    if (!response.ok) {
-      throw new Error("Không thể tải danh sách quận/huyện");
-    }
-    const data = await response.json();
-    districts.value = data.districts || [];
-  } catch (error) {
-    locationLoadError.value = error.message || "Không thể tải dữ liệu quận/huyện";
-  } finally {
-    districtsLoading.value = false;
-  }
-}
-
-async function fetchWardsByDistrict(districtCode) {
+/**
+ * Load phường/xã theo tỉnh/thành phố từ API v2 (2025).
+ * API mới không có quận/huyện — phường/xã trực thuộc tỉnh.
+ */
+async function fetchWardsByProvince(provinceCode) {
   locationLoadError.value = "";
   wardsLoading.value = true;
   try {
-    const response = await fetch(`https://provinces.open-api.vn/api/d/${districtCode}?depth=2`);
+    const response = await fetch(`https://provinces.open-api.vn/api/v2/w/?province=${provinceCode}`);
     if (!response.ok) {
       throw new Error("Không thể tải danh sách phường/xã");
     }
     const data = await response.json();
-    wards.value = data.wards || [];
+    // API v2 trả về mảng phẳng phường/xã, sắp xếp theo tên
+    const sorted = Array.isArray(data) ? data : [];
+    sorted.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+    wards.value = sorted;
   } catch (error) {
     locationLoadError.value = error.message || "Không thể tải dữ liệu phường/xã";
   } finally {
     wardsLoading.value = false;
   }
 }
+
+
 
 function onImagesChange(event) {
   const newFiles = event.target.files ? Array.from(event.target.files) : [];
@@ -1536,11 +1443,11 @@ function onPhoneInput(event) {
 }
 
 function touchAllRequired() {
-  ['title', 'description', 'area', 'price', 'provinceCode', 'districtCode', 'contactName', 'contactPhone'].forEach(f => touchField(f));
+  ['title', 'description', 'area', 'price', 'provinceCode', 'contactName', 'contactPhone'].forEach(f => touchField(f));
 }
 
 function hasRequiredErrors() {
-  return ['title', 'description', 'area', 'provinceCode', 'districtCode', 'contactName', 'contactPhone'].some(f => {
+  return ['title', 'description', 'area', 'provinceCode', 'contactName', 'contactPhone'].some(f => {
     touchedFields[f] = true;
     return fieldError(f);
   }) || (!form.isNegotiable && fieldError('price'));

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Listing\ListingController;
 use App\Http\Controllers\Api\V1\User\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\Package\PackageController;
+use App\Http\Controllers\Api\V1\Geocoding\GeocodingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -127,6 +128,12 @@ Route::prefix('v1/chat')->as('chat.')->middleware('auth:api')->group(function ()
     // Đánh dấu đã đọc
     Route::post('/conversations/{conversationId}/read', [ChatController::class, 'markAsRead'])
         ->name('conversations.read');
+});
+
+// ==================== GEOCODING PROXY ROUTES (public — no auth needed) ====================
+Route::prefix('v1/geocoding')->as('geocoding.')->group(function () {
+    Route::get('/reverse', [GeocodingController::class, 'reverse'])->name('reverse');
+    Route::get('/search', [GeocodingController::class, 'search'])->name('search');
 });
 
 Route::prefix('v1/listings')->as('listings.')->group(function () {
