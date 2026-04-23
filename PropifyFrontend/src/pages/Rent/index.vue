@@ -1,6 +1,11 @@
 <template>
   <RentLayout>
-    <TopSearchBar />
+    <TopSearchBar
+      v-model="searchKeyword"
+      :suggestions="rentSuggestions"
+      @search="onSearch"
+      @select-suggestion="onSearch"
+    />
 
     <div class="max-w-7xl mx-auto px-4 md:px-8 py-8">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -15,7 +20,7 @@
                 Cho thuê bất động sản
               </h1>
               <p class="text-sm text-gray-500">
-                Hiện có <span class="font-bold text-blue-600">4</span> bất động sản
+                Hiện có <span class="font-bold text-blue-600">{{ rentTotal }}</span> bất động sản
               </p>
             </div>
 
@@ -28,21 +33,32 @@
 
           <!-- Listings -->
           <div class="flex flex-col gap-6">
-            <ListingCard
+            <div v-if="rentLoading" class="flex justify-center py-8">
+              <div class="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+            </div>
+
+            <div v-else-if="rentListings.length === 0" class="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
+              Chưa có tin cho thuê nào.
+            </div>
+
+            <RentCard
               v-for="item in rentListings"
               :key="item.id"
+              :to="'/listings/' + item.id"
+              :verified="isVerified(item)"
               :title="item.title"
-              :type="item.type"
-              :price="item.price"
-              :unit="item.unit"
-              :area="item.area"
-              :beds="item.beds"
-              :baths="item.baths"
-              :location="item.location"
-              :author="item.author"
-              :image="item.image"
-              :timeAgo="item.timeAgo"
-              :views="item.views"
+              :type="propertyTypeLabel(item.property?.type)"
+              :price="formatPrice(item.property?.price)"
+              :unit="'/tháng'"
+              :area="item.property?.area || 0"
+              :beds="item.property?.bedrooms || 0"
+              :baths="item.property?.bathrooms || 0"
+              :location="item.property?.address_detail || ''"
+              :author="getAuthor(item)"
+              :image="getThumb(item)"
+              :rating="null"
+              :timeAgo="timeAgo(item.submitted_at)"
+              :views="item.views_count || 0"
             />
           </div>
         </div>
@@ -101,11 +117,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { KeyRound, ChevronDown, User, DollarSign, Ruler } from 'lucide-vue-next';
 import RentLayout from '@/layouts/RentLayout.vue';
 import TopSearchBar from '@/components/shared/TopSearchBar.vue';
-import ListingCard from '@/components/shared/ListingCard.vue';
+import RentCard from '@/components/shared/RentCard.vue';
+import listingService from '@/services/listingService';
 import SidebarWidget from '@/components/shared/SidebarWidget.vue';
 import MapWidget from '@/components/shared/MapWidget.vue';
 import TabFilterGroup from '@/components/shared/TabFilterGroup.vue';
@@ -114,67 +131,113 @@ import RadioFilterGroup from '@/components/shared/RadioFilterGroup.vue';
 const posterType = ref('all');
 const priceRange = ref('all');
 const areaRange = ref('all');
+const rentListings = ref([]);
+const rentLoading = ref(true);
+const rentTotal = ref(0);
+const searchKeyword = ref('');
 
-const rentListings = ref([
-  {
-    id: 1,
-    title: 'Căn hộ studio full nội thất trung tâm quận 1',
-    type: 'Studio',
-    price: '12 triệu',
-    unit: '/tháng',
-    area: 38,
-    beds: 1,
-    baths: 1,
-    location: 'Quận 1, TP. Hồ Chí Minh',
-    author: { name: 'Trần Minh Tuấn', role: 'Chủ nhà' },
-    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=60',
-    timeAgo: '2 giờ trước',
-    views: 312,
-  },
-  {
-    id: 2,
-    title: 'Căn hộ 2 phòng ngủ view sông Sài Gòn thoáng mát',
-    type: 'Căn hộ',
-    price: '18 triệu',
-    unit: '/tháng',
-    area: 72,
-    beds: 2,
-    baths: 2,
-    location: 'Thủ Thiêm, TP. Thủ Đức',
-    author: { name: 'Lê Thị Hoa', role: 'Môi giới' },
-    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&auto=format&fit=crop&q=60',
-    timeAgo: '4 giờ trước',
-    views: 178,
-  },
-  {
-    id: 3,
-    title: 'Nhà nguyên căn 3 tầng hẻm xe hơi quận Bình Thạnh',
-    type: 'Nhà phố',
-    price: '25 triệu',
-    unit: '/tháng',
-    area: 120,
-    beds: 4,
-    baths: 3,
-    location: 'Bình Thạnh, TP. Hồ Chí Minh',
-    author: { name: 'Nguyễn Văn Hùng', role: 'Chủ nhà' },
-    image: 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&auto=format&fit=crop&q=60',
-    timeAgo: '1 ngày trước',
-    views: 504,
-  },
-  {
-    id: 4,
-    title: 'Officetel cho thuê tiện nghi đường Võ Văn Kiệt',
-    type: 'Officetel',
-    price: '9 triệu',
-    unit: '/tháng',
-    area: 30,
-    beds: 1,
-    baths: 1,
-    location: 'Quận 5, TP. Hồ Chí Minh',
-    author: { name: 'Phạm Thu Hằng', role: 'Môi giới' },
-    image: 'https://images.unsplash.com/photo-1630699144867-37acec97df5a?w=800&auto=format&fit=crop&q=60',
-    timeAgo: '6 giờ trước',
-    views: 97,
-  },
-]);
+const rentSuggestions = computed(() => {
+  const query = normalizeText(searchKeyword.value);
+  if (!query) return [];
+
+  const candidates = rentListings.value.flatMap((item) => [
+    item.title,
+    item.property?.address_detail,
+    item.property?.project_name,
+  ]).filter(Boolean);
+
+  return [...new Set(candidates)]
+    .filter((text) => normalizeText(text).includes(query))
+    .slice(0, 8);
+});
+
+onMounted(async () => {
+  await fetchRentListings();
+});
+
+async function fetchRentListings() {
+  rentLoading.value = true;
+  try {
+    const response = await listingService.getPublicListings({
+      demand_type: 'RENT',
+      keyword: searchKeyword.value?.trim() || undefined,
+      per_page: 20,
+    });
+    rentListings.value = response?.data?.data || [];
+    rentTotal.value = Number(response?.data?.meta?.total || rentListings.value.length || 0);
+  } catch (error) {
+    console.error('Failed to fetch rent listings', error);
+    rentListings.value = [];
+    rentTotal.value = 0;
+  } finally {
+    rentLoading.value = false;
+  }
+}
+
+async function onSearch(value) {
+  searchKeyword.value = value || '';
+  await fetchRentListings();
+}
+
+function getThumb(item) {
+  if (item.images && item.images.length > 0) {
+    const thumb = item.images.find((image) => image.is_thumbnail);
+    return thumb ? thumb.url : item.images[0].url;
+  }
+  return 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&auto=format&fit=crop&q=60';
+}
+
+function getAuthor(item) {
+  return {
+    name: item.property?.contact_name || item.owner?.full_name || 'Chủ nhà',
+    role: item.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới',
+  };
+}
+
+function formatPrice(value) {
+  const num = Number(value || 0);
+  if (!num || num <= 0) return 'Thỏa thuận';
+  if (num >= 1000000000) return `${(num / 1000000000).toLocaleString('vi-VN')} tỷ`;
+  if (num >= 1000000) return `${(num / 1000000).toLocaleString('vi-VN')} triệu`;
+  return `${num.toLocaleString('vi-VN')} đ`;
+}
+
+function propertyTypeLabel(type) {
+  const map = {
+    APARTMENT: 'Căn hộ chung cư',
+    PRIVATE_HOUSE: 'Nhà riêng',
+    STREET_HOUSE: 'Nhà mặt phố',
+    VILLA_TOWNHOUSE: 'Biệt thự liền kề',
+    SHOPHOUSE: 'Shophouse',
+    RENT_ROOM: 'Phòng trọ',
+    OFFICE: 'Văn phòng',
+  };
+  return map[type] || type || 'BĐS';
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 60) return `${diffMins} phút trước`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays} ngày trước`;
+  return date.toLocaleDateString('vi-VN');
+}
+
+function isVerified(item) {
+  const value = item?.is_verified;
+  return value === true || Number(value) === 1;
+}
+
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
 </script>

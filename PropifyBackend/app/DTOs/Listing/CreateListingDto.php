@@ -1,16 +1,13 @@
 <?php
 
-namespace App\DTOs;
+namespace App\DTOs\Listing;
 
 final readonly class CreateListingDto
 {
     /**
-     * @param string[] $images       Cloudinary URLs
-     * @param int[]    $attributeIds
-     * @param string[] $amenities
-     * @param string[] $legalPaperTypes
-     * @param int[]    $appointmentDays
-     * @param string[] $legalDocuments Cloudinary URLs
+     * @param UploadedFile[] $images
+     * @param int[] $attributeIds
+     * @param UploadedFile[] $legalDocuments
      */
     public function __construct(
         public string $demandType,
