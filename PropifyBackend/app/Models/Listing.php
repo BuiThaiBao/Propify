@@ -12,6 +12,7 @@ final class Listing extends Model
 
     protected $fillable = [
         'property_id',
+        'owner_id',
         'demand_type',
         'title',
         'description',
@@ -22,6 +23,13 @@ final class Listing extends Model
         'is_verified',
         'has_video',
         'request_verification',
+        'appointment_at',
+        'appointment_days',
+        'appointment_time_slot',
+        'appointment_contact_name',
+        'appointment_contact_phone',
+        'appointment_contact_email',
+        'appointment_note',
         'rejection_reason',
         'submitted_at',
         'published_at',
@@ -33,6 +41,8 @@ final class Listing extends Model
         'is_verified' => 'boolean',
         'has_video' => 'boolean',
         'request_verification' => 'boolean',
+        'appointment_at' => 'datetime',
+        'appointment_days' => 'array',
         'submitted_at' => 'datetime',
         'published_at' => 'datetime',
         'expired_at' => 'datetime',
@@ -44,6 +54,12 @@ final class Listing extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class, 'property_id');
+    }
+
+    /** Chủ sở hữu listing */
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'owner_id');
     }
 
     /** Gói tin đã mua */

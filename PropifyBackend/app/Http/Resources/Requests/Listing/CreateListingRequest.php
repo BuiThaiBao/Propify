@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Http\Resources\Requests;
+namespace App\Http\Resources\Requests\Listing;
 
-use App\DTOs\CreateListingDto;
+use App\DTOs\Listing\CreateListingDto;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -24,7 +24,7 @@ final class CreateListingRequest extends FormRequest
             'province_code' => ['required', 'string', 'max:20'],
             'district_code' => ['required', 'string', 'max:20'],
             'ward_code' => ['nullable', 'string', 'max:20'],
-            'street_code' => ['nullable', 'string', 'max:20'],
+            'street_code' => ['nullable', 'string', 'max:255'],
             'project_name' => ['nullable', 'string', 'max:255'],
             'address_detail' => ['nullable', 'string', 'max:255'],
             'area' => ['required', 'numeric', 'gt:0'],
@@ -43,7 +43,7 @@ final class CreateListingRequest extends FormRequest
             'furniture_status' => ['nullable', Rule::in(['NONE', 'BASIC', 'FULL'])],
             'contact_name' => ['required', 'string', 'max:100'],
             'contact_phone' => ['required', 'regex:/^(03|05|07|08|09)\d{8}$/'],
-            'contact_email' => ['nullable', 'email', 'max:255'],
+            'contact_email' => ['nullable', 'regex:/^[A-Za-z0-9._%+-]+@gmail\.com$/', 'max:255'],
             'poster_type' => ['required', Rule::in(['OWNER', 'BROKER'])],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
             'lng' => ['nullable', 'numeric', 'between:-180,180'],
@@ -55,6 +55,11 @@ final class CreateListingRequest extends FormRequest
 
             'attribute_ids' => ['nullable', 'array'],
             'attribute_ids.*' => ['integer', 'exists:attributes,id'],
+            'amenities' => ['nullable', 'array'],
+            'amenities.*' => ['string', 'max:100'],
+            'legal_paper_types' => ['nullable', 'array'],
+            'legal_paper_types.*' => ['string', 'max:100'],
+            'public_info_agreed' => ['nullable', 'boolean'],
 
             'request_verification' => ['nullable', 'boolean'],
             'identity_card_front' => ['nullable', 'string', 'url', 'max:2048'],
@@ -63,9 +68,12 @@ final class CreateListingRequest extends FormRequest
             'legal_documents.*' => ['string', 'url', 'max:2048'],
 
             'appointment_at' => ['nullable', 'date', 'after:now'],
+            'appointment_days' => ['nullable', 'array'],
+            'appointment_days.*' => ['integer', 'between:0,6'],
+            'appointment_time_slot' => ['nullable', 'string', 'max:50'],
             'appointment_contact_name' => ['nullable', 'string', 'max:100'],
             'appointment_contact_phone' => ['nullable', 'regex:/^(03|05|07|08|09)\d{8}$/'],
-            'appointment_contact_email' => ['nullable', 'email', 'max:255'],
+            'appointment_contact_email' => ['nullable', 'regex:/^[A-Za-z0-9._%+-]+@gmail\.com$/', 'max:255'],
             'appointment_note' => ['nullable', 'string', 'max:500'],
         ];
     }
@@ -87,6 +95,8 @@ final class CreateListingRequest extends FormRequest
             'price.required' => 'Gia bat buoc nhap neu tin dang khong de o che do thuong luong.',
             'price.gt' => 'Gia phai lon hon 0.',
             'contact_phone.regex' => 'So dien thoai lien he khong dung dinh dang.',
+            'contact_email.regex' => 'Email lien he phai co duoi @gmail.com.',
+            'appointment_contact_email.regex' => 'Email lien he lich hen phai co duoi @gmail.com.',
             'appointment_at.after' => 'Khong duoc chon lich hen trong qua khu.',
         ];
     }

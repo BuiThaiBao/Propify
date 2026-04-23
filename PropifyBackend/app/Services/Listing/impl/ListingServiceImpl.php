@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Services\Impl;
+namespace App\Services\Listing\impl;
 
-use App\DTOs\CreateListingDto;
+use App\DTOs\Listing\CreateListingDto;
 use App\Enums\ErrorCode;
 use App\Exceptions\BusinessException;
 use App\Models\Listing;
 use App\Models\User;
 use App\Repositories\ListingRepository;
-use App\Services\ListingService;
+use App\Services\Listing\ListingService;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 
 final class ListingServiceImpl implements ListingService
 {
@@ -41,7 +41,6 @@ final class ListingServiceImpl implements ListingService
         return DB::transaction(function () use ($user, $dto) {
             Log::debug('[ListingService] DB transaction started');
             $property = $this->listingRepository->createProperty([
-                'owner_id' => $user->id,
                 'type' => $dto->propertyType,
                 'province_code' => $dto->provinceCode,
                 'district_code' => $dto->districtCode,
@@ -86,6 +85,7 @@ final class ListingServiceImpl implements ListingService
 
             $listing = $this->listingRepository->createListing([
                 'property_id' => $property->id,
+                'owner_id' => $user->id,
                 'demand_type' => $dto->demandType,
                 'title' => $dto->title,
                 'description' => $dto->description,
@@ -181,5 +181,158 @@ final class ListingServiceImpl implements ListingService
                 'appointments',
             ]);
         });
+    }
+
+    public function getMyListings(User $user, ?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
+    {
+        return $this->listingRepository->paginateByOwner(
+            ownerId: (int) $user->id,
+            status: $status,
+            demandType: $demandType,
+            keyword: $keyword,
+            perPage: $perPage,
+        );
+    }
+
+    public function getListingDetails(int $id): Listing
+    {
+        return $this->listingRepository->findById($id);
+    }
+
+    public function update(User $user, int $id, CreateListingDto $dto): Listing
+    {
+        $listing = $this->listingRepository->findById($id);
+
+        if ((int) $listing->owner_id !== (int) $user->id) {
+            throw new BusinessException(ErrorCode::AuthForbidden);
+        }
+
+        return DB::transaction(function () use ($listing, $dto) {
+            // Update property
+            $this->listingRepository->updateProperty($listing->property_id, [
+                'type' => $dto->propertyType,
+                'province_code' => $dto->provinceCode,
+                'district_code' => $dto->districtCode,
+                'ward_code' => $dto->wardCode,
+                'street_code' => $dto->streetCode,
+                'project_name' => $dto->projectName,
+                'address_detail' => $dto->addressDetail,
+                'area' => $dto->area,
+                'price' => $dto->price,
+                'is_negotiable' => $dto->isNegotiable,
+                'bedrooms' => $dto->bedrooms,
+                'bathrooms' => $dto->bathrooms,
+                'floors' => $dto->floors,
+                'floor_number' => $dto->floorNumber,
+                'balconies' => $dto->balconies,
+                'facade_width' => $dto->facadeWidth,
+                'depth' => $dto->depth,
+                'road_width' => $dto->roadWidth,
+                'direction_code' => $dto->directionCode,
+                'balcony_direction_code' => $dto->balconyDirectionCode,
+                'furniture_status' => $dto->furnitureStatus,
+                'contact_name' => $dto->contactName,
+                'contact_phone' => $dto->contactPhone,
+                'contact_email' => $dto->contactEmail,
+                'poster_type' => $dto->posterType,
+                'amenities' => $dto->amenities,
+                'legal_paper_types' => $dto->legalPaperTypes,
+                'public_info_agreed' => $dto->publicInfoAgreed,
+                'lat' => $dto->lat,
+                'lng' => $dto->lng,
+            ]);
+
+            if ($dto->attributeIds !== []) {
+                $listing->property->attributes()->sync($dto->attributeIds);
+            }
+
+            // Update listing — reset status to PENDING
+            $this->listingRepository->updateListing($listing->id, [
+                'demand_type' => $dto->demandType,
+                'title' => $dto->title,
+                'description' => $dto->description,
+                'status' => 'PENDING',
+                'has_video' => $dto->video !== null,
+                'request_verification' => $dto->requestVerification,
+                'appointment_days' => $dto->appointmentDays,
+                'appointment_time_slot' => $dto->appointmentTimeSlot,
+                'appointment_contact_name' => $dto->appointmentContactName,
+                'appointment_contact_phone' => $dto->appointmentContactPhone,
+                'appointment_contact_email' => $dto->appointmentContactEmail,
+                'appointment_note' => $dto->appointmentNote,
+            ]);
+
+            // Replace images
+            $this->listingRepository->deleteListingImages($listing->id);
+            foreach ($dto->images as $index => $imageUrl) {
+                $this->listingRepository->createListingImage([
+                    'listing_id' => $listing->id,
+                    'image_url' => $imageUrl,
+                    'is_thumbnail' => $index === 0,
+                    'sort_order' => $index,
+                ]);
+            }
+
+            // Replace videos
+            $this->listingRepository->deleteListingVideos($listing->id);
+            if ($dto->video !== null) {
+                $this->listingRepository->createListingVideo([
+                    'listing_id' => $listing->id,
+                    'video_url' => $dto->video,
+                    'provider' => 'CLOUDINARY',
+                    'mime_type' => 'video/mp4',
+                    'file_size' => 0,
+                ]);
+            }
+
+            // Replace verification documents
+            if ($dto->requestVerification) {
+                $this->listingRepository->deleteVerificationDocuments($listing->id);
+                $sortOrder = 0;
+                if ($dto->identityCardFront !== null) {
+                    $this->listingRepository->createVerificationDocument([
+                        'listing_id' => $listing->id,
+                        'document_type' => 'ID_FRONT',
+                        'file_url' => $dto->identityCardFront,
+                        'mime_type' => 'image/jpeg',
+                        'file_size' => 0,
+                        'sort_order' => $sortOrder++,
+                    ]);
+                }
+                if ($dto->identityCardBack !== null) {
+                    $this->listingRepository->createVerificationDocument([
+                        'listing_id' => $listing->id,
+                        'document_type' => 'ID_BACK',
+                        'file_url' => $dto->identityCardBack,
+                        'mime_type' => 'image/jpeg',
+                        'file_size' => 0,
+                        'sort_order' => $sortOrder++,
+                    ]);
+                }
+                foreach ($dto->legalDocuments as $documentUrl) {
+                    $this->listingRepository->createVerificationDocument([
+                        'listing_id' => $listing->id,
+                        'document_type' => 'LEGAL_DOCUMENT',
+                        'file_url' => $documentUrl,
+                        'mime_type' => 'image/jpeg',
+                        'file_size' => 0,
+                        'sort_order' => $sortOrder++,
+                    ]);
+                }
+            }
+
+            return $listing->load([
+                'property.attributes.group',
+                'images',
+                'videos',
+                'verificationDocuments',
+                'appointments',
+            ]);
+        });
+    }
+
+    public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
+    {
+        return $this->listingRepository->paginatePublic($demandType, $keyword, $perPage);
     }
 }
