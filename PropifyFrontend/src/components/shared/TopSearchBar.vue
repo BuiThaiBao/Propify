@@ -17,18 +17,39 @@
         </div>
 
         <!-- Search Input -->
-        <div class="flex-1 flex items-center px-4">
+        <div class="relative flex-1 flex items-center px-4">
           <Search class="w-5 h-5 text-gray-400 mr-2" />
           <input
             type="text"
-            placeholder="Tìm kiếm theo tên, địa chỉ, dự án..."
+            :value="modelValue"
+            :placeholder="placeholder"
             class="w-full bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400"
+            @input="onInput"
+            @keydown.enter.prevent="onSearch"
+            @focus="showSuggestions = true"
+            @blur="hideSuggestionsWithDelay"
           />
+
+          <div
+            v-if="showSuggestionList"
+            class="absolute left-4 right-4 top-[calc(100%+8px)] z-50 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+          >
+            <button
+              v-for="item in suggestions"
+              :key="item"
+              type="button"
+              class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+              @mousedown.prevent="selectSuggestion(item)"
+            >
+              <MapPin class="h-4 w-4 shrink-0 text-blue-500" />
+              <span class="line-clamp-1">{{ item }}</span>
+            </button>
+          </div>
         </div>
 
         <!-- Search Button -->
         <div class="px-4">
-          <button class="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-6 py-2 text-sm font-semibold flex items-center gap-2 transition-colors">
+          <button class="bg-blue-500 hover:bg-blue-600 text-white rounded-full px-6 py-2 text-sm font-semibold flex items-center gap-2 transition-colors" @click="onSearch">
             <Search class="w-4 h-4" />
             Tìm kiếm
           </button>
@@ -46,13 +67,48 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { computed, ref, onMounted, onUnmounted } from 'vue';
 import { MapPin, ChevronDown, Search, Home } from 'lucide-vue-next';
 
+const props = defineProps({
+  modelValue: { type: String, default: '' },
+  placeholder: { type: String, default: 'Tìm kiếm theo tên, địa chỉ, dự án...' },
+  suggestions: { type: Array, default: () => [] },
+});
+
+const emit = defineEmits(['update:modelValue', 'search', 'select-suggestion']);
+
 const visible = ref(true);
+const showSuggestions = ref(false);
 let lastScrollY = 0;
 let hideTimer = null;
 const THRESHOLD = 5; // px - tránh false positive từ micro-scroll
+
+const showSuggestionList = computed(() => {
+  return showSuggestions.value && Array.isArray(props.suggestions) && props.suggestions.length > 0;
+});
+
+function onInput(event) {
+  emit('update:modelValue', event.target.value || '');
+  showSuggestions.value = true;
+}
+
+function onSearch() {
+  emit('search', props.modelValue || '');
+  showSuggestions.value = false;
+}
+
+function selectSuggestion(value) {
+  emit('update:modelValue', value);
+  emit('select-suggestion', value);
+  showSuggestions.value = false;
+}
+
+function hideSuggestionsWithDelay() {
+  setTimeout(() => {
+    showSuggestions.value = false;
+  }, 120);
+}
 
 function resetHideTimer() {
   clearTimeout(hideTimer);

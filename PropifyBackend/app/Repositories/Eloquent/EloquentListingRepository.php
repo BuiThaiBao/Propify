@@ -90,7 +90,7 @@ final class EloquentListingRepository implements ListingRepository
             ->findOrFail($id);
     }
 
-    public function paginatePublic(?string $demandType, int $perPage): LengthAwarePaginator
+    public function paginatePublic(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
     {
         return Listing::query()
             ->with([
@@ -101,6 +101,18 @@ final class EloquentListingRepository implements ListingRepository
             ->where('status', 'ACTIVE')
             ->when($demandType, function ($query) use ($demandType) {
                 $query->where('demand_type', $demandType);
+            })
+            ->when($keyword, function ($query) use ($keyword) {
+                $query->where(function ($subQuery) use ($keyword) {
+                    $subQuery
+                        ->where('title', 'like', '%' . $keyword . '%')
+                        ->orWhere('description', 'like', '%' . $keyword . '%')
+                        ->orWhereHas('property', function ($propertyQuery) use ($keyword) {
+                            $propertyQuery
+                                ->where('address_detail', 'like', '%' . $keyword . '%')
+                                ->orWhere('project_name', 'like', '%' . $keyword . '%');
+                        });
+                });
             })
             ->orderByDesc('id')
             ->paginate($perPage);

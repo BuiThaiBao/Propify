@@ -2,7 +2,7 @@
 
 namespace App\Services\Listing;
 
-use App\DTOs\CreateListingDto;
+use App\DTOs\Listing\CreateListingDto;
 use App\Models\Listing;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -17,5 +17,5 @@ interface ListingService
 
     public function update(User $user, int $id, CreateListingDto $dto): Listing;
 
-    public function getPublicListings(?string $demandType, int $perPage): LengthAwarePaginator;
+    public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 }

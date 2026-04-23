@@ -1,6 +1,11 @@
 <template>
   <RentLayout>
-    <TopSearchBar />
+    <TopSearchBar
+      v-model="searchKeyword"
+      :suggestions="rentSuggestions"
+      @search="onSearch"
+      @select-suggestion="onSearch"
+    />
 
     <div class="max-w-7xl mx-auto px-4 md:px-8 py-8">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -112,7 +117,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { KeyRound, ChevronDown, User, DollarSign, Ruler } from 'lucide-vue-next';
 import RentLayout from '@/layouts/RentLayout.vue';
 import TopSearchBar from '@/components/shared/TopSearchBar.vue';
@@ -129,6 +134,22 @@ const areaRange = ref('all');
 const rentListings = ref([]);
 const rentLoading = ref(true);
 const rentTotal = ref(0);
+const searchKeyword = ref('');
+
+const rentSuggestions = computed(() => {
+  const query = normalizeText(searchKeyword.value);
+  if (!query) return [];
+
+  const candidates = rentListings.value.flatMap((item) => [
+    item.title,
+    item.property?.address_detail,
+    item.property?.project_name,
+  ]).filter(Boolean);
+
+  return [...new Set(candidates)]
+    .filter((text) => normalizeText(text).includes(query))
+    .slice(0, 8);
+});
 
 onMounted(async () => {
   await fetchRentListings();
@@ -137,7 +158,11 @@ onMounted(async () => {
 async function fetchRentListings() {
   rentLoading.value = true;
   try {
-    const response = await listingService.getPublicListings({ demand_type: 'RENT', per_page: 20 });
+    const response = await listingService.getPublicListings({
+      demand_type: 'RENT',
+      keyword: searchKeyword.value?.trim() || undefined,
+      per_page: 20,
+    });
     rentListings.value = response?.data?.data || [];
     rentTotal.value = Number(response?.data?.meta?.total || rentListings.value.length || 0);
   } catch (error) {
@@ -147,6 +172,11 @@ async function fetchRentListings() {
   } finally {
     rentLoading.value = false;
   }
+}
+
+async function onSearch(value) {
+  searchKeyword.value = value || '';
+  await fetchRentListings();
 }
 
 function getThumb(item) {
@@ -202,5 +232,12 @@ function timeAgo(dateStr) {
 function isVerified(item) {
   const value = item?.is_verified;
   return value === true || Number(value) === 1;
+}
+
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 }
 </script>

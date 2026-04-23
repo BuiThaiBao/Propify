@@ -28,7 +28,7 @@ interface ListingRepository
 
     public function findById(int $id): Listing;
 
-    public function paginatePublic(?string $demandType, int $perPage): LengthAwarePaginator;
+    public function paginatePublic(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 
     public function updateProperty(int $id, array $attributes): Property;
 

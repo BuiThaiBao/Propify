@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1\Listing;
 
 use App\Helpers\ApiResponse;
-use App\Http\Requests\CreateListingRequest;
-use App\Http\Requests\GetMyListingsRequest;
+use App\Http\Resources\Requests\Listing\CreateListingRequest;
+use App\Http\Resources\Requests\Listing\GetMyListingsRequest;
 use App\Http\Resources\ListingResource;
 use App\Services\Listing\ListingService;
 use Illuminate\Http\JsonResponse;
@@ -31,7 +31,8 @@ final class ListingController
     {
         $perPage = (int) $request->input('per_page', 12);
         $demandType = $request->input('demand_type');
-        $paginator = $this->listingService->getPublicListings($demandType, $perPage);
+        $keyword = $request->input('keyword');
+        $paginator = $this->listingService->getPublicListings($demandType, $keyword, $perPage);
 
         return ApiResponse::success(
             data: ListingResource::collection($paginator->items()),

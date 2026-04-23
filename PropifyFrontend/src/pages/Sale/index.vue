@@ -1,6 +1,11 @@
 <template>
   <SaleLayout>
-    <TopSearchBar />
+    <TopSearchBar
+      v-model="searchKeyword"
+      :suggestions="saleSuggestions"
+      @search="onSearch"
+      @select-suggestion="onSearch"
+    />
     
     <div class="max-w-7xl mx-auto px-4 md:px-8 py-8">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -112,7 +117,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { Building2, ChevronDown, User, DollarSign, Ruler } from 'lucide-vue-next';
 import SaleLayout from '@/layouts/SaleLayout.vue';
 import TopSearchBar from '@/components/shared/TopSearchBar.vue';
@@ -129,6 +134,22 @@ const areaRange = ref('all');
 const saleListings = ref([]);
 const saleLoading = ref(true);
 const saleTotal = ref(0);
+const searchKeyword = ref('');
+
+const saleSuggestions = computed(() => {
+  const query = normalizeText(searchKeyword.value);
+  if (!query) return [];
+
+  const candidates = saleListings.value.flatMap((item) => [
+    item.title,
+    item.property?.address_detail,
+    item.property?.project_name,
+  ]).filter(Boolean);
+
+  return [...new Set(candidates)]
+    .filter((text) => normalizeText(text).includes(query))
+    .slice(0, 8);
+});
 
 onMounted(async () => {
   await fetchSaleListings();
@@ -137,7 +158,11 @@ onMounted(async () => {
 async function fetchSaleListings() {
   saleLoading.value = true;
   try {
-    const response = await listingService.getPublicListings({ demand_type: 'SALE', per_page: 20 });
+    const response = await listingService.getPublicListings({
+      demand_type: 'SALE',
+      keyword: searchKeyword.value?.trim() || undefined,
+      per_page: 20,
+    });
     saleListings.value = response?.data?.data || [];
     saleTotal.value = Number(response?.data?.meta?.total || saleListings.value.length || 0);
   } catch (error) {
@@ -147,6 +172,11 @@ async function fetchSaleListings() {
   } finally {
     saleLoading.value = false;
   }
+}
+
+async function onSearch(value) {
+  searchKeyword.value = value || '';
+  await fetchSaleListings();
 }
 
 function getThumb(item) {
@@ -202,5 +232,12 @@ function timeAgo(dateStr) {
 function isVerified(item) {
   const value = item?.is_verified;
   return value === true || Number(value) === 1;
+}
+
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 }
 </script>

@@ -2,7 +2,7 @@
 
 namespace App\Services\Listing\impl;
 
-use App\DTOs\CreateListingDto;
+use App\DTOs\Listing\CreateListingDto;
 use App\Enums\ErrorCode;
 use App\Exceptions\BusinessException;
 use App\Models\Listing;
@@ -331,8 +331,8 @@ final class ListingServiceImpl implements ListingService
         });
     }
 
-    public function getPublicListings(?string $demandType, int $perPage): LengthAwarePaginator
+    public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
     {
-        return $this->listingRepository->paginatePublic($demandType, $perPage);
+        return $this->listingRepository->paginatePublic($demandType, $keyword, $perPage);
     }
 }

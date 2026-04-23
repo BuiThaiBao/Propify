@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Http\Resources\Requests;
+namespace App\Http\Resources\Requests\Listing;
 
-use App\DTOs\CreateListingDto;
+use App\DTOs\Listing\CreateListingDto;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
