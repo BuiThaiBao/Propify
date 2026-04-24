@@ -54,9 +54,9 @@ cd $APP_DIR/PropifyBackend
 php artisan optimize
 
 echo "11. Restart Reverb WebSocket server..."
-/usr/bin/supervisorctl restart reverb
+sudo /usr/bin/supervisorctl restart reverb
 
 echo "12. Restart Queue Workers..."
-/usr/bin/supervisorctl restart propify-worker:*
+sudo /usr/bin/supervisorctl restart propify-worker:*
 
 echo "DEPLOY HOÀN TẤT TUYỆT ĐỐI !!!"
