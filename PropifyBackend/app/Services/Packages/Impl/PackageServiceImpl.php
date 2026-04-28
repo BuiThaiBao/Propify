@@ -60,6 +60,7 @@ class PackageServiceImpl implements PackageService
             $package = $this->getById($id);
             
             $this->packageRepository->update($id, [
+                'name' => $dto->name,
                 'price' => $dto->price,
                 'priority' => $dto->priority,
                 'multiplier' => $dto->multiplier,

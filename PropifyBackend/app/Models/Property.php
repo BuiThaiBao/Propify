@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -12,7 +11,6 @@ final class Property extends Model
     protected $table = 'properties';
 
     protected $fillable = [
-        'owner_id',
         'type',
         'province_code',
         'district_code',
@@ -38,6 +36,9 @@ final class Property extends Model
         'contact_phone',
         'contact_email',
         'poster_type',
+        'amenities',
+        'legal_paper_types',
+        'public_info_agreed',
         'meta',
         'lat',
         'lng',
@@ -55,18 +56,15 @@ final class Property extends Model
         'facade_width' => 'decimal:2',
         'depth' => 'decimal:2',
         'road_width' => 'decimal:2',
+        'amenities' => 'array',
+        'legal_paper_types' => 'array',
+        'public_info_agreed' => 'boolean',
         'meta' => 'array',
         'lat' => 'decimal:8',
         'lng' => 'decimal:8',
     ];
 
     // ==================== Relationships ====================
-
-    /** Chủ sở hữu bất động sản */
-    public function owner(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'owner_id');
-    }
 
     /** Danh sách listings của bất động sản */
     public function listings(): HasMany

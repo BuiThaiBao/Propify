@@ -56,18 +56,23 @@
         <Card>
           <CardHeader>Cấu hình cơ bản</CardHeader>
           <CardBody class="space-y-4">
-            <Select
-              v-model="form.type"
-              label="Loại gói"
-              required
-              :options="[
-                { label: 'Gold (Vàng)', value: 'gold' },
-                { label: 'Silver (Bạc)', value: 'silver' },
-                { label: 'Diamond (Kim Cương)', value: 'diamond' }
-              ]"
-              placeholder="Chọn loại gói"
-              :error="errors.type"
-            />
+            <div class="grid grid-cols-2 gap-4">
+              <Input
+                v-model="form.name"
+                label="Tên gói"
+                required
+                placeholder="Ví dụ: Gói Cơ bản"
+                :error="errors.name"
+              />
+
+              <Input
+                v-model="form.slug"
+                label="Định danh (Slug)"
+                required
+                placeholder="Ví dụ: basic"
+                :error="errors.slug"
+              />
+            </div>
 
             <Input
               v-model.number="form.price"
@@ -176,7 +181,8 @@ const { createPackage, loading, error: apiError } = usePackageApi()
 const success = ref(false)
 
 const form = reactive({
-  type: '',
+  name: '',
+  slug: '',
   price: 0,
   priority: 1,
   multiplier: 1.0,
@@ -192,8 +198,13 @@ const validate = () => {
   let isValid = true
   Object.keys(errors).forEach(key => errors[key] = '')
 
-  if (!form.type) {
-    errors.type = 'Vui lòng chọn loại gói'
+  if (!form.name) {
+    errors.name = 'Vui lòng nhập tên gói'
+    isValid = false
+  }
+
+  if (!form.slug) {
+    errors.slug = 'Vui lòng nhập định danh gói'
     isValid = false
   }
 
@@ -232,7 +243,8 @@ const handleSubmit = async () => {
 
   try {
     await createPackage({
-      type: form.type,
+      name: form.name,
+      slug: form.slug,
       price: Number(form.price),
       priority: Number(form.priority),
       multiplier: Number(form.multiplier),
@@ -248,6 +260,13 @@ const handleSubmit = async () => {
     setTimeout(() => {
       router.push({ name: 'Packages' })
     }, 1000)
+
+    // Reset form after success or navigate
+    form.name = ''
+    form.slug = ''
+    form.price = 0
+    form.badge = ''
+    form.color = ''
 
   } catch (err) {
     // Error is handled by composable and shown via apiError

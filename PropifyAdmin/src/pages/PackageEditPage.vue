@@ -53,8 +53,13 @@
           <CardHeader>Cấu hình cơ bản</CardHeader>
           <CardBody class="space-y-4">
             <div class="mb-4">
-              <label class="block mb-1.5 text-sm font-medium text-gray-700">Tên gói (Không thể sửa)</label>
-              <input type="text" disabled :value="form.name" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-100 text-gray-500" />
+              <Input
+                v-model="form.name"
+                label="Tên gói"
+                required
+                placeholder="Ví dụ: Gói Cơ bản"
+                :error="errors.name"
+              />
             </div>
 
             <Input
@@ -218,6 +223,11 @@ const validate = () => {
   let isValid = true
   Object.keys(errors).forEach(key => errors[key] = '')
 
+  if (!form.name) {
+    errors.name = 'Vui lòng nhập tên gói'
+    isValid = false
+  }
+
   if (form.price === '' || form.price < 0) {
     errors.price = 'Giá tiền không hợp lệ'
     isValid = false
@@ -253,6 +263,7 @@ const handleSubmit = async () => {
 
   try {
     await updatePackage(packageId, {
+      name: form.name,
       price: Number(form.price),
       priority: Number(form.priority),
       multiplier: Number(form.multiplier),

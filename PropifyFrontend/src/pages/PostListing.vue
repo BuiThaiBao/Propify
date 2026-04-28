@@ -1,15 +1,15 @@
 <template>
   <main class="min-h-screen bg-[#f4f8fc] pb-14 pt-24">
     <div class="mx-auto w-full max-w-[1240px] px-4 lg:px-6">
-      <p class="text-xs text-slate-500">Trang chủ &gt; Đăng tin</p>
-      <h1 class="mt-2 text-[24px] font-extrabold tracking-tight text-slate-900">Đăng tin bất động sản</h1>
+      <p class="text-xs text-slate-500">Trang chủ &gt; {{ isEditMode ? 'Chỉnh sửa tin' : 'Đăng tin' }}</p>
+      <h1 class="mt-2 text-[24px] font-extrabold tracking-tight text-slate-900">{{ isEditMode ? 'Chỉnh sửa tin đăng' : 'Đăng tin bất động sản' }}</h1>
 
       <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,760px)_330px] lg:justify-center">
       <form class="space-y-4 lg:w-[760px]" @submit.prevent="submitListing">
         <section class="section-card">
           <header class="section-title">
             <img :src="uploadImageIcon" alt="upload" class="h-5 w-5" />
-            <h2>Hình ảnh, Video<span class="text-red-500">*</span></h2>
+            <h2 class="required">Hình ảnh, Video</h2>
           </header>
           <p class="section-subtitle"><img :src="uploadImageIcon" alt="upload" class="inline h-3.5 w-3.5 align-[-2px]" /> Tải ảnh và video từ máy tính</p>
 
@@ -48,7 +48,7 @@
           </header>
 
           <div class="mt-3">
-            <p class="field-label">Nhu cầu của bạn *</p>
+            <p class="field-label required">Nhu cầu của bạn</p>
             <div class="mt-2 flex flex-wrap gap-2">
               <button type="button" :class="pillClass(form.demandType === 'SALE')" @click="form.demandType = 'SALE'">Mua bán</button>
               <button type="button" :class="pillClass(form.demandType === 'RENT')" @click="form.demandType = 'RENT'">Cho thuê</button>
@@ -56,8 +56,9 @@
           </div>
 
           <label class="mt-3 block">
-            <span class="field-label">Tiêu đề *</span>
-            <input v-model="form.title" class="input mt-1" maxlength="120" placeholder="Nhập tiêu đề" />
+            <span class="field-label required">Tiêu đề</span>
+            <input v-model="form.title" :class="['input mt-1', fieldError('title') && 'input-error']" maxlength="120" placeholder="Nhập tiêu đề" @blur="touchField('title')" />
+            <p v-if="fieldError('title')" class="field-error">Vui lòng nhập tiêu đề</p>
             <p class="mt-1 text-right text-[12px] text-slate-400">{{ titleCount }}/120 ký tự</p>
           </label>
 
@@ -71,14 +72,15 @@
           </div>
 
           <label class="mt-3 block">
-            <span class="field-label">Mô tả *</span>
-            <textarea v-model="form.description" class="input mt-1 min-h-[140px]" maxlength="5000" placeholder="VD: Giới thiệu các đặc điểm nổi bật của bất động sản:&#10;- Các tiện ích xung quanh: gần công viên, gần trường học&#10;- Thời gian đến khu vực trung tâm, tiện ích xung quanh"></textarea>
+            <span class="field-label required">Mô tả</span>
+            <textarea v-model="form.description" :class="['input mt-1 min-h-[140px]', fieldError('description') && 'input-error']" maxlength="5000" placeholder="VD: Giới thiệu các đặc điểm nổi bật của bất động sản:&#10;- Các tiện ích xung quanh: gần công viên, gần trường học&#10;- Thời gian đến khu vực trung tâm, tiện ích xung quanh" @blur="touchField('description')"></textarea>
+            <p v-if="fieldError('description')" class="field-error">Mô tả phải có ít nhất 20 ký tự</p>
             <p class="mt-1 text-right text-[12px] text-slate-400">{{ descriptionCount }}/5000</p>
           </label>
 
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
-              <span class="field-label">Loại nhà đất *</span>
+              <span class="field-label required">Loại nhà đất</span>
               <select v-model="form.propertyType" class="input mt-1">
                 <option v-for="option in currentPropertyTypeOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
@@ -103,15 +105,17 @@
 
           <div class="mt-3 grid gap-3 md:grid-cols-1">
             <label>
-              <span class="field-label">Diện tích (m2) *</span>
-              <input v-model="form.area" class="input mt-1" type="number" min="0" step="0.1" placeholder="Nhập số" />
+              <span class="field-label required">Diện tích (m2)</span>
+              <input v-model="form.area" :class="['input mt-1', fieldError('area') && 'input-error']" type="text" inputmode="decimal" placeholder="Nhập số" @input="onNumberInput($event, 'area', true)" @blur="touchField('area')" />
+              <p v-if="fieldError('area')" class="field-error">Vui lòng nhập diện tích</p>
             </label>
           </div>
 
           <div class="mt-3 grid gap-3 md:grid-cols-1">
             <label>
-              <span class="field-label">{{ priceLabel }}</span>
-              <input v-model="form.price" class="input mt-1 disabled:bg-slate-100" :disabled="form.isNegotiable" type="number" min="0" placeholder="Nhập số" />
+              <span class="field-label required">{{ priceLabel }}</span>
+              <input v-model="form.price" :class="['input mt-1 disabled:bg-slate-100', fieldError('price') && 'input-error']" :disabled="form.isNegotiable" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'price', false)" @blur="touchField('price')" />
+              <p v-if="fieldError('price')" class="field-error">Vui lòng nhập giá</p>
             </label>
           </div>
 
@@ -128,7 +132,7 @@
           </header>
 
           <label class="mt-3 block">
-            <span class="field-label">Tìm kiếm địa chỉ bất động sản *</span>
+            <span class="field-label required">Tìm kiếm địa chỉ bất động sản</span>
             <div class="mt-1 flex gap-2">
               <input
                 v-model="locationSearchText"
@@ -147,20 +151,21 @@
 
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
-              <span class="field-label">Tỉnh / Thành phố *</span>
-              <select v-model="form.provinceCode" class="input mt-1">
+              <span class="field-label required">Tỉnh / Thành phố</span>
+              <select v-model="form.provinceCode" :class="['input mt-1', fieldError('provinceCode') && 'input-error']" @change="touchField('provinceCode')">
                 <option value="">Chọn Tỉnh/Thành phố</option>
                 <option v-for="province in provinces" :key="province.code" :value="String(province.code)">
                   {{ province.name }}
                 </option>
               </select>
+              <p v-if="fieldError('provinceCode')" class="field-error">Vui lòng chọn tỉnh/thành phố</p>
             </label>
             <label>
-              <span class="field-label">Quận / Huyện *</span>
-              <select v-model="form.districtCode" class="input mt-1" :disabled="!form.provinceCode || districtsLoading">
-                <option value="">{{ districtsLoading ? 'Đang tải quận/huyện...' : 'Chọn Quận/Huyện' }}</option>
-                <option v-for="district in districts" :key="district.code" :value="String(district.code)">
-                  {{ district.name }}
+              <span class="field-label">Phường / Xã</span>
+              <select v-model="form.wardCode" class="input mt-1" :disabled="!form.provinceCode || wardsLoading">
+                <option value="">{{ wardsLoading ? 'Đang tải phường/xã...' : 'Chọn Phường/Xã' }}</option>
+                <option v-for="ward in wards" :key="ward.code" :value="String(ward.code)">
+                  {{ ward.name }}
                 </option>
               </select>
             </label>
@@ -168,24 +173,14 @@
 
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
-              <span class="field-label">Phường / Xã</span>
-              <select v-model="form.wardCode" class="input mt-1" :disabled="!form.districtCode || wardsLoading">
-                <option value="">{{ wardsLoading ? 'Đang tải phường/xã...' : 'Chọn Phường/Xã' }}</option>
-                <option v-for="ward in wards" :key="ward.code" :value="String(ward.code)">
-                  {{ ward.name }}
-                </option>
-              </select>
+              <span class="field-label">Đường / Phố</span>
+              <input v-model="form.streetCode" class="input mt-1" placeholder="Nhập đường/phố" />
             </label>
             <label>
-              <span class="field-label">Đường / Phố</span>
-              <input v-model="form.streetCode" class="input mt-1" placeholder="Chọn Đường/Phố" />
+              <span class="field-label">Địa chỉ cụ thể</span>
+              <input v-model="form.addressDetail" class="input mt-1" inputmode="text" autocomplete="off" placeholder="Nhập địa chỉ" />
             </label>
           </div>
-
-          <label class="mt-3 block">
-            <span class="field-label">Địa chỉ cụ thể</span>
-            <input v-model="form.addressDetail" class="input mt-1" placeholder="Nhập địa chỉ" />
-          </label>
 
           <p v-if="locationLoadError" class="mt-2 text-xs text-red-500">{{ locationLoadError }}</p>
         </section>
@@ -212,7 +207,7 @@
                 >
                   {{ n }}
                 </button>
-                <input v-model="form.bedrooms" class="quick-input" type="number" min="0" placeholder="Nhập số" />
+                <input v-model="form.bedrooms" class="quick-input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'bedrooms', false)" />
               </div>
             </div>
 
@@ -231,7 +226,7 @@
                 >
                   {{ n }}
                 </button>
-                <input v-model="form.bathrooms" class="quick-input" type="number" min="0" placeholder="Nhập số" />
+                <input v-model="form.bathrooms" class="quick-input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'bathrooms', false)" />
               </div>
             </div>
           </div>
@@ -240,14 +235,14 @@
             <label>
               <span class="field-label">Mặt tiền</span>
               <div class="unit-input mt-2">
-                <input v-model="form.facadeWidth" class="input" type="number" min="0" step="0.1" placeholder="Nhập số" />
+                <input v-model="form.facadeWidth" class="input" type="text" inputmode="decimal" placeholder="Nhập số" @input="onNumberInput($event, 'facadeWidth', true)" />
                 <span class="unit-label">m</span>
               </div>
             </label>
             <label>
               <span class="field-label">Chiều sâu</span>
               <div class="unit-input mt-2">
-                <input v-model="form.depth" class="input" type="number" min="0" step="0.1" placeholder="Nhập số" />
+                <input v-model="form.depth" class="input" type="text" inputmode="decimal" placeholder="Nhập số" @input="onNumberInput($event, 'depth', true)" />
                 <span class="unit-label">m</span>
               </div>
             </label>
@@ -266,14 +261,14 @@
               <label>
                 <span class="field-label">Tầng thứ</span>
                 <div class="unit-input mt-2">
-                  <input v-model="form.floorNumber" class="input" type="number" min="0" placeholder="Nhập số" />
+                  <input v-model="form.floorNumber" class="input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floorNumber', false)" />
                   <span class="unit-label">m</span>
                 </div>
               </label>
               <label>
                 <span class="field-label">Số tầng</span>
                 <div class="unit-input mt-2">
-                  <input v-model="form.floors" class="input" type="number" min="0" placeholder="Nhập số" />
+                  <input v-model="form.floors" class="input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floors', false)" />
                   <span class="unit-label">m</span>
                 </div>
               </label>
@@ -312,7 +307,7 @@
                 >
                   {{ n }}
                 </button>
-                <input v-model="form.balconies" class="quick-input" type="number" min="0" placeholder="Nhập số" />
+                <input v-model="form.balconies" class="quick-input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'balconies', false)" />
               </div>
             </div>
           </div>
@@ -357,18 +352,21 @@
 
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
-              <span class="field-label">Họ và tên *</span>
-              <input v-model="form.contactName" class="input mt-1" placeholder="Nhập họ tên" />
+              <span class="field-label required">Họ và tên</span>
+              <input v-model="form.contactName" :class="['input mt-1', fieldError('contactName') && 'input-error']" placeholder="Nhập họ tên" @blur="touchField('contactName')" />
+              <p v-if="fieldError('contactName')" class="field-error">Vui lòng nhập họ tên</p>
             </label>
             <label>
-              <span class="field-label">Số điện thoại *</span>
-              <input v-model="form.contactPhone" class="input mt-1" placeholder="VD: 0912345678" />
+              <span class="field-label required">Số điện thoại</span>
+              <input v-model="form.contactPhone" :class="['input mt-1', fieldError('contactPhone') && 'input-error']" type="tel" inputmode="numeric" maxlength="10" placeholder="VD: 0912345678" @input="onPhoneInput" @blur="touchField('contactPhone')" />
+              <p v-if="fieldError('contactPhone')" class="field-error">Số điện thoại phải có 10 chữ số và bắt đầu bằng 0</p>
             </label>
           </div>
 
           <label class="mt-3 block">
             <span class="field-label">Email</span>
-            <input v-model="form.contactEmail" class="input mt-1" type="email" placeholder="vd_email@example.com" />
+            <input v-model="form.contactEmail" :class="['input mt-1', fieldError('contactEmail') && 'input-error']" type="email" placeholder="vd_email@gmail.com" @blur="touchField('contactEmail')" />
+            <p v-if="fieldError('contactEmail')" class="field-error">Email phải có đuôi @gmail.com</p>
           </label>
         </section>
 
@@ -384,7 +382,7 @@
 
           <div v-if="showAppointmentSection" class="mt-4 grid gap-3 md:grid-cols-2">
             <div class="relative">
-              <span class="field-label">* Chọn ngày</span>
+              <span class="field-label required">Chọn ngày</span>
               <button type="button" class="input mt-2 legal-trigger" @click="showDayDropdown = !showDayDropdown">
                 <span class="legal-selected-text">{{ selectedAppointmentDayLabel }}</span>
                 <span class="text-slate-500">⌄</span>
@@ -406,7 +404,7 @@
             </div>
 
             <div class="relative">
-              <span class="field-label">* Chọn giờ</span>
+              <span class="field-label required">Chọn giờ</span>
               <button type="button" class="input mt-2 legal-trigger" @click="showTimeDropdown = !showTimeDropdown">
                 <span class="legal-selected-text">{{ selectedAppointmentTimeLabel }}</span>
                 <span class="text-slate-500">⌄</span>
@@ -439,8 +437,8 @@
           <div v-if="showVerificationSection" class="mt-4 space-y-4">
             <div class="verify-note-box">
               <p class="text-lg tracking-wide">⭐ ⭐ ⭐</p>
-              <p class="mt-1 text-[20px] font-semibold text-amber-900">Xác thực bất động sản tại Meey Land</p>
-              <p class="mt-1 text-sm text-slate-600">Khi hoàn thành, tin đăng sẽ được ưu tiên vị trí hiển thị trên Meey Land</p>
+              <p class="mt-1 text-[20px] font-semibold text-amber-900">Xác thực bất động sản tại Propify</p>
+              <p class="mt-1 text-sm text-slate-600">Khi hoàn thành, tin đăng sẽ được ưu tiên vị trí hiển thị trên Propify</p>
             </div>
 
             <p class="verify-label-row">
@@ -515,12 +513,9 @@
         </section>
 
         <div class="sticky bottom-4 z-20 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-          <div class="flex gap-3">
-            <button type="button" class="flex-1 rounded-xl border border-sky-300 px-4 py-2.5 text-sm font-semibold text-sky-600" @click="resetForm">Xem trước tin đăng</button>
-            <button type="submit" :disabled="loading" class="flex-1 rounded-xl bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60">
-              {{ loading ? 'Đang đăng tin...' : 'Tiếp tục' }}
-            </button>
-          </div>
+          <button type="submit" :disabled="loading" class="w-full rounded-xl bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60">
+            {{ loading ? 'Đang đăng tin...' : 'Tiếp tục' }}
+          </button>
         </div>
       </form>
 
@@ -596,6 +591,7 @@ import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import listingService from "@/services/listingService";
 import cloudinaryService from "@/services/cloudinaryService";
+import { useRoute, useRouter } from "vue-router";
 import uploadImageIcon from "@/assets/images/listing/postlisting/uploadImage.png";
 import locationImageIcon from "@/assets/images/listing/postlisting/locationImage.png";
 import informationImageIcon from "@/assets/images/listing/postlisting/information.png";
@@ -719,11 +715,15 @@ function createInitialState() {
     images: [],
     video: null,
     attributeIds: [],
+    amenities: [],
+    publicInfoAgreed: false,
     requestVerification: false,
     identityCardFront: null,
     identityCardBack: null,
     legalDocuments: [],
     appointmentAt: "",
+    appointmentDays: [],
+    appointmentTimeSlot: "",
     appointmentContactName: "",
     appointmentContactPhone: "",
     appointmentContactEmail: "",
@@ -732,18 +732,25 @@ function createInitialState() {
 }
 
 const form = reactive(createInitialState());
+const route = useRoute();
+const router = useRouter();
+const isEditMode = computed(() => !!route.params.id);
+const editListingId = computed(() => route.params.id);
+const isHydratingEdit = ref(false);
+const isSyncingAdminFromMap = ref(false);
+const editLoading = ref(false);
 const loading = ref(false);
 const submitError = ref("");
 const validationErrors = ref({});
+const touchedFields = reactive({});
 const locationSearchText = ref("");
 const mapElement = ref(null);
 let map = null;
 let locationMarker = null;
 const provinces = ref([]);
-const districts = ref([]);
 const wards = ref([]);
-const districtsLoading = ref(false);
 const wardsLoading = ref(false);
+
 const locationSearching = ref(false);
 const locationLoadError = ref("");
 const imagePreviews = ref([]);
@@ -767,10 +774,9 @@ const infoFieldCount = computed(() => {
   if (form.description.trim().length >= 20) count++;
   if (form.propertyType.trim()) count++;
   if (form.provinceCode.trim()) count++;
-  if (form.districtCode.trim()) count++;
   return count;
 });
-const infoPercent = computed(() => Math.round((infoFieldCount.value / 5) * 100));
+const infoPercent = computed(() => Math.round((infoFieldCount.value / 4) * 100));
 const infoPoints = computed(() => (infoPercent.value >= 80 ? 2 : infoPercent.value >= 40 ? 1 : 0));
 const infoDone = computed(() => infoPoints.value === 2);
 
@@ -833,15 +839,7 @@ const selectedProvinceName = computed(() => {
   return item?.name || "";
 });
 
-const selectedDistrictName = computed(() => {
-  const item = districts.value.find((district) => String(district.code) === form.districtCode);
-  return item?.name || "";
-});
 
-const selectedWardName = computed(() => {
-  const item = wards.value.find((ward) => String(ward.code) === form.wardCode);
-  return item?.name || "";
-});
 
 watch(
   () => form.demandType,
@@ -858,28 +856,14 @@ watch(
 watch(
   () => form.provinceCode,
   async (newValue) => {
-    form.districtCode = "";
+    if (isHydratingEdit.value || isSyncingAdminFromMap.value) return;
+
     form.wardCode = "";
-    districts.value = [];
     wards.value = [];
 
     if (!newValue) return;
-    await fetchDistrictsByProvince(newValue);
-
+    await fetchWardsByProvince(newValue);
     await geocodeAddressToMap(composeAddressQuery({ includeDetail: false }), 11);
-  },
-);
-
-watch(
-  () => form.districtCode,
-  async (newValue) => {
-    form.wardCode = "";
-    wards.value = [];
-
-    if (!newValue) return;
-    await fetchWardsByDistrict(newValue);
-
-    await geocodeAddressToMap(composeAddressQuery({ includeDetail: false }), 13);
   },
 );
 
@@ -887,18 +871,103 @@ watch([selectedAppointmentDays, appointmentTimeSlot], () => {
   form.appointmentAt = buildNextAppointmentDateTime();
 });
 
-watch(
-  () => form.wardCode,
-  async (newValue) => {
-    if (!newValue) return;
-    await geocodeAddressToMap(composeAddressQuery({ includeDetail: false }), 15);
-  },
-);
+// Auto-save form to draft
+watch(form, () => saveFormToDraft(), { deep: true });
+watch([selectedAmenities, publicInfoAgreed, selectedAppointmentDays, appointmentTimeSlot], () => saveFormToDraft(), { deep: true });
 
 onMounted(async () => {
   initializeMap();
   await fetchProvinces();
+
+  if (isEditMode.value) {
+    await loadListingForEdit();
+  } else {
+    loadFormFromDraft();
+  }
 });
+
+async function loadListingForEdit() {
+  editLoading.value = true;
+  isHydratingEdit.value = true;
+  try {
+    const response = await listingService.getById(editListingId.value);
+    const data = response.data.data;
+    const p = data.property || {};
+
+    form.demandType = data.demand_type || 'SALE';
+    form.title = data.title || '';
+    form.description = data.description || '';
+    form.propertyType = p.type || 'APARTMENT';
+    form.provinceCode = p.province_code ? String(p.province_code) : '';
+    form.districtCode = '';
+    form.wardCode = '';
+    form.streetCode = p.street_code || '';
+    form.projectName = p.project_name || '';
+    form.addressDetail = p.address_detail || '';
+    form.area = p.area ?? '';
+    form.price = p.price ?? '';
+    form.isNegotiable = p.is_negotiable || false;
+    form.bedrooms = p.bedrooms ?? '';
+    form.bathrooms = p.bathrooms ?? '';
+    form.floors = p.floors ?? '';
+    form.floorNumber = p.floor_number ?? '';
+    form.balconies = p.balconies ?? '';
+    form.facadeWidth = p.facade_width ?? '';
+    form.depth = p.depth ?? '';
+    form.roadWidth = p.road_width ?? '';
+    form.directionCode = p.direction_code || '';
+    form.balconyDirectionCode = p.balcony_direction_code || '';
+    form.furnitureStatus = p.furniture_status || '';
+    form.legalPaperTypes = p.legal_paper_types || [];
+    form.contactName = p.contact_name || '';
+    form.contactPhone = p.contact_phone || '';
+    form.contactEmail = p.contact_email || '';
+    form.posterType = p.poster_type || 'OWNER';
+    form.lat = p.lat ?? '';
+    form.lng = p.lng ?? '';
+    form.amenities = p.amenities || [];
+    form.publicInfoAgreed = Boolean(p.public_info_agreed);
+    selectedAmenities.value = [...(p.amenities || [])];
+    publicInfoAgreed.value = Boolean(p.public_info_agreed);
+
+    // Restore appointment data for edit form
+    form.appointmentAt = data.appointment_at || '';
+    form.appointmentDays = Array.isArray(data.appointment_days) ? data.appointment_days.map((d) => Number(d)) : [];
+    form.appointmentTimeSlot = data.appointment_time_slot || '';
+    form.appointmentContactName = data.appointment_contact_name || '';
+    form.appointmentContactPhone = data.appointment_contact_phone || '';
+    form.appointmentContactEmail = data.appointment_contact_email || '';
+    form.appointmentNote = data.appointment_note || '';
+
+    selectedAppointmentDays.value = [...form.appointmentDays];
+    appointmentTimeSlot.value = form.appointmentTimeSlot;
+
+    // Load existing images as URLs (not File objects)
+    if (data.images && data.images.length > 0) {
+      const sorted = [...data.images].sort((a, b) => a.sort_order - b.sort_order);
+      form.images = sorted.map(img => img.url);
+      imagePreviews.value = sorted.map((img, index) => ({
+        name: `Ảnh ${index + 1}`,
+        url: img.url,
+      }));
+    }
+
+
+
+    // Set map marker if lat/lng exists
+    if (form.lat && form.lng) {
+      setTimeout(() => {
+        setMarkerPosition(form.lat, form.lng, 15);
+      }, 500);
+    }
+  } catch (err) {
+    console.error('Failed to load listing for edit:', err);
+    submitError.value = 'Không thể tải dữ liệu tin đăng để chỉnh sửa.';
+  } finally {
+    isHydratingEdit.value = false;
+    editLoading.value = false;
+  }
+}
 
 function initializeMap() {
   if (!mapElement.value || map) return;
@@ -951,8 +1020,6 @@ function composeAddressQuery({ includeDetail = true } = {}) {
     chunks.push(form.streetCode.trim());
   }
 
-  if (selectedWardName.value) chunks.push(selectedWardName.value);
-  if (selectedDistrictName.value) chunks.push(selectedDistrictName.value);
   if (selectedProvinceName.value) chunks.push(selectedProvinceName.value);
 
   chunks.push("Việt Nam");
@@ -964,16 +1031,9 @@ async function geocodeAddressToMap(address, zoom = 15) {
 
   try {
     locationSearching.value = true;
-    const params = new URLSearchParams({
-      q: address,
-      format: "json",
-      addressdetails: "1",
-      limit: "1",
-      countrycodes: "vn",
-      "accept-language": "vi",
-    });
+    const params = new URLSearchParams({ q: address });
 
-    const response = await fetch(`https://nominatim.openstreetmap.org/search?${params.toString()}`);
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/v1/geocoding/search?${params.toString()}`);
     if (!response.ok) return;
 
     const data = await response.json();
@@ -995,17 +1055,13 @@ async function reverseGeocodeFromLatLng(lat, lng) {
   try {
     const params = new URLSearchParams({
       lat: String(lat),
-      lon: String(lng),
-      format: "json",
-      addressdetails: "1",
-      zoom: "18",
-      "accept-language": "vi",
+      lng: String(lng),
     });
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`);
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/v1/geocoding/reverse?${params.toString()}`);
     if (!response.ok) return;
 
     const data = await response.json();
-    if (!data) return;
+    if (!data || data.error) return;
 
     locationSearchText.value = data.display_name || "";
 
@@ -1017,7 +1073,7 @@ async function reverseGeocodeFromLatLng(lat, lng) {
     const houseNumber = data.address?.house_number || "";
     form.addressDetail = [houseNumber, road].filter(Boolean).join(" ").trim();
 
-    await syncAdministrativeCodesFromAddress(data.address || {});
+    await syncAdministrativeCodesFromAddress(data.address || {}, data.display_name || "");
   } catch {
     // Ignore reverse geocode failures.
   }
@@ -1028,75 +1084,117 @@ function normalizeAdminName(value) {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/thanh pho|tinh|quan|huyen|thi xa|thi tran|phuong|xa|tp\.?/g, "")
+    .replace(/thanh pho |tinh |tp\.? ?|city |province /g, "")
+    .replace(/ ?(thanh pho|tinh|tp|city|province)$/g, "")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function findProvinceByAddress(address) {
-  const candidates = [address.city, address.state, address.province, address.region].filter(Boolean);
-  if (!candidates.length) return null;
+/**
+ * Parse display_name từ Nominatim để lấy các segment địa chỉ.
+ * VD: "Sở Tài nguyên, Lê Tự Trọng, Khu phố 3, Phường Sài Gòn, Thành phố Thủ Đức, Thành phố Hồ Chí Minh, 71006, Việt Nam"
+ */
+function parseDisplayNameSegments(displayName) {
+  const text = String(displayName || "");
+  return text
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s && !/^\d{5,}$/.test(s) && s !== "Việt Nam" && s !== "Vietnam");
+}
+
+function findProvinceByAddress(address, displayName = "") {
+  const primaryCandidates = [address.state, address.province, address.county, address.region].filter(Boolean);
+
+  // Nominatim dùng địa chính mới, city có thể không phải province
+  // → parse từ display_name: segment cuối trước "Việt Nam" thường là province
+  const segments = parseDisplayNameSegments(displayName);
+  const tailCandidates = segments.slice(-4).filter(Boolean);
+  const secondaryCandidates = [address.city, address.town].filter(Boolean);
+
+  const allCandidates = [...primaryCandidates, ...tailCandidates, ...secondaryCandidates];
+  if (!allCandidates.length) return null;
+
+  const exactMatch = provinces.value.find((province) => {
+    const provinceName = normalizeAdminName(province.name);
+    return allCandidates.some((c) => normalizeAdminName(c) === provinceName);
+  });
+  if (exactMatch) return exactMatch;
 
   return provinces.value.find((province) => {
     const provinceName = normalizeAdminName(province.name);
-    return candidates.some((candidate) => {
-      const normalized = normalizeAdminName(candidate);
-      return provinceName === normalized || provinceName.includes(normalized) || normalized.includes(provinceName);
+    return allCandidates.some((c) => {
+      const nc = normalizeAdminName(c);
+      return nc && (provinceName.includes(nc) || nc.includes(provinceName));
     });
   }) || null;
 }
 
-function findDistrictByAddress(address) {
-  const candidates = [address.state_district, address.county, address.city_district].filter(Boolean);
-  if (!candidates.length) return null;
+async function syncAdministrativeCodesFromAddress(address, displayName = "") {
+  isSyncingAdminFromMap.value = true;
 
-  return districts.value.find((district) => {
-    const districtName = normalizeAdminName(district.name);
-    return candidates.some((candidate) => {
-      const normalized = normalizeAdminName(candidate);
-      return districtName === normalized || districtName.includes(normalized) || normalized.includes(districtName);
-    });
-  }) || null;
+  try {
+    const province = findProvinceByAddress(address, displayName);
+    if (!province) return;
+
+    if (String(province.code) !== form.provinceCode) {
+      form.provinceCode = String(province.code);
+      await fetchWardsByProvince(form.provinceCode);
+    } else if (!wards.value.length) {
+      await fetchWardsByProvince(form.provinceCode);
+    }
+
+    // Thử match phường/xã từ Nominatim
+    const ward = findWardByAddress(address, displayName);
+    form.wardCode = ward ? String(ward.code) : "";
+  } finally {
+    isSyncingAdminFromMap.value = false;
+  }
 }
 
-function findWardByAddress(address) {
-  const candidates = [address.suburb, address.quarter, address.ward, address.village, address.town].filter(Boolean);
+function normalizeWardName(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/phuong |xa |thi tran |ward |commune /g, "")
+    .replace(/ ?(phuong|xa|thi tran|ward|commune)$/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function findWardByAddress(address, displayName = "") {
+  const wardFromDisplay = extractWardFromDisplayName(displayName);
+  const candidates = [
+    address.suburb,
+    address.quarter,
+    address.ward,
+    address.village,
+    address.hamlet,
+    wardFromDisplay,
+  ].filter(Boolean);
   if (!candidates.length) return null;
+
+  const normalizedCandidates = candidates.map((c) => normalizeWardName(c)).filter(Boolean);
+
+  const exactMatch = wards.value.find((ward) => {
+    const wn = normalizeWardName(ward.name);
+    return normalizedCandidates.some((c) => wn === c);
+  });
+  if (exactMatch) return exactMatch;
 
   return wards.value.find((ward) => {
-    const wardName = normalizeAdminName(ward.name);
-    return candidates.some((candidate) => {
-      const normalized = normalizeAdminName(candidate);
-      return wardName === normalized || wardName.includes(normalized) || normalized.includes(wardName);
-    });
+    const wn = normalizeWardName(ward.name);
+    return normalizedCandidates.some((c) => wn.includes(c) || c.includes(wn));
   }) || null;
 }
 
-async function syncAdministrativeCodesFromAddress(address) {
-  const province = findProvinceByAddress(address);
-  if (!province) return;
-
-  if (String(province.code) !== form.provinceCode) {
-    form.provinceCode = String(province.code);
-    await fetchDistrictsByProvince(form.provinceCode);
-  } else if (!districts.value.length) {
-    await fetchDistrictsByProvince(form.provinceCode);
-  }
-
-  const district = findDistrictByAddress(address);
-  if (!district) return;
-
-  if (String(district.code) !== form.districtCode) {
-    form.districtCode = String(district.code);
-    await fetchWardsByDistrict(form.districtCode);
-  } else if (!wards.value.length) {
-    await fetchWardsByDistrict(form.districtCode);
-  }
-
-  const ward = findWardByAddress(address);
-  if (!ward) return;
-  form.wardCode = String(ward.code);
+function extractWardFromDisplayName(displayName) {
+  const text = String(displayName || "");
+  if (!text) return "";
+  const match = text.match(/\b(Phường\s+[^,]+|Xã\s+[^,]+|Thị trấn\s+[^,]+)/i);
+  return match?.[1]?.trim() || "";
 }
 
 async function searchAddressOnMap() {
@@ -1108,7 +1206,7 @@ async function searchAddressOnMap() {
 async function fetchProvinces() {
   locationLoadError.value = "";
   try {
-    const response = await fetch("https://provinces.open-api.vn/api/p/");
+    const response = await fetch("https://provinces.open-api.vn/api/v2/p/");
     if (!response.ok) {
       throw new Error("Không thể tải danh sách tỉnh/thành phố");
     }
@@ -1118,39 +1216,31 @@ async function fetchProvinces() {
   }
 }
 
-async function fetchDistrictsByProvince(provinceCode) {
-  locationLoadError.value = "";
-  districtsLoading.value = true;
-  try {
-    const response = await fetch(`https://provinces.open-api.vn/api/p/${provinceCode}?depth=2`);
-    if (!response.ok) {
-      throw new Error("Không thể tải danh sách quận/huyện");
-    }
-    const data = await response.json();
-    districts.value = data.districts || [];
-  } catch (error) {
-    locationLoadError.value = error.message || "Không thể tải dữ liệu quận/huyện";
-  } finally {
-    districtsLoading.value = false;
-  }
-}
-
-async function fetchWardsByDistrict(districtCode) {
+/**
+ * Load phường/xã theo tỉnh/thành phố từ API v2 (2025).
+ * API mới không có quận/huyện — phường/xã trực thuộc tỉnh.
+ */
+async function fetchWardsByProvince(provinceCode) {
   locationLoadError.value = "";
   wardsLoading.value = true;
   try {
-    const response = await fetch(`https://provinces.open-api.vn/api/d/${districtCode}?depth=2`);
+    const response = await fetch(`https://provinces.open-api.vn/api/v2/w/?province=${provinceCode}`);
     if (!response.ok) {
       throw new Error("Không thể tải danh sách phường/xã");
     }
     const data = await response.json();
-    wards.value = data.wards || [];
+    // API v2 trả về mảng phẳng phường/xã, sắp xếp theo tên
+    const sorted = Array.isArray(data) ? data : [];
+    sorted.sort((a, b) => a.name.localeCompare(b.name, 'vi'));
+    wards.value = sorted;
   } catch (error) {
     locationLoadError.value = error.message || "Không thể tải dữ liệu phường/xã";
   } finally {
     wardsLoading.value = false;
   }
 }
+
+
 
 function onImagesChange(event) {
   const newFiles = event.target.files ? Array.from(event.target.files) : [];
@@ -1288,6 +1378,81 @@ function setQuickNumber(field, value) {
   form[field] = value;
 }
 
+// ── Validation helpers ──
+function touchField(field) {
+  touchedFields[field] = true;
+}
+
+function fieldError(field) {
+  if (!touchedFields[field]) return false;
+  const value = form[field];
+  if (field === 'price' && form.isNegotiable) return false;
+  if (field === 'contactPhone') {
+    if (!value) return true;
+    // Phải đúng 10 chữ số và bắt đầu bằng 0
+    if (!/^0[0-9]{9}$/.test(value)) return true;
+    return false;
+  }
+  if (field === 'contactEmail') {
+    if (!value || !value.trim()) return false;
+    return !value.trim().toLowerCase().endsWith('@gmail.com');
+  }
+  if (field === 'description') {
+    return !value || value.trim().length < 20;
+  }
+  if (field === 'area' || field === 'price') {
+    return !value || Number(value) <= 0;
+  }
+  if (typeof value === 'string') return !value.trim();
+  return !value;
+}
+
+function preventNegative(event, field) {
+  const val = Number(event.target.value);
+  if (val < 0) {
+    form[field] = 0;
+    event.target.value = 0;
+  }
+}
+
+function onNumberInput(event, field, allowDecimal = false) {
+  let value = event.target.value;
+  
+  // Xóa toàn bộ ký tự không phải số (và dấu . nếu cho thập phân)
+  if (allowDecimal) {
+    value = value.replace(/[^0-9.]/g, '');
+    // Chỉ giữ 1 dấu . (nếu có nhiều hơn, xóa các dấu . sau)
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+  } else {
+    value = value.replace(/[^0-9]/g, '');
+  }
+  
+  form[field] = value;
+  event.target.value = value;
+}
+
+function onPhoneInput(event) {
+  const digits = event.target.value.replace(/[^0-9]/g, '');
+  // Giới hạn ở 10 chữ số
+  const limited = digits.slice(0, 10);
+  form.contactPhone = limited;
+  event.target.value = limited;
+}
+
+function touchAllRequired() {
+  ['title', 'description', 'area', 'price', 'provinceCode', 'contactName', 'contactPhone'].forEach(f => touchField(f));
+}
+
+function hasRequiredErrors() {
+  return ['title', 'description', 'area', 'provinceCode', 'contactName', 'contactPhone'].some(f => {
+    touchedFields[f] = true;
+    return fieldError(f);
+  }) || (!form.isNegotiable && fieldError('price'));
+}
+
 function setFurnitureStatus(status) {
   form.furnitureStatus = status;
 }
@@ -1298,6 +1463,66 @@ function toggleAmenity(amenity) {
     return;
   }
   selectedAmenities.value = [...selectedAmenities.value, amenity];
+}
+
+// ── Draft/LocalStorage Helpers ──
+const DRAFT_STORAGE_KEY = "postListing_draft";
+const DRAFT_TTL_MS = 60 * 1000; // 1 minute
+let draftSaveTimer = null;
+
+function saveFormToDraft() {
+  clearTimeout(draftSaveTimer);
+  draftSaveTimer = setTimeout(() => {
+    const draftData = {
+      form: { ...form },
+      selectedAmenities: [...selectedAmenities.value],
+      publicInfoAgreed: publicInfoAgreed.value,
+      selectedAppointmentDays: [...selectedAppointmentDays.value],
+      appointmentTimeSlot: appointmentTimeSlot.value,
+      legalPaperTypesSelection: [...form.legalPaperTypes],
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+  }, 1000); // Debounce 1 giây
+}
+
+function loadFormFromDraft() {
+  const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+  if (!savedDraft) return;
+
+  try {
+    const draftData = JSON.parse(savedDraft);
+
+    const savedAt = Number(draftData?.timestamp || 0);
+    const isExpired = !savedAt || Date.now() - savedAt > DRAFT_TTL_MS;
+    if (isExpired) {
+      clearDraft();
+      return;
+    }
+
+    // Restore form data (nhưng không restore files/images vì browser security)
+    Object.assign(form, draftData.form);
+    
+    // Đảm bảo clear các file bị biến thành object rỗng do JSON.stringify
+    form.images = [];
+    form.video = null;
+    form.identityCardFront = null;
+    form.identityCardBack = null;
+    form.legalDocuments = [];
+    
+    selectedAmenities.value = draftData.selectedAmenities || [];
+    publicInfoAgreed.value = draftData.publicInfoAgreed || false;
+    selectedAppointmentDays.value = draftData.selectedAppointmentDays || [];
+    appointmentTimeSlot.value = draftData.appointmentTimeSlot || "";
+    console.log("✓ Form đã được khôi phục từ bản dự thảo");
+  } catch (error) {
+    console.error("Lỗi khi load dự thảo:", error);
+    clearDraft();
+  }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_STORAGE_KEY);
 }
 
 function pillClass(active) {
@@ -1357,10 +1582,21 @@ onBeforeUnmount(() => {
 });
 
 async function submitListing() {
+  // Validate required fields first
+  touchAllRequired();
+  if (hasRequiredErrors()) {
+    submitError.value = 'Vui lòng điền đầy đủ các trường bắt buộc.';
+    return;
+  }
+
   loading.value = true;
   submitError.value = "";
   validationErrors.value = {};
   form.requestVerification = shouldRequestVerification.value;
+  form.amenities = [...selectedAmenities.value];
+  form.publicInfoAgreed = publicInfoAgreed.value;
+  form.appointmentDays = [...selectedAppointmentDays.value];
+  form.appointmentTimeSlot = appointmentTimeSlot.value;
 
   try {
     // Helper function to upload an array of files
@@ -1409,10 +1645,18 @@ async function submitListing() {
     }
 
     // 4. Submit to Backend
-    const response = await listingService.create(form);
+    let response;
+    if (isEditMode.value) {
+      response = await listingService.update(editListingId.value, form);
+    } else {
+      response = await listingService.create(form);
+    }
     submitError.value = "";
-    alert(response.data?.message || "Đăng tin thành công");
+    clearDraft();
+    alert(response.data?.message || (isEditMode.value ? "Cập nhật tin thành công" : "Đăng tin thành công"));
     resetForm();
+    // Redirect đến trang danh sách tin đăng
+    router.push('/profile?tab=listings');
   } catch (error) {
     if (error.response && error.response.data) {
       const data = error.response.data;
@@ -1526,6 +1770,12 @@ async function submitListing() {
   color: #334155;
 }
 
+.field-label.required::after {
+  content: ' *';
+  color: #ef4444;
+  font-weight: 700;
+}
+
 .with-icon {
   display: inline-flex;
   align-items: center;
@@ -1561,6 +1811,7 @@ async function submitListing() {
 .location-map {
   width: 100%;
   height: 290px;
+  z-index: 1;
 }
 
 .legal-trigger {
@@ -1714,6 +1965,18 @@ async function submitListing() {
   border-color: #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15);
   background: #fff;
+}
+
+.input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.field-error {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #ef4444;
+  font-weight: 500;
 }
 
 .upload-box {

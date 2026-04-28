@@ -22,11 +22,9 @@ final readonly class CreatePackageDto
 
     public static function fromRequest(CreatePackageRequest $request): self
     {
-        $type = PackageType::from($request->input('type'));
-
         return new self(
-            name: $type->name,
-            slug: $type->value, // gold, silver
+            name: $request->input('name'),
+            slug: $request->input('slug'),
             price: (float) $request->input('price'),
             priority: (int) $request->input('priority'),
             multiplier: (float) $request->input('multiplier'),
