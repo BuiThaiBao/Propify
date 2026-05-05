@@ -43,7 +43,7 @@ return new class extends Migration {
             // Index cho Mapview search
             $table->index(['lat', 'lng'], 'idx_properties_location');
             $table->index('price', 'idx_properties_price');
-            $table->index(['province_code', 'district_code'], 'idx_properties_region');
+            $table->index(['province_code'], 'idx_properties_region');
             $table->index('type', 'idx_properties_type');
         });
     }
