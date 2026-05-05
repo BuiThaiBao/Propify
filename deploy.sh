@@ -1,6 +1,6 @@
 #!/bin/bash
 APP_DIR="/var/www/Propify"
-LOG_FILE="/tmp/deploy.log"
+LOG_FILE="/var/www/Propify/deploy.log"
 exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo "1. Bắt đầu tải mã nguồn mới nhất từ GitHub..."
