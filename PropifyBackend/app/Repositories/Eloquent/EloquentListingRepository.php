@@ -93,10 +93,15 @@ final class EloquentListingRepository implements ListingRepository
     public function paginatePublic(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
     {
         return Listing::query()
+            ->select([
+                'id', 'property_id', 'owner_id', 'title', 'demand_type',
+                'status', 'is_verified', 'has_video', 'package_id',
+                'submitted_at', 'published_at',
+            ])
             ->with([
-                'property',
-                'images',
-                'owner',
+                'property:id,type,address_detail,area,price,bedrooms,bathrooms,contact_name,poster_type,project_name',
+                'images:id,listing_id,image_url,is_thumbnail,sort_order',
+                'owner:id,full_name,avatar_url',
             ])
             ->where('status', 'ACTIVE')
             ->when($demandType, function ($query) use ($demandType) {
