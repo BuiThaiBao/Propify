@@ -145,6 +145,7 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
         Route::post('/', [ListingController::class, 'store'])->name('store');
         Route::get('/my', [ListingController::class, 'myListings'])->name('my');
         Route::put('/{id}', [ListingController::class, 'update'])->where('id', '[0-9]+')->name('update');
+        Route::post('/{id}/lock', [ListingController::class, 'lock'])->where('id', '[0-9]+')->name('lock');
     });
 });
 

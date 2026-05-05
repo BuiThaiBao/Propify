@@ -12,7 +12,6 @@ return new class extends Migration {
             $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
             $table->string('type', 50)->comment('APARTMENT, HOUSE, LAND, OFFICE, ROOM...');
             $table->string('province_code', 20);
-            $table->string('district_code', 20);
             $table->string('ward_code', 20)->nullable();
             $table->string('street_code', 255)->nullable();
             $table->string('project_name', 255)->nullable();
@@ -44,7 +43,7 @@ return new class extends Migration {
             // Index cho Mapview search
             $table->index(['lat', 'lng'], 'idx_properties_location');
             $table->index('price', 'idx_properties_price');
-            $table->index(['province_code', 'district_code'], 'idx_properties_region');
+            $table->index('province_code', 'idx_properties_region');
             $table->index('type', 'idx_properties_type');
         });
     }

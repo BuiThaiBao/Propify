@@ -324,6 +324,13 @@
           </select>
         </div>
 
+        <div
+          v-if="listingActionMessage"
+          :class="['mb-4 rounded-lg px-4 py-3 text-sm border', listingActionSuccess ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700']"
+        >
+          {{ listingActionMessage }}
+        </div>
+
         <div class="overflow-x-auto rounded-lg border border-slate-200">
           <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs text-slate-500">
@@ -361,13 +368,23 @@
                   </span>
                 </td>
                 <td class="px-3 py-3">
-                  <button
-                    class="flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-600 transition hover:bg-sky-100 hover:border-sky-300"
-                    @click.stop="router.push('/listings/' + item.id + '/edit')"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                    Sửa
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <button
+                      class="flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-600 transition hover:bg-sky-100 hover:border-sky-300"
+                      @click.stop="router.push('/listings/' + item.id + '/edit')"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      Sửa
+                    </button>
+                    <button
+                      class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                      :class="item.status === 'ACTIVE' ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:border-rose-300' : 'border-slate-200 bg-slate-100 text-slate-400'"
+                      :disabled="item.status !== 'ACTIVE' || lockingListing"
+                      @click.stop="openLockListingModal(item)"
+                    >
+                      Khóa tin
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -479,6 +496,18 @@
         </form>
       </section>
     </main>
+
+    <ConfirmActionModal
+      :open="lockListingModalOpen"
+      title="Xác nhận khóa tin"
+      :message="lockListingModalMessage"
+      confirm-text="Xác nhận khóa"
+      cancel-text="Hủy"
+      :loading="lockingListing"
+      loading-text="Đang khóa..."
+      @confirm="handleConfirmLockListing"
+      @cancel="closeLockListingModal"
+    />
   </div>
 </template>
 
@@ -489,6 +518,7 @@ import { useRoute, useRouter } from 'vue-router';
 import userService from '@/services/userService';
 import cloudinaryService from '@/services/cloudinaryService';
 import listingService from '@/services/listingService';
+import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
 
 const authStore = useAuthStore();
 const route = useRoute();
@@ -588,6 +618,11 @@ const listingPagination = reactive({
   lastPage: 1,
   total: 0,
 });
+const lockListingModalOpen = ref(false);
+const lockListingTarget = ref(null);
+const lockingListing = ref(false);
+const listingActionMessage = ref('');
+const listingActionSuccess = ref(false);
 
 // ── Phone required from đăng tin ──
 const requirePhone = ref(false);
@@ -685,6 +720,51 @@ async function loadMyListings(page = 1) {
     listingPagination.total = 0;
   } finally {
     listingsLoading.value = false;
+  }
+}
+
+const lockListingModalMessage = computed(() => {
+  if (!lockListingTarget.value) {
+    return 'Bạn có chắc chắn muốn khóa tin này không?';
+  }
+
+  return `Bạn có chắc chắn muốn khóa tin "${lockListingTarget.value.title}" không?`;
+});
+
+function openLockListingModal(item) {
+  lockListingTarget.value = item;
+  lockListingModalOpen.value = true;
+}
+
+function closeLockListingModal() {
+  if (lockingListing.value) {
+    return;
+  }
+
+  lockListingModalOpen.value = false;
+  lockListingTarget.value = null;
+}
+
+async function handleConfirmLockListing() {
+  if (!lockListingTarget.value) {
+    return;
+  }
+
+  lockingListing.value = true;
+  listingActionMessage.value = '';
+
+  try {
+    await listingService.lock(lockListingTarget.value.id);
+    listingActionSuccess.value = true;
+    listingActionMessage.value = 'Khóa tin đăng thành công.';
+    lockListingModalOpen.value = false;
+    lockListingTarget.value = null;
+    await loadMyListings(listingPagination.currentPage);
+  } catch (error) {
+    listingActionSuccess.value = false;
+    listingActionMessage.value = error?.response?.data?.message || 'Không thể khóa tin đăng. Vui lòng thử lại.';
+  } finally {
+    lockingListing.value = false;
   }
 }
 

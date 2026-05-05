@@ -47,6 +47,8 @@ enum ErrorCode: int
     case SlotHasApprovedBooking   = 6009;
     case SlotListingMismatch      = 6010;
     case BookingExistsOnListing   = 6011;
+    case ListingCannotBeLocked    = 6012;
+    case ListingAlreadyLocked     = 6013;
 
     // ==================== Chat (7xxx) ====================
     case ConversationNotFound              = 7001;
@@ -98,6 +100,8 @@ enum ErrorCode: int
             self::SlotHasApprovedBooking => 'Không thể sửa vì đã có lịch hẹn được duyệt trong khung giờ này',
             self::SlotListingMismatch => 'Khung giờ không thuộc bài đăng này',
             self::BookingExistsOnListing => 'Bạn đã có một lịch hẹn chưa hoàn thành trên căn hộ này',
+            self::ListingCannotBeLocked => 'Không thể khóa tin này do trạng thái hiện tại không hợp lệ',
+            self::ListingAlreadyLocked => 'Tin đăng đã được khóa trước đó',
             self::ServerError => 'Lỗi hệ thống',
             self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
             self::PackageAlreadyExists => "Gói tin đã tồn tại",
@@ -149,6 +153,10 @@ enum ErrorCode: int
             self::SlotListingMismatch => Response::HTTP_UNPROCESSABLE_ENTITY,
 
             self::BookingExistsOnListing => Response::HTTP_CONFLICT,
+
+            self::ListingCannotBeLocked => Response::HTTP_UNPROCESSABLE_ENTITY,
+
+            self::ListingAlreadyLocked => Response::HTTP_CONFLICT,
 
             self::UserAlreadyExists => Response::HTTP_CONFLICT,
             self::PackageAlreadyExists => Response::HTTP_CONFLICT,

@@ -83,6 +83,10 @@ const listingService = {
     return api.put(`/v1/listings/${id}`, data);
   },
 
+  lock(id) {
+    return api.post(`/v1/listings/${id}/lock`);
+  },
+
   create(payload) {
     const data = {
       demand_type: payload.demandType,
