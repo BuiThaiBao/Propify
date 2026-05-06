@@ -49,11 +49,11 @@ enum ErrorCode: int
     case BookingExistsOnListing   = 6011;
     case ListingCannotBeLocked    = 6012;
     case ListingAlreadyLocked     = 6013;
-    case BookingNotPending        = 6012;
-    case BookingNotFound          = 6013;
-    case BookingNotOwner          = 6014;
-    case BookingTooLateToCancel   = 6015;
-    case ListingNotActive         = 6016;
+    case BookingNotPending        = 6014;
+    case BookingNotFound          = 6015;
+    case BookingNotOwner          = 6016;
+    case BookingTooLateToCancel   = 6017;
+    case ListingNotActive         = 6018;
 
     // ==================== Chat (7xxx) ====================
     case ConversationNotFound              = 7001;
