@@ -1,5 +1,15 @@
 <template>
   <main class="min-h-screen bg-[#f4f8fc] pb-14 pt-24">
+    <div class="toast-stack">
+      <div
+        v-for="toast in toasts"
+        :key="toast.id"
+        :class="['toast-item', `toast-${toast.type}`]"
+      >
+        {{ toast.message }}
+      </div>
+    </div>
+
     <div class="mx-auto w-full max-w-[1240px] px-4 lg:px-6">
       <p class="text-xs text-slate-500">Trang chủ &gt; {{ isEditMode ? 'Chỉnh sửa tin' : 'Đăng tin' }}</p>
       <h1 class="mt-2 text-[24px] font-extrabold tracking-tight text-slate-900">{{ isEditMode ? 'Chỉnh sửa tin đăng' : 'Đăng tin bất động sản' }}</h1>
@@ -13,12 +23,14 @@
           </header>
           <p class="section-subtitle"><img :src="uploadImageIcon" alt="upload" class="inline h-3.5 w-3.5 align-[-2px]" /> Tải ảnh và video từ máy tính</p>
 
-          <label class="upload-box mt-3">
+          <label :class="['upload-box mt-3', fieldError('images') && 'input-error']">
             <img :src="plusImageIcon" alt="choose" class="mx-auto h-12 w-12 opacity-70" />
             <p class="mt-2 text-sm text-slate-600">Kéo thả tối thiểu 1 ảnh vào đây hoặc</p>
             <span class="upload-pill mt-2">Chọn tệp ảnh</span>
             <input class="hidden" type="file" multiple accept="image/*" @change="onImagesChange" />
           </label>
+          <p v-if="fieldError('images')" class="field-error mt-2">{{ fieldErrorMessage('images') }}</p>
+          <p v-if="imageUploadError" class="field-error mt-2">{{ imageUploadError }}</p>
           <ul class="mt-2 list-disc pl-4 text-[11px] text-slate-500">
             <li>Hỗ trợ jpg, jpeg, png. Tối đa 10 ảnh.</li>
             <li>Kích thước mỗi ảnh tối đa 30MB, video tối đa 100MB.</li>
@@ -37,6 +49,21 @@
                 >✕</button>
                 <figcaption class="preview-name" :title="preview.name">{{ preview.name }}</figcaption>
               </figure>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <p class="text-xs font-semibold text-slate-700">Video (tối đa 1 video MP4)</p>
+            <label class="upload-box mt-2">
+              <img :src="plusImageIcon" alt="choose-video" class="mx-auto h-12 w-12 opacity-70" />
+              <p class="mt-2 text-sm text-slate-600">Tải video MP4 từ máy tính</p>
+              <span class="upload-pill mt-2">Chọn tệp video</span>
+              <input class="hidden" type="file" accept="video/mp4" @change="onVideoChange" />
+            </label>
+            <p v-if="videoUploadError" class="field-error mt-2">{{ videoUploadError }}</p>
+            <div v-if="videoPreviewName" class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
+              <span class="truncate">{{ videoPreviewName }}</span>
+              <button type="button" class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-600" @click="removeVideo">Xóa video</button>
             </div>
           </div>
         </section>
@@ -58,7 +85,7 @@
           <label class="mt-3 block">
             <span class="field-label required">Tiêu đề</span>
             <input v-model="form.title" :class="['input mt-1', fieldError('title') && 'input-error']" maxlength="120" placeholder="Nhập tiêu đề" @blur="touchField('title')" />
-            <p v-if="fieldError('title')" class="field-error">Vui lòng nhập tiêu đề</p>
+            <p v-if="fieldError('title')" class="field-error">{{ fieldErrorMessage('title') }}</p>
             <p class="mt-1 text-right text-[12px] text-slate-400">{{ titleCount }}/120 ký tự</p>
           </label>
 
@@ -74,18 +101,19 @@
           <label class="mt-3 block">
             <span class="field-label required">Mô tả</span>
             <textarea v-model="form.description" :class="['input mt-1 min-h-[140px]', fieldError('description') && 'input-error']" maxlength="5000" placeholder="VD: Giới thiệu các đặc điểm nổi bật của bất động sản:&#10;- Các tiện ích xung quanh: gần công viên, gần trường học&#10;- Thời gian đến khu vực trung tâm, tiện ích xung quanh" @blur="touchField('description')"></textarea>
-            <p v-if="fieldError('description')" class="field-error">Mô tả phải có ít nhất 20 ký tự</p>
+            <p v-if="fieldError('description')" class="field-error">{{ fieldErrorMessage('description') }}</p>
             <p class="mt-1 text-right text-[12px] text-slate-400">{{ descriptionCount }}/5000</p>
           </label>
 
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
               <span class="field-label required">Loại nhà đất</span>
-              <select v-model="form.propertyType" class="input mt-1">
+              <select v-model="form.propertyType" :class="['input mt-1', fieldError('propertyType') && 'input-error']" @blur="touchField('propertyType')">
                 <option v-for="option in currentPropertyTypeOptions" :key="option.value" :value="option.value">
                   {{ option.label }}
                 </option>
               </select>
+              <p v-if="fieldError('propertyType')" class="field-error">{{ fieldErrorMessage('propertyType') }}</p>
             </label>
             <label>
               <span class="field-label">Giấy tờ pháp lý</span>
@@ -107,7 +135,7 @@
             <label>
               <span class="field-label required">Diện tích (m2)</span>
               <input v-model="form.area" :class="['input mt-1', fieldError('area') && 'input-error']" type="text" inputmode="decimal" placeholder="Nhập số" @input="onNumberInput($event, 'area', true)" @blur="touchField('area')" />
-              <p v-if="fieldError('area')" class="field-error">Vui lòng nhập diện tích</p>
+              <p v-if="fieldError('area')" class="field-error">{{ fieldErrorMessage('area') }}</p>
             </label>
           </div>
 
@@ -115,7 +143,7 @@
             <label>
               <span class="field-label required">{{ priceLabel }}</span>
               <input v-model="form.price" :class="['input mt-1 disabled:bg-slate-100', fieldError('price') && 'input-error']" :disabled="form.isNegotiable" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'price', false)" @blur="touchField('price')" />
-              <p v-if="fieldError('price')" class="field-error">Vui lòng nhập giá</p>
+              <p v-if="fieldError('price')" class="field-error">{{ fieldErrorMessage('price') }}</p>
             </label>
           </div>
 
@@ -158,7 +186,7 @@
                   {{ province.name }}
                 </option>
               </select>
-              <p v-if="fieldError('provinceCode')" class="field-error">Vui lòng chọn tỉnh/thành phố</p>
+              <p v-if="fieldError('provinceCode')" class="field-error">{{ fieldErrorMessage('provinceCode') }}</p>
             </label>
             <label>
               <span class="field-label">Phường / Xã</span>
@@ -354,19 +382,19 @@
             <label>
               <span class="field-label required">Họ và tên</span>
               <input v-model="form.contactName" :class="['input mt-1', fieldError('contactName') && 'input-error']" placeholder="Nhập họ tên" @blur="touchField('contactName')" />
-              <p v-if="fieldError('contactName')" class="field-error">Vui lòng nhập họ tên</p>
+              <p v-if="fieldError('contactName')" class="field-error">{{ fieldErrorMessage('contactName') }}</p>
             </label>
             <label>
               <span class="field-label required">Số điện thoại</span>
               <input v-model="form.contactPhone" :class="['input mt-1', fieldError('contactPhone') && 'input-error']" type="tel" inputmode="numeric" maxlength="10" placeholder="VD: 0912345678" @input="onPhoneInput" @blur="touchField('contactPhone')" />
-              <p v-if="fieldError('contactPhone')" class="field-error">Số điện thoại phải có 10 chữ số và bắt đầu bằng 0</p>
+              <p v-if="fieldError('contactPhone')" class="field-error">{{ fieldErrorMessage('contactPhone') }}</p>
             </label>
           </div>
 
           <label class="mt-3 block">
-            <span class="field-label">Email</span>
+            <span class="field-label required">Email</span>
             <input v-model="form.contactEmail" :class="['input mt-1', fieldError('contactEmail') && 'input-error']" type="email" placeholder="vd_email@gmail.com" @blur="touchField('contactEmail')" />
-            <p v-if="fieldError('contactEmail')" class="field-error">Email phải có đuôi @gmail.com</p>
+            <p v-if="fieldError('contactEmail')" class="field-error">{{ fieldErrorMessage('contactEmail') }}</p>
           </label>
         </section>
 
@@ -484,6 +512,7 @@
                 <span class="upload-pill mt-2">Chọn tệp ảnh</span>
                 <input class="hidden" type="file" multiple accept="image/*" @change="onLegalDocumentsChange" />
               </label>
+              <p v-if="verificationUploadError" class="field-error mt-2">{{ verificationUploadError }}</p>
             </div>
 
             <label class="public-info-box">
@@ -570,12 +599,12 @@
 
               <div class="score-row">
                 <div class="score-label">
-                  <span class="circle done"></span>
+                  <span class="circle" :class="{ done: contactDone }"></span>
                   <span>Thông tin liên hệ</span>
                 </div>
-                <p class="score-value text-emerald-600">1/1đ</p>
+                <p class="score-value" :class="contactDone ? 'text-emerald-600' : ''">{{ contactPoints }}/1đ</p>
               </div>
-              <p class="score-sub">Hoàn thiện 100%</p>
+              <p class="score-sub">Hoàn thiện {{ contactPercent }}%</p>
             </div>
           </div>
         </div>
@@ -766,6 +795,21 @@ const showDayDropdown = ref(false);
 const showTimeDropdown = ref(false);
 const selectedAppointmentDays = ref([]);
 const appointmentTimeSlot = ref("");
+const imageUploadError = ref("");
+const videoUploadError = ref("");
+const verificationUploadError = ref("");
+const videoPreviewName = ref("");
+
+const toasts = ref([]);
+let toastIdCounter = 1;
+
+function pushToast(message, type = "info", duration = 2500) {
+  const id = toastIdCounter++;
+  toasts.value = [...toasts.value, { id, message, type }];
+  setTimeout(() => {
+    toasts.value = toasts.value.filter((item) => item.id !== id);
+  }, duration);
+}
 
 const mediaDone = computed(() => form.images.length > 0);
 const infoFieldCount = computed(() => {
@@ -791,9 +835,29 @@ const detailPercent = computed(() => Math.round((detailFieldCount.value / 3) * 1
 const detailPoints = computed(() => detailFieldCount.value);
 const detailDone = computed(() => detailFieldCount.value === 3);
 
+const isContactNameValid = computed(() => {
+  if (!form.contactName || !String(form.contactName).trim()) return false;
+  return /^[\p{L}\s'.-]+$/u.test(String(form.contactName).trim());
+});
+
+const isContactPhoneValid = computed(() => {
+  if (!form.contactPhone) return false;
+  return /^0[0-9]{9}$/.test(String(form.contactPhone));
+});
+
+const isContactEmailValid = computed(() => {
+  if (!form.contactEmail || !String(form.contactEmail).trim()) return false;
+  const email = String(form.contactEmail).trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+});
+
+const contactDone = computed(() => isContactNameValid.value && isContactPhoneValid.value && isContactEmailValid.value);
+const contactPoints = computed(() => (contactDone.value ? 1 : 0));
+const contactPercent = computed(() => (contactDone.value ? 100 : 0));
+
 const totalScore = computed(() => {
   const media = mediaDone.value ? 4 : 0;
-  return media + infoPoints.value + detailPoints.value + 1;
+  return media + infoPoints.value + detailPoints.value + contactPoints.value;
 });
 
 const selectedLegalPaperLabels = computed(() => {
@@ -899,7 +963,7 @@ async function loadListingForEdit() {
     form.description = data.description || '';
     form.propertyType = p.type || 'APARTMENT';
     form.provinceCode = p.province_code ? String(p.province_code) : '';
-    form.districtCode = '';
+    form.districtCode = p.district_code ? String(p.district_code) : '';
     form.wardCode = '';
     form.streetCode = p.street_code || '';
     form.projectName = p.project_name || '';
@@ -950,6 +1014,12 @@ async function loadListingForEdit() {
         name: `Ảnh ${index + 1}`,
         url: img.url,
       }));
+    }
+
+    if (Array.isArray(data.videos) && data.videos.length > 0) {
+      const firstVideo = data.videos[0];
+      form.video = firstVideo?.url || null;
+      videoPreviewName.value = firstVideo?.url ? 'Video hiện tại' : '';
     }
 
 
@@ -1243,10 +1313,37 @@ async function fetchWardsByProvince(provinceCode) {
 
 
 function onImagesChange(event) {
+  touchField('images');
   const newFiles = event.target.files ? Array.from(event.target.files) : [];
+  imageUploadError.value = "";
 
   // Nếu người dùng Cancel, files rỗng → giữ nguyên ảnh cũ
   if (newFiles.length === 0) return;
+
+  const validExtensions = ["image/jpeg", "image/png", "image/jpg"];
+  const MAX_IMAGE_SIZE = 30 * 1024 * 1024;
+
+  const validNewFiles = [];
+  for (const file of newFiles) {
+    if (!validExtensions.includes(file.type)) {
+      imageUploadError.value = "Định dạng ảnh không hợp lệ (chỉ JPG, PNG)";
+      pushToast("File không hợp lệ đã bị loại bỏ", "warning");
+      continue;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      imageUploadError.value = "Dung lượng ảnh vượt quá 30MB";
+      pushToast("File không hợp lệ đã bị loại bỏ", "warning");
+      continue;
+    }
+
+    validNewFiles.push(file);
+  }
+
+  if (validNewFiles.length === 0) {
+    event.target.value = '';
+    return;
+  }
 
   // Lấy danh sách key của ảnh đã có để tránh trùng lặp (dựa theo tên + size)
   const existingKeys = new Set(
@@ -1254,7 +1351,7 @@ function onImagesChange(event) {
   );
 
   // Chỉ thêm những file chưa có trong danh sách
-  const uniqueNewFiles = newFiles.filter(
+  const uniqueNewFiles = validNewFiles.filter(
     (f) => !existingKeys.has(`${f.name}_${f.size}`)
   );
 
@@ -1266,7 +1363,22 @@ function onImagesChange(event) {
   // Giới hạn tối đa 10 ảnh
   const MAX = 10;
   const remaining = MAX - form.images.length;
+  if (remaining <= 0) {
+    imageUploadError.value = "Bạn chỉ có thể tải tối đa 10 hình ảnh";
+    pushToast("Không thể tải thêm file", "warning");
+    event.target.value = '';
+    return;
+  }
+
   const filesToAdd = uniqueNewFiles.slice(0, remaining);
+  if (uniqueNewFiles.length > filesToAdd.length) {
+    imageUploadError.value = "Bạn chỉ có thể tải tối đa 10 hình ảnh";
+    pushToast("Không thể tải thêm file", "warning");
+  }
+
+  if (filesToAdd.length > 0) {
+    pushToast("Đang tải lên hình ảnh...", "info", 1400);
+  }
 
   // Thêm vào cuối danh sách hiện có (không xóa ảnh cũ)
   form.images = [...form.images, ...filesToAdd];
@@ -1283,13 +1395,55 @@ function onImagesChange(event) {
   event.target.value = '';
 }
 
+function onVideoChange(event) {
+  videoUploadError.value = "";
+  const file = event.target.files?.[0] || null;
+  if (!file) return;
+
+  if (form.video) {
+    videoUploadError.value = "Chỉ cho phép 1 video";
+    pushToast("Không thể tải thêm file", "warning");
+    event.target.value = '';
+    return;
+  }
+
+  if (file.type !== 'video/mp4') {
+    videoUploadError.value = "Định dạng video không hợp lệ (MP4)";
+    pushToast("File không hợp lệ đã bị loại bỏ", "warning");
+    event.target.value = '';
+    return;
+  }
+
+  const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
+  if (file.size > MAX_VIDEO_SIZE) {
+    videoUploadError.value = "Dung lượng video vượt quá 100MB";
+    pushToast("File không hợp lệ đã bị loại bỏ", "warning");
+    event.target.value = '';
+    return;
+  }
+
+  form.video = file;
+  videoPreviewName.value = file.name;
+  pushToast("Đang tải lên video...", "info", 1400);
+  event.target.value = '';
+}
+
+function removeVideo() {
+  form.video = null;
+  videoPreviewName.value = "";
+  videoUploadError.value = "";
+  pushToast("Đã xóa video", "success");
+}
+
 function removeImage(index) {
+  touchField('images');
   // Giải phóng object URL của ảnh bị xóa
   const removed = imagePreviews.value[index];
   if (removed?.url) URL.revokeObjectURL(removed.url);
 
   imagePreviews.value = imagePreviews.value.filter((_, i) => i !== index);
   form.images = form.images.filter((_, i) => i !== index);
+  pushToast("Đã xóa hình ảnh", "success");
 }
 
 function toggleLegalDropdown() {
@@ -1321,8 +1475,39 @@ function onBackCardChange(event) {
 }
 
 function onLegalDocumentsChange(event) {
+  verificationUploadError.value = "";
   const files = event.target.files ? Array.from(event.target.files) : [];
-  form.legalDocuments = files;
+  if (!files.length) return;
+
+  const validExtensions = ["image/jpeg", "image/png", "image/jpg", "application/pdf"];
+  const MAX_DOC_SIZE = 10 * 1024 * 1024;
+  const MAX_DOC_COUNT = 5;
+
+  const validFiles = [];
+  for (const file of files) {
+    if (!validExtensions.includes(file.type)) {
+      verificationUploadError.value = "Định dạng file không hợp lệ";
+      pushToast("File không hợp lệ đã bị loại bỏ", "warning");
+      continue;
+    }
+
+    if (file.size > MAX_DOC_SIZE) {
+      verificationUploadError.value = "Dung lượng file vượt quá giới hạn";
+      pushToast("File không hợp lệ đã bị loại bỏ", "warning");
+      continue;
+    }
+
+    validFiles.push(file);
+  }
+
+  if (validFiles.length > MAX_DOC_COUNT) {
+    verificationUploadError.value = "Tối đa 5 ảnh giấy tờ";
+    form.legalDocuments = validFiles.slice(0, MAX_DOC_COUNT);
+    pushToast("Không thể tải thêm file", "warning");
+    return;
+  }
+
+  form.legalDocuments = validFiles;
 }
 
 function toggleAppointmentDay(dayValue) {
@@ -1384,27 +1569,79 @@ function touchField(field) {
 }
 
 function fieldError(field) {
-  if (!touchedFields[field]) return false;
+  return Boolean(fieldErrorMessage(field));
+}
+
+function fieldErrorMessage(field) {
+  if (!touchedFields[field]) return "";
+
+  if (field === 'images') {
+    if (!Array.isArray(form.images) || form.images.length === 0) return 'Vui lòng tải lên ít nhất 1 hình ảnh';
+    return '';
+  }
+
   const value = form[field];
-  if (field === 'price' && form.isNegotiable) return false;
-  if (field === 'contactPhone') {
-    if (!value) return true;
-    // Phải đúng 10 chữ số và bắt đầu bằng 0
-    if (!/^0[0-9]{9}$/.test(value)) return true;
-    return false;
+
+  if (field === 'title') {
+    if (!value) return 'Tiêu đề không được để trống';
+    if (!String(value).trim()) return 'Tiêu đề không hợp lệ';
+    return '';
   }
-  if (field === 'contactEmail') {
-    if (!value || !value.trim()) return false;
-    return !value.trim().toLowerCase().endsWith('@gmail.com');
-  }
+
   if (field === 'description') {
-    return !value || value.trim().length < 20;
+    if (!value || !String(value).trim()) return 'Mô tả không được để trống';
+    if (String(value).trim().length < 20) return 'Mô tả phải có ít nhất 20 ký tự';
+    return '';
   }
-  if (field === 'area' || field === 'price') {
-    return !value || Number(value) <= 0;
+
+  if (field === 'propertyType') {
+    if (!value || !String(value).trim()) return 'Vui lòng chọn loại nhà đất';
+    return '';
   }
-  if (typeof value === 'string') return !value.trim();
-  return !value;
+
+  if (field === 'provinceCode') {
+    if (!value || !String(value).trim()) return 'Vui lòng chọn Tỉnh/Thành phố';
+    return '';
+  }
+
+  if (field === 'price') {
+    if (form.isNegotiable) return '';
+    if (!value) return 'Giá phải lớn hơn 0';
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return 'Giá không hợp lệ';
+    if (parsed <= 0) return 'Giá phải lớn hơn 0';
+    return '';
+  }
+
+  if (field === 'area') {
+    if (!value) return 'Diện tích không hợp lệ hoặc vượt giới hạn';
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 1000000) return 'Diện tích không hợp lệ hoặc vượt giới hạn';
+    return '';
+  }
+
+  if (field === 'contactName') {
+    if (!value || !String(value).trim()) return 'Tên người liên hệ không được để trống';
+    if (!/^[\p{L}\s'.-]+$/u.test(String(value).trim())) return 'Tên người liên hệ không hợp lệ';
+    return '';
+  }
+
+  if (field === 'contactPhone') {
+    if (!value) return 'Số điện thoại người liên hệ không được để trống';
+    if (!/^0[0-9]{9}$/.test(value)) return 'Số điện thoại không đúng định dạng';
+    return '';
+  }
+
+  if (field === 'contactEmail') {
+    if (!value || !String(value).trim()) return 'Email không được để trống';
+    const email = String(value).trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Email không hợp lệ';
+    return '';
+  }
+
+  if (typeof value === 'string' && !value.trim()) return 'Dữ liệu không hợp lệ';
+  if (!value) return 'Dữ liệu không hợp lệ';
+  return '';
 }
 
 function preventNegative(event, field) {
@@ -1443,11 +1680,11 @@ function onPhoneInput(event) {
 }
 
 function touchAllRequired() {
-  ['title', 'description', 'area', 'price', 'provinceCode', 'contactName', 'contactPhone'].forEach(f => touchField(f));
+  ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'contactName', 'contactPhone', 'contactEmail'].forEach(f => touchField(f));
 }
 
 function hasRequiredErrors() {
-  return ['title', 'description', 'area', 'provinceCode', 'contactName', 'contactPhone'].some(f => {
+  return ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'contactName', 'contactPhone', 'contactEmail'].some(f => {
     touchedFields[f] = true;
     return fieldError(f);
   }) || (!form.isNegotiable && fieldError('price'));
@@ -1569,6 +1806,10 @@ function resetForm() {
   selectedAmenities.value = [];
   submitError.value = "";
   validationErrors.value = {};
+  imageUploadError.value = "";
+  videoUploadError.value = "";
+  verificationUploadError.value = "";
+  videoPreviewName.value = "";
 }
 
 onBeforeUnmount(() => {
@@ -1582,16 +1823,23 @@ onBeforeUnmount(() => {
 });
 
 async function submitListing() {
+  if (loading.value) {
+    pushToast('Bạn đã nhấn đăng tin quá nhanh', 'warning');
+    return;
+  }
+
   // Validate required fields first
   touchAllRequired();
   if (hasRequiredErrors()) {
-    submitError.value = 'Vui lòng điền đầy đủ các trường bắt buộc.';
+    submitError.value = 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại';
+    pushToast('Dữ liệu không hợp lệ. Vui lòng kiểm tra lại', 'error');
     return;
   }
 
   loading.value = true;
   submitError.value = "";
   validationErrors.value = {};
+  pushToast('Đang xử lý dữ liệu...', 'info');
   form.requestVerification = shouldRequestVerification.value;
   form.amenities = [...selectedAmenities.value];
   form.publicInfoAgreed = publicInfoAgreed.value;
@@ -1600,12 +1848,15 @@ async function submitListing() {
 
   try {
     // Helper function to upload an array of files
-    const uploadMultiple = async (files) => {
+    const uploadMultiple = async (files, mode = 'image') => {
       const urls = [];
       for (const file of files) {
         if (typeof file === 'string') {
           urls.push(file); // Already a URL
         } else {
+          if (mode === 'image') {
+            pushToast('Đang tải lên hình ảnh...', 'info', 1200);
+          }
           const res = await cloudinaryService.uploadImage(file, 'listing');
           urls.push(res.secure_url);
         }
@@ -1614,33 +1865,36 @@ async function submitListing() {
     };
 
     // Helper function to upload a single file
-    const uploadSingle = async (file) => {
+    const uploadSingle = async (file, mode = 'image') => {
       if (!file) return null;
       if (typeof file === 'string') return file;
+      if (mode === 'video') {
+        pushToast('Đang tải lên video...', 'info', 1200);
+      }
       const res = await cloudinaryService.uploadImage(file, 'listing');
       return res.secure_url;
     };
 
     // 1. Upload Images
     if (form.images && form.images.length > 0) {
-      form.images = await uploadMultiple(form.images);
+      form.images = await uploadMultiple(form.images, 'image');
     }
 
     // 2. Upload Video
     if (form.video) {
-      form.video = await uploadSingle(form.video);
+      form.video = await uploadSingle(form.video, 'video');
     }
 
     // 3. Upload Verification Documents
     if (form.requestVerification) {
       if (form.identityCardFront) {
-        form.identityCardFront = await uploadSingle(form.identityCardFront);
+        form.identityCardFront = await uploadSingle(form.identityCardFront, 'image');
       }
       if (form.identityCardBack) {
-        form.identityCardBack = await uploadSingle(form.identityCardBack);
+        form.identityCardBack = await uploadSingle(form.identityCardBack, 'image');
       }
       if (form.legalDocuments && form.legalDocuments.length > 0) {
-        form.legalDocuments = await uploadMultiple(form.legalDocuments);
+        form.legalDocuments = await uploadMultiple(form.legalDocuments, 'image');
       }
     }
 
@@ -1653,17 +1907,30 @@ async function submitListing() {
     }
     submitError.value = "";
     clearDraft();
-    alert(response.data?.message || (isEditMode.value ? "Cập nhật tin thành công" : "Đăng tin thành công"));
+    pushToast(response.data?.message || (isEditMode.value ? 'Cập nhật tin thành công' : 'Đăng tin thành công. Tin đăng chờ duyệt'), 'success');
     resetForm();
     // Redirect đến trang danh sách tin đăng
     router.push('/profile?tab=listings');
   } catch (error) {
     if (error.response && error.response.data) {
       const data = error.response.data;
+      const statusCode = error.response.status;
       validationErrors.value = data?.errors || {};
-      submitError.value = data?.message || "Gọi API thất bại. Kiểm tra token và dữ liệu.";
+
+      if (statusCode === 401) {
+        submitError.value = 'Phiên làm việc đã hết hạn';
+      } else if (statusCode === 500) {
+        submitError.value = 'Đã xảy ra lỗi hệ thống';
+      } else if (statusCode >= 400 && statusCode < 500) {
+        submitError.value = data?.message || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại';
+      } else {
+        submitError.value = data?.message || 'Không thể lưu tin đăng. Vui lòng thử lại';
+      }
+
+      pushToast(submitError.value, 'error');
     } else {
-      submitError.value = error.message || "Có lỗi xảy ra khi tải ảnh hoặc đăng tin.";
+      submitError.value = error.message || 'Upload thất bại. Vui lòng thử lại';
+      pushToast('Kết nối mạng không ổn định', 'error');
     }
   } finally {
     loading.value = false;
@@ -1672,6 +1939,51 @@ async function submitListing() {
 </script>
 
 <style scoped>
+.toast-stack {
+  position: fixed;
+  top: 88px;
+  right: 14px;
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toast-item {
+  min-width: 260px;
+  max-width: 360px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.toast-success {
+  background: #ecfdf3;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.toast-info {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.toast-warning {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.toast-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
 .section-card {
   border: 1px solid #e6edf5;
   border-radius: 14px;

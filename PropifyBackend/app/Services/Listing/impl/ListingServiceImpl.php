@@ -44,7 +44,6 @@ final class ListingServiceImpl implements ListingService
             $property = $this->listingRepository->createProperty([
                 'type' => $dto->propertyType,
                 'province_code' => $dto->provinceCode,
-                'district_code' => $dto->districtCode,
                 'ward_code' => $dto->wardCode,
                 'street_code' => $dto->streetCode,
                 'project_name' => $dto->projectName,
@@ -217,7 +216,6 @@ final class ListingServiceImpl implements ListingService
             $this->listingRepository->updateProperty($listing->property_id, [
                 'type' => $dto->propertyType,
                 'province_code' => $dto->provinceCode,
-                'district_code' => $dto->districtCode,
                 'ward_code' => $dto->wardCode,
                 'street_code' => $dto->streetCode,
                 'project_name' => $dto->projectName,
@@ -338,6 +336,37 @@ final class ListingServiceImpl implements ListingService
         $this->clearPublicListingsCache();
 
         return $updated;
+    }
+
+    public function lock(User $user, int $id): Listing
+    {
+        return DB::transaction(function () use ($user, $id) {
+            $listing = Listing::query()->lockForUpdate()->findOrFail($id);
+
+            if ((int) $listing->owner_id !== (int) $user->id) {
+                throw new BusinessException(ErrorCode::AuthForbidden);
+            }
+
+            if ($listing->status === 'LOCKED') {
+                throw new BusinessException(ErrorCode::ListingAlreadyLocked);
+            }
+
+            if ($listing->status !== 'ACTIVE') {
+                throw new BusinessException(ErrorCode::ListingCannotBeLocked);
+            }
+
+            $updated = $this->listingRepository->updateListing($listing->id, [
+                'status' => 'LOCKED',
+            ]);
+
+            return $updated->load([
+                'property.attributes.group',
+                'images',
+                'videos',
+                'verificationDocuments',
+                'appointments',
+            ]);
+        });
     }
 
     public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator

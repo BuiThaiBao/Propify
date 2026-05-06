@@ -15,7 +15,6 @@ final readonly class CreateListingDto
         public string $description,
         public string $propertyType,
         public string $provinceCode,
-        public string $districtCode,
         public ?string $wardCode,
         public ?string $streetCode,
         public ?string $projectName,

@@ -13,7 +13,6 @@ final class Property extends Model
     protected $fillable = [
         'type',
         'province_code',
-        'district_code',
         'ward_code',
         'street_code',
         'project_name',
