@@ -54,9 +54,12 @@
             v-model="form.fullName"
             type="text"
             placeholder="Họ và tên"
-            class="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm"
+            class="peer w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm placeholder-transparent"
             :class="{ 'border-red-400': fieldErrors?.full_name }"
           />
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none opacity-0 peer-placeholder-shown:opacity-100">
+            Họ tên <span class="text-red-500">*</span>
+          </div>
         </div>
         <p v-if="fieldErrors?.full_name" class="text-red-500 text-xs mb-2 flex items-center gap-1">
           <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -69,9 +72,12 @@
             v-model="form.email"
             type="email"
             placeholder="Email của bạn"
-            class="w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm"
+            class="peer w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm placeholder-transparent"
             :class="{ 'border-red-400': fieldErrors?.email }"
           />
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none opacity-0 peer-placeholder-shown:opacity-100">
+            Email của bạn <span class="text-red-500">*</span>
+          </div>
           <span class="absolute right-3 top-1/2 -translate-y-1/2 text-blue-400">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="4" width="20" height="16" rx="3"/>
@@ -90,9 +96,12 @@
             v-model="form.password"
             :type="showPassword ? 'text' : 'password'"
             placeholder="Mật khẩu"
-            class="w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm"
+            class="peer w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm placeholder-transparent"
             :class="{ 'border-red-400': fieldErrors?.password }"
           />
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none opacity-0 peer-placeholder-shown:opacity-100">
+            Mật khẩu <span class="text-red-500">*</span>
+          </div>
           <button
             @click="showPassword = !showPassword"
             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
@@ -116,10 +125,29 @@
             v-model="form.passwordConfirmation"
             :type="showPassword ? 'text' : 'password'"
             placeholder="Nhập lại mật khẩu"
-            class="w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm"
+            class="peer w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm placeholder-transparent"
+            :class="{ 'border-red-400': fieldErrors?.passwordConfirmation }"
             @keyup.enter="handleRegister"
           />
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none opacity-0 peer-placeholder-shown:opacity-100">
+            Nhập lại mật khẩu <span class="text-red-500">*</span>
+          </div>
+          <button
+            @click="showPassword = !showPassword"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" y1="2" x2="22" y2="22"/>
+            </svg>
+          </button>
         </div>
+        <p v-if="fieldErrors?.passwordConfirmation" class="text-red-500 text-xs mb-2 flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          {{ fieldErrors.passwordConfirmation[0] }}
+        </p>
 
         <!-- General error -->
         <p v-if="errorMessage" class="text-red-500 text-xs mb-3 flex items-center gap-1">
@@ -130,8 +158,8 @@
         <!-- Register button -->
         <button
           @click="handleRegister"
-          :disabled="authStore.loading"
-          class="w-full hero-gradient text-white font-semibold rounded-xl py-3.5 text-sm mb-4 disabled:opacity-60 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98] shadow-md shadow-blue-200"
+          :disabled="authStore.loading || !isFormValid"
+          class="w-full hero-gradient text-white font-semibold rounded-xl py-3.5 text-sm mb-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98] shadow-md shadow-blue-200"
         >
           {{ authStore.loading ? 'Đang xử lý...' : 'Tạo tài khoản' }}
         </button>
@@ -179,7 +207,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import VerifyOtp from './VerifyOtp.vue';
 
@@ -191,48 +219,81 @@ const showPassword = ref(false);
 const form = ref({ fullName: '', email: '', password: '', passwordConfirmation: '' });
 const errorMessage = ref('');
 const fieldErrors = ref(null);
+const touched = ref({ fullName: false, email: false, password: false, passwordConfirmation: false });
+
+// Computed validation for button state
+const isFormValid = computed(() => {
+  const f = form.value;
+  if (!f.fullName.trim()) return false;
+  if (!f.email || !/\S+@\S+\.\S+/.test(f.email)) return false;
+  
+  const pwd = f.password;
+  if (pwd.length < 8) return false;
+  if (!/[a-z]/.test(pwd)) return false;
+  if (!/[A-Z]/.test(pwd)) return false;
+  if (!/[0-9]/.test(pwd)) return false;
+  
+  if (!f.passwordConfirmation || f.password !== f.passwordConfirmation) return false;
+  
+  return true;
+});
+
+// Real-time validation
+watch(() => form.value.fullName, () => { touched.value.fullName = true; validateForm(); });
+watch(() => form.value.email, () => { touched.value.email = true; validateForm(); });
+watch(() => form.value.password, () => { touched.value.password = true; validateForm(); });
+watch(() => form.value.passwordConfirmation, () => { touched.value.passwordConfirmation = true; validateForm(); });
+
+function validateForm(isSubmit = false) {
+  if (isSubmit) {
+    touched.value = { fullName: true, email: true, password: true, passwordConfirmation: true };
+  }
+
+  let errors = {};
+
+  if (touched.value.fullName && !form.value.fullName.trim()) {
+    errors.full_name = ['Vui lòng nhập họ và tên'];
+  }
+
+  if (touched.value.email && (!form.value.email || !/\S+@\S+\.\S+/.test(form.value.email))) {
+    errors.email = ['Vui lòng nhập email hợp lệ'];
+  }
+
+  if (touched.value.password) {
+    const pwd = form.value.password;
+    if (pwd.length < 8) {
+      errors.password = ['Mật khẩu phải có ít nhất 8 ký tự'];
+    } else if (!/[a-z]/.test(pwd)) {
+      errors.password = ['Mật khẩu phải chứa ít nhất 1 chữ thường'];
+    } else if (!/[A-Z]/.test(pwd)) {
+      errors.password = ['Mật khẩu phải chứa ít nhất 1 chữ hoa'];
+    } else if (!/[0-9]/.test(pwd)) {
+      errors.password = ['Mật khẩu phải chứa ít nhất 1 chữ số'];
+    }
+  }
+
+  if (touched.value.passwordConfirmation || (touched.value.password && form.value.passwordConfirmation)) {
+    if (form.value.password !== form.value.passwordConfirmation) {
+      errors.passwordConfirmation = ['Mật khẩu xác nhận không khớp'];
+    }
+  }
+
+  fieldErrors.value = Object.keys(errors).length > 0 ? errors : null;
+  return Object.keys(errors).length === 0;
+}
 
 async function handleRegister() {
   if (authStore.loading) return;
 
   errorMessage.value = '';
-  fieldErrors.value = null;
 
-  // Validate cơ bản phía client trước khi gọi API
-  if (!form.value.fullName.trim()) {
-    fieldErrors.value = { full_name: ['Vui lòng nhập họ và tên'] };
+  if (!validateForm(true)) {
     return;
   }
-  if (!form.value.email || !/\S+@\S+\.\S+/.test(form.value.email)) {
-    fieldErrors.value = { email: ['Vui lòng nhập email hợp lệ'] };
-    return;
-  }
-  // Trim password (BR.ACC.03)
+
+  // Trim password before sending to API (BR.ACC.03)
   form.value.password = form.value.password.trim();
   form.value.passwordConfirmation = form.value.passwordConfirmation.trim();
-
-  // Validate password format (BR.ACC.03)
-  const pwd = form.value.password;
-  if (pwd.length < 8) {
-    fieldErrors.value = { password: ['Mật khẩu phải có ít nhất 8 ký tự'] };
-    return;
-  }
-  if (!/[a-z]/.test(pwd)) {
-    fieldErrors.value = { password: ['Mật khẩu phải chứa ít nhất 1 chữ thường'] };
-    return;
-  }
-  if (!/[A-Z]/.test(pwd)) {
-    fieldErrors.value = { password: ['Mật khẩu phải chứa ít nhất 1 chữ hoa'] };
-    return;
-  }
-  if (!/[0-9]/.test(pwd)) {
-    fieldErrors.value = { password: ['Mật khẩu phải chứa ít nhất 1 chữ số'] };
-    return;
-  }
-  if (form.value.password !== form.value.passwordConfirmation) {
-    fieldErrors.value = { password: ['Mật khẩu xác nhận không khớp'] };
-    return;
-  }
 
   const result = await authStore.register(form.value);
 
