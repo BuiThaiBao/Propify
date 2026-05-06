@@ -37,7 +37,6 @@ final class ListingResource extends JsonResource
                 'id' => $this->property?->id,
                 'type' => $this->property?->type,
                 'province_code' => $this->property?->province_code,
-                'district_code' => $this->property?->district_code,
                 'ward_code' => $this->property?->ward_code,
                 'street_code' => $this->property?->street_code,
                 'project_name' => $this->property?->project_name,
