@@ -6,6 +6,8 @@ use App\DTOs\Listing\CreateListingDto;
 use App\Enums\ErrorCode;
 use App\Exceptions\BusinessException;
 use App\Models\Listing;
+use App\Models\Package;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Repositories\ListingRepository;
 use App\Services\Listing\ListingService;
@@ -44,7 +46,6 @@ final class ListingServiceImpl implements ListingService
             $property = $this->listingRepository->createProperty([
                 'type' => $dto->propertyType,
                 'province_code' => $dto->provinceCode,
-                'district_code' => $dto->districtCode,
                 'ward_code' => $dto->wardCode,
                 'street_code' => $dto->streetCode,
                 'project_name' => $dto->projectName,
@@ -92,7 +93,7 @@ final class ListingServiceImpl implements ListingService
                 'description' => $dto->description,
                 'status' => 'PENDING',
                 'package_id' => $dto->packageId,
-                'score' => 0,
+                'score' => $this->calculateContentScore($dto),
                 'is_verified' => false,
                 'has_video' => $dto->video !== null,
                 'request_verification' => $dto->requestVerification,
@@ -217,7 +218,6 @@ final class ListingServiceImpl implements ListingService
             $this->listingRepository->updateProperty($listing->property_id, [
                 'type' => $dto->propertyType,
                 'province_code' => $dto->provinceCode,
-                'district_code' => $dto->districtCode,
                 'ward_code' => $dto->wardCode,
                 'street_code' => $dto->streetCode,
                 'project_name' => $dto->projectName,
@@ -340,6 +340,37 @@ final class ListingServiceImpl implements ListingService
         return $updated;
     }
 
+    public function lock(User $user, int $id): Listing
+    {
+        return DB::transaction(function () use ($user, $id) {
+            $listing = Listing::query()->lockForUpdate()->findOrFail($id);
+
+            if ((int) $listing->owner_id !== (int) $user->id) {
+                throw new BusinessException(ErrorCode::AuthForbidden);
+            }
+
+            if ($listing->status === 'LOCKED') {
+                throw new BusinessException(ErrorCode::ListingAlreadyLocked);
+            }
+
+            if ($listing->status !== 'ACTIVE') {
+                throw new BusinessException(ErrorCode::ListingCannotBeLocked);
+            }
+
+            $updated = $this->listingRepository->updateListing($listing->id, [
+                'status' => 'LOCKED',
+            ]);
+
+            return $updated->load([
+                'property.attributes.group',
+                'images',
+                'videos',
+                'verificationDocuments',
+                'appointments',
+            ]);
+        });
+    }
+
     public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
     {
         $page = request()->input('page', 1);
@@ -353,6 +384,145 @@ final class ListingServiceImpl implements ListingService
         return Cache::tags(['listings:public'])->remember($cacheKey, 300, function () use ($demandType, $keyword, $perPage) {
             return $this->listingRepository->paginatePublic($demandType, $keyword, $perPage);
         });
+    }
+
+    /**
+     * Nâng cấp gói tin cho listing.
+     *
+     * Flow: Verify ownership → Verify listing ACTIVE → Verify package → Check upgrade direction
+     *       → DB Transaction: Create Transaction (auto-SUCCESS) + Update listing.package_id
+     *       → Clear cache → Return updated listing
+     */
+    public function upgradeListing(User $user, int $listingId, int $packageId): Listing
+    {
+        // 1. Lấy listing + verify ownership
+        $listing = Listing::find($listingId);
+
+        if (!$listing) {
+            throw new BusinessException(ErrorCode::ListingNotFound);
+        }
+
+        if ($listing->owner_id !== $user->id) {
+            throw new BusinessException(ErrorCode::ListingNotOwned);
+        }
+
+        if ($listing->status !== 'ACTIVE') {
+            throw new BusinessException(ErrorCode::ListingUpgradeNotAllowed);
+        }
+
+        // 2. Verify package tồn tại và đang active
+        $newPackage = Package::find($packageId);
+
+        if (!$newPackage) {
+            throw new BusinessException(ErrorCode::PackageNotFound);
+        }
+
+        if (!$newPackage->is_active) {
+            throw new BusinessException(ErrorCode::PackageInactive);
+        }
+
+        // 3. Verify upgrade direction (chỉ cho nâng cấp, không hạ cấp)
+        $currentPriority = 0;
+        if ($listing->package_id) {
+            $currentPackage = Package::find($listing->package_id);
+            $currentPriority = $currentPackage?->priority ?? 0;
+        }
+
+        if ($newPackage->priority <= $currentPriority) {
+            throw new BusinessException(ErrorCode::ListingUpgradeNotAllowed);
+        }
+
+        // 4. DB Transaction: Tạo transaction + update listing
+        $updated = DB::transaction(function () use ($user, $listing, $newPackage) {
+            // Tạo transaction (giả lập thanh toán — auto SUCCESS)
+            Transaction::create([
+                'user_id'          => $user->id,
+                'listing_id'       => $listing->id,
+                'package_id'       => $newPackage->id,
+                'amount'           => $newPackage->price,
+                'payment_method'   => 'SIMULATED',
+                'status'           => 'SUCCESS',
+                'transaction_date' => now(),
+            ]);
+
+            // Gắn gói mới vào listing
+            $listing->update(['package_id' => $newPackage->id]);
+
+            return $listing->fresh([
+                'property',
+                'property.attributes.group',
+                'images',
+                'videos',
+                'verificationDocuments',
+                'appointments',
+                'package',
+            ]);
+        });
+
+        $this->clearPublicListingsCache();
+
+        Log::info('[ListingService] Listing upgraded', [
+            'listing_id' => $listingId,
+            'user_id'    => $user->id,
+            'package'    => $newPackage->slug,
+            'amount'     => $newPackage->price,
+        ]);
+
+        return $updated;
+    }
+
+    /**
+     * Tính content_score dựa trên chất lượng nội dung listing.
+     *
+     * | Yếu tố                        | Điểm |
+     * |-------------------------------|------|
+     * | Có title rõ ràng              | +10  |
+     * | Có description                | +10  |
+     * | Có ảnh (images)               | +20  |
+     * | Có video                      | +10  |
+     * | Thông tin đầy đủ (giá, diện tích, địa chỉ) | +20 |
+     * | Đã xác minh (is_verified)     | +25  |
+     * | Có AI description             | +5   |
+     * | → Max ~100 điểm               |      |
+     */
+    private function calculateContentScore(CreateListingDto $dto): int
+    {
+        $score = 0;
+
+        // Title rõ ràng (>= 10 ký tự)
+        if (!empty($dto->title) && mb_strlen($dto->title) >= 10) {
+            $score += 10;
+        }
+
+        // Có description (>= 20 ký tự)
+        if (!empty($dto->description) && mb_strlen($dto->description) >= 20) {
+            $score += 10;
+        }
+
+        // Có ảnh
+        if (!empty($dto->images) && count($dto->images) > 0) {
+            $score += 20;
+        }
+
+        // Có video
+        if ($dto->video !== null) {
+            $score += 10;
+        }
+
+        // Thông tin đầy đủ: giá > 0, diện tích > 0, có địa chỉ
+        $hasFullInfo = ($dto->price > 0)
+            && ($dto->area > 0)
+            && (!empty($dto->addressDetail) || !empty($dto->projectName));
+        if ($hasFullInfo) {
+            $score += 20;
+        }
+
+        // Xác minh (khi tạo mới thì chưa verified, nhưng nếu request verification thì +5 bonus)
+        if ($dto->requestVerification) {
+            $score += 5;
+        }
+
+        return min($score, 100);
     }
 
     /**

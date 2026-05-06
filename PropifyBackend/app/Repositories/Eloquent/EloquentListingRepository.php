@@ -52,6 +52,7 @@ final class EloquentListingRepository implements ListingRepository
                 'videos',
                 'verificationDocuments',
                 'appointments',
+                'package:id,name,slug,badge,color,priority',
             ])
             ->where('owner_id', $ownerId)
             ->when($status, function ($query) use ($status) {
@@ -94,24 +95,37 @@ final class EloquentListingRepository implements ListingRepository
     {
         return Listing::query()
             ->select([
-                'id', 'property_id', 'owner_id', 'title', 'demand_type',
-                'status', 'is_verified', 'has_video', 'package_id',
-                'submitted_at', 'published_at',
+                'listings.id', 'listings.property_id', 'listings.owner_id', 'listings.title',
+                'listings.demand_type', 'listings.status', 'listings.is_verified',
+                'listings.has_video', 'listings.package_id', 'listings.score',
+                'listings.submitted_at', 'listings.published_at',
             ])
+            // Tính final_score trong SQL để sort chính xác
+            ->selectRaw('
+                COALESCE(packages.priority, 1) AS pkg_priority,
+                (
+                    COALESCE(listings.score, 0)
+                    * COALESCE(packages.multiplier, 1.0)
+                    * (1.0 / (1.0 + TIMESTAMPDIFF(HOUR, COALESCE(listings.published_at, listings.created_at), NOW()) / 24.0))
+                    * EXP(-COALESCE(packages.decay_rate, 0.05) * TIMESTAMPDIFF(HOUR, COALESCE(listings.published_at, listings.created_at), NOW()))
+                ) AS final_score
+            ')
+            ->leftJoin('packages', 'listings.package_id', '=', 'packages.id')
             ->with([
                 'property:id,type,address_detail,area,price,bedrooms,bathrooms,contact_name,poster_type,project_name',
                 'images:id,listing_id,image_url,is_thumbnail,sort_order',
                 'owner:id,full_name,avatar_url',
+                'package:id,name,slug,badge,color,priority',
             ])
-            ->where('status', 'ACTIVE')
+            ->where('listings.status', 'ACTIVE')
             ->when($demandType, function ($query) use ($demandType) {
-                $query->where('demand_type', $demandType);
+                $query->where('listings.demand_type', $demandType);
             })
             ->when($keyword, function ($query) use ($keyword) {
                 $query->where(function ($subQuery) use ($keyword) {
                     $subQuery
-                        ->where('title', 'like', '%' . $keyword . '%')
-                        ->orWhere('description', 'like', '%' . $keyword . '%')
+                        ->where('listings.title', 'like', '%' . $keyword . '%')
+                        ->orWhere('listings.description', 'like', '%' . $keyword . '%')
                         ->orWhereHas('property', function ($propertyQuery) use ($keyword) {
                             $propertyQuery
                                 ->where('address_detail', 'like', '%' . $keyword . '%')
@@ -119,7 +133,9 @@ final class EloquentListingRepository implements ListingRepository
                         });
                 });
             })
-            ->orderByDesc('id')
+            // 🔥 Ranking: Sort theo tầng ưu tiên (priority) trước, rồi mới so final_score
+            ->orderByDesc('pkg_priority')
+            ->orderByDesc('final_score')
             ->paginate($perPage);
     }
 

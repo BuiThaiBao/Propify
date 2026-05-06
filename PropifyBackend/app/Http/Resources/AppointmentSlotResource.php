@@ -34,7 +34,6 @@ final class AppointmentSlotResource extends JsonResource
                     'id'             => $this->listing->property->id,
                     'type'           => $this->listing->property->type,
                     'province_code'  => $this->listing->property->province_code,
-                    'district_code'  => $this->listing->property->district_code,
                     'address_detail' => $this->listing->property->address_detail,
                 ] : null),
             ]),

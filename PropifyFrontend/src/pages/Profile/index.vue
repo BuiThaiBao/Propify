@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-[1100px] mx-auto mt-20 mb-8 px-4 flex gap-8 min-h-[calc(100vh-200px)] max-md:flex-col">
+  <div class="max-w-[1400px] mx-auto mt-20 mb-8 px-4 flex gap-8 min-h-[calc(100vh-200px)] max-md:flex-col">
 <!-- Sidebar (chỉ giữ nguyên icon tóm tắt) -->
     <aside class="w-[260px] shrink-0 max-md:w-full">
       <div class="text-center p-6 bg-white rounded-xl shadow-sm mb-4">
@@ -324,6 +324,13 @@
           </select>
         </div>
 
+        <div
+          v-if="listingActionMessage"
+          :class="['mb-4 rounded-lg px-4 py-3 text-sm border', listingActionSuccess ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700']"
+        >
+          {{ listingActionMessage }}
+        </div>
+
         <div class="overflow-x-auto rounded-lg border border-slate-200">
           <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs text-slate-500">
@@ -334,16 +341,17 @@
                 <th class="px-3 py-3">Tin đăng</th>
                 <th class="px-3 py-3">Địa chỉ</th>
                 <th class="px-3 py-3">Giá</th>
+                <th class="px-3 py-3">Gói tin</th>
                 <th class="px-3 py-3">Trạng thái</th>
                 <th class="px-3 py-3">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="listingsLoading">
-                <td class="px-3 py-6 text-center text-slate-400" colspan="8">Đang tải dữ liệu...</td>
+                <td class="px-3 py-6 text-center text-slate-400" colspan="9">Đang tải dữ liệu...</td>
               </tr>
               <tr v-else-if="myListings.length === 0">
-                <td class="px-3 py-6 text-center text-slate-400" colspan="8">Bạn chưa có tin đăng nào.</td>
+                <td class="px-3 py-6 text-center text-slate-400" colspan="9">Bạn chưa có tin đăng nào.</td>
               </tr>
               <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="router.push('/listings/' + item.id)">
                 <td class="px-3 py-3 font-medium text-sky-600 group-hover:underline">{{ item.id }}</td>
@@ -356,18 +364,53 @@
                 <td class="px-3 py-3 text-slate-500">{{ item.address }}</td>
                 <td class="px-3 py-3 font-semibold text-slate-700">{{ item.price }}</td>
                 <td class="px-3 py-3">
+                  <span
+                    v-if="item.package?.slug === 'gold'"
+                    class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-sm"
+                    style="background: #FFD700"
+                  >
+                    VIP
+                  </span>
+                  <span
+                    v-else-if="item.package?.slug === 'silver'"
+                    class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-sm"
+                    style="background: #C0C0C0"
+                  >
+                    HOT
+                  </span>
+                  <span v-else class="text-xs text-slate-400">Cơ bản</span>
+                </td>
+                <td class="px-3 py-3">
                   <span :class="['rounded-full px-2 py-1 text-xs font-medium', statusBadgeClass(item.status)]">
                     {{ statusLabel(item.status) }}
                   </span>
                 </td>
                 <td class="px-3 py-3">
-                  <button
-                    class="flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-600 transition hover:bg-sky-100 hover:border-sky-300"
-                    @click.stop="router.push('/listings/' + item.id + '/edit')"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                    Sửa
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <button
+                      class="flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-600 transition hover:bg-sky-100 hover:border-sky-300"
+                      @click.stop="router.push('/listings/' + item.id + '/edit')"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                      Sửa
+                    </button>
+                    <button
+                      v-if="item.status === 'ACTIVE'"
+                      class="flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 hover:border-amber-300"
+                      @click.stop="openUpgradeModal(item)"
+                    >
+                      🚀 Nâng cấp
+                    </button>
+                    <button
+                      class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                      :class="item.status === 'ACTIVE' ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:border-rose-300' : 'border-slate-200 bg-slate-100 text-slate-400'"
+                      :disabled="item.status !== 'ACTIVE' || lockingListing"
+                      @click.stop="openLockListingModal(item)"
+                    >
+                      Khóa tin
+                    </button>
+                    
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -479,6 +522,27 @@
         </form>
       </section>
     </main>
+
+    <ConfirmActionModal
+      :open="lockListingModalOpen"
+      title="Xác nhận khóa tin"
+      :message="lockListingModalMessage"
+      confirm-text="Xác nhận khóa"
+      cancel-text="Hủy"
+      :loading="lockingListing"
+      loading-text="Đang khóa..."
+      @confirm="handleConfirmLockListing"
+      @cancel="closeLockListingModal"
+    />
+
+    <!-- Package Upgrade Modal -->
+    <PackageUpgradeModal
+      :visible="upgradeModalVisible"
+      :listing-id="upgradeListingId"
+      :current-package-id="upgradeCurrentPackageId"
+      @close="upgradeModalVisible = false"
+      @upgraded="onUpgradeSuccess"
+    />
   </div>
 </template>
 
@@ -489,6 +553,8 @@ import { useRoute, useRouter } from 'vue-router';
 import userService from '@/services/userService';
 import cloudinaryService from '@/services/cloudinaryService';
 import listingService from '@/services/listingService';
+import PackageUpgradeModal from '@/components/shared/PackageUpgradeModal.vue';
+import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
 
 const authStore = useAuthStore();
 const route = useRoute();
@@ -588,6 +654,11 @@ const listingPagination = reactive({
   lastPage: 1,
   total: 0,
 });
+const lockListingModalOpen = ref(false);
+const lockListingTarget = ref(null);
+const lockingListing = ref(false);
+const listingActionMessage = ref('');
+const listingActionSuccess = ref(false);
 
 // ── Phone required from đăng tin ──
 const requirePhone = ref(false);
@@ -655,8 +726,24 @@ function normalizeListings(items) {
       address: buildAddress(item.property),
       price: formatCurrency(item?.property?.price),
       status: item.status,
+      package: item.package || null,
     };
   });
+}
+
+// ==================== Package Upgrade ====================
+const upgradeModalVisible = ref(false);
+const upgradeListingId = ref(null);
+const upgradeCurrentPackageId = ref(null);
+
+function openUpgradeModal(item) {
+  upgradeListingId.value = item.id;
+  upgradeCurrentPackageId.value = item.package?.id || null;
+  upgradeModalVisible.value = true;
+}
+
+function onUpgradeSuccess() {
+  loadMyListings(listingPagination.currentPage);
 }
 
 async function loadMyListings(page = 1) {
@@ -685,6 +772,51 @@ async function loadMyListings(page = 1) {
     listingPagination.total = 0;
   } finally {
     listingsLoading.value = false;
+  }
+}
+
+const lockListingModalMessage = computed(() => {
+  if (!lockListingTarget.value) {
+    return 'Bạn có chắc chắn muốn khóa tin này không?';
+  }
+
+  return `Bạn có chắc chắn muốn khóa tin "${lockListingTarget.value.title}" không?`;
+});
+
+function openLockListingModal(item) {
+  lockListingTarget.value = item;
+  lockListingModalOpen.value = true;
+}
+
+function closeLockListingModal() {
+  if (lockingListing.value) {
+    return;
+  }
+
+  lockListingModalOpen.value = false;
+  lockListingTarget.value = null;
+}
+
+async function handleConfirmLockListing() {
+  if (!lockListingTarget.value) {
+    return;
+  }
+
+  lockingListing.value = true;
+  listingActionMessage.value = '';
+
+  try {
+    await listingService.lock(lockListingTarget.value.id);
+    listingActionSuccess.value = true;
+    listingActionMessage.value = 'Khóa tin đăng thành công.';
+    lockListingModalOpen.value = false;
+    lockListingTarget.value = null;
+    await loadMyListings(listingPagination.currentPage);
+  } catch (error) {
+    listingActionSuccess.value = false;
+    listingActionMessage.value = error?.response?.data?.message || 'Không thể khóa tin đăng. Vui lòng thử lại.';
+  } finally {
+    lockingListing.value = false;
   }
 }
 

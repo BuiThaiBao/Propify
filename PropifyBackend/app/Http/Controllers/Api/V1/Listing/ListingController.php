@@ -66,6 +66,16 @@ final class ListingController
         );
     }
 
+    public function lock(Request $request, int $id): JsonResponse
+    {
+        $listing = $this->listingService->lock($request->user(), $id);
+
+        return ApiResponse::success(
+            data: new ListingResource($listing),
+            message: 'Khoa tin dang thanh cong.'
+        );
+    }
+
     public function myListings(GetMyListingsRequest $request): JsonResponse
     {
         $perPage = (int) $request->input('per_page', 10);

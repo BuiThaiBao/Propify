@@ -114,15 +114,17 @@
               <th class="px-3 py-3">Tin đăng</th>
               <th class="px-3 py-3">Địa chỉ</th>
               <th class="px-3 py-3">Giá</th>
+              <th class="px-3 py-3">Gói tin</th>
               <th class="px-3 py-3">Trạng thái</th>
+              <th class="px-3 py-3">Hành động</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td class="px-3 py-6 text-center text-slate-400" colspan="7">Đang tải dữ liệu...</td>
+              <td class="px-3 py-6 text-center text-slate-400" colspan="9">Đang tải dữ liệu...</td>
             </tr>
             <tr v-else-if="rows.length === 0">
-              <td class="px-3 py-6 text-center text-slate-400" colspan="7">Bạn chưa có tin đăng nào.</td>
+              <td class="px-3 py-6 text-center text-slate-400" colspan="9">Bạn chưa có tin đăng nào.</td>
             </tr>
             <tr 
               v-for="row in rows" 
@@ -149,9 +151,28 @@
               <td class="px-3 py-3 text-slate-500">{{ row.address }}</td>
               <td class="px-3 py-3 font-semibold text-slate-700">{{ row.price }}</td>
               <td class="px-3 py-3">
+                <span
+                  v-if="row.package?.badge"
+                  class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-sm"
+                  :style="{ background: row.package.color || '#94a3b8' }"
+                >
+                  {{ row.package.badge }}
+                </span>
+                <span v-else class="text-xs text-slate-400">Cơ bản</span>
+              </td>
+              <td class="px-3 py-3">
                 <span :class="['rounded-full px-2 py-1 text-xs font-medium', statusBadgeClass(row.status)]">
                   {{ statusLabel(row.status) }}
                 </span>
+              </td>
+              <td class="px-3 py-3">
+                <button
+                  v-if="row.status === 'ACTIVE'"
+                  class="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600 transition hover:bg-blue-100"
+                  @click.stop="openUpgrade(row)"
+                >
+                  🚀 Nâng cấp
+                </button>
               </td>
             </tr>
           </tbody>
@@ -190,6 +211,15 @@
         </div>
       </div>
     </main>
+
+    <!-- Package Upgrade Modal -->
+    <PackageUpgradeModal
+      :visible="upgradeModalVisible"
+      :listing-id="upgradeListingId"
+      :current-package-id="upgradeCurrentPackageId"
+      @close="upgradeModalVisible = false"
+      @upgraded="onUpgraded"
+    />
   </div>
 </template>
 
@@ -198,6 +228,7 @@ import { computed, onMounted, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import listingService from "@/services/listingService";
+import PackageUpgradeModal from "@/components/shared/PackageUpgradeModal.vue";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -277,8 +308,24 @@ function normalizeRows(items) {
       address: buildAddress(item.property),
       price: formatCurrency(item?.property?.price),
       status: item.status,
+      package: item.package || null,
     };
   });
+}
+
+// ==================== Package Upgrade ====================
+const upgradeModalVisible = ref(false);
+const upgradeListingId = ref(null);
+const upgradeCurrentPackageId = ref(null);
+
+function openUpgrade(row) {
+  upgradeListingId.value = row.id;
+  upgradeCurrentPackageId.value = row.package?.id || null;
+  upgradeModalVisible.value = true;
+}
+
+function onUpgraded() {
+  reload(pagination.currentPage);
 }
 
 async function reload(page = 1) {

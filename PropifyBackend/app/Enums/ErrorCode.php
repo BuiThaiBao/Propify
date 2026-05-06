@@ -47,6 +47,8 @@ enum ErrorCode: int
     case SlotHasApprovedBooking   = 6009;
     case SlotListingMismatch      = 6010;
     case BookingExistsOnListing   = 6011;
+    case ListingCannotBeLocked    = 6012;
+    case ListingAlreadyLocked     = 6013;
     case BookingNotPending        = 6012;
     case BookingNotFound          = 6013;
     case BookingNotOwner          = 6014;
@@ -64,6 +66,9 @@ enum ErrorCode: int
     // Package (8xxx)
     case PackageAlreadyExists = 8001;
     case PackageNotFound = 8002;
+    case PackageInactive = 8003;
+    case ListingUpgradeNotAllowed = 8004;
+    case ListingNotOwned = 8005;
 
 
 
@@ -103,6 +108,8 @@ enum ErrorCode: int
             self::SlotHasApprovedBooking => 'Không thể sửa vì đã có lịch hẹn được duyệt trong khung giờ này',
             self::SlotListingMismatch => 'Khung giờ không thuộc bài đăng này',
             self::BookingExistsOnListing => 'Bạn đã có một lịch hẹn chưa hoàn thành trên căn hộ này',
+            self::ListingCannotBeLocked => 'Không thể khóa tin này do trạng thái hiện tại không hợp lệ',
+            self::ListingAlreadyLocked => 'Tin đăng đã được khóa trước đó',
             self::BookingNotPending => 'Lịch hẹn không ở trạng thái chờ xác nhận',
             self::BookingNotFound => 'Không tìm thấy lịch hẹn',
             self::BookingNotOwner => 'Bạn không phải là chủ lịch hẹn',
@@ -112,6 +119,9 @@ enum ErrorCode: int
             self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
             self::PackageAlreadyExists => "Gói tin đã tồn tại",
             self::PackageNotFound => "Không tìm thấy gói tin",
+            self::PackageInactive => "Gói tin đã bị vô hiệu hóa",
+            self::ListingUpgradeNotAllowed => "Không thể nâng cấp gói tin. Chỉ cho phép nâng cấp lên gói cao hơn.",
+            self::ListingNotOwned => "Bạn không phải chủ sở hữu tin đăng này",
         };
     }
 
@@ -160,6 +170,10 @@ enum ErrorCode: int
 
             self::BookingExistsOnListing => Response::HTTP_CONFLICT,
 
+            self::ListingCannotBeLocked => Response::HTTP_UNPROCESSABLE_ENTITY,
+
+            self::ListingAlreadyLocked => Response::HTTP_CONFLICT,
+
             self::BookingNotPending => Response::HTTP_CONFLICT,
 
             self::BookingNotFound => Response::HTTP_NOT_FOUND,
@@ -172,8 +186,12 @@ enum ErrorCode: int
 
             self::UserAlreadyExists => Response::HTTP_CONFLICT,
             self::PackageAlreadyExists => Response::HTTP_CONFLICT,
-            
+
             self::PackageNotFound => Response::HTTP_NOT_FOUND,
+
+            self::PackageInactive => Response::HTTP_UNPROCESSABLE_ENTITY,
+            self::ListingUpgradeNotAllowed => Response::HTTP_UNPROCESSABLE_ENTITY,
+            self::ListingNotOwned => Response::HTTP_FORBIDDEN,
 
             self::ServerError,
             self::AuthRegisterFailed,
