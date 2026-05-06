@@ -52,9 +52,13 @@
             v-model="email"
             type="email"
             placeholder="Email của bạn"
-            class="w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm"
+            class="peer w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm placeholder-transparent"
+            :class="{ 'border-red-400': fieldErrors?.email }"
             @keyup.enter="handleLogin"
           />
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none opacity-0 peer-placeholder-shown:opacity-100">
+            Email của bạn <span class="text-red-500">*</span>
+          </div>
           <span class="absolute right-3 top-1/2 -translate-y-1/2 text-blue-400">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
               <rect x="2" y="4" width="20" height="16" rx="3"/>
@@ -62,6 +66,10 @@
             </svg>
           </span>
         </div>
+        <p v-if="fieldErrors?.email" class="text-red-500 text-xs mb-2 flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          {{ fieldErrors.email[0] }}
+        </p>
 
         <!-- Password -->
         <div class="relative mb-3">
@@ -69,9 +77,13 @@
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
             placeholder="Mật khẩu"
-            class="w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm"
+            class="peer w-full border border-gray-200 rounded-xl px-4 py-3 pr-12 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition text-sm placeholder-transparent"
+            :class="{ 'border-red-400': fieldErrors?.password }"
             @keyup.enter="handleLogin"
           />
+          <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none opacity-0 peer-placeholder-shown:opacity-100">
+            Mật khẩu <span class="text-red-500">*</span>
+          </div>
           <button
             @click="showPassword = !showPassword"
             class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
@@ -84,6 +96,10 @@
             </svg>
           </button>
         </div>
+        <p v-if="fieldErrors?.password" class="text-red-500 text-xs mb-2 flex items-center gap-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          {{ fieldErrors.password[0] }}
+        </p>
 
         <!-- Error -->
         <p v-if="errorMessage" class="text-red-500 text-xs mb-3 flex items-center gap-1">
@@ -106,8 +122,8 @@
         <!-- Login button -->
         <button
           @click="handleLogin"
-          :disabled="authStore.loading"
-          class="w-full hero-gradient text-white font-semibold rounded-xl py-3.5 text-sm mb-4 disabled:opacity-60 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98] shadow-md shadow-blue-200"
+          :disabled="authStore.loading || !isFormValid"
+          class="w-full hero-gradient text-white font-semibold rounded-xl py-3.5 text-sm mb-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98] shadow-md shadow-blue-200"
         >
           {{ authStore.loading ? 'Đang đăng nhập...' : 'Tiếp tục' }}
         </button>
@@ -159,7 +175,7 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, watch, computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import ForgotPassword from "./ForgotPassword.vue";
 
@@ -170,12 +186,42 @@ const email = ref("");
 const password = ref("");
 const showPassword = ref(false);
 const errorMessage = ref("");
+const fieldErrors = ref(null);
 const showForgotPassword = ref(false);
+const touched = ref({ email: false, password: false });
+
+const isFormValid = computed(() => {
+  if (!email.value || !/\S+@\S+\.\S+/.test(email.value)) return false;
+  return true;
+});
+
+watch(email, () => { touched.value.email = true; validateForm(); });
+watch(password, () => { touched.value.password = true; validateForm(); });
+
+function validateForm(isSubmit = false) {
+  if (isSubmit) {
+    touched.value = { email: true, password: true };
+  }
+
+  let errors = {};
+
+  if (touched.value.email && (!email.value || !/\S+@\S+\.\S+/.test(email.value))) {
+    errors.email = ['Vui lòng nhập email hợp lệ'];
+  }
+
+  fieldErrors.value = Object.keys(errors).length > 0 ? errors : null;
+  return Object.keys(errors).length === 0;
+}
 
 async function handleLogin() {
   if (authStore.loading) return;
 
   errorMessage.value = "";
+  
+  if (!validateForm(true)) {
+    return;
+  }
+
   const result = await authStore.login(email.value, password.value);
 
   if (result.success) {
