@@ -365,11 +365,18 @@
                 <td class="px-3 py-3 font-semibold text-slate-700">{{ item.price }}</td>
                 <td class="px-3 py-3">
                   <span
-                    v-if="item.package?.badge"
+                    v-if="item.package?.slug === 'gold'"
                     class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-sm"
-                    :style="{ background: item.package.color || '#94a3b8' }"
+                    style="background: #FFD700"
                   >
-                    {{ item.package.badge }}
+                    VIP
+                  </span>
+                  <span
+                    v-else-if="item.package?.slug === 'silver'"
+                    class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-sm"
+                    style="background: #C0C0C0"
+                  >
+                    HOT
                   </span>
                   <span v-else class="text-xs text-slate-400">Cơ bản</span>
                 </td>

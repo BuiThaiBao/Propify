@@ -57,8 +57,8 @@
               :location="item.property?.address_detail || ''"
               :author="getAuthor(item)"
               :image="getThumb(item)"
-              :badge="item.package?.badge || null"
-              :badge-color="item.package?.color || null"
+              :badge="getPackageBadge(item.package)"
+              :badge-color="getPackageColor(item.package)"
               :rating="null"
               :timeAgo="timeAgo(item.submitted_at)"
               :views="item.views_count || 0"
@@ -193,6 +193,18 @@ function getAuthor(item) {
     name: item.property?.contact_name || item.owner?.full_name || 'Chủ nhà',
     role: item.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới',
   };
+}
+
+function getPackageBadge(pkg) {
+  if (!pkg?.slug) return null;
+  const map = { gold: 'VIP', silver: 'HOT' };
+  return map[pkg.slug] || null;
+}
+
+function getPackageColor(pkg) {
+  if (!pkg?.slug) return null;
+  const map = { gold: '#FFD700', silver: '#C0C0C0' };
+  return map[pkg.slug] || null;
 }
 
 function formatPrice(value) {
