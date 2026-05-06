@@ -21,5 +21,10 @@ interface AppointmentSlotService
      * Tự động hủy các booking PENDING và ghi chú thay đổi.
      */
     public function updateSlot(UpdateSlotDto $dto): AppointmentSlot;
+
+    /**
+     * Vô hiệu hóa (xóa mềm) một khung giờ.
+     */
+    public function disableSlot(int $slotId, int $posterId): bool;
 }
 

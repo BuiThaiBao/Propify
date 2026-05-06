@@ -22,3 +22,6 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Hoặc nếu muốn ignore toàn bộ nội dung trong thư mục docs (không push bất kỳ file nào trong docs lên) thì dùng:
+/docs/*

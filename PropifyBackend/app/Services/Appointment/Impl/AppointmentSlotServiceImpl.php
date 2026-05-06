@@ -30,6 +30,12 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
             throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
         }
 
+        // Kiểm tra Listing phải ACTIVE
+        $listing = $slots->first()->listing;
+        if (!$listing || $listing->status !== 'ACTIVE') {
+            throw new BusinessException(ErrorCode::ListingNotActive);
+        }
+
         return $this->buildDateSlots($slots);
     }
 
@@ -43,6 +49,11 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
 
         if (!$slot) {
             throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
+        }
+
+        // 1.1 Kiểm tra Listing phải ACTIVE
+        if (!$slot->listing || $slot->listing->status !== 'ACTIVE') {
+            throw new BusinessException(ErrorCode::ListingNotActive);
         }
 
         // 2. Kiểm tra poster_id (người gọi API phải là chủ slot)
@@ -137,7 +148,14 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
 
                 $dateString = $date->toDateString(); // Y-m-d
 
-                $formattedSlots = $daySlots->map(function ($slot) {
+                $formattedSlots = $daySlots->filter(function ($slot) use ($dateString, $today, $now) {
+                    // Nếu là ngày hôm nay, chỉ hiển thị slot cách giờ hiện tại ít nhất 2 tiếng
+                    if ($dateString === $today->toDateString()) {
+                        $slotStartTime = Carbon::parse($dateString . ' ' . $slot->start_time);
+                        return $now->diffInHours($slotStartTime, false) >= 2;
+                    }
+                    return true;
+                })->map(function ($slot) {
                     return [
                         'id'          => $slot->id,
                         'day_of_week' => $slot->day_of_week,
@@ -158,6 +176,20 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
         usort($result, fn($a, $b) => strcmp($a['date'], $b['date']));
 
         return $result;
+    }
+    public function disableSlot(int $slotId, int $posterId): bool
+    {
+        $slot = AppointmentSlot::find($slotId);
+
+        if (!$slot) {
+            throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
+        }
+
+        if ($slot->poster_id !== $posterId) {
+            throw new BusinessException(ErrorCode::SlotNotOwner);
+        }
+
+        return $slot->update(['is_active' => false]);
     }
 }
 

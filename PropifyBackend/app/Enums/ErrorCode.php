@@ -49,6 +49,11 @@ enum ErrorCode: int
     case BookingExistsOnListing   = 6011;
     case ListingCannotBeLocked    = 6012;
     case ListingAlreadyLocked     = 6013;
+    case BookingNotPending        = 6012;
+    case BookingNotFound          = 6013;
+    case BookingNotOwner          = 6014;
+    case BookingTooLateToCancel   = 6015;
+    case ListingNotActive         = 6016;
 
     // ==================== Chat (7xxx) ====================
     case ConversationNotFound              = 7001;
@@ -105,6 +110,11 @@ enum ErrorCode: int
             self::BookingExistsOnListing => 'Bạn đã có một lịch hẹn chưa hoàn thành trên căn hộ này',
             self::ListingCannotBeLocked => 'Không thể khóa tin này do trạng thái hiện tại không hợp lệ',
             self::ListingAlreadyLocked => 'Tin đăng đã được khóa trước đó',
+            self::BookingNotPending => 'Lịch hẹn không ở trạng thái chờ xác nhận',
+            self::BookingNotFound => 'Không tìm thấy lịch hẹn',
+            self::BookingNotOwner => 'Bạn không phải là chủ lịch hẹn',
+            self::BookingTooLateToCancel => 'Chỉ có thể hủy lịch trước giờ hẹn ít nhất 2 tiếng',
+            self::ListingNotActive => 'Bài đăng hiện không khả dụng để đặt lịch',
             self::ServerError => 'Lỗi hệ thống',
             self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
             self::PackageAlreadyExists => "Gói tin đã tồn tại",
@@ -163,6 +173,16 @@ enum ErrorCode: int
             self::ListingCannotBeLocked => Response::HTTP_UNPROCESSABLE_ENTITY,
 
             self::ListingAlreadyLocked => Response::HTTP_CONFLICT,
+
+            self::BookingNotPending => Response::HTTP_CONFLICT,
+
+            self::BookingNotFound => Response::HTTP_NOT_FOUND,
+
+            self::BookingNotOwner => Response::HTTP_FORBIDDEN,
+
+            self::BookingTooLateToCancel => Response::HTTP_CONFLICT,
+
+            self::ListingNotActive => Response::HTTP_GONE,
 
             self::UserAlreadyExists => Response::HTTP_CONFLICT,
             self::PackageAlreadyExists => Response::HTTP_CONFLICT,
