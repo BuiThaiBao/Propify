@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-[1100px] mx-auto mt-20 mb-8 px-4 flex gap-8 min-h-[calc(100vh-200px)] max-md:flex-col">
+  <div class="max-w-[1400px] mx-auto mt-20 mb-8 px-4 flex gap-8 min-h-[calc(100vh-200px)] max-md:flex-col">
 <!-- Sidebar (chỉ giữ nguyên icon tóm tắt) -->
     <aside class="w-[260px] shrink-0 max-md:w-full">
       <div class="text-center p-6 bg-white rounded-xl shadow-sm mb-4">
@@ -341,16 +341,17 @@
                 <th class="px-3 py-3">Tin đăng</th>
                 <th class="px-3 py-3">Địa chỉ</th>
                 <th class="px-3 py-3">Giá</th>
+                <th class="px-3 py-3">Gói tin</th>
                 <th class="px-3 py-3">Trạng thái</th>
                 <th class="px-3 py-3">Thao tác</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="listingsLoading">
-                <td class="px-3 py-6 text-center text-slate-400" colspan="8">Đang tải dữ liệu...</td>
+                <td class="px-3 py-6 text-center text-slate-400" colspan="9">Đang tải dữ liệu...</td>
               </tr>
               <tr v-else-if="myListings.length === 0">
-                <td class="px-3 py-6 text-center text-slate-400" colspan="8">Bạn chưa có tin đăng nào.</td>
+                <td class="px-3 py-6 text-center text-slate-400" colspan="9">Bạn chưa có tin đăng nào.</td>
               </tr>
               <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="router.push('/listings/' + item.id)">
                 <td class="px-3 py-3 font-medium text-sky-600 group-hover:underline">{{ item.id }}</td>
@@ -362,6 +363,16 @@
                 <td class="px-3 py-3 font-semibold text-slate-700 group-hover:text-sky-600">{{ item.title }}</td>
                 <td class="px-3 py-3 text-slate-500">{{ item.address }}</td>
                 <td class="px-3 py-3 font-semibold text-slate-700">{{ item.price }}</td>
+                <td class="px-3 py-3">
+                  <span
+                    v-if="item.package?.badge"
+                    class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-sm"
+                    :style="{ background: item.package.color || '#94a3b8' }"
+                  >
+                    {{ item.package.badge }}
+                  </span>
+                  <span v-else class="text-xs text-slate-400">Cơ bản</span>
+                </td>
                 <td class="px-3 py-3">
                   <span :class="['rounded-full px-2 py-1 text-xs font-medium', statusBadgeClass(item.status)]">
                     {{ statusLabel(item.status) }}
@@ -377,6 +388,13 @@
                       Sửa
                     </button>
                     <button
+                      v-if="item.status === 'ACTIVE'"
+                      class="flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 hover:border-amber-300"
+                      @click.stop="openUpgradeModal(item)"
+                    >
+                      🚀 Nâng cấp
+                    </button>
+                    <button
                       class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
                       :class="item.status === 'ACTIVE' ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:border-rose-300' : 'border-slate-200 bg-slate-100 text-slate-400'"
                       :disabled="item.status !== 'ACTIVE' || lockingListing"
@@ -384,6 +402,7 @@
                     >
                       Khóa tin
                     </button>
+                    
                   </div>
                 </td>
               </tr>
@@ -508,6 +527,15 @@
       @confirm="handleConfirmLockListing"
       @cancel="closeLockListingModal"
     />
+
+    <!-- Package Upgrade Modal -->
+    <PackageUpgradeModal
+      :visible="upgradeModalVisible"
+      :listing-id="upgradeListingId"
+      :current-package-id="upgradeCurrentPackageId"
+      @close="upgradeModalVisible = false"
+      @upgraded="onUpgradeSuccess"
+    />
   </div>
 </template>
 
@@ -518,6 +546,7 @@ import { useRoute, useRouter } from 'vue-router';
 import userService from '@/services/userService';
 import cloudinaryService from '@/services/cloudinaryService';
 import listingService from '@/services/listingService';
+import PackageUpgradeModal from '@/components/shared/PackageUpgradeModal.vue';
 import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
 
 const authStore = useAuthStore();
@@ -690,8 +719,24 @@ function normalizeListings(items) {
       address: buildAddress(item.property),
       price: formatCurrency(item?.property?.price),
       status: item.status,
+      package: item.package || null,
     };
   });
+}
+
+// ==================== Package Upgrade ====================
+const upgradeModalVisible = ref(false);
+const upgradeListingId = ref(null);
+const upgradeCurrentPackageId = ref(null);
+
+function openUpgradeModal(item) {
+  upgradeListingId.value = item.id;
+  upgradeCurrentPackageId.value = item.package?.id || null;
+  upgradeModalVisible.value = true;
+}
+
+function onUpgradeSuccess() {
+  loadMyListings(listingPagination.currentPage);
 }
 
 async function loadMyListings(page = 1) {

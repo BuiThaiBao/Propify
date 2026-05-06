@@ -156,6 +156,17 @@ const listingService = {
 
     return api.post("/v1/listings", data);
   },
+
+  /**
+   * Nâng cấp gói tin cho listing.
+   * @param {number} listingId
+   * @param {number} packageId
+   */
+  upgradeListing(listingId, packageId) {
+    return api.post(`/v1/listings/${listingId}/upgrade`, {
+      package_id: packageId,
+    });
+  },
 };
 
 export default listingService;

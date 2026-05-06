@@ -61,6 +61,9 @@ enum ErrorCode: int
     // Package (8xxx)
     case PackageAlreadyExists = 8001;
     case PackageNotFound = 8002;
+    case PackageInactive = 8003;
+    case ListingUpgradeNotAllowed = 8004;
+    case ListingNotOwned = 8005;
 
 
 
@@ -106,6 +109,9 @@ enum ErrorCode: int
             self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
             self::PackageAlreadyExists => "Gói tin đã tồn tại",
             self::PackageNotFound => "Không tìm thấy gói tin",
+            self::PackageInactive => "Gói tin đã bị vô hiệu hóa",
+            self::ListingUpgradeNotAllowed => "Không thể nâng cấp gói tin. Chỉ cho phép nâng cấp lên gói cao hơn.",
+            self::ListingNotOwned => "Bạn không phải chủ sở hữu tin đăng này",
         };
     }
 
@@ -160,8 +166,12 @@ enum ErrorCode: int
 
             self::UserAlreadyExists => Response::HTTP_CONFLICT,
             self::PackageAlreadyExists => Response::HTTP_CONFLICT,
-            
+
             self::PackageNotFound => Response::HTTP_NOT_FOUND,
+
+            self::PackageInactive => Response::HTTP_UNPROCESSABLE_ENTITY,
+            self::ListingUpgradeNotAllowed => Response::HTTP_UNPROCESSABLE_ENTITY,
+            self::ListingNotOwned => Response::HTTP_FORBIDDEN,
 
             self::ServerError,
             self::AuthRegisterFailed,

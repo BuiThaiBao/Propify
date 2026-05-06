@@ -139,13 +139,16 @@ Route::prefix('v1/geocoding')->as('geocoding.')->group(function () {
 Route::prefix('v1/listings')->as('listings.')->group(function () {
     Route::get('/', [ListingController::class, 'index'])->name('index');
     Route::get('/{id}', [ListingController::class, 'show'])->where('id', '[0-9]+')->name('show');
-    
+
     // Yêu cầu đăng nhập
     Route::middleware('auth:api')->group(function () {
         Route::post('/', [ListingController::class, 'store'])->name('store');
         Route::get('/my', [ListingController::class, 'myListings'])->name('my');
         Route::put('/{id}', [ListingController::class, 'update'])->where('id', '[0-9]+')->name('update');
         Route::post('/{id}/lock', [ListingController::class, 'lock'])->where('id', '[0-9]+')->name('lock');
+        Route::post('/{id}/upgrade', [\App\Http\Controllers\Api\V1\Listing\ListingUpgradeController::class, 'upgrade'])
+            ->where('id', '[0-9]+')
+            ->name('upgrade');
     });
 });
 
