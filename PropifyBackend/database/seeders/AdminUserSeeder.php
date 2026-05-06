@@ -19,10 +19,10 @@ class AdminUserSeeder extends Seeder
             ['email' => 'admin@gmail.com'],
             [
                 'full_name' => 'System Administrator',
-                'password'  => Hash::make('Admin123'),
-                'role'      => UserRole::Admin,
-                'status'    => UserStatus::Active,
-                'phone'     => '0999999999', // Mock phone number in case it's required
+                'password' => Hash::make('Admin123'),
+                'role' => UserRole::Admin,
+                'status' => UserStatus::Active,
+                'phone' => '0999999999',
             ]
         );
     }

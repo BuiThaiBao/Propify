@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Repositories\ListingRepository;
 use App\Services\Listing\ListingService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -38,7 +39,7 @@ final class ListingServiceImpl implements ListingService
             throw new BusinessException(ErrorCode::AuthPhoneNotVerified);
         }
 
-        return DB::transaction(function () use ($user, $dto) {
+        $listing = DB::transaction(function () use ($user, $dto) {
             Log::debug('[ListingService] DB transaction started');
             $property = $this->listingRepository->createProperty([
                 'type' => $dto->propertyType,
@@ -180,6 +181,10 @@ final class ListingServiceImpl implements ListingService
                 'appointments',
             ]);
         });
+
+        $this->clearPublicListingsCache();
+
+        return $listing;
     }
 
     public function getMyListings(User $user, ?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
@@ -206,7 +211,7 @@ final class ListingServiceImpl implements ListingService
             throw new BusinessException(ErrorCode::AuthForbidden);
         }
 
-        return DB::transaction(function () use ($listing, $dto) {
+        $updated = DB::transaction(function () use ($listing, $dto) {
             // Update property
             $this->listingRepository->updateProperty($listing->property_id, [
                 'type' => $dto->propertyType,
@@ -319,7 +324,7 @@ final class ListingServiceImpl implements ListingService
                 }
             }
 
-            return $listing->load([
+            return $listing->fresh()->load([
                 'property.attributes.group',
                 'images',
                 'videos',
@@ -327,6 +332,10 @@ final class ListingServiceImpl implements ListingService
                 'appointments',
             ]);
         });
+
+        $this->clearPublicListingsCache();
+
+        return $updated;
     }
 
     public function lock(User $user, int $id): Listing
@@ -362,6 +371,24 @@ final class ListingServiceImpl implements ListingService
 
     public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
     {
-        return $this->listingRepository->paginatePublic($demandType, $keyword, $perPage);
+        $page = request()->input('page', 1);
+        $cacheKey = 'listings:public:' . md5(serialize([
+            'demand_type' => $demandType,
+            'keyword'     => $keyword,
+            'per_page'    => $perPage,
+            'page'        => $page,
+        ]));
+
+        return Cache::tags(['listings:public'])->remember($cacheKey, 300, function () use ($demandType, $keyword, $perPage) {
+            return $this->listingRepository->paginatePublic($demandType, $keyword, $perPage);
+        });
+    }
+
+    /**
+     * Xóa cache public listings khi dữ liệu thay đổi.
+     */
+    private function clearPublicListingsCache(): void
+    {
+        Cache::tags(['listings:public'])->flush();
     }
 }
