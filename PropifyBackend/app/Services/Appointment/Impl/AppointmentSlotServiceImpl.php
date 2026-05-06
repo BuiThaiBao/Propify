@@ -2,6 +2,7 @@
 
 namespace App\Services\Appointment\Impl;
 
+use App\DTOs\Appointment\CreateSlotsDto;
 use App\DTOs\Appointment\GetAppointmentSlotsDto;
 use App\DTOs\Appointment\UpdateSlotDto;
 use App\Enums\BookingStatus;
@@ -9,6 +10,7 @@ use App\Enums\ErrorCode;
 use App\Exceptions\BusinessException;
 use App\Models\AppointmentBooking;
 use App\Models\AppointmentSlot;
+use App\Models\Listing;
 use App\Repositories\AppointmentSlotRepository;
 use App\Services\Appointment\AppointmentSlotService;
 use Carbon\Carbon;
@@ -97,10 +99,12 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
             $cancelNote = "[Tự động hủy] Chủ nhà đã thay đổi lịch hẹn từ ({$oldInfo}) sang ({$newInfo}).";
             $existingNote = $booking->note ? $booking->note . ' | ' : '';
 
-            $booking->update([
-                'status' => BookingStatus::CANCELLED->value,
-                'note'   => $existingNote . $cancelNote,
-            ]);
+            AppointmentBooking::query()
+                ->where('id', $booking->id)
+                ->update([
+                    'status' => BookingStatus::CANCELLED->value,
+                    'note'   => $existingNote . $cancelNote,
+                ]);
         }
 
         // 6. Cập nhật slot
@@ -123,6 +127,7 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
     private function buildDateSlots(Collection $slots): array
     {
         $today = CarbonImmutable::today();
+        $now = Carbon::now();
 
         // Lấy ngày Thứ Hai đầu tuần hiện tại (ISO week: Monday = 1)
         $startOfCurrentWeek = $today->startOfWeek(Carbon::MONDAY);
@@ -177,6 +182,97 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
 
         return $result;
     }
+
+    public function createSlots(CreateSlotsDto $dto): Collection
+    {
+        // 1. Kiểm tra Listing tồn tại (tạm thời không ràng buộc ACTIVE để thông luồng đăng tin)
+        $listing = Listing::query()
+            ->where('id', $dto->listingId)
+            ->first();
+
+        if (!$listing) {
+            throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
+        }
+
+        // 2. Kiểm tra poster_id có match với listing owner không
+        if ($listing->owner_id !== $dto->posterId) {
+            throw new BusinessException(ErrorCode::SlotNotOwner);
+        }
+
+        // 3. Kiểm tra không trùng trong array được gửi lên
+        $this->validateSlotsForDuplicates($dto->slots);
+
+        // 4. Kiểm tra không trùng với các slot đã tồn tại trong DB
+        $this->validateSlotsAgainstExisting($dto->listingId, $dto->posterId, $dto->slots);
+
+        // 5. Bulk insert
+        $createdSlots = [];
+        foreach ($dto->slots as $slot) {
+            $createdSlot = AppointmentSlot::create([
+                'listing_id'    => $dto->listingId,
+                'poster_id'     => $dto->posterId,
+                'day_of_week'   => $slot['day_of_week'],
+                'start_time'    => $slot['start_time'],
+                'end_time'      => $slot['end_time'],
+                'is_active'     => true,
+            ]);
+
+            $createdSlots[] = $createdSlot;
+        }
+
+        return collect($createdSlots);
+    }
+
+    /**
+     * Kiểm tra không trùng day_of_week + start_time + end_time trong array slots.
+     *
+     * @param  array<int, array{day_of_week: int, start_time: string, end_time: string}>  $slots
+     *
+     * @throws BusinessException nếu có trùng
+     */
+    private function validateSlotsForDuplicates(array $slots): void
+    {
+        $seen = [];
+
+        foreach ($slots as $index => $slot) {
+            $key = "{$slot['day_of_week']}_{$slot['start_time']}_{$slot['end_time']}";
+
+            if (isset($seen[$key])) {
+                throw new BusinessException(ErrorCode::SlotTimeOverlap);
+            }
+
+            $seen[$key] = true;
+        }
+    }
+
+    /**
+     * Kiểm tra không trùng với các slot đã tồn tại trong DB.
+     *
+     * @param  array<int, array{day_of_week: int, start_time: string, end_time: string}>  $slots
+     *
+     * @throws BusinessException nếu có trùng
+     */
+    private function validateSlotsAgainstExisting(int $listingId, int $posterId, array $slots): void
+    {
+        foreach ($slots as $newSlot) {
+            $overlap = AppointmentSlot::query()
+                ->where('listing_id', $listingId)
+                ->where('poster_id', $posterId)
+                ->where('day_of_week', $newSlot['day_of_week'])
+                ->where('is_active', true)
+                ->where(function ($query) use ($newSlot) {
+                    // Kiểm tra trùng khung giờ: start < newEnd AND end > newStart
+                    $query->where('start_time', '<', $newSlot['end_time'])
+                          ->where('end_time', '>', $newSlot['start_time']);
+                })
+                ->exists();
+
+            if ($overlap) {
+                throw new BusinessException(ErrorCode::SlotTimeOverlap);
+            }
+        }
+    }
+
     public function disableSlot(int $slotId, int $posterId): bool
     {
         $slot = AppointmentSlot::find($slotId);
@@ -191,5 +287,6 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
 
         return $slot->update(['is_active' => false]);
     }
+
 }
 

@@ -65,13 +65,6 @@ const listingService = {
       identity_card_front: payload.identityCardFront || null,
       identity_card_back: payload.identityCardBack || null,
       legal_documents: payload.legalDocuments || [],
-      appointment_at: payload.appointmentAt,
-      appointment_days: payload.appointmentDays || [],
-      appointment_time_slot: payload.appointmentTimeSlot || null,
-      appointment_contact_name: payload.appointmentContactName,
-      appointment_contact_phone: payload.appointmentContactPhone,
-      appointment_contact_email: payload.appointmentContactEmail,
-      appointment_note: payload.appointmentNote,
     };
 
     Object.keys(data).forEach(key => {
@@ -137,14 +130,6 @@ const listingService = {
       identity_card_front: payload.identityCardFront || null,
       identity_card_back: payload.identityCardBack || null,
       legal_documents: payload.legalDocuments || [],
-      
-      appointment_at: payload.appointmentAt,
-      appointment_days: payload.appointmentDays || [],
-      appointment_time_slot: payload.appointmentTimeSlot || null,
-      appointment_contact_name: payload.appointmentContactName,
-      appointment_contact_phone: payload.appointmentContactPhone,
-      appointment_contact_email: payload.appointmentContactEmail,
-      appointment_note: payload.appointmentNote,
     };
 
     // Remove undefined/null/empty strings for cleaner payload
@@ -165,6 +150,18 @@ const listingService = {
   upgradeListing(listingId, packageId) {
     return api.post(`/v1/listings/${listingId}/upgrade`, {
       package_id: packageId,
+    });
+  },
+
+  /**
+   * Tạo nhiều khung giờ hẹn cùng lúc (bulk create).
+   * @param {number} listingId
+   * @param {Array} slots - [{ day_of_week, start_time, end_time }, ...]
+   */
+  createAppointmentSlots(listingId, slots) {
+    return api.post(`/v1/appointment-slots/create`, {
+      listing_id: listingId,
+      slots: slots,
     });
   },
 };

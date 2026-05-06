@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Appointment;
 
 use App\Helpers\ApiResponse;
 use App\Http\Resources\AppointmentSlotResource;
+use App\Http\Resources\Requests\Appointment\CreateSlotsRequest;
 use App\Http\Resources\Requests\Appointment\GetAppointmentSlotsRequest;
 use App\Http\Resources\Requests\Appointment\UpdateSlotRequest;
 use App\Services\Appointment\AppointmentSlotService;
@@ -30,6 +31,22 @@ final class AppointmentSlotController
         return ApiResponse::success(
             data: $dateSlots,
             message: 'Lấy danh sách lịch hẹn thành công.'
+        );
+    }
+
+    /**
+     * Tạo nhiều khung giờ hẹn cùng lúc (bulk create).
+     * Request body: { "listing_id": 1, "slots": [{"day_of_week": 2, "start_time": "09:00", "end_time": "10:00"}, ...] }
+     */
+    public function create(CreateSlotsRequest $request): JsonResponse
+    {
+        $dto = $request->toDto();
+
+        $createdSlots = $this->appointmentSlotService->createSlots($dto);
+
+        return ApiResponse::success(
+            data: AppointmentSlotResource::collection($createdSlots),
+            message: 'Tạo khung giờ hẹn thành công.'
         );
     }
 

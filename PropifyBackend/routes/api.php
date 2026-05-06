@@ -94,6 +94,8 @@ Route::prefix('v1/cloudinary')->as('cloudinary.')->middleware('auth:api')->group
 Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('auth:api')->group(function () {
     Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'index'])
         ->name('index');
+    Route::post('/create', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'create'])
+        ->name('create');
     Route::put('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'update'])
         ->name('update');
     Route::post('/disable', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'disable'])
