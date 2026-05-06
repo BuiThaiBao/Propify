@@ -42,6 +42,9 @@ final class ResetPasswordRequest extends FormRequest
             'password.required' => 'Vui lòng nhập mật khẩu mới.',
             'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
             'password.min'      => 'Mật khẩu phải có ít nhất :min ký tự.',
+            'password.letters'  => 'Mật khẩu phải chứa ít nhất 1 chữ cái.',
+            'password.mixed'    => 'Mật khẩu phải chứa cả chữ hoa và chữ thường.',
+            'password.numbers'  => 'Mật khẩu phải chứa ít nhất 1 chữ số.',
         ];
     }
 }

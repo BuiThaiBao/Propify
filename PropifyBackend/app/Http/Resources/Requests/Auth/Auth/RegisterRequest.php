@@ -63,8 +63,8 @@ final class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'full_name.required' => 'Vui lòng nhập họ và tên.',
-            'full_name.max' => 'Họ và tên không được vượt quá :max ký tự.',
+            'full_name.required' => 'Vui lòng nhập họ tên.',
+            'full_name.max' => 'Họ tên không được vượt quá :max ký tự.',
 
             'email.required' => 'Vui lòng nhập địa chỉ email.',
             'email.email' => 'Địa chỉ email không hợp lệ.',
@@ -72,6 +72,9 @@ final class RegisterRequest extends FormRequest
 
             'password.required' => 'Vui lòng nhập mật khẩu.',
             'password.min' => 'Mật khẩu phải có ít nhất :min ký tự.',
+            'password.letters' => 'Mật khẩu phải chứa ít nhất 1 chữ cái.',
+            'password.mixed' => 'Mật khẩu phải chứa cả chữ hoa và chữ thường.',
+            'password.numbers' => 'Mật khẩu phải chứa ít nhất 1 chữ số.',
             'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
         ];
     }
