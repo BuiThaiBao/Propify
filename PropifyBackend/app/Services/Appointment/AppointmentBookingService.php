@@ -11,9 +11,7 @@ interface AppointmentBookingService
     /**
      * Tạo mới một booking lịch hẹn xem nhà.
      *
-     * @throws \App\Exceptions\AppointmentSlotNotFoundException
-     * @throws \App\Exceptions\BookingSelfSlotException
-     * @throws \App\Exceptions\BookingInvalidDateException
+     * @throws \App\Exceptions\BusinessException
      */
     public function createBooking(CreateBookingDto $dto): AppointmentBooking;
 
@@ -30,4 +28,15 @@ interface AppointmentBookingService
      * @return Collection<int, AppointmentBooking>
      */
     public function getPosterBookings(int $posterId): Collection;
+
+    /**
+     * Cập nhật trạng thái lịch hẹn (APPROVED / CANCELLED) bởi chủ nhà.
+     */
+    public function updateBookingStatus(int $bookingId, int $posterId, string $status, ?string $note): AppointmentBooking;
+
+    /**
+     * Hủy một lịch hẹn đã được duyệt (APPROVED) bởi khách thuê hoặc chủ nhà.
+     * Quy tắc: Chỉ được hủy trước giờ hẹn tối thiểu 2 tiếng.
+     */
+    public function cancelBooking(int $bookingId, int $userId, string $reason): AppointmentBooking;
 }
