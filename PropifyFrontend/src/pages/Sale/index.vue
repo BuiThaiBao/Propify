@@ -32,12 +32,13 @@
           </div>
 
           <!-- Listings -->
-          <div class="flex flex-col gap-6">
-            <div v-if="saleLoading" class="flex justify-center py-8">
+          <div class="relative flex flex-col gap-6">
+            <!-- Loading overlay — shows on top of existing listings -->
+            <div v-if="saleLoading" class="absolute inset-0 z-10 flex items-start justify-center pt-16 bg-white/60 backdrop-blur-[1px] rounded-xl">
               <div class="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
             </div>
 
-            <div v-else-if="saleListings.length === 0" class="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
+            <div v-if="!saleLoading && saleListings.length === 0" class="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400">
               Chưa có tin mua bán nào.
             </div>
 
@@ -61,6 +62,40 @@
               :views="item.views_count || 0"
             />
           </div>
+
+          <!-- Pagination — always visible when there are multiple pages -->
+          <nav v-if="lastPage > 1" class="mt-8 flex items-center justify-center gap-1" aria-label="Phân trang">
+            <!-- Prev -->
+            <button
+              :disabled="currentPage <= 1 || saleLoading"
+              class="pagination-btn"
+              @click="goToPage(currentPage - 1)"
+            >
+              <ChevronLeft class="w-4 h-4" />
+            </button>
+
+            <!-- Page numbers -->
+            <template v-for="page in visiblePages" :key="page">
+              <span v-if="page === '...'" class="px-2 text-gray-400 text-sm select-none">…</span>
+              <button
+                v-else
+                :disabled="saleLoading"
+                :class="['pagination-btn', page === currentPage ? 'pagination-btn--active' : '']"
+                @click="goToPage(page)"
+              >
+                {{ page }}
+              </button>
+            </template>
+
+            <!-- Next -->
+            <button
+              :disabled="currentPage >= lastPage || saleLoading"
+              class="pagination-btn"
+              @click="goToPage(currentPage + 1)"
+            >
+              <ChevronRight class="w-4 h-4" />
+            </button>
+          </nav>
         </div>
 
         <!-- Right Column: Sidebar Filters -->
@@ -117,67 +152,31 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
-import { Building2, ChevronDown, User, DollarSign, Ruler } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
+import { Building2, ChevronDown, ChevronLeft, ChevronRight, User, DollarSign, Ruler } from 'lucide-vue-next';
 import SaleLayout from '@/layouts/SaleLayout.vue';
 import TopSearchBar from '@/components/shared/TopSearchBar.vue';
 import SaleCard from '@/components/shared/SaleCard.vue';
-import listingService from '@/services/listingService';
 import SidebarWidget from '@/components/shared/SidebarWidget.vue';
 import MapWidget from '@/components/shared/MapWidget.vue';
 import TabFilterGroup from '@/components/shared/TabFilterGroup.vue';
 import RadioFilterGroup from '@/components/shared/RadioFilterGroup.vue';
+import { useSaleListings } from '@/composables/useSaleListings';
+
+const {
+  saleListings, saleLoading, saleTotal,
+  currentPage, lastPage, searchKeyword,
+  saleSuggestions, visiblePages,
+  init, onSearch, goToPage,
+} = useSaleListings();
 
 const posterType = ref('all');
 const priceRange = ref('all');
 const areaRange = ref('all');
-const saleListings = ref([]);
-const saleLoading = ref(true);
-const saleTotal = ref(0);
-const searchKeyword = ref('');
 
-const saleSuggestions = computed(() => {
-  const query = normalizeText(searchKeyword.value);
-  if (!query) return [];
-
-  const candidates = saleListings.value.flatMap((item) => [
-    item.title,
-    item.property?.address_detail,
-    item.property?.project_name,
-  ]).filter(Boolean);
-
-  return [...new Set(candidates)]
-    .filter((text) => normalizeText(text).includes(query))
-    .slice(0, 8);
+onMounted(() => {
+  init();
 });
-
-onMounted(async () => {
-  await fetchSaleListings();
-});
-
-async function fetchSaleListings() {
-  saleLoading.value = true;
-  try {
-    const response = await listingService.getPublicListings({
-      demand_type: 'SALE',
-      keyword: searchKeyword.value?.trim() || undefined,
-      per_page: 20,
-    });
-    saleListings.value = response?.data?.data || [];
-    saleTotal.value = Number(response?.data?.meta?.total || saleListings.value.length || 0);
-  } catch (error) {
-    console.error('Failed to fetch sale listings', error);
-    saleListings.value = [];
-    saleTotal.value = 0;
-  } finally {
-    saleLoading.value = false;
-  }
-}
-
-async function onSearch(value) {
-  searchKeyword.value = value || '';
-  await fetchSaleListings();
-}
 
 function getThumb(item) {
   if (item.images && item.images.length > 0) {
@@ -233,11 +232,40 @@ function isVerified(item) {
   const value = item?.is_verified;
   return value === true || Number(value) === 1;
 }
-
-function normalizeText(value) {
-  return String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-}
 </script>
+
+<style scoped>
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled):not(.pagination-btn--active) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-btn--active {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+</style>
