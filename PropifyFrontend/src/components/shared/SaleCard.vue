@@ -5,6 +5,16 @@
 		<div class="relative w-[220px] h-[220px] shrink-0 rounded-xl overflow-hidden">
 			<img :src="image" alt="Property" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
 
+			<div class="absolute top-3 left-3 flex gap-1.5">
+				<span
+					v-if="badge"
+					class="text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-md"
+					:style="{ background: badgeColor || '#94a3b8' }"
+				>
+					{{ badge }}
+				</span>
+			</div>
+
 			<div class="absolute top-3 right-3">
 				<button class="bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-2 rounded-full transition-all shadow-sm">
 					<Heart class="w-4 h-4" />
@@ -126,6 +136,8 @@ defineProps({
 		default: () => ({ name: 'Nguyễn Thị Lan', role: 'Môi giới' })
 	},
 	timeAgo: { type: String, default: '5 giờ trước' },
+	badge: { type: String, default: null },
+	badgeColor: { type: String, default: null },
 	views: { type: [Number, String], default: 215 },
 });
 

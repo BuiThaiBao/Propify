@@ -57,6 +57,8 @@
               :location="item.property?.address_detail || ''"
               :author="getAuthor(item)"
               :image="getThumb(item)"
+              :badge="item.package?.badge || null"
+              :badge-color="item.package?.color || null"
               :rating="null"
               :timeAgo="timeAgo(item.submitted_at)"
               :views="item.views_count || 0"

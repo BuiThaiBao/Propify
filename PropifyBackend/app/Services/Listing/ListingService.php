@@ -18,4 +18,6 @@ interface ListingService
     public function update(User $user, int $id, CreateListingDto $dto): Listing;
 
     public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
+
+    public function upgradeListing(User $user, int $listingId, int $packageId): Listing;
 }
