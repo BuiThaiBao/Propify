@@ -93,7 +93,7 @@ final class AuthServiceImpl implements AuthService
         $user = $this->userRepository->findByEmail($email);
         
         // Nếu user không tồn tại hoặc đã Active thì không cho resend OTP đăng ký (bảo mật)
-        if (!$user || $user->status !== UserStatus::Pending->value) {
+        if (!$user || $user->status !== UserStatus::Pending) {
             Log::warning('Resend register OTP failed (user not found or active)', ['email' => $email]);
             return;
         }
