@@ -386,6 +386,11 @@ final class ListingServiceImpl implements ListingService
         });
     }
 
+    public function getAllForAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
+    {
+        return $this->listingRepository->paginateAdmin($status, $demandType, $keyword, $perPage);
+    }
+
     /**
      * Nâng cấp gói tin cho listing.
      *

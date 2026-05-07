@@ -34,7 +34,11 @@
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1 min-w-0">
             <div class="flex items-center flex-wrap gap-2 mb-2">
-              <h3 class="font-bold text-slate-800 text-[0.95rem]">{{ booking.listing_title || 'Bài đăng #' + booking.listing_id }}</h3>
+              <h3 class="font-bold text-slate-800 text-[0.95rem]">
+                <router-link :to="`/listings/${booking.listing_id}`" class="hover:text-sky-600 transition-colors">
+                  {{ booking.listing_title || 'Bài đăng #' + booking.listing_id }}
+                </router-link>
+              </h3>
               <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold', statusBadge(booking.status).class]">{{ statusBadge(booking.status).label }}</span>
             </div>
             <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500 mb-2">

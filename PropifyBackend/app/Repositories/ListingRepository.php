@@ -30,6 +30,8 @@ interface ListingRepository
 
     public function paginatePublic(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 
+    public function paginateAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
+
     public function updateProperty(int $id, array $attributes): Property;
 
     public function updateListing(int $id, array $attributes): Listing;

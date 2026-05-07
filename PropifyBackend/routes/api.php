@@ -172,3 +172,8 @@ Route::prefix('v1/packages')->as('packages.')->middleware('auth:api')->group(fun
     Route::put('/{id}', [PackageController::class, 'update'])->name('update');
     Route::delete('/{id}', [PackageController::class, 'destroy'])->name('destroy');
 });
+
+// ==================== ADMIN ROUTES ====================
+Route::prefix('v1/admin')->as('admin.')->middleware('auth:api')->group(function () {
+    Route::get('/listings', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'index'])->name('listings.index');
+});
