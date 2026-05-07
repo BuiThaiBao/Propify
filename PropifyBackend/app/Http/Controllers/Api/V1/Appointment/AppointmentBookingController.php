@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Appointment;
 
 use App\Helpers\ApiResponse;
-use App\Http\Requests\Appointment\CreateBookingRequest;
-use App\Http\Requests\Appointment\UpdateBookingStatusRequest;
-use App\Http\Requests\Appointment\CancelBookingRequest;
-use App\Http\Resources\AppointmentBookingResource;
 use App\Http\Resources\Requests\Appointment\CreateBookingRequest;
+use App\Http\Resources\Requests\Appointment\UpdateBookingStatusRequest;
+use App\Http\Resources\Requests\Appointment\CancelBookingRequest;
+use App\Http\Resources\AppointmentBookingResource;
 use App\Http\Resources\ViewerBookingResource;
 use App\Services\Appointment\AppointmentBookingService;
 use Illuminate\Http\JsonResponse;
@@ -42,7 +41,7 @@ final class AppointmentBookingController
      */
     public function index(): JsonResponse
     {
-        $bookings = $this->bookingService->getViewerBookings();
+        $bookings = $this->bookingService->getViewerBookings(auth('api')->id());
 
         return ApiResponse::success(
             data: ViewerBookingResource::collection($bookings),
@@ -55,7 +54,7 @@ final class AppointmentBookingController
      */
     public function received(): JsonResponse
     {
-        $bookings = $this->bookingService->getPosterBookings();
+        $bookings = $this->bookingService->getPosterBookings(auth('api')->id());
 
         return ApiResponse::success(
             data: ViewerBookingResource::collection($bookings),
@@ -70,6 +69,7 @@ final class AppointmentBookingController
     {
         $booking = $this->bookingService->updateBookingStatus(
             bookingId: (int) $request->input('booking_id'),
+            posterId:  (int) auth('api')->id(),
             status:    $request->input('status'),
             note:      $request->input('note'),
         );
@@ -87,6 +87,7 @@ final class AppointmentBookingController
     {
         $booking = $this->bookingService->cancelBooking(
             bookingId: (int) $request->input('booking_id'),
+            userId:    (int) auth('api')->id(),
             reason:    $request->input('reason'),
         );
 

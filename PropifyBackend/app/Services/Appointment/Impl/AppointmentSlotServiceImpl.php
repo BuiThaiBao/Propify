@@ -24,9 +24,9 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
     ) {
     }
 
-    public function getSlotsByListingAndPoster(GetAppointmentSlotsDto $dto): array
+    public function getSlotsByListing(GetAppointmentSlotsDto $dto): array
     {
-        $slots = $this->appointmentSlotRepository->getByListingAndPoster($dto->listingId, $dto->posterId);
+        $slots = $this->appointmentSlotRepository->getByListingId($dto->listingId);
 
         if ($slots->isEmpty()) {
             throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
@@ -129,56 +129,51 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
         $today = CarbonImmutable::today();
         $now = Carbon::now();
 
-        // Lấy ngày Thứ Hai đầu tuần hiện tại (ISO week: Monday = 1)
-        $startOfCurrentWeek = $today->startOfWeek(Carbon::MONDAY);
-
         // Gom slot theo day_of_week
         $slotsByDayOfWeek = $slots->groupBy('day_of_week');
 
         $result = [];
 
-        // Lặp qua 2 tuần: tuần hiện tại (offset=0) và tuần sau (offset=1)
-        foreach ([0, 1] as $weekOffset) {
-            $weekStart = $startOfCurrentWeek->addWeeks($weekOffset);
+        // Lặp qua 14 ngày kể từ hôm nay (ngày 0 = hôm nay, ngày 13 = ngày thứ 14)
+        for ($dayOffset = 0; $dayOffset < 14; $dayOffset++) {
+            $date = $today->addDays($dayOffset);
 
-            foreach ($slotsByDayOfWeek as $dayOfWeek => $daySlots) {
-                // day_of_week: 1=T2(Monday), 2=T3(Tuesday), ..., 7=CN(Sunday)
-                // Carbon Monday=1, nên offset = dayOfWeek - 1
-                $date = $weekStart->addDays($dayOfWeek - 1);
+            // Tính day_of_week theo chuẩn ISO: 1=T2(Monday)...7=CN(Sunday)
+            $dayOfWeek = (int) $date->dayOfWeekIso;
 
-                // Bỏ qua các ngày đã qua (trước hôm nay)
-                if ($date->lt($today)) {
-                    continue;
+            // Bỏ qua nếu không có slot nào cho thứ này
+            if (!$slotsByDayOfWeek->has($dayOfWeek)) {
+                continue;
+            }
+
+            $dateString = $date->toDateString(); // Y-m-d
+            $daySlots = $slotsByDayOfWeek->get($dayOfWeek);
+
+            $formattedSlots = $daySlots->filter(function ($slot) use ($dateString, $today, $now) {
+                // Nếu là ngày hôm nay, chỉ hiển thị slot cách giờ hiện tại ít nhất 2 tiếng
+                if ($dateString === $today->toDateString()) {
+                    $slotStartTime = Carbon::parse($dateString . ' ' . $slot->start_time);
+                    return $now->diffInHours($slotStartTime, false) >= 2;
                 }
+                return true;
+            })->map(function ($slot) {
+                return [
+                    'id'          => $slot->id,
+                    'day_of_week' => $slot->day_of_week,
+                    'start_time'  => $slot->start_time,
+                    'end_time'    => $slot->end_time,
+                    'is_active'   => $slot->is_active,
+                ];
+            })->values()->toArray();
 
-                $dateString = $date->toDateString(); // Y-m-d
-
-                $formattedSlots = $daySlots->filter(function ($slot) use ($dateString, $today, $now) {
-                    // Nếu là ngày hôm nay, chỉ hiển thị slot cách giờ hiện tại ít nhất 2 tiếng
-                    if ($dateString === $today->toDateString()) {
-                        $slotStartTime = Carbon::parse($dateString . ' ' . $slot->start_time);
-                        return $now->diffInHours($slotStartTime, false) >= 2;
-                    }
-                    return true;
-                })->map(function ($slot) {
-                    return [
-                        'id'          => $slot->id,
-                        'day_of_week' => $slot->day_of_week,
-                        'start_time'  => $slot->start_time,
-                        'end_time'    => $slot->end_time,
-                        'is_active'   => $slot->is_active,
-                    ];
-                })->values()->toArray();
-
+            // Chỉ thêm ngày có ít nhất 1 slot hợp lệ
+            if (!empty($formattedSlots)) {
                 $result[] = [
                     'date'  => $dateString,
                     'slots' => $formattedSlots,
                 ];
             }
         }
-
-        // Sắp xếp theo ngày tăng dần
-        usort($result, fn($a, $b) => strcmp($a['date'], $b['date']));
 
         return $result;
     }

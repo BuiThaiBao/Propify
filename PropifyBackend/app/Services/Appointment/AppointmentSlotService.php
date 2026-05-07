@@ -11,12 +11,13 @@ use Illuminate\Database\Eloquent\Collection;
 interface AppointmentSlotService
 {
     /**
-     * Get all active appointment slots for a listing uploaded by a specific poster.
+     * Get all active appointment slots for a listing.
      * Trả về danh sách ngày cụ thể (tuần hiện tại + tuần sau) với các slot tương ứng.
+     * API công khai: Chỉ cần listing_id, không cần xác thực.
      *
      * @return array<int, array{date: string, slots: array}>
      */
-    public function getSlotsByListingAndPoster(GetAppointmentSlotsDto $dto): array;
+    public function getSlotsByListing(GetAppointmentSlotsDto $dto): array;
 
     /**
      * Tạo nhiều khung giờ hẹn cùng lúc (bulk create).

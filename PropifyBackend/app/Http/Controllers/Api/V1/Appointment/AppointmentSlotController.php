@@ -26,7 +26,7 @@ final class AppointmentSlotController
     {
         $dto = $request->toDto();
 
-        $dateSlots = $this->appointmentSlotService->getSlotsByListingAndPoster($dto);
+        $dateSlots = $this->appointmentSlotService->getSlotsByListing($dto);
 
         return ApiResponse::success(
             data: $dateSlots,
