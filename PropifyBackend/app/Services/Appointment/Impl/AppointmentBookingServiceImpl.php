@@ -164,7 +164,7 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
         // 4. Cập nhật trạng thái
         $updateData = ['status' => $status];
 
-        if ($status === BookingStatus::CANCELLED->value && $note) {
+        if ($status === BookingStatus::CANCELLED_BY_POSTER->value && $note) {
             $existingNote = $booking->note ? $booking->note . ' | ' : '';
             $updateData['note'] = $existingNote . '[Chủ nhà từ chối] ' . $note;
         }
@@ -175,6 +175,8 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
         $booking->load('slot.listing');
 
         return $booking;
+    }
+
     public function cancelBooking(int $bookingId, int $userId, string $reason): AppointmentBooking
     {
         // 1. Tìm booking
@@ -212,8 +214,10 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
         $roleLabel = $isViewer ? 'Khách thuê' : 'Chủ nhà';
         $existingNote = $booking->note ? $booking->note . ' | ' : '';
 
+        $status = $isViewer ? BookingStatus::CANCELLED_BY_VIEWER->value : BookingStatus::CANCELLED_BY_POSTER->value;
+
         $booking->update([
-            'status' => BookingStatus::CANCELLED->value,
+            'status' => $status,
             'note'   => $existingNote . "[{$roleLabel} hủy] " . $reason,
         ]);
 
