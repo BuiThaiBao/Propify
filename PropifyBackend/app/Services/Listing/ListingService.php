@@ -21,5 +21,7 @@ interface ListingService
 
     public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 
+    public function getAllForAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
+
     public function upgradeListing(User $user, int $listingId, int $packageId): Listing;
 }
