@@ -91,9 +91,15 @@ Route::prefix('v1/cloudinary')->as('cloudinary.')->middleware('auth:api')->group
 
 
 // ==================== APPOINTMENT ROUTES ====================
-Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('auth:api')->group(function () {
+// Public: Khách xem danh sách khung giờ hẹn (không cần đăng nhập)
+Route::prefix('v1/appointment-slots')->as('appointment-slots.')->group(function () {
     Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'index'])
         ->name('index');
+});
+// Protected: Quản lý khung giờ hẹn (cần đăng nhập)
+Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('auth:api')->group(function () {
+    Route::post('/create', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'create'])
+        ->name('create');
     Route::put('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'update'])
         ->name('update');
     Route::post('/disable', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'disable'])
@@ -165,4 +171,9 @@ Route::prefix('v1/packages')->as('packages.')->middleware('auth:api')->group(fun
     Route::post('/', [PackageController::class, 'create'])->name('create');
     Route::put('/{id}', [PackageController::class, 'update'])->name('update');
     Route::delete('/{id}', [PackageController::class, 'destroy'])->name('destroy');
+});
+
+// ==================== ADMIN ROUTES ====================
+Route::prefix('v1/admin')->as('admin.')->middleware('auth:api')->group(function () {
+    Route::get('/listings', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'index'])->name('listings.index');
 });

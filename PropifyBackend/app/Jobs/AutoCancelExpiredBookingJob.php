@@ -47,7 +47,7 @@ final class AutoCancelExpiredBookingJob implements ShouldQueue
         $existingNote = $booking->note ? $booking->note . ' | ' : '';
 
         $booking->update([
-            'status' => BookingStatus::CANCELLED->value,
+            'status' => BookingStatus::EXPIRED->value,
             'note'   => $existingNote . '[Tự động hủy] Đặt lịch thất bại vì chủ tin chưa xác nhận.',
         ]);
 

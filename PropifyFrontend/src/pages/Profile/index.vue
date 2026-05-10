@@ -67,7 +67,13 @@
           </svg>
         </button>
         <div v-show="expandedSections.appointments" class="bg-slate-50 border-t border-slate-100">
-          <button class="w-full text-left pl-12 pr-5 py-2.5 text-[0.82rem] text-slate-500 hover:bg-slate-200 hover:text-sky-500 transition-all">Lịch hẹn của tôi</button>
+          <button
+            class="w-full text-left pl-12 pr-5 py-2.5 text-[0.82rem] transition-all"
+            :class="activeTab === 'appointments' ? 'bg-sky-100 text-sky-600 font-semibold' : 'text-slate-500 hover:bg-slate-200 hover:text-sky-500'"
+            @click="openAppointmentsTab"
+          >
+            Đặt lịch xem nhà
+          </button>
         </div>
 
         <!-- Tin đăng yêu thích -->
@@ -521,6 +527,11 @@
           </div>
         </form>
       </section>
+
+      <!-- ===== APPOINTMENTS TAB ===== -->
+      <section v-if="activeTab === 'appointments'" class="bg-white rounded-xl shadow-sm p-8">
+        <AppointmentManagement />
+      </section>
     </main>
 
     <ConfirmActionModal
@@ -555,6 +566,7 @@ import cloudinaryService from '@/services/cloudinaryService';
 import listingService from '@/services/listingService';
 import PackageUpgradeModal from '@/components/shared/PackageUpgradeModal.vue';
 import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
+import AppointmentManagement from '@/components/AppointmentManagement.vue';
 
 const authStore = useAuthStore();
 const route = useRoute();
@@ -826,6 +838,11 @@ function openListingsTab() {
   if (!listingsLoaded.value) {
     loadMyListings(1);
   }
+}
+
+function openAppointmentsTab() {
+  activeTab.value = 'appointments';
+  expandedSections.appointments = true;
 }
 
 // ── Profile form ──

@@ -398,60 +398,7 @@
           </label>
         </section>
 
-        <section class="section-card">
-          <button type="button" class="appointment-header" @click="showAppointmentSection = !showAppointmentSection">
-            <span class="inline-flex items-center gap-2">
-              <img :src="homeImageIcon" alt="schedule" class="h-5 w-5" />
-              <h2>Đặt lịch xem nhà</h2>
-              <img :src="infoDotIcon" alt="info" class="h-4 w-4 opacity-70" />
-            </span>
-            <span class="chevron" :class="{ open: showAppointmentSection }">⌃</span>
-          </button>
-
-          <div v-if="showAppointmentSection" class="mt-4 grid gap-3 md:grid-cols-2">
-            <div class="relative">
-              <span class="field-label required">Chọn ngày</span>
-              <button type="button" class="input mt-2 legal-trigger" @click="showDayDropdown = !showDayDropdown">
-                <span class="legal-selected-text">{{ selectedAppointmentDayLabel }}</span>
-                <span class="text-slate-500">⌄</span>
-              </button>
-              <div v-if="showDayDropdown" class="legal-dropdown mt-2">
-                <label class="legal-option">
-                  <span>Chọn tất cả các ngày</span>
-                  <input type="checkbox" :checked="isAllDaysSelected" @change="toggleAllAppointmentDays" />
-                </label>
-                <label v-for="day in appointmentDayOptions" :key="day.value" class="legal-option">
-                  <span>{{ day.label }}</span>
-                  <input
-                    type="checkbox"
-                    :checked="selectedAppointmentDays.includes(day.value)"
-                    @change="toggleAppointmentDay(day.value)"
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div class="relative">
-              <span class="field-label required">Chọn giờ</span>
-              <button type="button" class="input mt-2 legal-trigger" @click="showTimeDropdown = !showTimeDropdown">
-                <span class="legal-selected-text">{{ selectedAppointmentTimeLabel }}</span>
-                <span class="text-slate-500">⌄</span>
-              </button>
-              <div v-if="showTimeDropdown" class="legal-dropdown mt-2">
-                <button
-                  v-for="slot in appointmentTimeOptions"
-                  :key="slot.value"
-                  type="button"
-                  class="legal-option w-full"
-                  @click="selectAppointmentTime(slot.value)"
-                >
-                  <span>{{ slot.label }}</span>
-                  <span v-if="appointmentTimeSlot === slot.value">✓</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
+        <AppointmentSlotsForm ref="appointmentForm" />
 
         <section class="section-card">
           <button type="button" class="appointment-header" @click="showVerificationSection = !showVerificationSection">
@@ -621,6 +568,7 @@ import "leaflet/dist/leaflet.css";
 import listingService from "@/services/listingService";
 import cloudinaryService from "@/services/cloudinaryService";
 import { useRoute, useRouter } from "vue-router";
+import AppointmentSlotsForm from "@/components/AppointmentSlotsForm.vue";
 import uploadImageIcon from "@/assets/images/listing/postlisting/uploadImage.png";
 import locationImageIcon from "@/assets/images/listing/postlisting/locationImage.png";
 import informationImageIcon from "@/assets/images/listing/postlisting/information.png";
@@ -691,22 +639,6 @@ const directionOptions = [
   { value: "NW", label: "Tây Bắc" },
 ];
 
-const appointmentDayOptions = [
-  { value: 1, label: "Thứ 2" },
-  { value: 2, label: "Thứ 3" },
-  { value: 3, label: "Thứ 4" },
-  { value: 4, label: "Thứ 5" },
-  { value: 5, label: "Thứ 6" },
-  { value: 6, label: "Thứ 7" },
-  { value: 0, label: "Chủ nhật" },
-];
-
-const appointmentTimeOptions = [
-  { value: "ALL_DAY", label: "Tất cả các giờ (8h-23h)", startHour: 8, startMinute: 0 },
-  { value: "OFFICE", label: "Giờ hành chính (8h - 18h)", startHour: 8, startMinute: 0 },
-  { value: "AFTER_HOURS", label: "Ngoài giờ hành chính (18h30 - 23h)", startHour: 18, startMinute: 30 },
-];
-
 function createInitialState() {
   return {
     demandType: "SALE",
@@ -750,13 +682,6 @@ function createInitialState() {
     identityCardFront: null,
     identityCardBack: null,
     legalDocuments: [],
-    appointmentAt: "",
-    appointmentDays: [],
-    appointmentTimeSlot: "",
-    appointmentContactName: "",
-    appointmentContactPhone: "",
-    appointmentContactEmail: "",
-    appointmentNote: "",
   };
 }
 
@@ -788,13 +713,9 @@ const backCardPreviewUrl = ref("");
 const showLegalDropdown = ref(false);
 const showMoreDetail = ref(true);
 const selectedAmenities = ref([]);
-const showAppointmentSection = ref(true);
 const showVerificationSection = ref(true);
 const publicInfoAgreed = ref(false);
-const showDayDropdown = ref(false);
-const showTimeDropdown = ref(false);
-const selectedAppointmentDays = ref([]);
-const appointmentTimeSlot = ref("");
+const appointmentForm = ref(null);
 const imageUploadError = ref("");
 const videoUploadError = ref("");
 const verificationUploadError = ref("");
@@ -867,25 +788,6 @@ const selectedLegalPaperLabels = computed(() => {
     .join(", ");
 });
 
-const isAllDaysSelected = computed(
-  () => selectedAppointmentDays.value.length === appointmentDayOptions.length,
-);
-
-const selectedAppointmentDayLabel = computed(() => {
-  if (!selectedAppointmentDays.value.length) return "Chọn ngày";
-  if (isAllDaysSelected.value) return "Chọn tất cả các ngày";
-
-  return appointmentDayOptions
-    .filter((day) => selectedAppointmentDays.value.includes(day.value))
-    .map((day) => day.label)
-    .join(", ");
-});
-
-const selectedAppointmentTimeLabel = computed(() => {
-  if (!appointmentTimeSlot.value) return "Chọn giờ";
-  return appointmentTimeOptions.find((slot) => slot.value === appointmentTimeSlot.value)?.label || "Chọn giờ";
-});
-
 const shouldRequestVerification = computed(() => {
   return Boolean(form.identityCardFront || form.identityCardBack || (form.legalDocuments && form.legalDocuments.length));
 });
@@ -931,13 +833,9 @@ watch(
   },
 );
 
-watch([selectedAppointmentDays, appointmentTimeSlot], () => {
-  form.appointmentAt = buildNextAppointmentDateTime();
-});
-
 // Auto-save form to draft
 watch(form, () => saveFormToDraft(), { deep: true });
-watch([selectedAmenities, publicInfoAgreed, selectedAppointmentDays, appointmentTimeSlot], () => saveFormToDraft(), { deep: true });
+watch([selectedAmenities, publicInfoAgreed], () => saveFormToDraft(), { deep: true });
 
 onMounted(async () => {
   initializeMap();
@@ -994,17 +892,22 @@ async function loadListingForEdit() {
     selectedAmenities.value = [...(p.amenities || [])];
     publicInfoAgreed.value = Boolean(p.public_info_agreed);
 
-    // Restore appointment data for edit form
-    form.appointmentAt = data.appointment_at || '';
-    form.appointmentDays = Array.isArray(data.appointment_days) ? data.appointment_days.map((d) => Number(d)) : [];
-    form.appointmentTimeSlot = data.appointment_time_slot || '';
-    form.appointmentContactName = data.appointment_contact_name || '';
-    form.appointmentContactPhone = data.appointment_contact_phone || '';
-    form.appointmentContactEmail = data.appointment_contact_email || '';
-    form.appointmentNote = data.appointment_note || '';
-
-    selectedAppointmentDays.value = [...form.appointmentDays];
-    appointmentTimeSlot.value = form.appointmentTimeSlot;
+    // Load existing appointment slots for edit form
+    if (appointmentForm.value && data.appointment_slots && Array.isArray(data.appointment_slots)) {
+      // Group slots by day_of_week
+      const groupedByDay = {};
+      data.appointment_slots.forEach(slot => {
+        if (!groupedByDay[slot.day_of_week]) {
+          groupedByDay[slot.day_of_week] = [];
+        }
+        groupedByDay[slot.day_of_week].push({ start_time: slot.start_time, end_time: slot.end_time });
+      });
+      // Convert to rows structure
+      appointmentForm.value.appointmentRows = Object.entries(groupedByDay).map(([day, times]) => ({
+        day_of_week: parseInt(day),
+        times: times,
+      }));
+    }
 
     // Load existing images as URLs (not File objects)
     if (data.images && data.images.length > 0) {
@@ -1510,55 +1413,6 @@ function onLegalDocumentsChange(event) {
   form.legalDocuments = validFiles;
 }
 
-function toggleAppointmentDay(dayValue) {
-  if (selectedAppointmentDays.value.includes(dayValue)) {
-    selectedAppointmentDays.value = selectedAppointmentDays.value.filter((item) => item !== dayValue);
-    return;
-  }
-  selectedAppointmentDays.value = [...selectedAppointmentDays.value, dayValue].sort((a, b) => a - b);
-}
-
-function toggleAllAppointmentDays() {
-  if (isAllDaysSelected.value) {
-    selectedAppointmentDays.value = [];
-    return;
-  }
-  selectedAppointmentDays.value = appointmentDayOptions.map((day) => day.value);
-}
-
-function selectAppointmentTime(value) {
-  appointmentTimeSlot.value = value;
-  showTimeDropdown.value = false;
-}
-
-function buildNextAppointmentDateTime() {
-  if (!selectedAppointmentDays.value.length || !appointmentTimeSlot.value) return "";
-
-  const timeSlot = appointmentTimeOptions.find((slot) => slot.value === appointmentTimeSlot.value);
-  if (!timeSlot) return "";
-
-  const now = new Date();
-  const candidateDates = selectedAppointmentDays.value.map((dayValue) => {
-    const dayOffset = (dayValue - now.getDay() + 7) % 7;
-    const date = new Date(now);
-    date.setDate(now.getDate() + dayOffset);
-    date.setHours(timeSlot.startHour, timeSlot.startMinute, 0, 0);
-
-    if (date <= now) {
-      date.setDate(date.getDate() + 7);
-    }
-
-    return date;
-  });
-
-  candidateDates.sort((a, b) => a.getTime() - b.getTime());
-  const nextDate = candidateDates[0];
-  if (!nextDate) return "";
-
-  const pad = (value) => String(value).padStart(2, "0");
-  return `${nextDate.getFullYear()}-${pad(nextDate.getMonth() + 1)}-${pad(nextDate.getDate())}T${pad(nextDate.getHours())}:${pad(nextDate.getMinutes())}`;
-}
-
 function setQuickNumber(field, value) {
   form[field] = value;
 }
@@ -1714,8 +1568,6 @@ function saveFormToDraft() {
       form: { ...form },
       selectedAmenities: [...selectedAmenities.value],
       publicInfoAgreed: publicInfoAgreed.value,
-      selectedAppointmentDays: [...selectedAppointmentDays.value],
-      appointmentTimeSlot: appointmentTimeSlot.value,
       legalPaperTypesSelection: [...form.legalPaperTypes],
       timestamp: Date.now(),
     };
@@ -1749,8 +1601,6 @@ function loadFormFromDraft() {
     
     selectedAmenities.value = draftData.selectedAmenities || [];
     publicInfoAgreed.value = draftData.publicInfoAgreed || false;
-    selectedAppointmentDays.value = draftData.selectedAppointmentDays || [];
-    appointmentTimeSlot.value = draftData.appointmentTimeSlot || "";
     console.log("✓ Form đã được khôi phục từ bản dự thảo");
   } catch (error) {
     console.error("Lỗi khi load dự thảo:", error);
@@ -1796,13 +1646,8 @@ function resetForm() {
   Object.assign(form, createInitialState());
   showLegalDropdown.value = false;
   showMoreDetail.value = true;
-  showAppointmentSection.value = true;
   showVerificationSection.value = true;
   publicInfoAgreed.value = false;
-  showDayDropdown.value = false;
-  showTimeDropdown.value = false;
-  selectedAppointmentDays.value = [];
-  appointmentTimeSlot.value = "";
   selectedAmenities.value = [];
   submitError.value = "";
   validationErrors.value = {};
@@ -1810,6 +1655,14 @@ function resetForm() {
   videoUploadError.value = "";
   verificationUploadError.value = "";
   videoPreviewName.value = "";
+
+  // Reset appointment form component
+  if (appointmentForm.value) {
+    appointmentForm.value.appointmentSlots = [
+      { day_of_week: '', start_time: '08:00', end_time: '09:00' }
+    ];
+    appointmentForm.value.duplicateError = '';
+  }
 }
 
 onBeforeUnmount(() => {
@@ -1843,8 +1696,16 @@ async function submitListing() {
   form.requestVerification = shouldRequestVerification.value;
   form.amenities = [...selectedAmenities.value];
   form.publicInfoAgreed = publicInfoAgreed.value;
-  form.appointmentDays = [...selectedAppointmentDays.value];
-  form.appointmentTimeSlot = appointmentTimeSlot.value;
+
+  // Lấy appointment slots từ component
+  const appointmentSlots = appointmentForm.value?.getFormData() || [];
+  // Appointment slots là optional, chỉ cảnh báo nếu user mở section nhưng không thêm
+  if (appointmentForm.value?.isOpen && appointmentSlots.length === 0) {
+    submitError.value = 'Vui lòng thêm ít nhất 1 khung giờ hẹn hoặc đóng phần Đặt lịch xem nhà';
+    pushToast('Vui lòng thêm ít nhất 1 khung giờ hẹn hoặc đóng phần Đặt lịch xem nhà', 'error');
+    loading.value = false;
+    return;
+  }
 
   try {
     // Helper function to upload an array of files
@@ -1905,6 +1766,19 @@ async function submitListing() {
     } else {
       response = await listingService.create(form);
     }
+
+    // 5. Create appointment slots if any
+    const listingId = response.data?.data?.id || editListingId.value;
+    if (appointmentSlots.length > 0 && listingId) {
+      try {
+        await listingService.createAppointmentSlots(listingId, appointmentSlots);
+        pushToast('Tạo khung giờ hẹn thành công', 'success', 1500);
+      } catch (error) {
+        console.error('Failed to create appointment slots:', error);
+        pushToast('Cảnh báo: Không thể tạo khung giờ hẹn, vui lòng thử lại sau', 'warning', 2000);
+      }
+    }
+
     submitError.value = "";
     clearDraft();
     pushToast(response.data?.message || (isEditMode.value ? 'Cập nhật tin thành công' : 'Đăng tin thành công. Tin đăng chờ duyệt'), 'success');

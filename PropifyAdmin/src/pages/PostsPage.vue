@@ -1,31 +1,104 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
-import { Search, Filter, Eye, CheckCircle, XCircle, Lock, MapPin, Maximize } from 'lucide-vue-next'
+import { Search, Filter, Eye, CheckCircle, XCircle, Lock, MapPin, Maximize, Package as PackageIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { listingService } from '@/services/listingService'
 
 const search = ref('')
 const statusFilter = ref('all')
 const typeFilter = ref('all')
 const confirmModal = ref({ open: false, title: '', desc: '', action: () => {} })
 
-const mockPosts = [
-  { id: 1, image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=300&h=200&fit=crop', title: 'Căn hộ 3PN Vinhomes Central Park', price: '5.2 tỷ', area: '120m²', location: 'Quận Bình Thạnh, TP.HCM', author: 'Nguyễn Văn A', status: 'approved', type: 'sale', date: '15/03/2024' },
-  { id: 2, image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=300&h=200&fit=crop', title: 'Nhà phố Quận 2 mặt tiền đường lớn', price: '8.5 tỷ', area: '150m²', location: 'TP Thủ Đức, TP.HCM', author: 'Trần Thị B', status: 'pending', type: 'sale', date: '18/03/2024' },
-  { id: 3, image: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=300&h=200&fit=crop', title: 'Cho thuê căn hộ Masteri Thảo Điền', price: '15 tr/tháng', area: '70m²', location: 'TP Thủ Đức, TP.HCM', author: 'Lê Văn C', status: 'rejected', type: 'rent', date: '20/03/2024' },
-  { id: 4, image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=300&h=200&fit=crop', title: 'Biệt thự Phú Mỹ Hưng view sông', price: '25 tỷ', area: '350m²', location: 'Quận 7, TP.HCM', author: 'Phạm Văn D', status: 'approved', type: 'sale', date: '22/03/2024' },
-  { id: 5, image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=300&h=200&fit=crop', title: 'Cho thuê văn phòng Landmark 81', price: '50 tr/tháng', area: '200m²', location: 'Quận Bình Thạnh, TP.HCM', author: 'Hoàng Thị E', status: 'pending', type: 'rent', date: '25/03/2024' },
-  { id: 6, image: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=300&h=200&fit=crop', title: 'Đất nền Long An mặt tiền QL1A', price: '1.8 tỷ', area: '100m²', location: 'Long An', author: 'Đỗ Văn F', status: 'locked', type: 'sale', date: '28/03/2024' },
-]
+const posts = ref([])
+const loading = ref(false)
+const currentPage = ref(1)
+const totalPages = ref(1)
+const totalItems = ref(0)
+let searchTimeout = null
 
-const filtered = computed(() => {
-  return mockPosts.filter(p => {
-    if (search.value && !p.title.toLowerCase().includes(search.value.toLowerCase())) return false
-    if (statusFilter.value !== 'all' && p.status !== statusFilter.value) return false
-    if (typeFilter.value !== 'all' && p.type !== typeFilter.value) return false
-    return true
-  })
+const fetchPosts = async () => {
+  loading.value = true
+  try {
+    const params = {
+      per_page: 8,
+      page: currentPage.value,
+    }
+    if (statusFilter.value !== 'all') params.status = statusFilter.value
+    if (typeFilter.value !== 'all') params.demand_type = typeFilter.value
+    if (search.value) params.keyword = search.value
+
+    const res = await listingService.getAllListings(params)
+    
+    // Map dữ liệu từ API sang format cho UI
+    posts.value = res.data.data.map(p => {
+      // Map status API -> StatusBadge props
+      let badgeStatus = 'pending'
+      if (p.status === 'ACTIVE') badgeStatus = 'approved'
+      else if (p.status === 'REJECTED') badgeStatus = 'rejected'
+      else if (p.status === 'LOCKED' || p.status === 'EXPIRED') badgeStatus = 'locked'
+
+      // Format giá
+      let priceText = 'Thỏa thuận'
+      if (p.property?.price) {
+        priceText = p.property.price >= 1000000000 
+          ? (p.property.price / 1000000000).toFixed(1) + ' tỷ' 
+          : (p.property.price / 1000000).toFixed(0) + ' triệu'
+        if (p.demand_type === 'RENT') priceText += '/tháng'
+      }
+
+      // Format ngày
+      const dateObj = new Date(p.submitted_at || new Date())
+      const dateText = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear()}`
+
+      return {
+        id: p.id,
+        image: p.images?.[0]?.url || 'https://placehold.co/300x200?text=No+Image',
+        title: p.title || 'Không có tiêu đề',
+        price: priceText,
+        area: p.property?.area ? p.property.area + 'm²' : '--',
+        location: p.property?.address_detail || '--',
+        author: p.owner?.full_name || 'Khách',
+        status: badgeStatus,
+        type: p.demand_type === 'SALE' ? 'sale' : 'rent',
+        date: dateText,
+        package: p.package,
+      }
+    })
+    
+    totalPages.value = res.data.meta.last_page || 1
+    totalItems.value = res.data.meta.total || 0
+  } catch (error) {
+    console.error('Error fetching listings:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const changePage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+    fetchPosts()
+  }
+}
+
+// Theo dõi thay đổi của filter và search
+watch([statusFilter, typeFilter], () => {
+  currentPage.value = 1
+  fetchPosts()
+})
+
+watch(search, () => {
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    currentPage.value = 1
+    fetchPosts()
+  }, 500)
+})
+
+onMounted(() => {
+  fetchPosts()
 })
 
 function openConfirm(title, desc) {
@@ -56,15 +129,15 @@ function openConfirm(title, desc) {
         <Filter :size="16" color="hsl(215,16%,47%)" />
         <select v-model="statusFilter" class="filter-select" id="posts-status-filter">
           <option value="all">Tất cả trạng thái</option>
-          <option value="approved">Đã duyệt</option>
-          <option value="pending">Chờ duyệt</option>
-          <option value="rejected">Từ chối</option>
-          <option value="locked">Đã khóa</option>
+          <option value="ACTIVE">Đã duyệt</option>
+          <option value="PENDING">Chờ duyệt</option>
+          <option value="REJECTED">Từ chối</option>
+          <option value="LOCKED">Đã khóa</option>
         </select>
         <select v-model="typeFilter" class="filter-select" id="posts-type-filter">
           <option value="all">Tất cả loại</option>
-          <option value="sale">Mua bán</option>
-          <option value="rent">Cho thuê</option>
+          <option value="SALE">Mua bán</option>
+          <option value="RENT">Cho thuê</option>
         </select>
       </div>
     </div>
@@ -79,6 +152,7 @@ function openConfirm(title, desc) {
               <th class="th">Giá</th>
               <th class="th">Diện tích</th>
               <th class="th">Loại</th>
+              <th class="th">Gói tin</th>
               <th class="th">Người đăng</th>
               <th class="th">Ngày đăng</th>
               <th class="th">Trạng thái</th>
@@ -86,7 +160,13 @@ function openConfirm(title, desc) {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="post in filtered" :key="post.id" class="table-row">
+            <tr v-if="loading" class="table-row">
+              <td colspan="9" class="td text-center text-slate-500 py-8">Đang tải dữ liệu...</td>
+            </tr>
+            <tr v-else-if="posts.length === 0" class="table-row">
+              <td colspan="9" class="td text-center text-slate-500 py-8">Không có tin đăng nào.</td>
+            </tr>
+            <tr v-for="post in posts" :key="post.id" class="table-row">
               <!-- Tin đăng -->
               <td class="td">
                 <div class="post-info">
@@ -113,6 +193,13 @@ function openConfirm(title, desc) {
                 <span class="type-badge" :class="post.type === 'sale' ? 'type-sale' : 'type-rent'">
                   {{ post.type === 'sale' ? 'Mua bán' : 'Cho thuê' }}
                 </span>
+              </td>
+              <td class="td">
+                <span v-if="post.package" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border" :style="{ borderColor: post.package.color + '40', color: post.package.color, backgroundColor: post.package.color + '10' }">
+                  <PackageIcon :size="14" />
+                  {{ post.package.name }}
+                </span>
+                <span v-else class="text-slate-400 text-xs italic">Tin thường</span>
               </td>
               <td class="td text-sm" style="color: hsl(var(--foreground))">{{ post.author }}</td>
               <td class="td text-sm" style="color: hsl(var(--muted-foreground))">{{ post.date }}</td>
@@ -155,12 +242,46 @@ function openConfirm(title, desc) {
     </div>
 
     <!-- Empty -->
-    <div v-if="filtered.length === 0" class="empty-state">
+    <div v-if="!loading && posts.length === 0" class="empty-state">
       <div class="empty-icon">
         <Search :size="28" color="hsl(215,16%,47%)" />
       </div>
       <h3 class="empty-title">Không tìm thấy tin đăng</h3>
       <p class="empty-desc">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+    </div>
+
+    <!-- Pagination -->
+    <div class="relative flex flex-col md:flex-row items-center justify-center mt-6 gap-3 md:gap-0" v-if="totalPages > 1">
+      <div class="flex items-center gap-1">
+        <button 
+          @click="changePage(currentPage - 1)" 
+          :disabled="currentPage === 1"
+          class="p-1.5 border border-slate-200 rounded-md bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-600 transition-colors"
+        >
+          <ChevronLeft :size="18" />
+        </button>
+        
+        <button 
+          v-for="page in totalPages" 
+          :key="page"
+          @click="changePage(page)"
+          class="w-8 h-8 flex items-center justify-center border rounded-md text-sm font-semibold transition-colors"
+          :class="page === currentPage ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'"
+        >
+          {{ page }}
+        </button>
+        
+        <button 
+          @click="changePage(currentPage + 1)" 
+          :disabled="currentPage === totalPages"
+          class="p-1.5 border border-slate-200 rounded-md bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-600 transition-colors"
+        >
+          <ChevronRight :size="18" />
+        </button>
+      </div>
+      <div class="md:absolute md:right-0 text-sm text-slate-500 font-medium">
+        Hiển thị {{ (currentPage - 1) * 8 + 1 }} đến {{ Math.min(currentPage * 8, totalItems) }} của {{ totalItems }} tin đăng
+      </div>
     </div>
 
     <ConfirmModal

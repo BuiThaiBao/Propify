@@ -139,6 +139,51 @@ final class EloquentListingRepository implements ListingRepository
             ->paginate($perPage);
     }
 
+    public function paginateAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
+    {
+        return Listing::query()
+            ->with([
+                'property.attributes.group',
+                'images',
+                'videos',
+                'verificationDocuments',
+                'appointments',
+                'owner',
+                'package',
+            ])
+            ->when($status && $status !== 'all', function ($query) use ($status) {
+                // If filtering by specific status, do exact match except for 'all'
+                $query->where('status', strtoupper($status));
+            })
+            ->when($demandType && $demandType !== 'all', function ($query) use ($demandType) {
+                $query->where('demand_type', strtoupper($demandType));
+            })
+            ->when($keyword, function ($query) use ($keyword) {
+                $keywordLower = mb_strtolower($keyword, 'UTF-8');
+                $isRent = str_contains($keywordLower, 'cho') || str_contains($keywordLower, 'thuê');
+                $isSale = str_contains($keywordLower, 'mua') || str_contains($keywordLower, 'bán');
+
+                $query->where(function ($subQuery) use ($keyword, $isRent, $isSale) {
+                    $subQuery
+                        ->where('title', 'like', '%' . $keyword . '%')
+                        ->orWhereHas('property', function ($propertyQuery) use ($keyword) {
+                            $propertyQuery
+                                ->where('address_detail', 'like', '%' . $keyword . '%')
+                                ->orWhere('project_name', 'like', '%' . $keyword . '%');
+                        });
+                    
+                    if ($isRent) {
+                        $subQuery->orWhere('demand_type', 'RENT');
+                    }
+                    if ($isSale) {
+                        $subQuery->orWhere('demand_type', 'SALE');
+                    }
+                });
+            })
+            ->orderByDesc('id')
+            ->paginate($perPage);
+    }
+
     public function updateProperty(int $id, array $attributes): Property
     {
         $property = Property::findOrFail($id);

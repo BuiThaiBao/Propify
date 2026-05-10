@@ -37,8 +37,7 @@ final class GetAppointmentSlotsRequest extends FormRequest
     public function toDto(): GetAppointmentSlotsDto
     {
         return new GetAppointmentSlotsDto(
-            listingId: (int) $this->input('listing_id'),
-            posterId: (int) auth('api')->id()
+            listingId: (int) $this->input('listing_id')
         );
     }
 }
