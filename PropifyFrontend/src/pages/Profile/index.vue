@@ -558,7 +558,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRoute, useRouter } from 'vue-router';
 import userService from '@/services/userService';
@@ -653,6 +653,16 @@ async function uploadAvatar() {
 
 // ── Tabs ──
 const activeTab = ref('profile');
+
+watch(activeTab, (newTab) => {
+  const query = { ...route.query };
+  if (newTab === 'profile') {
+    delete query.tab;
+  } else {
+    query.tab = newTab;
+  }
+  router.replace({ query }).catch(() => {});
+});
 const listingsLoaded = ref(false);
 const listingsLoading = ref(false);
 const myListings = ref([]);
@@ -876,9 +886,14 @@ onMounted(async () => {
     });
   }
 
-  // Auto-open listings tab if query param tab=listings (from posting redirect)
-  if (route.query.tab === 'listings') {
+  // Auto-open tab based on query param
+  const tab = route.query.tab;
+  if (tab === 'listings') {
     openListingsTab();
+  } else if (tab === 'appointments') {
+    openAppointmentsTab();
+  } else if (tab === 'password') {
+    activeTab.value = 'password';
   }
 });
 
