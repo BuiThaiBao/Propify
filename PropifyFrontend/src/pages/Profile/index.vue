@@ -342,15 +342,15 @@
           <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs text-slate-500">
               <tr>
-                <th class="px-4 py-4 whitespace-nowrap">ID</th>
-                <th class="px-4 py-4 whitespace-nowrap">Ảnh</th>
-                <th class="px-4 py-4 whitespace-nowrap">Mã tin đăng</th>
-                <th class="px-4 py-4 min-w-[280px]">Tin đăng</th>
-                <th class="px-4 py-4 min-w-[240px]">Địa chỉ</th>
-                <th class="px-4 py-4 whitespace-nowrap">Giá</th>
-                <th class="px-4 py-4 text-center whitespace-nowrap">Hiển thị</th>
-                <th class="px-4 py-4 whitespace-nowrap">Trạng thái</th>
-                <th class="pl-4 pr-6 py-4 w-16 text-center"></th>
+                <th class="px-3 py-4 whitespace-nowrap">ID</th>
+                <th class="px-3 py-4 whitespace-nowrap">Ảnh</th>
+                <th class="px-3 py-4 whitespace-nowrap">Mã tin đăng</th>
+                <th class="px-3 py-4 min-w-[200px]">Tin đăng</th>
+                <th class="px-3 py-4 min-w-[180px]">Địa chỉ</th>
+                <th class="px-3 py-4 whitespace-nowrap">Giá</th>
+                <th class="px-3 py-4 text-center whitespace-nowrap">Hiển thị</th>
+                <th class="px-3 py-4 whitespace-nowrap">Trạng thái</th>
+                <th class="pl-3 pr-5 py-4 w-12 text-center"></th>
               </tr>
             </thead>
             <tbody>
@@ -361,27 +361,27 @@
                 <td class="px-3 py-6 text-center text-slate-400" colspan="9">Bạn chưa có tin đăng nào.</td>
               </tr>
               <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="router.push('/listings/' + item.id)">
-                <td class="px-4 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap">{{ item.id }}</td>
-                <td class="px-4 py-4 whitespace-nowrap">
+                <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap">{{ item.id }}</td>
+                <td class="px-3 py-4 whitespace-nowrap">
                   <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-14 rounded-md object-cover" />
                   <div v-else class="h-12 w-14 rounded-md bg-slate-100"></div>
                 </td>
-                <td class="px-4 py-4 text-slate-500 whitespace-nowrap">{{ item.code }}</td>
-                <td class="px-4 py-4 font-semibold text-slate-700 group-hover:text-sky-600">{{ item.title }}</td>
-                <td class="px-4 py-4 text-slate-500">{{ item.address }}</td>
-                <td class="px-4 py-4 font-semibold text-slate-700 whitespace-nowrap">{{ item.price }}</td>
-                <td class="px-4 py-4 whitespace-nowrap">
+                <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.code }}</td>
+                <td class="px-3 py-4 font-semibold text-slate-700 group-hover:text-sky-600">{{ item.title }}</td>
+                <td class="px-3 py-4 text-slate-500">{{ item.address }}</td>
+                <td class="px-3 py-4 font-semibold text-slate-700 whitespace-nowrap">{{ item.price }}</td>
+                <td class="px-3 py-4 whitespace-nowrap">
                   <div class="flex items-center justify-center gap-1.5 text-slate-500">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                     <span class="font-medium text-sm">{{ item.views || 1000 }}</span>
                   </div>
                 </td>
-                <td class="px-4 py-4 whitespace-nowrap">
+                <td class="px-3 py-4 whitespace-nowrap">
                   <span :class="['rounded-full px-2 py-1 text-xs font-medium', statusBadgeClass(item.status)]">
                     {{ statusLabel(item.status) }}
                   </span>
                 </td>
-                <td class="pl-4 pr-6 py-4 relative">
+                <td class="pl-3 pr-5 py-4 relative">
                   <button @click.stop="toggleDropdown(item.id, $event)" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center mx-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
                   </button>
