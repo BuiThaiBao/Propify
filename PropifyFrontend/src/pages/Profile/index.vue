@@ -350,7 +350,7 @@
                 <th class="px-4 py-4 whitespace-nowrap">Giá</th>
                 <th class="px-4 py-4 text-center whitespace-nowrap">Hiển thị</th>
                 <th class="px-4 py-4 whitespace-nowrap">Trạng thái</th>
-                <th class="px-4 py-4 w-12 text-center"></th>
+                <th class="pl-4 pr-6 py-4 w-16 text-center"></th>
               </tr>
             </thead>
             <tbody>
@@ -381,7 +381,7 @@
                     {{ statusLabel(item.status) }}
                   </span>
                 </td>
-                <td class="px-4 py-4 relative">
+                <td class="pl-4 pr-6 py-4 relative">
                   <button @click.stop="toggleDropdown(item.id, $event)" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center mx-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
                   </button>
