@@ -6,6 +6,7 @@
       :email="form.email"
       @success="$emit('success')"
       @resend="handleResend"
+      @back="showOtp = false"
     />
 
     <!-- Register modal -->
