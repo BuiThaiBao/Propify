@@ -143,7 +143,7 @@
               <input
                 ref="avatarInputRef"
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.svg,.heic,.heif"
                 class="hidden"
                 @change="handleAvatarSelected"
               />
@@ -585,6 +585,18 @@ function triggerAvatarInput() {
 function handleAvatarSelected(event) {
   const file = event.target.files?.[0];
   if (!file) return;
+
+  const allowedTypes = [
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif', 
+    'image/avif', 'image/svg+xml', 'image/heic', 'image/heif'
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    avatarMessage.value = 'Định dạng ảnh không được hỗ trợ. Vui lòng chọn ảnh JPG, PNG, WebP, GIF hoặc AVIF.';
+    avatarSuccess.value = false;
+    if (avatarInputRef.value) avatarInputRef.value.value = '';
+    return;
+  }
 
   // Validate size (5MB)
   if (file.size > 5 * 1024 * 1024) {
