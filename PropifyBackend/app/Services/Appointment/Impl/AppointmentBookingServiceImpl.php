@@ -108,17 +108,17 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
 
         // 10. Tạo booking
         $booking = $this->bookingRepository->create([
-            'slot_id'          => $dto->slotId,
-            'viewer_id'        => $dto->viewerId,
-            'meet_time'        => $meetTime,
-            'full_name'        => $dto->fullName,
-            'phone_number'     => $dto->phone,
-            'email'            => $dto->email,
-            'note'             => $dto->note,
-            'status'           => BookingStatus::PENDING->value,
-            'is_deleted'       => false,
+            'slot_id' => $dto->slotId,
+            'viewer_id' => $dto->viewerId,
+            'meet_time' => $meetTime,
+            'full_name' => $dto->fullName,
+            'phone_number' => $dto->phone,
+            'email' => $dto->email,
+            'note' => $dto->note,
+            'status' => BookingStatus::PENDING->value,
+            'is_deleted' => false,
             'confirm_deadline' => $confirmDeadline,
-            'is_urgent'        => $isUrgent,
+            'is_urgent' => $isUrgent,
         ]);
 
         // 11. Dispatch job tự động hủy khi quá hạn confirm_deadline
@@ -175,6 +175,7 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
         $booking->load('slot.listing');
 
         return $booking;
+    }
     public function cancelBooking(int $bookingId, int $userId, string $reason): AppointmentBooking
     {
         // 1. Tìm booking
@@ -214,7 +215,7 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
 
         $booking->update([
             'status' => BookingStatus::CANCELLED->value,
-            'note'   => $existingNote . "[{$roleLabel} hủy] " . $reason,
+            'note' => $existingNote . "[{$roleLabel} hủy] " . $reason,
         ]);
 
         $booking->load('slot.listing');

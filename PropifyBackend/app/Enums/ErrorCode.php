@@ -13,9 +13,9 @@ enum ErrorCode: int
     case AuthUnauthorized = 1004;
     case AuthForbidden = 1005;
     case AuthRegisterFailed = 1006;
-    case AuthOtpInvalid     = 1007;  // OTP sai hoặc đã dùng
-    case AuthOtpExpired     = 1008;  // OTP hết hạn (Redis TTL)
-    case AuthNotVerified    = 1009;  // Tài khoản chưa xác thực OTP
+    case AuthOtpInvalid = 1007;  // OTP sai hoặc đã dùng
+    case AuthOtpExpired = 1008;  // OTP hết hạn (Redis TTL)
+    case AuthNotVerified = 1009;  // Tài khoản chưa xác thực OTP
     case AuthPasswordIncorrect = 1010;
 
     case AuthPhoneNotVerified = 1011;
@@ -36,28 +36,28 @@ enum ErrorCode: int
     case ResourceDeleteFailed = 4004;
 
     // ==================== Appointment (6xxx) ====================
-    case ListingNotFound          = 6001;
-    case AppointmentSlotNotFound  = 6002;
-    case BookingSelfSlot          = 6003;
-    case BookingInvalidDate       = 6004;
-    case BookingSlotNotFound      = 6005;
-    case BookingDuplicate         = 6006;
-    case SlotNotOwner             = 6007;
-    case SlotTimeOverlap          = 6008;
-    case SlotHasApprovedBooking   = 6009;
-    case SlotListingMismatch      = 6010;
-    case BookingExistsOnListing   = 6011;
-    case ListingCannotBeLocked    = 6012;
-    case ListingAlreadyLocked     = 6013;
-    case BookingNotPending        = 6012;
-    case BookingNotFound          = 6013;
-    case BookingNotOwner          = 6014;
-    case BookingTooLateToCancel   = 6015;
-    case ListingNotActive         = 6016;
+    case ListingNotFound = 6001;
+    case AppointmentSlotNotFound = 6002;
+    case BookingSelfSlot = 6003;
+    case BookingInvalidDate = 6004;
+    case BookingSlotNotFound = 6005;
+    case BookingDuplicate = 6006;
+    case SlotNotOwner = 6007;
+    case SlotTimeOverlap = 6008;
+    case SlotHasApprovedBooking = 6009;
+    case SlotListingMismatch = 6010;
+    case BookingExistsOnListing = 6011;
+    case ListingCannotBeLocked = 6012;
+    case ListingAlreadyLocked = 6013;
+    case BookingNotPending = 6014;
+    case BookingNotFound = 6015;
+    case BookingNotOwner = 6016;
+    case BookingTooLateToCancel = 6017;
+    case ListingNotActive = 6018;
 
     // ==================== Chat (7xxx) ====================
-    case ConversationNotFound              = 7001;
-    case UnauthorizedConversationAccess    = 7002;
+    case ConversationNotFound = 7001;
+    case UnauthorizedConversationAccess = 7002;
 
     // ==================== Server (5xxx) ====================
     case ServerError = 5001;
@@ -76,15 +76,15 @@ enum ErrorCode: int
     public function message(): string
     {
         return match ($this) {
-            self::AuthLoginFailed    => 'Email hoặc mật khẩu không đúng',
-            self::AuthTokenInvalid   => 'Token không hợp lệ',
-            self::AuthTokenExpired   => 'Token đã hết hạn',
-            self::AuthUnauthorized   => 'Chưa xác thực',
-            self::AuthForbidden      => 'Không có quyền truy cập',
+            self::AuthLoginFailed => 'Email hoặc mật khẩu không đúng',
+            self::AuthTokenInvalid => 'Token không hợp lệ',
+            self::AuthTokenExpired => 'Token đã hết hạn',
+            self::AuthUnauthorized => 'Chưa xác thực',
+            self::AuthForbidden => 'Không có quyền truy cập',
             self::AuthRegisterFailed => 'Đăng ký thất bại',
-            self::AuthOtpInvalid     => 'Mã OTP không hợp lệ',
-            self::AuthOtpExpired     => 'Mã OTP đã hết hạn',
-            self::AuthNotVerified    => 'Tài khoản chưa được xác thực',
+            self::AuthOtpInvalid => 'Mã OTP không hợp lệ',
+            self::AuthOtpExpired => 'Mã OTP đã hết hạn',
+            self::AuthNotVerified => 'Tài khoản chưa được xác thực',
             self::AuthPasswordIncorrect => 'Mật khẩu hiện tại không đúng',
             self::ValidationError => 'Dữ liệu không hợp lệ',
             self::AuthPhoneNotVerified => 'Bạn cần cập nhật số điện thoại trước khi đăng tin',
