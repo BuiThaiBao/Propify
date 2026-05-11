@@ -820,7 +820,7 @@ function normalizeListings(items) {
       price: formatCurrency(item?.property?.price),
       status: item.status,
       package: item.package || null,
-      views: item.view_count || 0,
+      views: item.views ?? 0,
     };
   });
 }
