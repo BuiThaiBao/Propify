@@ -39,7 +39,6 @@
           :baths="item.property?.bathrooms || 0"
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
-          :views="0"
         />
       </div>
     </div>
@@ -82,7 +81,6 @@
           :baths="item.property?.bathrooms || 0"
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
-          :views="0"
         />
       </div>
     </div>
@@ -118,7 +116,6 @@
           :baths="item.property?.bathrooms || 0"
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
-          :views="0"
         />
       </div>
     </div>
@@ -154,7 +151,6 @@
           :baths="item.property?.bathrooms || 0"
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
-          :views="0"
         />
       </div>
     </div>
@@ -226,6 +222,8 @@ function propertyTypeLabel(type) {
   };
   return map[type] || type || 'BĐS';
 }
+
+
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';
