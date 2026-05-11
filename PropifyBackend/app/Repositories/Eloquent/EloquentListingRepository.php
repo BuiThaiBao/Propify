@@ -51,6 +51,7 @@ final class EloquentListingRepository implements ListingRepository
                 'images',
                 'videos',
                 'verificationDocuments',
+                'appointmentSlots',
                 'appointments',
                 'package:id,name,slug,badge,color,priority',
             ])
@@ -85,6 +86,7 @@ final class EloquentListingRepository implements ListingRepository
                 'images',
                 'videos',
                 'verificationDocuments',
+                'appointmentSlots',
                 'appointments',
                 'owner',
             ])
@@ -147,6 +149,7 @@ final class EloquentListingRepository implements ListingRepository
                 'images',
                 'videos',
                 'verificationDocuments',
+                'appointmentSlots',
                 'appointments',
                 'owner',
                 'package',
