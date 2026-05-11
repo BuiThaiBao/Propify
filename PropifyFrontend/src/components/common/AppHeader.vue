@@ -109,6 +109,59 @@
                 </svg>
                 Thông tin tài khoản
               </router-link>
+              <router-link
+                to="/profile?tab=listings"
+                @click="accountMenuOpen = false"
+                class="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>
+                </svg>
+                Quản lý tin đăng
+              </router-link>
+              <router-link
+                to="/profile?tab=appointments"
+                @click="accountMenuOpen = false"
+                class="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
+                </svg>
+                Quản lý đặt lịch
+              </router-link>
+              <router-link
+                to="/profile?tab=favorites"
+                @click="accountMenuOpen = false"
+                class="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                Tin đăng yêu thích
+              </router-link>
+              <router-link
+                to="/profile?tab=viewed"
+                @click="accountMenuOpen = false"
+                class="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+                Tin đã xem
+              </router-link>
+              <router-link
+                to="/profile?tab=transactions"
+                @click="accountMenuOpen = false"
+                class="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                Lịch sử giao dịch
+              </router-link>
+              
+              <div class="border-t border-border/50 my-1"></div>
+              
               <button
                 @click="handleLogout"
                 class="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
@@ -284,7 +337,17 @@ function handleClickOutside(e) {
   }
 }
 
-onMounted(() => document.addEventListener("click", handleClickOutside));
+onMounted(() => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("error") === "admin_not_allowed") {
+    // Xóa query param để không hiện lại khi reload
+    router.replace({ query: {} });
+    setTimeout(() => {
+      alert("Tài khoản quản trị không được phép đăng nhập tại đây.");
+    }, 500);
+  }
+  document.addEventListener("click", handleClickOutside);
+});
 onUnmounted(() => document.removeEventListener("click", handleClickOutside));
 </script>
 

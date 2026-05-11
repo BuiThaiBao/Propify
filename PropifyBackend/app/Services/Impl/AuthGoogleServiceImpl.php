@@ -41,6 +41,11 @@ final class AuthGoogleServiceImpl implements AuthGoogleService
             // Delegate logic tìm/tạo/liên kết user cho UserUpsertService
             $user = $this->userUpsertService->upsertFromSocial($adapted);
 
+            if ($user->role === \App\Enums\UserRole::Admin) {
+                Log::warning('Admin user attempted Google login on client site', ['user_id' => $user->id]);
+                return redirect(config('app.frontend_url') . "/?error=admin_not_allowed");
+            }
+
             $token = JWTAuth::fromUser($user);
 
             return redirect(config('app.frontend_url') . "/login-success?token=$token");

@@ -6,7 +6,7 @@
 				<img :src="image" alt="Property" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
 			</div>
 
-			<div class="absolute left-2 top-2 flex items-center gap-1.5">
+			<div class="absolute left-4 top-4 flex items-center gap-1.5">
 				<span class="inline-flex items-center rounded-full bg-white/95 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700 shadow-sm backdrop-blur">
 					{{ type }}
 				</span>
@@ -18,7 +18,7 @@
 
 			<button
 				type="button"
-				class="absolute right-2 top-2 rounded-full bg-white/90 p-1.5 text-slate-600 shadow-sm backdrop-blur hover:bg-white"
+				class="absolute right-4 top-4 rounded-full bg-white/90 p-1.5 text-slate-600 shadow-sm backdrop-blur hover:bg-white"
 				aria-label="Yêu thích"
 			>
 				<Heart class="h-4 w-4" />
@@ -34,17 +34,7 @@
 				<span>{{ location }}</span>
 			</p>
 
-			<div class="mt-1.5 flex items-center justify-between gap-3 text-[12px] text-slate-400">
-				<div class="flex items-center gap-1">
-					<Clock3 class="h-3.5 w-3.5" />
-					<span>{{ timeAgo }}</span>
-				</div>
 
-				<div class="flex items-center gap-1">
-					<Eye class="h-3.5 w-3.5" />
-					<span>{{ views }}</span>
-				</div>
-			</div>
 
 			<div class="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-slate-600">
 				<span class="inline-flex items-center gap-1">
@@ -61,11 +51,12 @@
 				</span>
 			</div>
 
-			<div class="mt-3 flex items-end gap-1 border-t border-slate-100 pt-3">
+			<div class="mt-3 flex items-end justify-between border-t border-slate-100 pt-3">
 				<div class="flex items-end gap-1">
 					<span class="text-[18px] font-bold text-sky-600">{{ price }}</span>
 					<span v-if="unit" class="pb-0.5 text-[12px] font-medium text-slate-500">{{ unit }}</span>
 				</div>
+				<span v-if="timeAgo" class="text-[12px] text-slate-400 pb-0.5">{{ timeAgo }}</span>
 			</div>
 		</div>
 	</article>
@@ -73,7 +64,7 @@
 </template>
 
 <script setup>
-import { Bath, Bed, CheckCircle2, Clock3, Eye, Heart, MapPin, Maximize } from 'lucide-vue-next';
+import { Bath, Bed, CheckCircle2, Heart, MapPin, Maximize } from 'lucide-vue-next';
 
 defineProps({
 	to: { type: String, default: '#' },
@@ -88,7 +79,6 @@ defineProps({
 	beds: { type: [Number, String], default: 0 },
 	baths: { type: [Number, String], default: 0 },
 	timeAgo: { type: String, default: '' },
-	views: { type: [Number, String], default: 0 },
 });
 </script>
 
