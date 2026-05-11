@@ -461,7 +461,7 @@
         <form @submit.prevent="handleChangePassword" class="flex flex-col gap-5">
           <!-- Current password -->
           <div class="flex flex-col gap-1.5">
-            <label for="currentPassword" class="text-[0.85rem] font-semibold text-slate-700">Mật khẩu hiện tại</label>
+            <label for="currentPassword" class="text-[0.85rem] font-semibold text-slate-700 after:content-['*'] after:text-red-500 after:ml-1">Mật khẩu hiện tại</label>
             <div class="relative">
               <input
                 id="currentPassword"
@@ -479,7 +479,7 @@
 
           <!-- New password -->
           <div class="flex flex-col gap-1.5">
-            <label for="newPassword" class="text-[0.85rem] font-semibold text-slate-700">Mật khẩu mới</label>
+            <label for="newPassword" class="text-[0.85rem] font-semibold text-slate-700 after:content-['*'] after:text-red-500 after:ml-1">Mật khẩu mới</label>
             <div class="relative">
               <input
                 id="newPassword"
@@ -498,7 +498,7 @@
 
           <!-- Confirm password -->
           <div class="flex flex-col gap-1.5">
-            <label for="confirmPassword" class="text-[0.85rem] font-semibold text-slate-700">Xác nhận mật khẩu mới</label>
+            <label for="confirmPassword" class="text-[0.85rem] font-semibold text-slate-700 after:content-['*'] after:text-red-500 after:ml-1">Xác nhận mật khẩu mới</label>
             <div class="relative">
               <input
                 id="confirmPassword"
@@ -518,7 +518,7 @@
             <button type="button" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-white text-slate-500 border-[1.5px] border-slate-200 hover:bg-slate-50 transition-all" @click="resetPasswordForm(); activeTab = 'profile'">
               Hủy
             </button>
-            <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-br from-sky-500 to-sky-600 text-white hover:from-sky-600 hover:to-sky-700 hover:shadow-lg hover:shadow-sky-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed" :disabled="passwordLoading">
+            <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-br from-sky-500 to-sky-600 text-white hover:from-sky-600 hover:to-sky-700 hover:shadow-lg hover:shadow-sky-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed" :disabled="passwordLoading || !isPasswordFormValid">
               {{ passwordLoading ? 'Đang xử lý...' : 'Cập nhật mật khẩu' }}
             </button>
           </div>
@@ -1070,6 +1070,59 @@ const passwordForm = reactive({
   newPasswordConfirmation: '',
 });
 
+const isPasswordFormValid = computed(() => {
+  const current = passwordForm.currentPassword.trim();
+  const pwd = passwordForm.newPassword.trim();
+  const confirm = passwordForm.newPasswordConfirmation.trim();
+  
+  if (!current || !pwd || !confirm) return false;
+  if (pwd.length < 8) return false;
+  if (!/[a-z]/.test(pwd) || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) return false;
+  if (current === pwd) return false;
+  if (pwd !== confirm) return false;
+  
+  return true;
+});
+
+watch(
+  passwordForm,
+  (newVal) => {
+    const current = newVal.currentPassword.trim();
+    const pwd = newVal.newPassword.trim();
+    const confirm = newVal.newPasswordConfirmation.trim();
+
+    passwordSuccess.value = false;
+
+    if (!pwd && !confirm) {
+      passwordMessage.value = '';
+      return;
+    }
+
+    if (pwd) {
+      if (pwd.length < 8) {
+        passwordMessage.value = 'Mật khẩu mới phải có ít nhất 8 ký tự.';
+        return;
+      }
+      if (!/[a-z]/.test(pwd) || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) {
+        passwordMessage.value = 'Mật khẩu phải chứa chữ hoa, chữ thường và chữ số.';
+        return;
+      }
+      if (current && current === pwd) {
+        passwordMessage.value = 'Mật khẩu mới không trùng với mật khẩu cũ.';
+        return;
+      }
+    }
+
+    if (confirm && pwd !== confirm) {
+      passwordMessage.value = 'Xác nhận mật khẩu mới không khớp.';
+      return;
+    }
+
+    passwordMessage.value = '';
+  },
+  { deep: true }
+);
+
 function resetPasswordForm() {
   passwordForm.currentPassword = '';
   passwordForm.newPassword = '';
@@ -1081,28 +1134,12 @@ function resetPasswordForm() {
 }
 
 async function handleChangePassword() {
-  // Trim passwords (BR.ACC.03)
+  // Trim passwords
   passwordForm.currentPassword = passwordForm.currentPassword.trim();
   passwordForm.newPassword = passwordForm.newPassword.trim();
   passwordForm.newPasswordConfirmation = passwordForm.newPasswordConfirmation.trim();
 
-  // Validate format (BR.ACC.03)
-  const pwd = passwordForm.newPassword;
-  if (pwd.length < 8) {
-    passwordSuccess.value = false;
-    passwordMessage.value = 'Mật khẩu mới phải có ít nhất 8 ký tự.';
-    return;
-  }
-  if (!/[a-z]/.test(pwd) || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) {
-    passwordSuccess.value = false;
-    passwordMessage.value = 'Mật khẩu phải chứa chữ hoa, chữ thường và chữ số.';
-    return;
-  }
-  if (pwd !== passwordForm.newPasswordConfirmation) {
-    passwordSuccess.value = false;
-    passwordMessage.value = 'Xác nhận mật khẩu mới không khớp.';
-    return;
-  }
+  if (!isPasswordFormValid.value) return;
 
   passwordLoading.value = true;
   passwordMessage.value = '';
