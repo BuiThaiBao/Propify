@@ -146,10 +146,12 @@ const listingService = {
    * Nâng cấp gói tin cho listing.
    * @param {number} listingId
    * @param {number} packageId
+   * @param {number} durationDays - 3, 7, 10, 15, 30
    */
-  upgradeListing(listingId, packageId) {
+  upgradeListing(listingId, packageId, durationDays) {
     return api.post(`/v1/listings/${listingId}/upgrade`, {
       package_id: packageId,
+      duration_days: durationDays,
     });
   },
 

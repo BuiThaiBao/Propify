@@ -13,3 +13,10 @@ Artisan::command('inspire', function () {
 // vì cron Linux chỉ hỗ trợ minimum 1 phút.
 // Production: thêm supervisor process cho `php artisan schedule:work`
 Schedule::command('views:flush')->everyThirtySeconds();
+
+// ── Package Expiration: Gỡ cờ gói tin hết hạn ───────────────────────
+Schedule::command('packages:expire')->everyMinute();
+
+// ── Package Notification: Email nhắc gia hạn (7 ngày cuối) ──────────
+// Gửi 1 email/ngày lúc 9h sáng cho các listing sắp hết hạn
+Schedule::command('packages:notify-expiring')->dailyAt('09:00');

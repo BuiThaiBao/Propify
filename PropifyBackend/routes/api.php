@@ -170,13 +170,22 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
     });
 });
 
-// ==================== PACKAGES ROUTES ====================
 Route::prefix('v1/packages')->as('packages.')->middleware('auth:api')->group(function () {
     Route::get('/', [PackageController::class, 'index'])->name('index');
     Route::get('/{id}', [PackageController::class, 'show'])->name('show');
     Route::post('/', [PackageController::class, 'create'])->name('create');
     Route::put('/{id}', [PackageController::class, 'update'])->name('update');
     Route::delete('/{id}', [PackageController::class, 'destroy'])->name('destroy');
+
+    // Package Pricings CRUD (admin)
+    Route::get('/{packageId}/pricings', [\App\Http\Controllers\Api\V1\Package\PackagePricingController::class, 'index'])
+        ->name('pricings.index');
+    Route::post('/{packageId}/pricings', [\App\Http\Controllers\Api\V1\Package\PackagePricingController::class, 'store'])
+        ->name('pricings.store');
+    Route::put('/{packageId}/pricings/{pricingId}', [\App\Http\Controllers\Api\V1\Package\PackagePricingController::class, 'update'])
+        ->name('pricings.update');
+    Route::delete('/{packageId}/pricings/{pricingId}', [\App\Http\Controllers\Api\V1\Package\PackagePricingController::class, 'destroy'])
+        ->name('pricings.destroy');
 });
 
 // ==================== ADMIN ROUTES ====================

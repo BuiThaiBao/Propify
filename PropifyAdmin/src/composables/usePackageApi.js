@@ -76,12 +76,74 @@ export function usePackageApi() {
     }
   };
 
+  // ── Package Pricings ─────────────────────────────────────────────────
+
+  const fetchPricings = async (packageId) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await api.get(`/v1/packages/${packageId}/pricings`);
+      return response.data;
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Lỗi khi lấy danh sách pricing';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const createPricing = async (packageId, pricingData) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await api.post(`/v1/packages/${packageId}/pricings`, pricingData);
+      return response.data;
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Lỗi khi tạo pricing';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const updatePricing = async (packageId, pricingId, pricingData) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await api.put(`/v1/packages/${packageId}/pricings/${pricingId}`, pricingData);
+      return response.data;
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Lỗi khi cập nhật pricing';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const deletePricing = async (packageId, pricingId) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await api.delete(`/v1/packages/${packageId}/pricings/${pricingId}`);
+      return response.data;
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Lỗi khi xóa pricing';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     fetchPackages,
     fetchPackage,
     createPackage,
     updatePackage,
     deletePackage,
+    fetchPricings,
+    createPricing,
+    updatePricing,
+    deletePricing,
     loading,
     error,
   };
