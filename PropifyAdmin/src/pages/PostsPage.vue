@@ -64,6 +64,7 @@ const fetchPosts = async () => {
         type: p.demand_type === 'SALE' ? 'sale' : 'rent',
         date: dateText,
         package: p.package,
+        views: p.views ?? 0,
       }
     })
     
@@ -153,6 +154,7 @@ function openConfirm(title, desc) {
               <th class="th">Diện tích</th>
               <th class="th">Loại</th>
               <th class="th">Gói tin</th>
+              <th class="th">Lượt xem</th>
               <th class="th">Người đăng</th>
               <th class="th">Ngày đăng</th>
               <th class="th">Trạng thái</th>
@@ -161,10 +163,10 @@ function openConfirm(title, desc) {
           </thead>
           <tbody>
             <tr v-if="loading" class="table-row">
-              <td colspan="9" class="td text-center text-slate-500 py-8">Đang tải dữ liệu...</td>
+              <td colspan="10" class="td text-center text-slate-500 py-8">Đang tải dữ liệu...</td>
             </tr>
             <tr v-else-if="posts.length === 0" class="table-row">
-              <td colspan="9" class="td text-center text-slate-500 py-8">Không có tin đăng nào.</td>
+              <td colspan="10" class="td text-center text-slate-500 py-8">Không có tin đăng nào.</td>
             </tr>
             <tr v-for="post in posts" :key="post.id" class="table-row">
               <!-- Tin đăng -->
@@ -200,6 +202,12 @@ function openConfirm(title, desc) {
                   {{ post.package.name }}
                 </span>
                 <span v-else class="text-slate-400 text-xs italic">Tin thường</span>
+              </td>
+              <td class="td text-sm" style="color: hsl(var(--foreground))">
+                <span class="views-text">
+                  <Eye :size="14" color="hsl(215,16%,47%)" />
+                  {{ post.views.toLocaleString('vi-VN') }}
+                </span>
               </td>
               <td class="td text-sm" style="color: hsl(var(--foreground))">{{ post.author }}</td>
               <td class="td text-sm" style="color: hsl(var(--muted-foreground))">{{ post.date }}</td>
@@ -447,6 +455,15 @@ function openConfirm(title, desc) {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.views-text {
+  font-size: 13px;
+  color: hsl(var(--muted-foreground));
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
 }
 
 /* Type badge */

@@ -69,6 +69,7 @@ enum ErrorCode: int
     case PackageInactive = 8003;
     case ListingUpgradeNotAllowed = 8004;
     case ListingNotOwned = 8005;
+    case PackagePricingNotFound = 8006;
 
 
 
@@ -123,6 +124,7 @@ enum ErrorCode: int
             self::PackageInactive => "Gói tin đã bị vô hiệu hóa",
             self::ListingUpgradeNotAllowed => "Không thể nâng cấp gói tin. Chỉ cho phép nâng cấp lên gói cao hơn.",
             self::ListingNotOwned => "Bạn không phải chủ sở hữu tin đăng này",
+            self::PackagePricingNotFound => "Không tìm thấy giá cho thời hạn đã chọn. Vui lòng liên hệ quản trị.",
         };
     }
 
@@ -194,6 +196,7 @@ enum ErrorCode: int
             self::PackageInactive => Response::HTTP_UNPROCESSABLE_ENTITY,
             self::ListingUpgradeNotAllowed => Response::HTTP_UNPROCESSABLE_ENTITY,
             self::ListingNotOwned => Response::HTTP_FORBIDDEN,
+            self::PackagePricingNotFound => Response::HTTP_NOT_FOUND,
 
             self::ServerError,
             self::AuthRegisterFailed,

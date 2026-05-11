@@ -394,11 +394,14 @@ final class ListingServiceImpl implements ListingService
     /**
      * Nâng cấp gói tin cho listing.
      *
-     * Flow: Verify ownership → Verify listing ACTIVE → Verify package → Check upgrade direction
-     *       → DB Transaction: Create Transaction (auto-SUCCESS) + Update listing.package_id
+     * Flow: Verify ownership → Verify listing ACTIVE → Verify package → Lookup pricing
+     *       → Check upgrade direction → DB Transaction: Create Transaction + Update listing
      *       → Clear cache → Return updated listing
+     *
+     * Gia hạn: Nếu listing đang có gói chưa hết hạn và user mua lại cùng gói,
+     *          thời hạn mới sẽ CỘNG THÊM vào thời hạn còn lại.
      */
-    public function upgradeListing(User $user, int $listingId, int $packageId): Listing
+    public function upgradeListing(User $user, int $listingId, int $packageId, int $durationDays): Listing
     {
         // 1. Lấy listing + verify ownership
         $listing = Listing::find($listingId);
@@ -426,32 +429,61 @@ final class ListingServiceImpl implements ListingService
             throw new BusinessException(ErrorCode::PackageInactive);
         }
 
-        // 3. Verify upgrade direction (chỉ cho nâng cấp, không hạ cấp)
+        // 3. Lookup pricing — BẮT BUỘC phải có pricing
+        $pricing = $newPackage->pricings()
+            ->where('duration_days', $durationDays)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$pricing) {
+            throw new BusinessException(ErrorCode::PackagePricingNotFound);
+        }
+
+        // 4. Verify upgrade direction (chỉ cho nâng cấp hoặc gia hạn cùng gói)
         $currentPriority = 0;
+        $isRenewal = false;
+
         if ($listing->package_id) {
             $currentPackage = Package::find($listing->package_id);
             $currentPriority = $currentPackage?->priority ?? 0;
+
+            // Cho phép gia hạn cùng gói
+            if ($listing->package_id === $packageId) {
+                $isRenewal = true;
+            }
         }
 
-        if ($newPackage->priority <= $currentPriority) {
+        if (!$isRenewal && $newPackage->priority <= $currentPriority) {
             throw new BusinessException(ErrorCode::ListingUpgradeNotAllowed);
         }
 
-        // 4. DB Transaction: Tạo transaction + update listing
-        $updated = DB::transaction(function () use ($user, $listing, $newPackage) {
+        // 5. Tính package_expires_at
+        //    - Gia hạn: cộng thêm ngày vào thời hạn còn lại
+        //    - Mua mới: tính từ bây giờ
+        $baseTime = now();
+        if ($isRenewal && $listing->package_expires_at && $listing->package_expires_at->isFuture()) {
+            $baseTime = $listing->package_expires_at;
+        }
+        $expiresAt = $baseTime->copy()->addDays($durationDays);
+
+        // 6. DB Transaction: Tạo transaction + update listing
+        $updated = DB::transaction(function () use ($user, $listing, $newPackage, $pricing, $expiresAt) {
             // Tạo transaction (giả lập thanh toán — auto SUCCESS)
             Transaction::create([
                 'user_id'          => $user->id,
                 'listing_id'       => $listing->id,
                 'package_id'       => $newPackage->id,
-                'amount'           => $newPackage->price,
+                'amount'           => $pricing->price,
                 'payment_method'   => 'SIMULATED',
                 'status'           => 'SUCCESS',
                 'transaction_date' => now(),
             ]);
 
-            // Gắn gói mới vào listing
-            $listing->update(['package_id' => $newPackage->id]);
+            // Gắn gói mới + set ngày hết hạn
+            $listing->update([
+                'package_id'         => $newPackage->id,
+                'package_expires_at' => $expiresAt,
+            ]);
 
             return $listing->fresh([
                 'property',
@@ -467,10 +499,13 @@ final class ListingServiceImpl implements ListingService
         $this->clearPublicListingsCache();
 
         Log::info('[ListingService] Listing upgraded', [
-            'listing_id' => $listingId,
-            'user_id'    => $user->id,
-            'package'    => $newPackage->slug,
-            'amount'     => $newPackage->price,
+            'listing_id'   => $listingId,
+            'user_id'      => $user->id,
+            'package'      => $newPackage->slug,
+            'duration'     => $durationDays . ' days',
+            'amount'       => $pricing->price,
+            'expires_at'   => $expiresAt->toIso8601String(),
+            'is_renewal'   => $isRenewal,
         ]);
 
         return $updated;
