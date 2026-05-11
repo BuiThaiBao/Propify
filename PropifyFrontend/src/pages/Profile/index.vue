@@ -283,7 +283,7 @@
                 <button type="button" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-white text-slate-500 border-[1.5px] border-slate-200 hover:bg-slate-50 transition-all" @click="cancelEditing">
                   Hủy
                 </button>
-                <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-br from-sky-500 to-sky-600 text-white hover:from-sky-600 hover:to-sky-700 hover:shadow-lg hover:shadow-sky-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed" :disabled="profileLoading">
+                <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-br from-sky-500 to-sky-600 text-white hover:from-sky-600 hover:to-sky-700 hover:shadow-lg hover:shadow-sky-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed" :disabled="profileLoading || isProfileFormUnchanged">
                   {{ profileLoading ? 'Đang lưu...' : 'Lưu thay đổi' }}
                 </button>
               </template>
@@ -947,6 +947,12 @@ const profileForm = reactive({
   phone: '',
 });
 
+const isProfileFormUnchanged = computed(() => {
+  const currentFullName = authStore.user?.full_name || '';
+  const currentPhone = authStore.user?.phone || '';
+  return profileForm.fullName.trim() === currentFullName && profileForm.phone.trim() === currentPhone;
+});
+
 onMounted(async () => {
   document.addEventListener('click', closeDropdown);
 
@@ -999,6 +1005,11 @@ function cancelEditing() {
 }
 
 async function handleUpdateProfile() {
+  if (isProfileFormUnchanged.value) {
+    isEditing.value = false;
+    return;
+  }
+
   // Nếu yêu cầu phone mà chưa nhập
   if (requirePhone.value && !profileForm.phone.trim()) {
     profileSuccess.value = false;
