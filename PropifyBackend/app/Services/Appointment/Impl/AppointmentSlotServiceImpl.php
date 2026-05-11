@@ -102,7 +102,7 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
             AppointmentBooking::query()
                 ->where('id', $booking->id)
                 ->update([
-                    'status' => BookingStatus::CANCELLED->value,
+                    'status' => BookingStatus::CANCELLED_BY_POSTER->value,
                     'note'   => $existingNote . $cancelNote,
                 ]);
         }
@@ -216,6 +216,30 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
         }
 
         return collect($createdSlots);
+    }
+
+    public function replaceSlots(CreateSlotsDto $dto): Collection
+    {
+        $listing = Listing::query()
+            ->where('id', $dto->listingId)
+            ->first();
+
+        if (!$listing) {
+            throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
+        }
+
+        if ($listing->owner_id !== $dto->posterId) {
+            throw new BusinessException(ErrorCode::SlotNotOwner);
+        }
+
+        $this->validateSlotsForDuplicates($dto->slots);
+
+        AppointmentSlot::query()
+            ->where('listing_id', $dto->listingId)
+            ->where('poster_id', $dto->posterId)
+            ->delete();
+
+        return $this->createSlots($dto);
     }
 
     /**

@@ -11,7 +11,11 @@
     </div>
 
     <div class="mx-auto w-full max-w-[1240px] px-4 lg:px-6">
-      <p class="text-xs text-slate-500">Trang chủ &gt; {{ isEditMode ? 'Chỉnh sửa tin' : 'Đăng tin' }}</p>
+      <p class="text-xs text-slate-500">
+        <router-link to="/" class="hover:text-sky-600 hover:underline">Trang chủ</router-link>
+        <span> &gt; </span>
+        <span>{{ isEditMode ? 'Chỉnh sửa tin' : 'Đăng tin' }}</span>
+      </p>
       <h1 class="mt-2 text-[24px] font-extrabold tracking-tight text-slate-900">{{ isEditMode ? 'Chỉnh sửa tin đăng' : 'Đăng tin bất động sản' }}</h1>
 
       <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,760px)_330px] lg:justify-center">
@@ -19,7 +23,7 @@
         <section class="section-card">
           <header class="section-title">
             <img :src="uploadImageIcon" alt="upload" class="h-5 w-5" />
-            <h2 class="required">Hình ảnh, Video</h2>
+            <h2>Hình ảnh, Video</h2>
           </header>
           <p class="section-subtitle"><img :src="uploadImageIcon" alt="upload" class="inline h-3.5 w-3.5 align-[-2px]" /> Tải ảnh và video từ máy tính</p>
 
@@ -84,7 +88,7 @@
 
           <label class="mt-3 block">
             <span class="field-label required">Tiêu đề</span>
-            <input v-model="form.title" :class="['input mt-1', fieldError('title') && 'input-error']" maxlength="120" placeholder="Nhập tiêu đề" @blur="touchField('title')" />
+            <input v-model="form.title" :class="['input mt-1', fieldError('title') && 'input-error']" maxlength="120" placeholder="Nhập tiêu đề" @blur="handleTextBlur('title')" />
             <p v-if="fieldError('title')" class="field-error">{{ fieldErrorMessage('title') }}</p>
             <p class="mt-1 text-right text-[12px] text-slate-400">{{ titleCount }}/120 ký tự</p>
           </label>
@@ -100,7 +104,7 @@
 
           <label class="mt-3 block">
             <span class="field-label required">Mô tả</span>
-            <textarea v-model="form.description" :class="['input mt-1 min-h-[140px]', fieldError('description') && 'input-error']" maxlength="5000" placeholder="VD: Giới thiệu các đặc điểm nổi bật của bất động sản:&#10;- Các tiện ích xung quanh: gần công viên, gần trường học&#10;- Thời gian đến khu vực trung tâm, tiện ích xung quanh" @blur="touchField('description')"></textarea>
+            <textarea v-model="form.description" :class="['input mt-1 min-h-[140px]', fieldError('description') && 'input-error']" maxlength="5000" placeholder="VD: Giới thiệu các đặc điểm nổi bật của bất động sản:&#10;- Các tiện ích xung quanh: gần công viên, gần trường học&#10;- Thời gian đến khu vực trung tâm, tiện ích xung quanh" @blur="handleTextBlur('description', true)"></textarea>
             <p v-if="fieldError('description')" class="field-error">{{ fieldErrorMessage('description') }}</p>
             <p class="mt-1 text-right text-[12px] text-slate-400">{{ descriptionCount }}/5000</p>
           </label>
@@ -117,12 +121,12 @@
             </label>
             <label>
               <span class="field-label">Giấy tờ pháp lý</span>
-              <button type="button" class="input mt-1 legal-trigger" @click="toggleLegalDropdown">
+              <button type="button" class="input mt-1 legal-trigger" @click="toggleLegalDropdown" ref="legalTriggerRef">
                 <span v-if="!form.legalPaperTypes.length" class="text-slate-400">Chọn giấy tờ pháp lý</span>
                 <span v-else class="legal-selected-text">{{ selectedLegalPaperLabels }}</span>
-                <span class="text-slate-500">▾</span>
+                <span class="dropdown-arrow-icon">▾</span>
               </button>
-              <div v-if="showLegalDropdown" class="legal-dropdown mt-2">
+              <div v-if="showLegalDropdown" class="legal-dropdown mt-2" ref="legalDropdownRef">
                 <label v-for="option in legalPaperOptions" :key="option.value" class="legal-option">
                   <span>{{ option.label }}</span>
                   <input type="checkbox" :checked="form.legalPaperTypes.includes(option.value)" @change="toggleLegalPaper(option.value)" />
@@ -150,6 +154,41 @@
           <div class="mt-3 flex items-center gap-2">
             <input id="is-negotiable-info" v-model="form.isNegotiable" type="checkbox" class="h-4 w-4 rounded border-slate-300" />
             <label for="is-negotiable-info" class="text-[14px] text-slate-500">Giá Thương lượng</label>
+          </div>
+
+          <div v-if="form.demandType === 'RENT'" class="mt-3 space-y-3">
+            <div>
+              <p class="field-label">Thời gian thuê tối thiểu</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button type="button" :class="pillClass(form.rentMinTerm === '1_month')" @click="form.rentMinTerm = '1_month'">1 tháng</button>
+                <button type="button" :class="pillClass(form.rentMinTerm === '3_months')" @click="form.rentMinTerm = '3_months'">3 tháng</button>
+                <button type="button" :class="pillClass(form.rentMinTerm === '6_months')" @click="form.rentMinTerm = '6_months'">6 tháng</button>
+                <button type="button" :class="pillClass(form.rentMinTerm === '1_year')" @click="form.rentMinTerm = '1_year'">1 năm</button>
+              </div>
+              <p v-if="fieldError('rentMinTerm')" class="field-error mt-2">{{ fieldErrorMessage('rentMinTerm') }}</p>
+            </div>
+
+            <div>
+              <p class="field-label">Kỳ thanh toán</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button type="button" :class="pillClass(form.rentPaymentInterval === 'monthly')" @click="form.rentPaymentInterval = 'monthly'">1 tháng/lần</button>
+                <button type="button" :class="pillClass(form.rentPaymentInterval === 'quarter')" @click="form.rentPaymentInterval = 'quarter'">3 tháng/lần</button>
+                <button type="button" :class="pillClass(form.rentPaymentInterval === 'half_year')" @click="form.rentPaymentInterval = 'half_year'">6 tháng/lần</button>
+                <button type="button" :class="pillClass(form.rentPaymentInterval === 'yearly')" @click="form.rentPaymentInterval = 'yearly'">1 năm/lần</button>
+              </div>
+              <p v-if="fieldError('rentPaymentInterval')" class="field-error mt-2">{{ fieldErrorMessage('rentPaymentInterval') }}</p>
+            </div>
+
+            <div>
+              <p class="field-label">Đặt cọc</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button type="button" :class="pillClass(form.rentDeposit === 'none')" @click="form.rentDeposit = 'none'">Không</button>
+                <button type="button" :class="pillClass(form.rentDeposit === '1_month')" @click="form.rentDeposit = '1_month'">1 tháng</button>
+                <button type="button" :class="pillClass(form.rentDeposit === '3_months')" @click="form.rentDeposit = '3_months'">3 tháng</button>
+                <button type="button" :class="pillClass(form.rentDeposit === '6_months')" @click="form.rentDeposit = '6_months'">6 tháng</button>
+                <button type="button" :class="pillClass(form.rentDeposit === '1_year')" @click="form.rentDeposit = '1_year'">1 năm</button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -202,11 +241,11 @@
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
               <span class="field-label">Đường / Phố</span>
-              <input v-model="form.streetCode" class="input mt-1" placeholder="Nhập đường/phố" />
+              <input v-model="form.streetCode" class="input mt-1" placeholder="Nhập đường/phố" @blur="handleTextBlur('streetCode')" />
             </label>
             <label>
               <span class="field-label">Địa chỉ cụ thể</span>
-              <input v-model="form.addressDetail" class="input mt-1" inputmode="text" autocomplete="off" placeholder="Nhập địa chỉ" />
+              <input v-model="form.addressDetail" class="input mt-1" inputmode="text" autocomplete="off" placeholder="Nhập địa chỉ" @blur="handleTextBlur('addressDetail')" />
             </label>
           </div>
 
@@ -280,7 +319,7 @@
             <button type="button" class="more-info-toggle" @click="showMoreDetail = !showMoreDetail">
               <span class="field-label">Thêm thông tin</span>
               <span class="more-info-badge">Điền đủ thông tin, tăng lượt tiếp cận</span>
-              <span class="more-info-arrow" :class="{ open: showMoreDetail }">⌄</span>
+              <span class="dropdown-arrow-icon">▾</span>
             </button>
           </div>
 
@@ -288,17 +327,11 @@
             <div class="grid gap-4 md:grid-cols-2">
               <label>
                 <span class="field-label">Tầng thứ</span>
-                <div class="unit-input mt-2">
-                  <input v-model="form.floorNumber" class="input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floorNumber', false)" />
-                  <span class="unit-label">m</span>
-                </div>
+                <input v-model="form.floorNumber" class="input mt-2" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floorNumber', false)" />
               </label>
               <label>
                 <span class="field-label">Số tầng</span>
-                <div class="unit-input mt-2">
-                  <input v-model="form.floors" class="input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floors', false)" />
-                  <span class="unit-label">m</span>
-                </div>
+                <input v-model="form.floors" class="input mt-2" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floors', false)" />
               </label>
             </div>
 
@@ -340,13 +373,14 @@
             </div>
           </div>
 
-          <div class="mt-4">
+            <div class="mt-4">
             <p class="field-label">Nội thất</p>
             <div class="mt-2 flex items-center gap-2">
               <button type="button" :class="pillClass(form.furnitureStatus === 'FULL')" @click="setFurnitureStatus('FULL')">Có</button>
               <button type="button" :class="pillClass(form.furnitureStatus === 'NONE')" @click="setFurnitureStatus('NONE')">Không</button>
             </div>
-          </div>
+
+            </div>
 
           <div class="mt-4">
             <p class="field-label">Tiện ích</p>
@@ -381,7 +415,7 @@
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
               <span class="field-label required">Họ và tên</span>
-              <input v-model="form.contactName" :class="['input mt-1', fieldError('contactName') && 'input-error']" placeholder="Nhập họ tên" @blur="touchField('contactName')" />
+              <input v-model="form.contactName" :class="['input mt-1', fieldError('contactName') && 'input-error']" placeholder="Nhập họ tên" @blur="handleTextBlur('contactName')" />
               <p v-if="fieldError('contactName')" class="field-error">{{ fieldErrorMessage('contactName') }}</p>
             </label>
             <label>
@@ -393,12 +427,11 @@
 
           <label class="mt-3 block">
             <span class="field-label required">Email</span>
-            <input v-model="form.contactEmail" :class="['input mt-1', fieldError('contactEmail') && 'input-error']" type="email" placeholder="vd_email@gmail.com" @blur="touchField('contactEmail')" />
+            <input v-model="form.contactEmail" :class="['input mt-1', fieldError('contactEmail') && 'input-error']" type="email" placeholder="vd_email@gmail.com" @blur="handleTextBlur('contactEmail')" />
             <p v-if="fieldError('contactEmail')" class="field-error">{{ fieldErrorMessage('contactEmail') }}</p>
           </label>
         </section>
-
-        <AppointmentSlotsForm ref="appointmentForm" />
+          <AppointmentSlotsForm ref="appointmentForm" />
 
         <section class="section-card">
           <button type="button" class="appointment-header" @click="showVerificationSection = !showVerificationSection">
@@ -406,7 +439,7 @@
               <img :src="homeImageIcon" alt="verify" class="h-5 w-5" />
               <h2>Xác thực bất động sản</h2>
             </span>
-            <span class="chevron" :class="{ open: showVerificationSection }">⌃</span>
+            <span class="dropdown-arrow-icon">▾</span>
           </button>
 
           <div v-if="showVerificationSection" class="mt-4 space-y-4">
@@ -497,15 +530,6 @@
 
       <aside class="hidden lg:block">
         <div class="sticky top-24 space-y-4">
-          <div class="rounded-2xl border border-slate-200 bg-white p-4">
-            <div class="flex items-center gap-2 text-sm font-medium text-slate-700">
-              <span class="step-dot active">1</span>
-              <span>Điền thông tin</span>
-              <span class="mx-2 h-px flex-1 bg-slate-200"></span>
-              <span class="step-dot">2</span>
-              <span class="text-slate-400">Cấu hình tin đăng</span>
-            </div>
-          </div>
 
           <div class="rounded-2xl border border-slate-200 bg-white p-4">
             <p class="text-[28px] font-extrabold leading-none text-slate-300">{{ totalScore.toFixed(1) }}</p>
@@ -569,6 +593,7 @@ import listingService from "@/services/listingService";
 import cloudinaryService from "@/services/cloudinaryService";
 import { useRoute, useRouter } from "vue-router";
 import AppointmentSlotsForm from "@/components/AppointmentSlotsForm.vue";
+
 import uploadImageIcon from "@/assets/images/listing/postlisting/uploadImage.png";
 import locationImageIcon from "@/assets/images/listing/postlisting/locationImage.png";
 import informationImageIcon from "@/assets/images/listing/postlisting/information.png";
@@ -682,6 +707,10 @@ function createInitialState() {
     identityCardFront: null,
     identityCardBack: null,
     legalDocuments: [],
+    // Rental-specific fields
+    rentMinTerm: '',
+    rentPaymentInterval: '',
+    rentDeposit: '',
   };
 }
 
@@ -716,6 +745,8 @@ const selectedAmenities = ref([]);
 const showVerificationSection = ref(true);
 const publicInfoAgreed = ref(false);
 const appointmentForm = ref(null);
+const pendingAppointmentRows = ref(null);
+const existingAppointmentSlotIds = ref([]);
 const imageUploadError = ref("");
 const videoUploadError = ref("");
 const verificationUploadError = ref("");
@@ -733,23 +764,28 @@ function pushToast(message, type = "info", duration = 2500) {
 }
 
 const mediaDone = computed(() => form.images.length > 0);
+
 const infoFieldCount = computed(() => {
   let count = 0;
-  if (form.title.trim()) count++;
-  if (form.description.trim().length >= 20) count++;
-  if (form.propertyType.trim()) count++;
-  if (form.provinceCode.trim()) count++;
+  if (form.title?.trim()) count++;
+  if (form.description?.trim().length >= 20) count++;
+  if (form.propertyType?.trim()) count++;
+  if (form.provinceCode?.trim()) count++;
   return count;
 });
 const infoPercent = computed(() => Math.round((infoFieldCount.value / 4) * 100));
-const infoPoints = computed(() => (infoPercent.value >= 80 ? 2 : infoPercent.value >= 40 ? 1 : 0));
-const infoDone = computed(() => infoPoints.value === 2);
+const infoDone = computed(() => infoFieldCount.value === 4);
+const infoPoints = computed(() => infoDone.value ? 2 : infoPercent.value >= 40 ? 1 : 0);
+
 
 const detailFieldCount = computed(() => {
   let count = 0;
   if (Number(form.area) > 0) count++;
   if (form.isNegotiable || Number(form.price) > 0) count++;
-  if (Number(form.bedrooms) >= 0 && Number(form.bathrooms) >= 0 && (form.bedrooms !== "" || form.bathrooms !== "")) count++;
+  // Consider bedrooms/bathrooms filled only when user actually entered a value (non-empty)
+  const bedroomsFilled = form.bedrooms !== null && form.bedrooms !== undefined && String(form.bedrooms).trim() !== '';
+  const bathroomsFilled = form.bathrooms !== null && form.bathrooms !== undefined && String(form.bathrooms).trim() !== '';
+  if (bedroomsFilled || bathroomsFilled) count++;
   return count;
 });
 const detailPercent = computed(() => Math.round((detailFieldCount.value / 3) * 100));
@@ -772,9 +808,17 @@ const isContactEmailValid = computed(() => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 });
 
-const contactDone = computed(() => isContactNameValid.value && isContactPhoneValid.value && isContactEmailValid.value);
+const contactFieldCount = computed(() => {
+  let count = 0;
+  if (isContactNameValid.value) count++;
+  if (isContactPhoneValid.value) count++;
+  if (isContactEmailValid.value) count++;
+  return count;
+});
+
+const contactDone = computed(() => contactFieldCount.value === 3);
 const contactPoints = computed(() => (contactDone.value ? 1 : 0));
-const contactPercent = computed(() => (contactDone.value ? 100 : 0));
+const contactPercent = computed(() => Math.round((contactFieldCount.value / 3) * 100));
 
 const totalScore = computed(() => {
   const media = mediaDone.value ? 4 : 0;
@@ -788,13 +832,44 @@ const selectedLegalPaperLabels = computed(() => {
     .join(", ");
 });
 
+// Refs for click-outside handling of the legal dropdown
+const legalTriggerRef = ref(null);
+const legalDropdownRef = ref(null);
+
+function onDocumentClick(e) {
+  if (!showLegalDropdown.value) return;
+  const triggerEl = legalTriggerRef.value;
+  const dropdownEl = legalDropdownRef.value;
+  const target = e.target;
+  if (triggerEl && triggerEl.contains && triggerEl.contains(target)) return;
+  if (dropdownEl && dropdownEl.contains && dropdownEl.contains(target)) return;
+  showLegalDropdown.value = false;
+}
+
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick);
+});
+
+// If the appointment component wasn't mounted when we loaded edit data,
+// assign pending rows once the ref becomes available.
+watch(appointmentForm, (v) => {
+  if (v && pendingAppointmentRows.value) {
+    appointmentForm.value.appointmentRows = pendingAppointmentRows.value;
+    pendingAppointmentRows.value = null;
+  }
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick);
+});
+
 const shouldRequestVerification = computed(() => {
   return Boolean(form.identityCardFront || form.identityCardBack || (form.legalDocuments && form.legalDocuments.length));
 });
 
-const titleCount = computed(() => form.title.length);
-const descriptionCount = computed(() => form.description.length);
-const priceLabel = computed(() => (form.demandType === "RENT" ? "Giá thuê *" : "Giá bán *"));
+const titleCount = computed(() => normalizeSingleLineText(form.title).length);
+const descriptionCount = computed(() => normalizeMultilineText(form.description).length);
+const priceLabel = computed(() => (form.demandType === "RENT" ? "Giá thuê" : "Giá bán"));
 
 const currentPropertyTypeOptions = computed(() =>
   form.demandType === "RENT" ? rentPropertyTypeOptions : salePropertyTypeOptions,
@@ -842,6 +917,7 @@ onMounted(async () => {
   await fetchProvinces();
 
   if (isEditMode.value) {
+    clearDraft(); // Xóa draft khi vào form sửa
     await loadListingForEdit();
   } else {
     loadFormFromDraft();
@@ -862,7 +938,7 @@ async function loadListingForEdit() {
     form.propertyType = p.type || 'APARTMENT';
     form.provinceCode = p.province_code ? String(p.province_code) : '';
     form.districtCode = p.district_code ? String(p.district_code) : '';
-    form.wardCode = '';
+    form.wardCode = p.ward_code ? String(p.ward_code) : '';
     form.streetCode = p.street_code || '';
     form.projectName = p.project_name || '';
     form.addressDetail = p.address_detail || '';
@@ -889,25 +965,37 @@ async function loadListingForEdit() {
     form.lng = p.lng ?? '';
     form.amenities = p.amenities || [];
     form.publicInfoAgreed = Boolean(p.public_info_agreed);
+    form.rentMinTerm = data.rent_min_term || '';
+    form.rentPaymentInterval = data.rent_payment_interval || '';
+    form.rentDeposit = data.rent_deposit || '';
     selectedAmenities.value = [...(p.amenities || [])];
     publicInfoAgreed.value = Boolean(p.public_info_agreed);
 
-    // Load existing appointment slots for edit form
-    if (appointmentForm.value && data.appointment_slots && Array.isArray(data.appointment_slots)) {
-      // Group slots by day_of_week
-      const groupedByDay = {};
-      data.appointment_slots.forEach(slot => {
-        if (!groupedByDay[slot.day_of_week]) {
-          groupedByDay[slot.day_of_week] = [];
+    if (data.appointment_slots && Array.isArray(data.appointment_slots)) {
+      existingAppointmentSlotIds.value = data.appointment_slots.map((slot) => slot.id).filter(Boolean);
+      const groupedByTime = {};
+      data.appointment_slots.forEach((slot) => {
+        const key = `${slot.start_time}-${slot.end_time}`;
+        if (!groupedByTime[key]) {
+          groupedByTime[key] = { start_time: slot.start_time, end_time: slot.end_time, selected_days: [] };
         }
-        groupedByDay[slot.day_of_week].push({ start_time: slot.start_time, end_time: slot.end_time });
+        groupedByTime[key].selected_days.push(slot.day_of_week);
       });
-      // Convert to rows structure
-      appointmentForm.value.appointmentRows = Object.entries(groupedByDay).map(([day, times]) => ({
-        day_of_week: parseInt(day),
-        times: times,
+      const rows = Object.values(groupedByTime).map((row) => ({
+        start_time: row.start_time,
+        end_time: row.end_time,
+        selected_days: row.selected_days.sort((a, b) => a - b),
       }));
+      if (appointmentForm.value) {
+        appointmentForm.value.appointmentRows = rows;
+      } else {
+        pendingAppointmentRows.value = rows;
+      }
+    } else {
+      existingAppointmentSlotIds.value = [];
     }
+
+
 
     // Load existing images as URLs (not File objects)
     if (data.images && data.images.length > 0) {
@@ -925,7 +1013,10 @@ async function loadListingForEdit() {
       videoPreviewName.value = firstVideo?.url ? 'Video hiện tại' : '';
     }
 
-
+    // Load wards list for the selected province
+    if (form.provinceCode) {
+      await fetchWardsByProvince(form.provinceCode);
+    }
 
     // Set map marker if lat/lng exists
     if (form.lat && form.lng) {
@@ -1417,6 +1508,37 @@ function setQuickNumber(field, value) {
   form[field] = value;
 }
 
+function normalizeSingleLineText(value) {
+  return String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeMultilineText(value) {
+  return String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[\t ]+/g, " ").trim())
+    .join("\n")
+    .trim();
+}
+
+function handleTextBlur(field, multiline = false) {
+  const normalizedValue = multiline ? normalizeMultilineText(form[field]) : normalizeSingleLineText(form[field]);
+  form[field] = normalizedValue;
+  touchField(field);
+}
+
+function normalizeFormTextFields() {
+  form.title = normalizeSingleLineText(form.title);
+  form.description = normalizeMultilineText(form.description);
+  form.streetCode = normalizeSingleLineText(form.streetCode);
+  form.addressDetail = normalizeSingleLineText(form.addressDetail);
+  form.contactName = normalizeSingleLineText(form.contactName);
+  form.contactEmail = normalizeSingleLineText(form.contactEmail).toLowerCase();
+  locationSearchText.value = normalizeSingleLineText(locationSearchText.value);
+}
+
 // ── Validation helpers ──
 function touchField(field) {
   touchedFields[field] = true;
@@ -1464,6 +1586,19 @@ function fieldErrorMessage(field) {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return 'Giá không hợp lệ';
     if (parsed <= 0) return 'Giá phải lớn hơn 0';
+    return '';
+  }
+
+  if (field === 'rentMinTerm') {
+    if (form.demandType !== 'RENT') return '';
+    // optional in UI, keep validation lenient (only error if explicitly touched)
+    if (touchedFields['rentMinTerm'] && !value) return 'Vui lòng chọn thời gian thuê tối thiểu';
+    return '';
+  }
+
+  if (field === 'rentPaymentInterval') {
+    if (form.demandType !== 'RENT') return '';
+    if (touchedFields['rentPaymentInterval'] && !value) return 'Vui lòng chọn kỳ thanh toán';
     return '';
   }
 
@@ -1534,14 +1669,23 @@ function onPhoneInput(event) {
 }
 
 function touchAllRequired() {
-  ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'contactName', 'contactPhone', 'contactEmail'].forEach(f => touchField(f));
+  const required = ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'contactName', 'contactPhone', 'contactEmail'];
+  if (form.demandType === 'RENT') {
+    required.push('rentMinTerm', 'rentPaymentInterval');
+  }
+  required.forEach((f) => touchField(f));
 }
 
 function hasRequiredErrors() {
-  return ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'contactName', 'contactPhone', 'contactEmail'].some(f => {
+  const base = ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'contactName', 'contactPhone', 'contactEmail'];
+  if (form.demandType === 'RENT') base.push('rentMinTerm', 'rentPaymentInterval');
+
+  const hasError = base.some((f) => {
     touchedFields[f] = true;
     return fieldError(f);
-  }) || (!form.isNegotiable && fieldError('price'));
+  });
+
+  return hasError || (!form.isNegotiable && fieldError('price'));
 }
 
 function setFurnitureStatus(status) {
@@ -1562,6 +1706,9 @@ const DRAFT_TTL_MS = 60 * 1000; // 1 minute
 let draftSaveTimer = null;
 
 function saveFormToDraft() {
+  // Chỉ lưu draft khi ở form đăng tin, không lưu khi ở form sửa
+  if (isEditMode.value) return;
+
   clearTimeout(draftSaveTimer);
   draftSaveTimer = setTimeout(() => {
     const draftData = {
@@ -1614,8 +1761,8 @@ function clearDraft() {
 
 function pillClass(active) {
   return active
-    ? "rounded-full bg-sky-500 px-4 py-1.5 text-xs font-semibold text-white"
-    : "rounded-full bg-slate-100 px-4 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200";
+    ? "rounded-full border border-sky-300 bg-white px-4 py-1.5 text-xs font-semibold text-sky-700 shadow-sm"
+    : "rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs text-slate-600 hover:bg-slate-50";
 }
 
 function quickChipClass(active) {
@@ -1656,13 +1803,7 @@ function resetForm() {
   verificationUploadError.value = "";
   videoPreviewName.value = "";
 
-  // Reset appointment form component
-  if (appointmentForm.value) {
-    appointmentForm.value.appointmentSlots = [
-      { day_of_week: '', start_time: '08:00', end_time: '09:00' }
-    ];
-    appointmentForm.value.duplicateError = '';
-  }
+
 }
 
 onBeforeUnmount(() => {
@@ -1693,18 +1834,26 @@ async function submitListing() {
   submitError.value = "";
   validationErrors.value = {};
   pushToast('Đang xử lý dữ liệu...', 'info');
+  normalizeFormTextFields();
   form.requestVerification = shouldRequestVerification.value;
   form.amenities = [...selectedAmenities.value];
   form.publicInfoAgreed = publicInfoAgreed.value;
-
-  // Lấy appointment slots từ component
-  const appointmentSlots = appointmentForm.value?.getFormData() || [];
-  // Appointment slots là optional, chỉ cảnh báo nếu user mở section nhưng không thêm
-  if (appointmentForm.value?.isOpen && appointmentSlots.length === 0) {
-    submitError.value = 'Vui lòng thêm ít nhất 1 khung giờ hẹn hoặc đóng phần Đặt lịch xem nhà';
-    pushToast('Vui lòng thêm ít nhất 1 khung giờ hẹn hoặc đóng phần Đặt lịch xem nhà', 'error');
-    loading.value = false;
-    return;
+  // Thu thập dữ liệu từ AppointmentSlotsForm (chỉ validate nếu có dữ liệu để lưu)
+  if (appointmentForm.value) {
+    const slots = appointmentForm.value.getFormData();
+    if (Array.isArray(slots) && slots.length > 0) {
+      const isValidAppointments = appointmentForm.value.validateAll();
+      if (!isValidAppointments) {
+        loading.value = false;
+        submitError.value = 'Lịch hẹn xem nhà không hợp lệ';
+        pushToast('Lịch hẹn xem nhà không hợp lệ', 'error');
+        return;
+      }
+      form.appointment_slots = slots;
+    } else {
+      // No slots provided by user
+      form.appointment_slots = [];
+    }
   }
 
   try {
@@ -1760,6 +1909,7 @@ async function submitListing() {
     }
 
     // 4. Submit to Backend
+    console.log('Submitting listing payload', JSON.parse(JSON.stringify(form)));
     let response;
     if (isEditMode.value) {
       response = await listingService.update(editListingId.value, form);
@@ -1767,16 +1917,18 @@ async function submitListing() {
       response = await listingService.create(form);
     }
 
-    // 5. Create appointment slots if any
-    const listingId = response.data?.data?.id || editListingId.value;
-    if (appointmentSlots.length > 0 && listingId) {
-      try {
-        await listingService.createAppointmentSlots(listingId, appointmentSlots);
-        pushToast('Tạo khung giờ hẹn thành công', 'success', 1500);
-      } catch (error) {
-        console.error('Failed to create appointment slots:', error);
-        pushToast('Cảnh báo: Không thể tạo khung giờ hẹn, vui lòng thử lại sau', 'warning', 2000);
+    // Ensure appointment slots are saved via dedicated endpoint (replace existing)
+    try {
+      const listingId = isEditMode.value ? editListingId.value : response.data?.data?.id;
+      const slotsPayload = form.appointment_slots || [];
+      console.log('Appointment slots payload for listing', listingId, slotsPayload);
+      if (listingId !== undefined && listingId !== null) {
+        await listingService.replaceAppointmentSlots(listingId, slotsPayload);
       }
+    } catch (slotErr) {
+      console.error('Failed to save appointment slots:', slotErr);
+      // don't block overall success, but notify user
+      pushToast('Lưu khung giờ xem nhà thất bại (không ảnh hưởng tới tin đăng)', 'warning');
     }
 
     submitError.value = "";
@@ -1882,15 +2034,6 @@ async function submitListing() {
 
 .collapsible-title h2 {
   margin-right: auto;
-}
-
-.chevron {
-  font-size: 14px;
-  color: #475569;
-}
-
-.chevron.open {
-  transform: rotate(180deg);
 }
 
 .appointment-header {
@@ -2007,6 +2150,14 @@ async function submitListing() {
   gap: 10px;
 }
 
+.dropdown-arrow-icon {
+  margin-left: auto;
+  color: #64748b;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 400;
+}
+
 .legal-selected-text {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2116,16 +2267,6 @@ async function submitListing() {
   background: #e6f6fe;
   border-radius: 999px;
   padding: 4px 10px;
-}
-
-.more-info-arrow {
-  margin-left: auto;
-  color: #475569;
-  transition: transform 0.2s ease;
-}
-
-.more-info-arrow.open {
-  transform: rotate(180deg);
 }
 
 .amenity-chip {

@@ -70,6 +70,9 @@ final class CreateListingRequest extends FormRequest
             'appointment_days' => ['nullable', 'array'],
             'appointment_days.*' => ['integer', 'between:0,6'],
             'appointment_time_slot' => ['nullable', 'string', 'max:50'],
+            'rent_min_term' => ['nullable', 'string', 'max:50'],
+            'rent_payment_interval' => ['nullable', 'string', 'max:50'],
+            'rent_deposit' => ['nullable', 'string', 'max:50'],
             'appointment_contact_name' => ['nullable', 'string', 'max:100'],
             'appointment_contact_phone' => ['nullable', 'regex:/^(03|05|07|08|09)\d{8}$/'],
             'appointment_contact_email' => ['nullable', 'regex:/^[A-Za-z0-9._%+-]+@gmail\.com$/', 'max:255'],
@@ -180,6 +183,10 @@ final class CreateListingRequest extends FormRequest
             appointmentContactEmail: isset($validated['appointment_contact_email']) ? trim($validated['appointment_contact_email']) : null,
             appointmentNote: isset($validated['appointment_note']) ? trim($validated['appointment_note']) : null,
             packageId: isset($validated['package_id']) ? (int) $validated['package_id'] : null,
+            // Accept either snake_case (from some clients) or camelCase (from frontend)
+            rentMinTerm: $validated['rent_min_term'] ?? $this->input('rentMinTerm') ?? null,
+            rentPaymentInterval: $validated['rent_payment_interval'] ?? $this->input('rentPaymentInterval') ?? null,
+            rentDeposit: $validated['rent_deposit'] ?? $this->input('rentDeposit') ?? null,
         );
     }
 }

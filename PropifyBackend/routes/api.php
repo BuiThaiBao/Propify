@@ -100,6 +100,8 @@ Route::prefix('v1/appointment-slots')->as('appointment-slots.')->group(function 
 Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('auth:api')->group(function () {
     Route::post('/create', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'create'])
         ->name('create');
+    Route::post('/replace', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'replace'])
+        ->name('replace');
     Route::put('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'update'])
         ->name('update');
     Route::post('/disable', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'disable'])

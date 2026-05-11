@@ -56,6 +56,9 @@ const listingService = {
       lng: payload.lng,
       package_id: payload.packageId,
       request_verification: payload.requestVerification,
+      rent_min_term: payload.rentMinTerm,
+      rent_payment_interval: payload.rentPaymentInterval,
+      rent_deposit: payload.rentDeposit,
       images: payload.images || [],
       video: payload.video || null,
       attribute_ids: payload.attributeIds || [],
@@ -98,6 +101,9 @@ const listingService = {
       is_negotiable: payload.isNegotiable,
       
       bedrooms: payload.bedrooms,
+      rent_min_term: payload.rentMinTerm,
+      rent_payment_interval: payload.rentPaymentInterval,
+      rent_deposit: payload.rentDeposit,
       bathrooms: payload.bathrooms,
       floors: payload.floors,
       floor_number: payload.floorNumber,
@@ -160,6 +166,13 @@ const listingService = {
    */
   createAppointmentSlots(listingId, slots) {
     return api.post(`/v1/appointment-slots/create`, {
+      listing_id: listingId,
+      slots: slots,
+    });
+  },
+
+  replaceAppointmentSlots(listingId, slots) {
+    return api.post('/v1/appointment-slots/replace', {
       listing_id: listingId,
       slots: slots,
     });

@@ -26,6 +26,9 @@ final class ListingResource extends JsonResource
             'is_verified' => $this->is_verified,
             'request_verification' => $this->request_verification,
             'appointment_at' => $this->appointment_at?->toIso8601String(),
+            'rent_min_term' => $this->rent_min_term,
+            'rent_payment_interval' => $this->rent_payment_interval,
+            'rent_deposit' => $this->rent_deposit,
             'appointment_days' => $this->appointment_days ?? [],
             'appointment_time_slot' => $this->appointment_time_slot,
             'appointment_contact_name' => $this->appointment_contact_name,
@@ -92,6 +95,13 @@ final class ListingResource extends JsonResource
                 'id' => $document->id,
                 'type' => $document->document_type,
                 'url' => $document->file_url,
+            ])->values(),
+            'appointment_slots' => $this->appointmentSlots->map(fn ($slot) => [
+                'id' => $slot->id,
+                'day_of_week' => $slot->day_of_week,
+                'start_time' => $slot->start_time,
+                'end_time' => $slot->end_time,
+                'is_active' => $slot->is_active,
             ])->values(),
             'appointments' => $this->appointments->map(fn ($appointment) => [
                 'id' => $appointment->id,
