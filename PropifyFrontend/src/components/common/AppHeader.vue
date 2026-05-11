@@ -37,7 +37,7 @@
             @click="showLoginPopup = true"
             class="text-sm font-medium text-white/90 hover:text-white underline underline-offset-2 transition-colors px-2 py-2"
           >
-            Đăng nhậpp
+            Đăng nhập
           </button>
         </template>
 
