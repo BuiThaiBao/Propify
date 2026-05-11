@@ -25,6 +25,7 @@ final class ListingUpgradeController
             user: $request->user(),
             listingId: $id,
             packageId: (int) $request->validated('package_id'),
+            durationDays: (int) $request->validated('duration_days'),
         );
 
         return ApiResponse::success(

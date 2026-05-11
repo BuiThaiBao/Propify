@@ -24,6 +24,8 @@ final class ListingResource extends JsonResource
                 'priority' => $this->package->priority,
             ] : null,
             'is_verified' => $this->is_verified,
+            'views' => $this->views ?? 0,
+            'package_expires_at' => $this->package_expires_at?->toIso8601String(),
             'request_verification' => $this->request_verification,
             'appointment_at' => $this->appointment_at?->toIso8601String(),
             'rent_min_term' => $this->rent_min_term,

@@ -19,7 +19,9 @@ class PackageServiceImpl implements PackageService
     }
     public function getAll()
     {
-        return $this->packageRepository->all();
+        return Package::with(['pricings' => function ($q) {
+            $q->where('is_active', true)->orderBy('duration_days');
+        }])->active()->byPriority()->get();
     }
 
     public function getById(int $id): Package

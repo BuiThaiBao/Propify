@@ -37,10 +37,13 @@ final class Listing extends Model
         'submitted_at',
         'published_at',
         'expired_at',
+        'views',
+        'package_expires_at',
     ];
 
     protected $casts = [
         'score' => 'integer',
+        'views' => 'integer',
         'is_verified' => 'boolean',
         'has_video' => 'boolean',
         'request_verification' => 'boolean',
@@ -49,6 +52,7 @@ final class Listing extends Model
         'submitted_at' => 'datetime',
         'published_at' => 'datetime',
         'expired_at' => 'datetime',
+        'package_expires_at' => 'datetime',
     ];
 
     // ==================== Relationships ====================

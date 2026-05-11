@@ -88,4 +88,7 @@ sudo /usr/bin/supervisorctl restart reverb
 echo "12. Restart Queue Workers..."
 sudo /usr/bin/supervisorctl restart propify-worker:*
 
+echo "13. Restart Scheduler..."
+sudo /usr/bin/supervisorctl restart propify-scheduler
+
 echo "DEPLOY HOÀN TẤT TUYỆT ĐỐI !!!"

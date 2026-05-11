@@ -22,6 +22,10 @@
             <p class="mt-1 text-sm text-slate-500">
               <svg xmlns="http://www.w3.org/2000/svg" class="mr-1 inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
               Ngày đăng: {{ formatDate(listing.submitted_at) }}
+              <span v-if="listing.views != null" class="ml-3 inline-flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                {{ listing.views }} lượt xem
+              </span>
             </p>
           </div>
           <div class="flex shrink-0 items-center gap-2">
@@ -225,7 +229,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import listingService from '@/services/listingService';
 import AppointmentBookingPopup from '@/components/AppointmentBookingPopup.vue';
@@ -366,7 +370,45 @@ async function loadListing() {
       // Give the DOM extra time to paint the map container
       setTimeout(() => initMap(), 200);
     }
+
+    // ── View Tracking: 5s delay + visibility check + preload protection ──
+    if (listing.value?.id && listing.value?.status === 'ACTIVE') {
+      scheduleViewTracking(listing.value.id);
+    }
   }
+}
+
+/**
+ * Schedule view tracking sau 5 giây.
+ * Protection:
+ *   - Chỉ track khi tab đang visible (chống preload/prefetch)
+ *   - Chỉ track 1 lần per page load
+ *   - Silent fail — không ảnh hưởng UX
+ */
+function scheduleViewTracking(listingId) {
+  // Chỉ track khi tab đang active (chống browser preload/prefetch)
+  if (document.visibilityState !== 'visible') {
+    // Đợi tab visible rồi mới bắt đầu đếm 5s
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        document.removeEventListener('visibilitychange', onVisible);
+        startViewTimer(listingId);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return;
+  }
+
+  startViewTimer(listingId);
+}
+
+function startViewTimer(listingId) {
+  viewTrackTimer = setTimeout(() => {
+    // Double-check visibility khi timer fire (user có thể đã chuyển tab)
+    if (document.visibilityState === 'visible') {
+      listingService.trackView(listingId);
+    }
+  }, 5000);
 }
 
 function initMap() {
@@ -393,8 +435,18 @@ function initMap() {
   }).addTo(map);
 }
 
+let viewTrackTimer = null;
+
 onMounted(() => {
   loadListing();
+});
+
+onUnmounted(() => {
+  // Cleanup timer khi rời trang
+  if (viewTrackTimer) {
+    clearTimeout(viewTrackTimer);
+    viewTrackTimer = null;
+  }
 });
 </script>
 

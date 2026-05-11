@@ -54,6 +54,12 @@ final class Package extends Model
         return $this->hasMany(Listing::class, 'package_id');
     }
 
+    /** Các option thời hạn + giá */
+    public function pricings(): HasMany
+    {
+        return $this->hasMany(PackagePricing::class, 'package_id');
+    }
+
     /** Danh sách giao dịch của gói này */
     public function transactions(): HasMany
     {

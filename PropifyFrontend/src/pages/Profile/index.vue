@@ -373,7 +373,7 @@
                 <td class="px-3 py-4 whitespace-nowrap">
                   <div class="flex items-center justify-center gap-1.5 text-slate-500">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                    <span class="font-medium text-sm">{{ item.views || 1000 }}</span>
+                    <span class="font-medium text-sm">{{ item.views ?? 0 }}</span>
                   </div>
                 </td>
                 <td class="px-3 py-4 whitespace-nowrap">
@@ -820,7 +820,7 @@ function normalizeListings(items) {
       price: formatCurrency(item?.property?.price),
       status: item.status,
       package: item.package || null,
-      views: item.view_count || 0,
+      views: item.views ?? 0,
     };
   });
 }

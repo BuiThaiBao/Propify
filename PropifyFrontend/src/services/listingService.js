@@ -152,10 +152,12 @@ const listingService = {
    * Nâng cấp gói tin cho listing.
    * @param {number} listingId
    * @param {number} packageId
+   * @param {number} durationDays - 3, 7, 10, 15, 30
    */
-  upgradeListing(listingId, packageId) {
+  upgradeListing(listingId, packageId, durationDays) {
     return api.post(`/v1/listings/${listingId}/upgrade`, {
       package_id: packageId,
+      duration_days: durationDays,
     });
   },
 
@@ -168,6 +170,43 @@ const listingService = {
     return api.post(`/v1/appointment-slots/create`, {
       listing_id: listingId,
       slots: slots,
+    });
+  },
+
+  /**
+   * Track a view for a listing.
+   * Sử dụng sendBeacon (reliable, non-blocking) với fetch fallback.
+   *
+   * @param {number} id - Listing ID
+   */
+  trackView(id) {
+    const url = `${api.defaults.baseURL}/v1/listings/${id}/view`;
+    const token = localStorage.getItem("access_token");
+
+    // Payload cho sendBeacon
+    const headers = { "Content-Type": "application/json" };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    // sendBeacon: reliable cho analytics, không bị cancel khi user rời trang
+    if (navigator.sendBeacon) {
+      const blob = new Blob([JSON.stringify({})], { type: "application/json" });
+      const sent = navigator.sendBeacon(url, blob);
+      if (sent) return;
+    }
+
+    // Fallback: fetch fire-and-forget
+    const fetchHeaders = { "Content-Type": "application/json" };
+    if (token) fetchHeaders["Authorization"] = `Bearer ${token}`;
+
+    fetch(url, {
+      method: "POST",
+      headers: fetchHeaders,
+      body: JSON.stringify({}),
+      keepalive: true,
+    }).catch(() => {
+      // Silent fail — view tracking should never break UX
     });
   },
 
