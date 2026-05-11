@@ -1,9 +1,19 @@
 #!/bin/bash
 
+LOCK_FILE="/tmp/propify-deploy.lock"
+
+if [ -f "$LOCK_FILE" ]; then
+    echo "Deploy already running"
+    exit 1
+fi
+
+trap "rm -f $LOCK_FILE" EXIT
+
+touch $LOCK_FILE
 
 set -e
 set -x
-
+trap 'echo "ERROR at line $LINENO"' ERR
 export PATH=/usr/local/bin:/usr/bin:/bin
 export NODE_ENV=production
 
