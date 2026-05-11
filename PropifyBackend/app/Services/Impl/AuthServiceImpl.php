@@ -51,6 +51,12 @@ final class AuthServiceImpl implements AuthService
             Log::warning('Login attempt by non-active user', ['user_id' => $user->id, 'status' => $user->status?->value]);
             throw new BusinessException(ErrorCode::AuthNotVerified);
         }
+ 
+        if ($user->role === UserRole::Admin) {
+            $guard->logout();
+            Log::warning('Admin user attempted to login on client site', ['user_id' => $user->id]);
+            throw new BusinessException(ErrorCode::AuthAdminNotAllowed);
+        }
 
         Log::info('User logged in', ['user_id' => $user->id]);
 
@@ -121,6 +127,11 @@ final class AuthServiceImpl implements AuthService
 
         Log::info('User OTP verified, account activated', ['user_id' => $user->id]);
         UserRegistered::dispatch($user);
+ 
+        if ($user->role === UserRole::Admin) {
+            Log::warning('Admin user attempted to verify OTP on client site', ['user_id' => $user->id]);
+            throw new BusinessException(ErrorCode::AuthAdminNotAllowed);
+        }
 
         /** @var \Tymon\JWTAuth\JWTGuard $guard */
         $guard = $this->authFactory->guard('api');
