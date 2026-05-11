@@ -28,6 +28,11 @@ interface AppointmentSlotService
     public function createSlots(CreateSlotsDto $dto): Collection;
 
     /**
+     * Thay thế toàn bộ khung giờ hẹn hiện tại của listing bằng danh sách mới.
+     */
+    public function replaceSlots(CreateSlotsDto $dto): Collection;
+
+    /**
      * Cập nhật khung giờ hẹn (day_of_week, start_time, end_time).
      * Tự động hủy các booking PENDING và ghi chú thay đổi.
      */

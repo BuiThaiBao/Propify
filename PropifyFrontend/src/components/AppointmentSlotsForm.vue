@@ -14,48 +14,66 @@
     </button>
 
     <div v-if="isOpen" class="mt-4 space-y-4">
-
-
-      <!-- Rows: one day per row, multiple time slots horizontally -->
+      <!-- Rows: one time slot per row, multiple days can be selected -->
       <div class="space-y-4">
         <div
           v-for="(row, rowIndex) in appointmentRows"
           :key="rowIndex"
           class="rounded border border-slate-200 bg-slate-50 p-3"
         >
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-4">
-            <div class="sm:w-48">
-              <label class="text-xs font-semibold text-slate-700">Chọn thứ <span class="text-red-500">*</span></label>
-              <select
-                v-model.number="row.day_of_week"
-                @change="onDayChange(rowIndex)"
-                class="mt-2 w-full px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition-colors"
-              >
-                <option value="">-- Chọn thứ --</option>
-                <option v-for="day in getAvailableDays(rowIndex)" :key="day.value" :value="day.value">{{ day.label }}</option>
-              </select>
-            </div>
+          <div class="flex flex-col gap-4">
+            <!-- Day Selection + Time Input (same row) -->
+            <div class="flex items-end gap-3">
+              <!-- Day Selection - Multi-select Dropdown -->
+              <div class="relative w-56">
+                <label class="text-xs font-semibold text-slate-700">Chọn thứ <span class="text-red-500">*</span></label>
+                <button
+                  type="button"
+                  @click="dropdownOpenIndex = dropdownOpenIndex === rowIndex ? -1 : rowIndex"
+                  @blur="dropdownOpenIndex = -1"
+                  class="input mt-2 w-full text-left flex items-center justify-between"
+                >
+                  <span v-if="(row.selected_days || []).length === 0" class="text-slate-400 text-sm">Chọn thứ</span>
+                  <span v-else class="text-slate-900 text-sm">{{ getSelectedDaysLabel(row.selected_days || []) }}</span>
+                  <span class="text-slate-500">▾</span>
+                </button>
+                
+                <div
+                  v-if="dropdownOpenIndex === rowIndex"
+                  class="day-dropdown absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-10"
+                  @mousedown.prevent
+                >
+                  <label v-for="day in dayOfWeekOptions" :key="day.value" class="day-option">
+                    <span>{{ day.label }}</span>
+                    <input
+                      type="checkbox"
+                      :checked="(row.selected_days || []).includes(day.value)"
+                      @change="(e) => toggleDay(rowIndex, day.value, e.target.checked)"
+                    />
+                  </label>
+                </div>
 
-            <div class="flex-1">
-              <label class="text-xs font-semibold text-slate-700">Khung giờ</label>
-              <div class="mt-2 flex flex-col gap-2">
-                <div v-for="(t, tIndex) in row.times" :key="tIndex" class="flex items-center gap-2">
-                  <input v-model="t.start_time" type="time" @change="validateAll" class="w-36 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent" />
+                <p v-if="touchedRows[rowIndex] && (row.selected_days || []).length === 0" class="field-error mt-1 text-xs">Chọn thứ</p>
+              </div>
+
+              <!-- Time Input -->
+              <div class="flex-1">
+                <label class="text-xs font-semibold text-slate-700">Khung giờ</label>
+                <div class="mt-2 flex items-center gap-2">
+                  <input v-model="row.start_time" type="time" @change="syncTimeFields(rowIndex); validateAll()" class="w-32 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent" />
                   <span class="text-sm text-slate-500">–</span>
-                  <input v-model="t.end_time" type="time" @change="validateAll" class="w-36 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent" />
-                  <button type="button" class="ml-2 h-8 w-8 rounded-full border border-red-300 bg-red-50 text-red-600 flex items-center justify-center" @click="removeTime(rowIndex, tIndex)">✕</button>
+                  <input v-model="row.end_time" type="time" @change="syncTimeFields(rowIndex); validateAll()" class="w-32 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent" />
                 </div>
               </div>
-            </div>
 
-            <div class="flex items-start">
+              <!-- Delete Button -->
               <button
                 type="button"
-                class="ml-auto inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1 text-sm hover:bg-slate-100"
-                @click="addTime(rowIndex)"
+                class="h-9 w-9 rounded-full border border-red-300 bg-red-50 text-red-600 flex items-center justify-center hover:bg-red-100 flex-shrink-0"
+                @click="removeRow(rowIndex)"
+                title="Xóa khung giờ này"
               >
-                <span class="text-lg leading-none">＋</span>
-                <span>Thêm giờ</span>
+                ✕
               </button>
             </div>
           </div>
@@ -67,7 +85,7 @@
       <div class="mt-2">
         <button
           type="button"
-          class="w-full rounded border-2 border-dashed border-slate-300 bg-slate-50 py-2.5 text-sm font-medium text-slate-600"
+          class="w-full rounded border-2 border-dashed border-slate-300 bg-slate-50 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
           @click="addRow"
         >
           + Thêm khung giờ khác
@@ -77,101 +95,230 @@
   </section>
 </template>
 
+<style scoped>
+.day-dropdown {
+  display: flex;
+  flex-direction: column;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.day-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.day-option:hover {
+  background-color: #f1f5f9;
+}
+
+.day-option input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.input {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  ring: 2px;
+  border-color: transparent;
+}
+
+.field-error {
+  font-size: 0.875rem;
+  color: #dc2626;
+}
+</style>
+
 <script setup>
 import { ref, computed } from 'vue';
 
 const isOpen = ref(true);
+const dropdownOpenIndex = ref(-1);
 const appointmentRows = ref([
-  { day_of_week: '', times: [{ start_time: '08:00', end_time: '09:00' }] },
+  { start_time: '08:00', end_time: '09:00', selected_days: [] },
 ]);
 
+const touchedRows = ref([false]);
 const duplicateError = ref('');
 
 const dayOfWeekOptions = [
-  { label: 'Thứ 2 (T2)', value: 1 },
-  { label: 'Thứ 3 (T3)', value: 2 },
-  { label: 'Thứ 4 (T4)', value: 3 },
-  { label: 'Thứ 5 (T5)', value: 4 },
-  { label: 'Thứ 6 (T6)', value: 5 },
-  { label: 'Thứ 7 (T7)', value: 6 },
-  { label: 'Chủ nhật (CN)', value: 7 },
+  { label: 'Thứ 2', value: 1 },
+  { label: 'Thứ 3', value: 2 },
+  { label: 'Thứ 4', value: 3 },
+  { label: 'Thứ 5', value: 4 },
+  { label: 'Thứ 6', value: 5 },
+  { label: 'Thứ 7', value: 6 },
+  { label: 'CN', value: 7 },
 ];
-
-const usedDays = computed(() => appointmentRows.value.map((r) => r.day_of_week).filter(Boolean));
 
 const getDayLabel = (dayOfWeek) => dayOfWeekOptions.find((d) => d.value === dayOfWeek)?.label || 'N/A';
 
-const getAvailableDays = (rowIndex) => {
-  const used = usedDays.value.slice();
-  const current = appointmentRows.value[rowIndex]?.day_of_week;
-  if (current) {
-    const idx = used.indexOf(current);
-    if (idx !== -1) used.splice(idx, 1);
-  }
-  return dayOfWeekOptions.filter((d) => !used.includes(d.value));
+const formatTimeForDisplay = (value) => {
+  if (!value) return '';
+
+  const match = String(value).trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return String(value).trim();
+
+  const hours24 = Number(match[1]);
+  const minutes = match[2];
+  const suffix = hours24 >= 12 ? 'PM' : 'AM';
+  const hours12 = hours24 % 12 || 12;
+
+  return `${String(hours12).padStart(2, '0')}:${minutes} ${suffix}`;
+};
+
+const normalizeTimeValue = (value) => {
+  if (!value) return '';
+  const text = String(value).trim();
+  const match = text.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return text;
+  const hours = String(Number(match[1])).padStart(2, '0');
+  return `${hours}:${match[2]}`;
+};
+
+const syncTimeFields = (rowIndex) => {
+  const row = appointmentRows.value[rowIndex];
+  if (!row) return;
+  row.start_time = normalizeTimeValue(row.start_time);
+  row.end_time = normalizeTimeValue(row.end_time);
+};
+
+const getSelectedDaysLabel = (selectedDays) => {
+  if (selectedDays.length === 0) return '';
+  if (selectedDays.length === dayOfWeekOptions.length) return 'Tất cả các thứ';
+  return selectedDays.map(d => getDayLabel(d)).join(', ');
 };
 
 const addRow = () => {
-  appointmentRows.value.push({ day_of_week: '', times: [{ start_time: '08:00', end_time: '09:00' }] });
+  appointmentRows.value.push({ start_time: '08:00', end_time: '09:00', selected_days: [] });
+  touchedRows.value.push(false);
 };
 
 const removeRow = (index) => {
   appointmentRows.value.splice(index, 1);
+  touchedRows.value.splice(index, 1);
   validateAll();
 };
 
-const addTime = (rowIndex) => {
-  appointmentRows.value[rowIndex].times.push({ start_time: '08:00', end_time: '09:00' });
-};
-
-const removeTime = (rowIndex, timeIndex) => {
-  appointmentRows.value[rowIndex].times.splice(timeIndex, 1);
-  validateAll();
-};
-
-const onDayChange = (rowIndex) => {
-  duplicateError.value = '';
-  const selected = appointmentRows.value[rowIndex].day_of_week;
-  for (let i = 0; i < appointmentRows.value.length; i++) {
-    if (i !== rowIndex && appointmentRows.value[i].day_of_week === selected && selected) {
-      duplicateError.value = 'Thứ đã được chọn ở hàng khác.';
-      appointmentRows.value[rowIndex].day_of_week = '';
-      return;
+const toggleDay = (rowIndex, dayValue, isChecked) => {
+  touchedRows.value[rowIndex] = true;
+  const row = appointmentRows.value[rowIndex];
+  if (!row.selected_days) {
+    row.selected_days = [];
+  }
+  
+  if (isChecked) {
+    if (!row.selected_days.includes(dayValue)) {
+      row.selected_days.push(dayValue);
+      row.selected_days.sort((a, b) => a - b); // Keep sorted
+    }
+  } else {
+    const idx = row.selected_days.indexOf(dayValue);
+    if (idx !== -1) {
+      row.selected_days.splice(idx, 1);
     }
   }
+  duplicateError.value = '';
 };
 
 const validateAll = () => {
   duplicateError.value = '';
+  
+  // Mark all rows as touched
+  for (let i = 0; i < appointmentRows.value.length; i++) {
+    touchedRows.value[i] = true;
+  }
+  
+  const hasTimeOverlap = (startA, endA, startB, endB) => {
+    return startA < endB && endA > startB;
+  };
+
+  // Check each row
   for (let r = 0; r < appointmentRows.value.length; r++) {
     const row = appointmentRows.value[r];
-    for (let t = 0; t < row.times.length; t++) {
-      const cur = row.times[t];
-      if (!cur.start_time || !cur.end_time) continue;
-      if (cur.start_time >= cur.end_time) {
-        duplicateError.value = `Giờ kết thúc phải sau giờ bắt đầu (hàng ${r + 1}).`;
-        return false;
-      }
-      for (let u = 0; u < row.times.length; u++) {
-        if (u === t) continue;
-        const o = row.times[u];
-        if (!o.start_time || !o.end_time) continue;
-        if (cur.start_time < o.end_time && cur.end_time > o.start_time) {
-          duplicateError.value = `Khung giờ trùng trong cùng một thứ (hàng ${r + 1}).`;
+    const startTime = normalizeTimeValue(row.start_time);
+    const endTime = normalizeTimeValue(row.end_time);
+    row.start_time = startTime;
+    row.end_time = endTime;
+    
+    // Must select at least 1 day
+    if ((row.selected_days || []).length === 0) {
+      duplicateError.value = 'Vui lòng điền đủ thông tin cần thiết';
+      return false;
+    }
+    
+    // Validate time
+    if (!startTime || !endTime) {
+      duplicateError.value = 'Vui lòng điền đủ thông tin cần thiết';
+      return false;
+    }
+    
+    if (startTime >= endTime) {
+      duplicateError.value = 'Vui lòng điền đủ thông tin cần thiết';
+      return false;
+    }
+    
+    // Check for time overlaps on shared days across rows
+    for (let u = r + 1; u < appointmentRows.value.length; u++) {
+      const other = appointmentRows.value[u];
+      const otherStartTime = normalizeTimeValue(other.start_time);
+      const otherEndTime = normalizeTimeValue(other.end_time);
+      
+      // Find common days
+      const commonDays = (row.selected_days || []).filter((d) => (other.selected_days || []).includes(d));
+      
+      if (commonDays.length > 0) {
+        // Check if times overlap
+        if (hasTimeOverlap(startTime, endTime, otherStartTime, otherEndTime)) {
+          const commonDaysStr = commonDays.map(d => getDayLabel(d)).join(', ');
+          const displayStart = formatTimeForDisplay(startTime);
+          const displayEnd = formatTimeForDisplay(endTime);
+          const displayOtherStart = formatTimeForDisplay(otherStartTime);
+          const displayOtherEnd = formatTimeForDisplay(otherEndTime);
+
+          if (startTime === otherStartTime && endTime === otherEndTime) {
+            duplicateError.value = `Khung giờ ${displayStart} - ${displayEnd} bị trùng ở ${commonDaysStr}.`;
+          } else {
+            duplicateError.value = `Khung giờ ${displayStart} - ${displayEnd} bị trùng với ${displayOtherStart} - ${displayOtherEnd} ở ${commonDaysStr}.`;
+          }
           return false;
         }
       }
     }
   }
+  
   return true;
 };
 
 const getFormData = () => {
   const out = [];
   appointmentRows.value.forEach((row) => {
-    if (!row.day_of_week) return;
-    row.times.forEach((t) => {
-      if (t.start_time && t.end_time) out.push({ day_of_week: row.day_of_week, start_time: t.start_time, end_time: t.end_time });
+    const startTime = normalizeTimeValue(row.start_time);
+    const endTime = normalizeTimeValue(row.end_time);
+    if (!startTime || !endTime || (row.selected_days || []).length === 0) return;
+    
+    // Create an entry for each selected day
+    (row.selected_days || []).forEach((day) => {
+      out.push({
+        day_of_week: day,
+        start_time: startTime,
+        end_time: endTime,
+      });
     });
   });
   return out;
@@ -179,6 +326,14 @@ const getFormData = () => {
 
 const isValid = computed(() => !duplicateError.value && getFormData().length > 0);
 
-defineExpose({ getFormData, isValid, validateAll, appointmentRows, isOpen });
+const resetForm = () => {
+  appointmentRows.value = [
+    { start_time: '08:00', end_time: '09:00', selected_days: [] },
+  ];
+  touchedRows.value = [false];
+  duplicateError.value = '';
+};
+
+defineExpose({ getFormData, isValid, validateAll, appointmentRows, isOpen, resetForm, duplicateError });
 
 </script>
