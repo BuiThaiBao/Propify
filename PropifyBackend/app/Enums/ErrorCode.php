@@ -17,8 +17,8 @@ enum ErrorCode: int
     case AuthOtpExpired = 1008;  // OTP hết hạn (Redis TTL)
     case AuthNotVerified = 1009;  // Tài khoản chưa xác thực OTP
     case AuthPasswordIncorrect = 1010;
-
     case AuthPhoneNotVerified = 1011;
+    case AuthAdminNotAllowed = 1012;
 
 
     // ==================== Validation (2xxx) ====================
@@ -88,6 +88,7 @@ enum ErrorCode: int
             self::AuthPasswordIncorrect => 'Mật khẩu hiện tại không đúng',
             self::ValidationError => 'Dữ liệu không hợp lệ',
             self::AuthPhoneNotVerified => 'Bạn cần cập nhật số điện thoại trước khi đăng tin',
+            self::AuthAdminNotAllowed => 'Tài khoản quản trị không được phép đăng nhập tại đây',
             self::UserNotFound => 'Không tìm thấy người dùng',
             self::UserAlreadyExists => 'Người dùng đã tồn tại',
             self::UserBanned => 'Tài khoản đã bị khóa',
@@ -139,7 +140,8 @@ enum ErrorCode: int
             self::AuthPasswordIncorrect,
             self::AuthPhoneNotVerified => Response::HTTP_UNPROCESSABLE_ENTITY,
 
-            self::AuthForbidden => Response::HTTP_FORBIDDEN,
+            self::AuthForbidden,
+            self::AuthAdminNotAllowed => Response::HTTP_FORBIDDEN,
 
             self::ValidationError => Response::HTTP_UNPROCESSABLE_ENTITY,
 

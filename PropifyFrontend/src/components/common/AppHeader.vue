@@ -337,7 +337,17 @@ function handleClickOutside(e) {
   }
 }
 
-onMounted(() => document.addEventListener("click", handleClickOutside));
+onMounted(() => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("error") === "admin_not_allowed") {
+    // Xóa query param để không hiện lại khi reload
+    router.replace({ query: {} });
+    setTimeout(() => {
+      alert("Tài khoản quản trị không được phép đăng nhập tại đây.");
+    }, 500);
+  }
+  document.addEventListener("click", handleClickOutside);
+});
 onUnmounted(() => document.removeEventListener("click", handleClickOutside));
 </script>
 

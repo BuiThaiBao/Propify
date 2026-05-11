@@ -34,7 +34,12 @@ export const useAuthStore = defineStore("auth", () => {
     const cachedUser = sessionStorage.getItem('auth_user');
     if (cachedUser) {
       try {
-        user.value = JSON.parse(cachedUser);
+        const parsedUser = JSON.parse(cachedUser);
+        if (parsedUser.role === 'ADMIN') {
+          clearAuth();
+          return;
+        }
+        user.value = parsedUser;
         return; // Cache hit — không cần gọi API
       } catch {
         sessionStorage.removeItem('auth_user');
@@ -71,6 +76,11 @@ export const useAuthStore = defineStore("auth", () => {
 
       return { success: true };
     } catch (error) {
+      const code = error.response?.data?.code;
+      if (code === 1012 || error.message === "ADMIN_NOT_ALLOWED") {
+        clearAuth();
+        return { success: false, message: "Tài khoản quản trị không được phép đăng nhập tại đây." };
+      }
       const message = error.response?.data?.message || "Đăng nhập thất bại";
       return { success: false, message };
     } finally {
@@ -136,6 +146,11 @@ export const useAuthStore = defineStore("auth", () => {
 
       return { success: true };
     } catch (error) {
+      const code = error.response?.data?.code;
+      if (code === 1012 || error.message === "ADMIN_NOT_ALLOWED") {
+        clearAuth();
+        return { success: false, message: "Tài khoản quản trị không được phép đăng nhập tại đây." };
+      }
       const message = error.response?.data?.message || "Mã OTP không hợp lệ";
       return { success: false, message };
     } finally {
@@ -148,7 +163,14 @@ export const useAuthStore = defineStore("auth", () => {
    */
   async function fetchUser() {
     const res = await authService.getMe();
-    user.value = res.data.data;
+    const userData = res.data.data;
+
+    // Chặn ADMIN đăng nhập ở client site
+    if (userData.role === 'ADMIN') {
+      throw new Error("ADMIN_NOT_ALLOWED");
+    }
+
+    user.value = userData;
     // Lưu vào sessionStorage để tránh gọi /me lần sau khi chuyển route
     sessionStorage.setItem('auth_user', JSON.stringify(user.value));
   }
