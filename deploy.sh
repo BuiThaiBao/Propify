@@ -19,7 +19,8 @@ export NODE_ENV=production
 
 APP_DIR="/var/www/Propify"
 LOG_FILE="/var/www/Propify/deploy.log"
-exec > >(tee -a "$LOG_FILE") 2>&1
+> "$LOG_FILE"
+exec >> "$LOG_FILE" 2>&1
 
 echo "========== DEPLOY START $(date) =========="
 
