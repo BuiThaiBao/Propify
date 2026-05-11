@@ -101,6 +101,12 @@ final class AppServiceProvider extends ServiceProvider
         // ── Package bindings ──────────────────────────────────────────────
         $this->app->bind(PackageRepository::class, EloquentPackageRepository::class);
         $this->app->bind(PackageService::class, PackageServiceImpl::class);
+
+        // ── View Tracking bindings ────────────────────────────────────────
+        $this->app->bind(
+            \App\Services\ViewTracking\ViewTrackingService::class,
+            \App\Services\ViewTracking\Impl\ViewTrackingServiceImpl::class,
+        );
     }
 
     /**

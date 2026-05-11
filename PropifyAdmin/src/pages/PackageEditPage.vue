@@ -160,6 +160,76 @@
         </Button>
       </div>
     </form>
+
+    <!-- ═══════════════ Pricing Management ═══════════════ -->
+    <Card v-if="packageLoaded" class="mt-6">
+      <CardHeader>Bảng giá theo thời hạn</CardHeader>
+      <CardBody>
+        <p class="text-sm text-gray-500 mb-4">Thiết lập giá cho từng thời hạn sử dụng gói. Người dùng sẽ chọn thời hạn khi nâng cấp tin đăng.</p>
+
+        <!-- Existing Pricings Table -->
+        <div v-if="pricings.length" class="overflow-x-auto mb-6">
+          <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left font-semibold text-gray-600">Thời hạn</th>
+                <th class="px-4 py-3 text-left font-semibold text-gray-600">Nhãn hiển thị</th>
+                <th class="px-4 py-3 text-right font-semibold text-gray-600">Giá (VNĐ)</th>
+                <th class="px-4 py-3 text-center font-semibold text-gray-600">Trạng thái</th>
+                <th class="px-4 py-3 text-center font-semibold text-gray-600">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="p in pricings" :key="p.id" class="hover:bg-gray-50">
+                <td class="px-4 py-3 font-medium">{{ p.duration_days }} ngày</td>
+                <td class="px-4 py-3">{{ p.label }}</td>
+                <td class="px-4 py-3 text-right font-semibold text-blue-600">{{ Number(p.price).toLocaleString('vi-VN') }}đ</td>
+                <td class="px-4 py-3 text-center">
+                  <span :class="p.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'" class="px-2 py-1 rounded-full text-xs font-medium">
+                    {{ p.is_active ? 'Hoạt động' : 'Tắt' }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 text-center">
+                  <button @click="togglePricingActive(p)" class="text-xs px-2 py-1 rounded hover:bg-gray-100 mr-1" :title="p.is_active ? 'Tắt' : 'Bật'">
+                    {{ p.is_active ? '🔇 Tắt' : '🔔 Bật' }}
+                  </button>
+                  <button @click="removePricing(p)" class="text-xs px-2 py-1 rounded hover:bg-red-50 text-red-600">🗑 Xóa</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-else class="text-center py-6 text-gray-400 text-sm">
+          Chưa có bảng giá nào. Thêm bên dưới.
+        </div>
+
+        <!-- Add Pricing Form -->
+        <div class="border-t border-gray-200 pt-4">
+          <h4 class="text-sm font-semibold text-gray-700 mb-3">Thêm mức giá mới</h4>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Số ngày</label>
+              <select v-model.number="newPricing.duration_days" class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:ring-blue-500 focus:border-blue-500 px-3 py-2">
+                <option :value="0" disabled>Chọn...</option>
+                <option v-for="d in availableDurations" :key="d" :value="d">{{ d }} ngày</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Nhãn</label>
+              <input v-model="newPricing.label" type="text" placeholder="VD: 1 tuần" class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:ring-blue-500 focus:border-blue-500 px-3 py-2" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Giá (VNĐ)</label>
+              <input v-model.number="newPricing.price" type="number" min="0" placeholder="50000" class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:ring-blue-500 focus:border-blue-500 px-3 py-2" />
+            </div>
+            <Button variant="primary" size="sm" @click="addPricing" :loading="pricingLoading">
+              + Thêm
+            </Button>
+          </div>
+          <p v-if="pricingError" class="mt-2 text-xs text-red-600">{{ pricingError }}</p>
+        </div>
+      </CardBody>
+    </Card>
   </div>
 </template>
 
@@ -178,11 +248,29 @@ const router = useRouter()
 const route = useRoute()
 const packageId = route.params.id
 
-const { fetchPackage, updatePackage, loading, error: apiError } = usePackageApi()
+const { fetchPackage, updatePackage, fetchPricings, createPricing, updatePricing: updatePricingApi, deletePricing: deletePricingApi, loading, error: apiError } = usePackageApi()
 
 const success = ref(false)
 const fetchError = ref('')
 const packageLoaded = ref(false)
+
+// ── Pricing state ──────────────────────────────────────────────────────
+const pricings = ref([])
+const pricingLoading = ref(false)
+const pricingError = ref('')
+const ALL_DURATIONS = [3, 7, 10, 15, 30]
+
+const newPricing = reactive({
+  duration_days: 0,
+  label: '',
+  price: 0,
+})
+
+import { computed } from 'vue'
+const availableDurations = computed(() => {
+  const used = pricings.value.map(p => p.duration_days)
+  return ALL_DURATIONS.filter(d => !used.includes(d))
+})
 
 const form = reactive({
   name: '',
@@ -217,7 +305,62 @@ onMounted(async () => {
   } catch (e) {
     fetchError.value = e.response?.data?.message || 'Không thể lấy thông tin gói tin'
   }
+
+  // Load pricings
+  await loadPricings()
 })
+
+async function loadPricings() {
+  try {
+    const res = await fetchPricings(packageId)
+    pricings.value = res?.data || []
+  } catch (e) {
+    console.error('Failed to load pricings', e)
+  }
+}
+
+async function addPricing() {
+  pricingError.value = ''
+  if (!newPricing.duration_days) { pricingError.value = 'Chọn số ngày'; return }
+  if (!newPricing.label) { pricingError.value = 'Nhập nhãn hiển thị'; return }
+  if (newPricing.price <= 0) { pricingError.value = 'Giá phải lớn hơn 0'; return }
+
+  pricingLoading.value = true
+  try {
+    await createPricing(packageId, {
+      duration_days: newPricing.duration_days,
+      label: newPricing.label,
+      price: newPricing.price,
+    })
+    newPricing.duration_days = 0
+    newPricing.label = ''
+    newPricing.price = 0
+    await loadPricings()
+  } catch (e) {
+    pricingError.value = e.response?.data?.message || 'Lỗi khi thêm'
+  } finally {
+    pricingLoading.value = false
+  }
+}
+
+async function togglePricingActive(p) {
+  try {
+    await updatePricingApi(packageId, p.id, { is_active: !p.is_active })
+    await loadPricings()
+  } catch (e) {
+    pricingError.value = e.response?.data?.message || 'Lỗi'
+  }
+}
+
+async function removePricing(p) {
+  if (!confirm(`Xóa pricing ${p.label}?`)) return
+  try {
+    await deletePricingApi(packageId, p.id)
+    await loadPricings()
+  } catch (e) {
+    pricingError.value = e.response?.data?.message || 'Lỗi'
+  }
+}
 
 const validate = () => {
   let isValid = true

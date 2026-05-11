@@ -30,6 +30,7 @@
               :class="[
                 'package-card',
                 { 'package-card--current': isCurrent(pkg) },
+                { 'package-card--selected': selectedPkg?.id === pkg.id },
                 { 'package-card--gold': pkg.slug === 'gold' },
                 { 'package-card--silver': pkg.slug === 'silver' },
                 { 'package-card--basic': pkg.slug === 'basic' },
@@ -42,15 +43,6 @@
 
               <!-- Name -->
               <h3 class="package-name">{{ pkg.name }}</h3>
-
-              <!-- Price -->
-              <div class="package-price">
-                <template v-if="pkg.price > 0">
-                  <span class="price-value">{{ formatPrice(pkg.price) }}</span>
-                  <span class="price-unit">VNĐ</span>
-                </template>
-                <span v-else class="price-free">Miễn phí</span>
-              </div>
 
               <!-- Features -->
               <ul class="package-features">
@@ -66,28 +58,39 @@
                   <span class="feature-icon">👁️</span>
                   Lượt hiển thị/ngày: <strong>{{ pkg.daily_quota }}</strong>
                 </li>
-                <li>
-                  <span class="feature-icon">⏱️</span>
-                  Tốc độ tụt hạng: <strong>{{ pkg.decay_rate }}</strong>
-                </li>
               </ul>
+
+              <!-- Duration picker (shown when package has pricings) -->
+              <div v-if="pkg.pricings?.length" class="duration-picker">
+                <label class="duration-label">Chọn thời hạn:</label>
+                <div class="duration-options">
+                  <button
+                    v-for="pricing in pkg.pricings"
+                    :key="pricing.id"
+                    :class="['duration-btn', { 'duration-btn--active': selectedPricing?.id === pricing.id && selectedPkg?.id === pkg.id }]"
+                    @click="selectPricing(pkg, pricing)"
+                  >
+                    <span class="duration-days">{{ pricing.label }}</span>
+                    <span class="duration-price">{{ formatPrice(pricing.price) }}đ</span>
+                  </button>
+                </div>
+              </div>
+              <div v-else class="no-pricing">
+                Chưa có bảng giá
+              </div>
 
               <!-- Action -->
               <button
-                v-if="isCurrent(pkg)"
-                class="package-btn package-btn--current"
-                disabled
-              >
-                ✓ Gói hiện tại
-              </button>
-              <button
-                v-else-if="canUpgrade(pkg)"
-                class="package-btn package-btn--upgrade"
-                :disabled="upgrading"
+                v-if="canUpgrade(pkg) || isCurrent(pkg)"
+                :class="['package-btn', selectedPkg?.id === pkg.id && selectedPricing ? 'package-btn--upgrade' : 'package-btn--disabled']"
+                :disabled="upgrading || !(selectedPkg?.id === pkg.id && selectedPricing)"
                 @click="doUpgrade(pkg)"
               >
                 <template v-if="upgrading && upgradingPkgId === pkg.id">
                   <div class="btn-spinner"></div> Đang xử lý...
+                </template>
+                <template v-else-if="isCurrent(pkg)">
+                  🔄 Gia hạn {{ pkg.name }}
                 </template>
                 <template v-else>
                   Nâng cấp lên {{ pkg.name }}
@@ -106,6 +109,9 @@
           <!-- Current package info -->
           <div v-if="currentPackageName" class="current-info">
             Tin đăng đang sử dụng gói: <strong>{{ currentPackageName }}</strong>
+            <span v-if="selectedPricing" class="selected-summary">
+              → {{ selectedPkg?.name }} · {{ selectedPricing.label }} · <strong>{{ formatPrice(selectedPricing.price) }}đ</strong>
+            </span>
           </div>
         </div>
       </div>
@@ -130,6 +136,8 @@ const loading = ref(false);
 const packages = ref([]);
 const upgrading = ref(false);
 const upgradingPkgId = ref(null);
+const selectedPkg = ref(null);
+const selectedPricing = ref(null);
 
 const sortedPackages = computed(() => {
   return [...packages.value].sort((a, b) => a.priority - b.priority);
@@ -142,7 +150,11 @@ const currentPackageName = computed(() => {
 });
 
 watch(() => props.visible, async (val) => {
-  if (val) await fetchPackages();
+  if (val) {
+    selectedPkg.value = null;
+    selectedPricing.value = null;
+    await fetchPackages();
+  }
 });
 
 async function fetchPackages() {
@@ -163,7 +175,8 @@ function isCurrent(pkg) {
 
 function canUpgrade(pkg) {
   const currentPriority = getCurrentPriority();
-  return pkg.priority > currentPriority;
+  // Cho phép gia hạn cùng gói hoặc nâng cấp lên gói cao hơn
+  return pkg.priority > currentPriority || isCurrent(pkg);
 }
 
 function getCurrentPriority() {
@@ -172,11 +185,17 @@ function getCurrentPriority() {
   return current?.priority ?? 0;
 }
 
-async function doUpgrade(pkg) {
-  if (!props.listingId || upgrading.value) return;
+function selectPricing(pkg, pricing) {
+  selectedPkg.value = pkg;
+  selectedPricing.value = pricing;
+}
 
+async function doUpgrade(pkg) {
+  if (!props.listingId || upgrading.value || !selectedPricing.value) return;
+
+  const action = isCurrent(pkg) ? 'gia hạn' : 'nâng cấp lên';
   const confirmed = window.confirm(
-    `Bạn có chắc muốn nâng cấp lên gói "${pkg.name}" với giá ${formatPrice(pkg.price)} VNĐ?`
+    `Bạn có chắc muốn ${action} gói "${pkg.name}" - ${selectedPricing.value.label} với giá ${formatPrice(selectedPricing.value.price)}đ?`
   );
   if (!confirmed) return;
 
@@ -184,12 +203,12 @@ async function doUpgrade(pkg) {
   upgradingPkgId.value = pkg.id;
 
   try {
-    await listingService.upgradeListing(props.listingId, pkg.id);
-    alert('🎉 Nâng cấp gói tin thành công!');
+    await listingService.upgradeListing(props.listingId, pkg.id, selectedPricing.value.duration_days);
+    alert('🎉 ' + (isCurrent(pkg) ? 'Gia hạn' : 'Nâng cấp') + ' gói tin thành công!');
     emit('upgraded', pkg);
     close();
   } catch (err) {
-    const msg = err?.response?.data?.message || 'Nâng cấp thất bại. Vui lòng thử lại.';
+    const msg = err?.response?.data?.message || 'Thao tác thất bại. Vui lòng thử lại.';
     alert('❌ ' + msg);
   } finally {
     upgrading.value = false;
@@ -455,6 +474,81 @@ function formatPrice(value) {
   text-align: center;
   font-size: 13px;
   color: #64748b;
+}
+
+.selected-summary {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  color: #1e40af;
+}
+
+.package-card--selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.duration-picker {
+  margin-bottom: 16px;
+}
+
+.duration-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.duration-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.duration-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+}
+
+.duration-btn:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.duration-btn--active {
+  border-color: #3b82f6;
+  background: #dbeafe;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.duration-days {
+  font-weight: 600;
+  color: #334155;
+}
+
+.duration-price {
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.no-pricing {
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: #94a3b8;
+  background: #f8fafc;
+  border-radius: 10px;
+  margin-bottom: 16px;
 }
 
 /* Transition */
