@@ -3,6 +3,17 @@
     <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm px-7 py-8 relative">
 
+        <!-- Back Button -->
+        <button
+          v-if="!isSuccess"
+          @click="$emit('back')"
+          class="absolute top-4 left-4 text-gray-400 hover:text-gray-600 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+        </button>
+
         <!-- Logo -->
         <div class="flex flex-col items-center mb-6">
           <div class="flex items-center gap-2">
@@ -83,7 +94,7 @@
           </div>
 
           <!-- Error -->
-          <p v-if="errorMessage" class="text-red-500 text-xs text-center mb-3 flex items-center justify-center gap-1">
+          <p v-if="errorMessage && countdown > 0" class="text-red-500 text-xs text-center mb-3 flex items-center justify-center gap-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             {{ errorMessage }}
           </p>
@@ -99,7 +110,7 @@
           <!-- Verify button -->
           <button
             @click="handleVerify"
-            :disabled="authStore.loading || otpValue.length < 6"
+            :disabled="authStore.loading || otpValue.length < 6 || countdown <= 0"
             class="w-full hero-gradient text-white font-semibold rounded-xl py-3.5 text-sm mb-4 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-[0.98] shadow-md shadow-blue-200"
           >
             {{ authStore.loading ? 'Đang xác thực...' : 'Xác nhận' }}
@@ -109,7 +120,7 @@
           <p class="text-center text-xs text-gray-500 mt-2">
             Không nhận được mã?
             <button
-              @click="$emit('resend')"
+              @click="handleResendClick"
               class="text-blue-500 hover:underline font-medium ml-1"
               :disabled="countdown > 0"
               :class="{ 'opacity-40 cursor-not-allowed': countdown > 0 }"
@@ -132,7 +143,7 @@ const props = defineProps({
   email: { type: String, required: true },
 });
 
-const emit = defineEmits(['success', 'resend']);
+const emit = defineEmits(['success', 'resend', 'back']);
 
 const authStore = useAuthStore();
 
@@ -174,8 +185,10 @@ onMounted(() => {
 
 onUnmounted(() => clearInterval(timer));
 
-// Reset đếm ngược khi email thay đổi (resend)
-watch(() => props.email, () => startCountdown());
+function handleResendClick() {
+  emit('resend');
+  startCountdown();
+}
 
 // ── Input handlers ────────────────────────────────────────────
 function handleInput(index, event) {
@@ -225,7 +238,7 @@ function handlePaste(event) {
 
 // ── Verify ────────────────────────────────────────────────────
 async function handleVerify() {
-  if (authStore.loading || otpValue.value.length < 6) return;
+  if (authStore.loading || otpValue.value.length < 6 || countdown.value <= 0) return;
 
   errorMessage.value = '';
   const result = await authStore.verifyOtp(props.email, otpValue.value);
