@@ -492,6 +492,21 @@
                 <span class="upload-pill mt-2">Chọn tệp ảnh</span>
                 <input class="hidden" type="file" multiple accept="image/*" @change="onLegalDocumentsChange" />
               </label>
+              <div v-if="legalDocumentPreviews.length" class="mt-3">
+                <p class="text-xs font-semibold text-slate-700">Ảnh giấy tờ pháp lý ({{ legalDocumentPreviews.length }})</p>
+                <div class="preview-grid mt-2">
+                  <figure v-for="(preview, idx) in legalDocumentPreviews" :key="preview.url" class="preview-card group">
+                    <img :src="preview.url" :alt="preview.name" class="preview-image" />
+                    <button
+                      type="button"
+                      class="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600"
+                      title="Xóa ảnh"
+                      @click="removeLegalDocument(idx)"
+                    >✕</button>
+                    <figcaption class="preview-name" :title="preview.name">{{ preview.name }}</figcaption>
+                  </figure>
+                </div>
+              </div>
               <p v-if="verificationUploadError" class="field-error mt-2">{{ verificationUploadError }}</p>
             </div>
 
@@ -739,6 +754,7 @@ const locationLoadError = ref("");
 const imagePreviews = ref([]);
 const frontCardPreviewUrl = ref("");
 const backCardPreviewUrl = ref("");
+const legalDocumentPreviews = ref([]);
 const showLegalDropdown = ref(false);
 const showMoreDetail = ref(true);
 const selectedAmenities = ref([]);
@@ -970,6 +986,21 @@ async function loadListingForEdit() {
     form.rentDeposit = data.rent_deposit || '';
     selectedAmenities.value = [...(p.amenities || [])];
     publicInfoAgreed.value = Boolean(p.public_info_agreed);
+
+    const verificationDocuments = Array.isArray(data.verification_documents) ? data.verification_documents : [];
+    const idFrontDoc = verificationDocuments.find((doc) => doc.type === 'ID_FRONT');
+    const idBackDoc = verificationDocuments.find((doc) => doc.type === 'ID_BACK');
+    const legalDocs = verificationDocuments.filter((doc) => doc.type === 'LEGAL_DOCUMENT');
+
+    frontCardPreviewUrl.value = idFrontDoc?.url || '';
+    backCardPreviewUrl.value = idBackDoc?.url || '';
+    legalDocumentPreviews.value = legalDocs.map((doc, index) => ({
+      name: `Giấy tờ pháp lý ${index + 1}`,
+      url: doc.url,
+    }));
+    form.identityCardFront = idFrontDoc?.url || null;
+    form.identityCardBack = idBackDoc?.url || null;
+    form.legalDocuments = legalDocs.map((doc) => doc.url);
 
     if (data.appointment_slots && Array.isArray(data.appointment_slots)) {
       existingAppointmentSlotIds.value = data.appointment_slots.map((slot) => slot.id).filter(Boolean);
@@ -1452,28 +1483,69 @@ function toggleLegalPaper(value) {
   form.legalPaperTypes = [...form.legalPaperTypes, value];
 }
 
-function onFrontCardChange(event) {
-  if (frontCardPreviewUrl.value) {
+async function uploadVerificationImage(file) {
+  if (!file) return null;
+  if (typeof file === 'string') return file;
+  const res = await cloudinaryService.uploadImage(file, 'listing');
+  return res.secure_url;
+}
+
+async function onFrontCardChange(event) {
+  if (frontCardPreviewUrl.value && String(frontCardPreviewUrl.value).startsWith('blob:')) {
     URL.revokeObjectURL(frontCardPreviewUrl.value);
   }
-  form.identityCardFront = event.target.files?.[0] || null;
-  frontCardPreviewUrl.value = form.identityCardFront ? URL.createObjectURL(form.identityCardFront) : "";
+  const file = event.target.files?.[0] || null;
+  if (!file) return;
+
+  const localPreviewUrl = URL.createObjectURL(file);
+  frontCardPreviewUrl.value = localPreviewUrl;
+  try {
+    pushToast('Đang tải lên hình ảnh...', 'info', 1200);
+    const uploadedUrl = await uploadVerificationImage(file);
+    form.identityCardFront = uploadedUrl;
+    if (frontCardPreviewUrl.value === localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrl);
+      frontCardPreviewUrl.value = uploadedUrl;
+    }
+  } catch (error) {
+    form.identityCardFront = null;
+    frontCardPreviewUrl.value = '';
+    verificationUploadError.value = 'Không thể tải ảnh CCCD mặt trước';
+    pushToast('Không thể tải ảnh CCCD mặt trước', 'error');
+  }
 }
 
-function onBackCardChange(event) {
-  if (backCardPreviewUrl.value) {
+async function onBackCardChange(event) {
+  if (backCardPreviewUrl.value && String(backCardPreviewUrl.value).startsWith('blob:')) {
     URL.revokeObjectURL(backCardPreviewUrl.value);
   }
-  form.identityCardBack = event.target.files?.[0] || null;
-  backCardPreviewUrl.value = form.identityCardBack ? URL.createObjectURL(form.identityCardBack) : "";
+  const file = event.target.files?.[0] || null;
+  if (!file) return;
+
+  const localPreviewUrl = URL.createObjectURL(file);
+  backCardPreviewUrl.value = localPreviewUrl;
+  try {
+    pushToast('Đang tải lên hình ảnh...', 'info', 1200);
+    const uploadedUrl = await uploadVerificationImage(file);
+    form.identityCardBack = uploadedUrl;
+    if (backCardPreviewUrl.value === localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrl);
+      backCardPreviewUrl.value = uploadedUrl;
+    }
+  } catch (error) {
+    form.identityCardBack = null;
+    backCardPreviewUrl.value = '';
+    verificationUploadError.value = 'Không thể tải ảnh CCCD mặt sau';
+    pushToast('Không thể tải ảnh CCCD mặt sau', 'error');
+  }
 }
 
-function onLegalDocumentsChange(event) {
+async function onLegalDocumentsChange(event) {
   verificationUploadError.value = "";
   const files = event.target.files ? Array.from(event.target.files) : [];
   if (!files.length) return;
 
-  const validExtensions = ["image/jpeg", "image/png", "image/jpg", "application/pdf"];
+  const validExtensions = ["image/jpeg", "image/png", "image/jpg"];
   const MAX_DOC_SIZE = 10 * 1024 * 1024;
   const MAX_DOC_COUNT = 5;
 
@@ -1494,14 +1566,44 @@ function onLegalDocumentsChange(event) {
     validFiles.push(file);
   }
 
-  if (validFiles.length > MAX_DOC_COUNT) {
-    verificationUploadError.value = "Tối đa 5 ảnh giấy tờ";
-    form.legalDocuments = validFiles.slice(0, MAX_DOC_COUNT);
-    pushToast("Không thể tải thêm file", "warning");
+  if (!validFiles.length) {
+    event.target.value = '';
     return;
   }
 
-  form.legalDocuments = validFiles;
+  const remaining = MAX_DOC_COUNT - legalDocumentPreviews.value.length;
+  if (remaining <= 0) {
+    verificationUploadError.value = "Tối đa 5 ảnh giấy tờ pháp lý";
+    pushToast("Không thể tải thêm file", "warning");
+    event.target.value = '';
+    return;
+  }
+
+  const filesToAdd = validFiles.slice(0, remaining);
+  if (validFiles.length > filesToAdd.length) {
+    verificationUploadError.value = "Tối đa 5 ảnh giấy tờ pháp lý";
+    pushToast("Không thể tải thêm file", "warning");
+  }
+
+  const newPreviews = filesToAdd.map((file) => ({
+    name: file.name,
+    url: URL.createObjectURL(file),
+    file,
+  }));
+  legalDocumentPreviews.value = [...legalDocumentPreviews.value, ...newPreviews];
+  form.legalDocuments = [...form.legalDocuments, ...filesToAdd];
+
+  event.target.value = '';
+}
+
+function removeLegalDocument(index) {
+  const removed = legalDocumentPreviews.value[index];
+  if (removed?.url && String(removed.url).startsWith('blob:')) {
+    URL.revokeObjectURL(removed.url);
+  }
+  legalDocumentPreviews.value = legalDocumentPreviews.value.filter((_, i) => i !== index);
+  form.legalDocuments = form.legalDocuments.filter((_, i) => i !== index);
+  pushToast("Đã xóa hình ảnh", "success");
 }
 
 function setQuickNumber(field, value) {
@@ -1777,19 +1879,29 @@ function clearImagePreviews() {
 }
 
 function clearIdCardPreviews() {
-  if (frontCardPreviewUrl.value) {
+  if (frontCardPreviewUrl.value && String(frontCardPreviewUrl.value).startsWith('blob:')) {
     URL.revokeObjectURL(frontCardPreviewUrl.value);
     frontCardPreviewUrl.value = "";
   }
-  if (backCardPreviewUrl.value) {
+  if (backCardPreviewUrl.value && String(backCardPreviewUrl.value).startsWith('blob:')) {
     URL.revokeObjectURL(backCardPreviewUrl.value);
     backCardPreviewUrl.value = "";
   }
 }
 
+function clearLegalDocumentPreviews() {
+  legalDocumentPreviews.value.forEach((preview) => {
+    if (preview?.url && String(preview.url).startsWith('blob:')) {
+      URL.revokeObjectURL(preview.url);
+    }
+  });
+  legalDocumentPreviews.value = [];
+}
+
 function resetForm() {
   clearImagePreviews();
   clearIdCardPreviews();
+  clearLegalDocumentPreviews();
   Object.assign(form, createInitialState());
   showLegalDropdown.value = false;
   showMoreDetail.value = true;
