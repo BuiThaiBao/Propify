@@ -164,6 +164,43 @@ const listingService = {
       slots: slots,
     });
   },
+
+  /**
+   * Track a view for a listing.
+   * Sử dụng sendBeacon (reliable, non-blocking) với fetch fallback.
+   *
+   * @param {number} id - Listing ID
+   */
+  trackView(id) {
+    const url = `${api.defaults.baseURL}/v1/listings/${id}/view`;
+    const token = localStorage.getItem("access_token");
+
+    // Payload cho sendBeacon
+    const headers = { "Content-Type": "application/json" };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
+    // sendBeacon: reliable cho analytics, không bị cancel khi user rời trang
+    if (navigator.sendBeacon) {
+      const blob = new Blob([JSON.stringify({})], { type: "application/json" });
+      const sent = navigator.sendBeacon(url, blob);
+      if (sent) return;
+    }
+
+    // Fallback: fetch fire-and-forget
+    const fetchHeaders = { "Content-Type": "application/json" };
+    if (token) fetchHeaders["Authorization"] = `Bearer ${token}`;
+
+    fetch(url, {
+      method: "POST",
+      headers: fetchHeaders,
+      body: JSON.stringify({}),
+      keepalive: true,
+    }).catch(() => {
+      // Silent fail — view tracking should never break UX
+    });
+  },
 };
 
 export default listingService;

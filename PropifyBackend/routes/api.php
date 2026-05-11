@@ -152,6 +152,12 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
     Route::get('/', [ListingController::class, 'index'])->name('index');
     Route::get('/{id}', [ListingController::class, 'show'])->where('id', '[0-9]+')->name('show');
 
+    // View tracking — public, throttle 60/min/IP
+    Route::post('/{id}/view', [\App\Http\Controllers\Api\V1\Listing\ViewTrackingController::class, 'track'])
+        ->where('id', '[0-9]+')
+        ->middleware('throttle:60,1')
+        ->name('view');
+
     // Yêu cầu đăng nhập
     Route::middleware('auth:api')->group(function () {
         Route::post('/', [ListingController::class, 'store'])->name('store');

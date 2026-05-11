@@ -34,10 +34,12 @@ final class Listing extends Model
         'submitted_at',
         'published_at',
         'expired_at',
+        'views',
     ];
 
     protected $casts = [
         'score' => 'integer',
+        'views' => 'integer',
         'is_verified' => 'boolean',
         'has_video' => 'boolean',
         'request_verification' => 'boolean',
