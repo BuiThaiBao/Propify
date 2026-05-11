@@ -6,6 +6,7 @@
       :email="form.email"
       @success="$emit('success')"
       @resend="handleResend"
+      @back="showOtp = false"
     />
 
     <!-- Register modal -->
@@ -239,10 +240,10 @@ const isFormValid = computed(() => {
 });
 
 // Real-time validation
-watch(() => form.value.fullName, () => { touched.value.fullName = true; validateForm(); });
-watch(() => form.value.email, () => { touched.value.email = true; validateForm(); });
-watch(() => form.value.password, () => { touched.value.password = true; validateForm(); });
-watch(() => form.value.passwordConfirmation, () => { touched.value.passwordConfirmation = true; validateForm(); });
+watch(() => form.value.fullName, () => { touched.value.fullName = true; errorMessage.value = ''; validateForm(); });
+watch(() => form.value.email, () => { touched.value.email = true; errorMessage.value = ''; validateForm(); });
+watch(() => form.value.password, () => { touched.value.password = true; errorMessage.value = ''; validateForm(); });
+watch(() => form.value.passwordConfirmation, () => { touched.value.passwordConfirmation = true; errorMessage.value = ''; validateForm(); });
 
 function validateForm(isSubmit = false) {
   if (isSubmit) {

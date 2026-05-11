@@ -116,7 +116,7 @@
             />
           </div>
 
-          <p v-if="otpError" class="text-red-500 text-xs text-center mb-2 flex items-center justify-center gap-1">
+          <p v-if="otpError && countdown > 0" class="text-red-500 text-xs text-center mb-2 flex items-center justify-center gap-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             {{ otpError }}
           </p>
@@ -129,7 +129,7 @@
 
           <button
             @click="handleVerifyOtp"
-            :disabled="authStore.loading || otpValue.length < 6"
+            :disabled="authStore.loading || otpValue.length < 6 || countdown <= 0"
             class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl py-3.5 text-sm mb-3 disabled:opacity-50 transition-all hover:opacity-90 active:scale-[0.98] shadow-md shadow-purple-200"
           >
             {{ authStore.loading ? 'Đang xác thực...' : 'Xác nhận OTP' }}
@@ -345,7 +345,7 @@ function handleOtpPaste(event) {
 
 // OTP ở bước forgot-password → gọi backend /check-reset-otp để verify thật sự
 async function handleVerifyOtp() {
-  if (authStore.loading || otpValue.value.length < 6) return;
+  if (authStore.loading || otpValue.value.length < 6 || countdown.value <= 0) return;
 
   otpError.value = '';
   const result = await authStore.checkResetOtp(email.value, otpValue.value);

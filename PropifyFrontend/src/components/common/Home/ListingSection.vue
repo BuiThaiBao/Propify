@@ -3,11 +3,17 @@
 
     <!-- Tin mua bán bất động sản -->
     <div>
-      <div class="flex items-center justify-between mb-5">
-        <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-          <span class="text-blue-500">🏠</span> Tin mua bán bất động sản
+      <p class="text-[0.75rem] font-bold text-[#0DA2E7] uppercase tracking-wider mb-1">Mua bán</p>
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-[1.75rem] font-bold text-slate-800 leading-tight">
+          Tin mua bán bất động sản
         </h2>
-        <router-link to="/listings?type=SALE" class="text-sm font-medium text-blue-500 hover:underline">Xem tất cả →</router-link>
+        <router-link to="/listings?type=SALE" class="px-5 py-2.5 rounded-full border border-slate-200 text-[0.85rem] font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2">
+          Xem tất cả
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+          </svg>
+        </router-link>
       </div>
 
       <div v-if="saleLoading" class="flex justify-center py-10">
@@ -33,18 +39,23 @@
           :baths="item.property?.bathrooms || 0"
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
-          :views="0"
         />
       </div>
     </div>
 
     <!-- Tin cho thuê bất động sản -->
     <div>
-      <div class="flex items-center justify-between mb-5">
-        <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-          <span class="text-emerald-500">🏢</span> Tin cho thuê bất động sản
+      <p class="text-[0.75rem] font-bold text-emerald-500 uppercase tracking-wider mb-1 mt-8">Cho thuê</p>
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-[1.75rem] font-bold text-slate-800 leading-tight">
+          Tin cho thuê bất động sản
         </h2>
-        <router-link to="/listings?type=RENT" class="text-sm font-medium text-blue-500 hover:underline">Xem tất cả →</router-link>
+        <router-link to="/listings?type=RENT" class="px-5 py-2.5 rounded-full border border-slate-200 text-[0.85rem] font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2">
+          Xem tất cả
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+          </svg>
+        </router-link>
       </div>
 
       <div v-if="rentLoading" class="flex justify-center py-10">
@@ -70,7 +81,76 @@
           :baths="item.property?.bathrooms || 0"
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
-          :views="0"
+        />
+      </div>
+    </div>
+
+    <!-- Tin xem gần đây -->
+    <div class="pt-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0DA2E7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          Tin xem gần đây
+        </h2>
+      </div>
+
+      <div v-if="saleListings.length === 0" class="text-center text-gray-400 py-8">
+        Bạn chưa xem tin nào gần đây.
+      </div>
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ListingCardHome
+          v-for="item in saleListings.slice(0,3)"
+          :key="'viewed-' + item.id"
+          :to="'/listings/' + item.id"
+          :image="getThumb(item)"
+          :verified="item.is_verified"
+          :type="propertyTypeLabel(item.property?.type)"
+          :title="item.title"
+          :location="item.property?.address_detail || ''"
+          :price="formatPrice(item.property?.price)"
+          :unit="''"
+          :area="item.property?.area || 0"
+          :beds="item.property?.bedrooms || 0"
+          :baths="item.property?.bathrooms || 0"
+          :rating="null"
+          :timeAgo="timeAgo(item.submitted_at)"
+        />
+      </div>
+    </div>
+
+    <!-- Tin đăng yêu thích -->
+    <div class="pt-8">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="fill-[#EF4444]">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+          Tin đăng yêu thích
+        </h2>
+      </div>
+
+      <div v-if="rentListings.length === 0" class="text-center text-gray-400 py-8">
+        Bạn chưa lưu tin yêu thích nào.
+      </div>
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <ListingCardHome
+          v-for="item in rentListings.slice(0,3)"
+          :key="'fav-' + item.id"
+          :to="'/listings/' + item.id"
+          :image="getThumb(item)"
+          :verified="item.is_verified"
+          :type="propertyTypeLabel(item.property?.type)"
+          :title="item.title"
+          :location="item.property?.address_detail || ''"
+          :price="formatPrice(item.property?.price)"
+          :unit="'/tháng'"
+          :area="item.property?.area || 0"
+          :beds="item.property?.bedrooms || 0"
+          :baths="item.property?.bathrooms || 0"
+          :rating="null"
+          :timeAgo="timeAgo(item.submitted_at)"
         />
       </div>
     </div>
@@ -142,6 +222,8 @@ function propertyTypeLabel(type) {
   };
   return map[type] || type || 'BĐS';
 }
+
+
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';

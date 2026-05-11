@@ -87,6 +87,13 @@ final class ListingController
             perPage: $perPage,
         );
 
+        $countsQuery = \App\Models\Listing::where('owner_id', $request->user()->id)
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+        $countsQuery['ALL'] = array_sum($countsQuery);
+
         return ApiResponse::success(
             data: ListingResource::collection($paginator->items()),
             message: 'Lay danh sach tin dang cua ban thanh cong.',
@@ -95,6 +102,7 @@ final class ListingController
                 'last_page' => $paginator->lastPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
+                'counts' => $countsQuery,
             ],
         );
     }

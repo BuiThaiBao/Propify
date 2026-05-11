@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-[1400px] mx-auto mt-20 mb-8 px-4 flex gap-8 min-h-[calc(100vh-200px)] max-md:flex-col">
+  <div class="w-full max-w-[1600px] mx-auto mt-20 mb-8 px-4 lg:px-8 flex gap-8 min-h-[calc(100vh-200px)] max-md:flex-col">
 <!-- Sidebar (chỉ giữ nguyên icon tóm tắt) -->
     <aside class="w-[260px] shrink-0 max-md:w-full">
       <div class="text-center p-6 bg-white rounded-xl shadow-sm mb-4">
@@ -143,7 +143,7 @@
               <input
                 ref="avatarInputRef"
                 type="file"
-                accept="image/jpeg,image/png,image/webp"
+                accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.svg,.heic,.heif"
                 class="hidden"
                 @change="handleAvatarSelected"
               />
@@ -283,7 +283,7 @@
                 <button type="button" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-white text-slate-500 border-[1.5px] border-slate-200 hover:bg-slate-50 transition-all" @click="cancelEditing">
                   Hủy
                 </button>
-                <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-br from-sky-500 to-sky-600 text-white hover:from-sky-600 hover:to-sky-700 hover:shadow-lg hover:shadow-sky-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed" :disabled="profileLoading">
+                <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-br from-sky-500 to-sky-600 text-white hover:from-sky-600 hover:to-sky-700 hover:shadow-lg hover:shadow-sky-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed" :disabled="profileLoading || isProfileFormUnchanged">
                   {{ profileLoading ? 'Đang lưu...' : 'Lưu thay đổi' }}
                 </button>
               </template>
@@ -296,28 +296,13 @@
       <section v-if="activeTab === 'listings'" class="bg-white rounded-xl shadow-sm p-8">
         <h2 class="text-xl font-bold text-slate-800 mb-6">Danh sách tin đăng</h2>
 
-        <div class="grid grid-cols-1 gap-3 mb-4 lg:grid-cols-[1fr_auto_auto]">
+        <div class="grid grid-cols-1 gap-3 mb-4 lg:grid-cols-[1fr_auto]">
           <input
             v-model.trim="listingFilters.keyword"
             type="text"
             class="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-sky-400"
             placeholder="Nhập giá trị tìm kiếm..."
-            @keyup.enter="loadMyListings(1)"
           />
-
-          <select
-            v-model="listingFilters.status"
-            class="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-sky-400"
-            @change="loadMyListings(1)"
-          >
-            <option value="">Trạng thái: Tất cả</option>
-            <option value="PENDING">Chờ duyệt</option>
-            <option value="ACTIVE">Đang đăng</option>
-            <option value="DRAFT">Tin nháp</option>
-            <option value="REJECTED">Từ chối</option>
-            <option value="LOCKED">Tin bị khóa</option>
-            <option value="EXPIRED">Hết hạn</option>
-          </select>
 
           <select
             v-model="listingFilters.demandType"
@@ -328,6 +313,22 @@
             <option value="SALE">Mua bán</option>
             <option value="RENT">Cho thuê</option>
           </select>
+        </div>
+
+        <div class="flex flex-nowrap overflow-x-auto gap-2 pb-2 mb-4 w-full no-scrollbar">
+          <button
+            v-for="tab in statusTabs"
+            :key="tab.value"
+            class="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border text-[0.85rem] font-medium transition-colors"
+            :class="listingFilters.status === tab.value 
+              ? 'border-sky-300 bg-sky-50 text-sky-600' 
+              : 'border-slate-100 bg-white text-slate-600 hover:bg-slate-50'"
+            @click="listingFilters.status = tab.value; loadMyListings(1)"
+          >
+            <span v-if="tab.colorClass" class="w-1.5 h-1.5 rounded-full" :class="tab.colorClass"></span>
+            {{ tab.label }}
+            <span class="text-[0.75rem] font-bold" :class="listingFilters.status === tab.value ? 'text-sky-500' : 'text-slate-500'">{{ tab.count || 0 }}</span>
+          </button>
         </div>
 
         <div
@@ -341,15 +342,15 @@
           <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs text-slate-500">
               <tr>
-                <th class="px-3 py-3">ID</th>
-                <th class="px-3 py-3">Ảnh</th>
-                <th class="px-3 py-3">Mã tin</th>
-                <th class="px-3 py-3">Tin đăng</th>
-                <th class="px-3 py-3">Địa chỉ</th>
-                <th class="px-3 py-3">Giá</th>
-                <th class="px-3 py-3">Gói tin</th>
-                <th class="px-3 py-3">Trạng thái</th>
-                <th class="px-3 py-3">Thao tác</th>
+                <th class="px-3 py-4 whitespace-nowrap">ID</th>
+                <th class="px-3 py-4 whitespace-nowrap">Ảnh</th>
+                <th class="px-3 py-4 whitespace-nowrap">Mã tin đăng</th>
+                <th class="px-3 py-4 min-w-[200px]">Tin đăng</th>
+                <th class="px-3 py-4 min-w-[180px]">Địa chỉ</th>
+                <th class="px-3 py-4 whitespace-nowrap">Giá</th>
+                <th class="px-3 py-4 text-center whitespace-nowrap">Hiển thị</th>
+                <th class="px-3 py-4 whitespace-nowrap">Trạng thái</th>
+                <th class="pl-3 pr-5 py-4 w-12 text-center"></th>
               </tr>
             </thead>
             <tbody>
@@ -360,63 +361,59 @@
                 <td class="px-3 py-6 text-center text-slate-400" colspan="9">Bạn chưa có tin đăng nào.</td>
               </tr>
               <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="router.push('/listings/' + item.id)">
-                <td class="px-3 py-3 font-medium text-sky-600 group-hover:underline">{{ item.id }}</td>
-                <td class="px-3 py-3">
+                <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap">{{ item.id }}</td>
+                <td class="px-3 py-4 whitespace-nowrap">
                   <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-14 rounded-md object-cover" />
                   <div v-else class="h-12 w-14 rounded-md bg-slate-100"></div>
                 </td>
-                <td class="px-3 py-3 text-slate-500">{{ item.code }}</td>
-                <td class="px-3 py-3 font-semibold text-slate-700 group-hover:text-sky-600">{{ item.title }}</td>
-                <td class="px-3 py-3 text-slate-500">{{ item.address }}</td>
-                <td class="px-3 py-3 font-semibold text-slate-700">{{ item.price }}</td>
-                <td class="px-3 py-3">
-                  <span
-                    v-if="item.package?.slug === 'gold'"
-                    class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-sm"
-                    style="background: #FFD700"
-                  >
-                    VIP
-                  </span>
-                  <span
-                    v-else-if="item.package?.slug === 'silver'"
-                    class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold text-white shadow-sm"
-                    style="background: #C0C0C0"
-                  >
-                    HOT
-                  </span>
-                  <span v-else class="text-xs text-slate-400">Cơ bản</span>
+                <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.code }}</td>
+                <td class="px-3 py-4 font-semibold text-slate-700 group-hover:text-sky-600">{{ item.title }}</td>
+                <td class="px-3 py-4 text-slate-500">{{ item.address }}</td>
+                <td class="px-3 py-4 font-semibold text-slate-700 whitespace-nowrap">{{ item.price }}</td>
+                <td class="px-3 py-4 whitespace-nowrap">
+                  <div class="flex items-center justify-center gap-1.5 text-slate-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span class="font-medium text-sm">{{ item.views || 1000 }}</span>
+                  </div>
                 </td>
-                <td class="px-3 py-3">
+                <td class="px-3 py-4 whitespace-nowrap">
                   <span :class="['rounded-full px-2 py-1 text-xs font-medium', statusBadgeClass(item.status)]">
                     {{ statusLabel(item.status) }}
                   </span>
                 </td>
-                <td class="px-3 py-3">
-                  <div class="flex items-center gap-2">
-                    <button
-                      class="flex items-center gap-1 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-600 transition hover:bg-sky-100 hover:border-sky-300"
-                      @click.stop="router.push('/listings/' + item.id + '/edit')"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                      Sửa
-                    </button>
-                    <button
-                      v-if="item.status === 'ACTIVE'"
-                      class="flex items-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 hover:border-amber-300"
-                      @click.stop="openUpgradeModal(item)"
-                    >
-                      🚀 Nâng cấp
-                    </button>
-                    <button
-                      class="rounded-lg border px-3 py-1.5 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
-                      :class="item.status === 'ACTIVE' ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:border-rose-300' : 'border-slate-200 bg-slate-100 text-slate-400'"
-                      :disabled="item.status !== 'ACTIVE' || lockingListing"
-                      @click.stop="openLockListingModal(item)"
-                    >
-                      Khóa tin
-                    </button>
-                    
-                  </div>
+                <td class="pl-3 pr-5 py-4 relative">
+                  <button @click.stop="toggleDropdown(item.id, $event)" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                  
+                  <Teleport to="body">
+                    <div v-if="openDropdownId === item.id" :style="{ top: dropdownStyle.top, left: dropdownStyle.left }" class="absolute w-[200px] bg-white border border-slate-100 shadow-xl rounded-xl py-2 z-[9999] text-left">
+                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('edit', item)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        Thông tin chi tiết
+                      </button>
+                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('upgrade', item)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        Nâng cấp gói tin
+                      </button>
+                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('publish', item)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Đăng tin
+                      </button>
+                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unpublish', item)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        Gỡ tin đăng
+                      </button>
+                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('lock', item)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Khóa tin đăng
+                      </button>
+                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unlock', item)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                        Mở khóa tin đăng
+                      </button>
+                    </div>
+                  </Teleport>
                 </td>
               </tr>
             </tbody>
@@ -464,7 +461,7 @@
         <form @submit.prevent="handleChangePassword" class="flex flex-col gap-5">
           <!-- Current password -->
           <div class="flex flex-col gap-1.5">
-            <label for="currentPassword" class="text-[0.85rem] font-semibold text-slate-700">Mật khẩu hiện tại</label>
+            <label for="currentPassword" class="text-[0.85rem] font-semibold text-slate-700 after:content-['*'] after:text-red-500 after:ml-1">Mật khẩu hiện tại</label>
             <div class="relative">
               <input
                 id="currentPassword"
@@ -482,7 +479,7 @@
 
           <!-- New password -->
           <div class="flex flex-col gap-1.5">
-            <label for="newPassword" class="text-[0.85rem] font-semibold text-slate-700">Mật khẩu mới</label>
+            <label for="newPassword" class="text-[0.85rem] font-semibold text-slate-700 after:content-['*'] after:text-red-500 after:ml-1">Mật khẩu mới</label>
             <div class="relative">
               <input
                 id="newPassword"
@@ -501,7 +498,7 @@
 
           <!-- Confirm password -->
           <div class="flex flex-col gap-1.5">
-            <label for="confirmPassword" class="text-[0.85rem] font-semibold text-slate-700">Xác nhận mật khẩu mới</label>
+            <label for="confirmPassword" class="text-[0.85rem] font-semibold text-slate-700 after:content-['*'] after:text-red-500 after:ml-1">Xác nhận mật khẩu mới</label>
             <div class="relative">
               <input
                 id="confirmPassword"
@@ -521,7 +518,7 @@
             <button type="button" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-white text-slate-500 border-[1.5px] border-slate-200 hover:bg-slate-50 transition-all" @click="resetPasswordForm(); activeTab = 'profile'">
               Hủy
             </button>
-            <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-br from-sky-500 to-sky-600 text-white hover:from-sky-600 hover:to-sky-700 hover:shadow-lg hover:shadow-sky-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed" :disabled="passwordLoading">
+            <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-br from-sky-500 to-sky-600 text-white hover:from-sky-600 hover:to-sky-700 hover:shadow-lg hover:shadow-sky-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed" :disabled="passwordLoading || !isPasswordFormValid">
               {{ passwordLoading ? 'Đang xử lý...' : 'Cập nhật mật khẩu' }}
             </button>
           </div>
@@ -558,7 +555,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue';
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRoute, useRouter } from 'vue-router';
 import userService from '@/services/userService';
@@ -588,6 +585,18 @@ function triggerAvatarInput() {
 function handleAvatarSelected(event) {
   const file = event.target.files?.[0];
   if (!file) return;
+
+  const allowedTypes = [
+    'image/jpeg', 'image/png', 'image/webp', 'image/gif', 
+    'image/avif', 'image/svg+xml', 'image/heic', 'image/heif'
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    avatarMessage.value = 'Định dạng ảnh không được hỗ trợ. Vui lòng chọn ảnh JPG, PNG, WebP, GIF hoặc AVIF.';
+    avatarSuccess.value = false;
+    if (avatarInputRef.value) avatarInputRef.value.value = '';
+    return;
+  }
 
   // Validate size (5MB)
   if (file.size > 5 * 1024 * 1024) {
@@ -652,7 +661,52 @@ async function uploadAvatar() {
 }
 
 // ── Tabs ──
-const activeTab = ref('profile');
+const validTabs = ['profile', 'listings', 'appointments', 'password'];
+const initialTab = validTabs.includes(route.query.tab) ? route.query.tab : 'profile';
+const activeTab = ref(initialTab);
+
+watch(activeTab, (newTab) => {
+  const query = { ...route.query };
+  if (newTab === 'profile') {
+    delete query.tab;
+  } else {
+    query.tab = newTab;
+  }
+  router.replace({ query }).catch(() => {});
+});
+
+// ── Dropdown ──
+const openDropdownId = ref(null);
+const dropdownStyle = reactive({ top: '0px', left: '0px' });
+
+function toggleDropdown(id, event) {
+  if (openDropdownId.value === id) {
+    openDropdownId.value = null;
+  } else {
+    openDropdownId.value = id;
+    const rect = event.currentTarget.getBoundingClientRect();
+    dropdownStyle.top = `${rect.bottom + window.scrollY + 4}px`;
+    dropdownStyle.left = `${rect.right + window.scrollX - 200}px`;
+  }
+}
+function closeDropdown() {
+  openDropdownId.value = null;
+}
+function handleDropdownAction(action, item) {
+  closeDropdown();
+  if (action === 'edit') {
+    router.push('/listings/' + item.id + '/edit');
+  } else if (action === 'upgrade') {
+    if (item.status === 'ACTIVE') openUpgradeModal(item);
+    else alert('Chỉ có thể nâng cấp tin đang đăng.');
+  } else if (action === 'lock') {
+    if (item.status === 'ACTIVE') openLockListingModal(item);
+    else alert('Chỉ có thể khóa tin đang đăng.');
+  } else {
+    alert('Tính năng đang phát triển');
+  }
+}
+
 const listingsLoaded = ref(false);
 const listingsLoading = ref(false);
 const myListings = ref([]);
@@ -666,6 +720,33 @@ const listingPagination = reactive({
   lastPage: 1,
   total: 0,
 });
+
+const statusCounts = reactive({
+  ALL: 0,
+  PENDING: 0,
+  ACTIVE: 0,
+  DRAFT: 0,
+  REJECTED: 0,
+  LOCKED: 0,
+});
+
+const statusTabs = computed(() => [
+  { label: 'Tất cả', value: '', colorClass: '', count: statusCounts.ALL },
+  { label: 'Chờ duyệt', value: 'PENDING', colorClass: 'bg-orange-500', count: statusCounts.PENDING },
+  { label: 'Tin đang đăng', value: 'ACTIVE', colorClass: 'bg-emerald-500', count: statusCounts.ACTIVE },
+  { label: 'Tin nháp', value: 'DRAFT', colorClass: 'bg-slate-400', count: statusCounts.DRAFT },
+  { label: 'Từ chối', value: 'REJECTED', colorClass: 'bg-rose-500', count: statusCounts.REJECTED },
+  { label: 'Tin bị khóa', value: 'LOCKED', colorClass: 'bg-red-600', count: statusCounts.LOCKED },
+]);
+
+let searchTimeout = null;
+watch(() => listingFilters.keyword, () => {
+  if (searchTimeout) clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    loadMyListings(1);
+  }, 300);
+});
+
 const lockListingModalOpen = ref(false);
 const lockListingTarget = ref(null);
 const lockingListing = ref(false);
@@ -681,8 +762,8 @@ const phoneAlreadySet = computed(() => !!authStore.user?.phone);
 
 // ── Sidebar expand/collapse ──
 const expandedSections = reactive({
-  listings: false,
-  appointments: false,
+  listings: route.query.tab === 'listings',
+  appointments: route.query.tab === 'appointments',
 });
 
 function toggleSection(key) {
@@ -739,6 +820,7 @@ function normalizeListings(items) {
       price: formatCurrency(item?.property?.price),
       status: item.status,
       package: item.package || null,
+      views: item.view_count || 0,
     };
   });
 }
@@ -776,6 +858,16 @@ async function loadMyListings(page = 1) {
     listingPagination.currentPage = Number(meta.current_page || 1);
     listingPagination.lastPage = Number(meta.last_page || 1);
     listingPagination.total = Number(meta.total || 0);
+
+    if (meta.counts) {
+      statusCounts.ALL = meta.counts.ALL || 0;
+      statusCounts.PENDING = meta.counts.PENDING || 0;
+      statusCounts.ACTIVE = meta.counts.ACTIVE || 0;
+      statusCounts.DRAFT = meta.counts.DRAFT || 0;
+      statusCounts.REJECTED = meta.counts.REJECTED || 0;
+      statusCounts.LOCKED = meta.counts.LOCKED || 0;
+    }
+
     listingsLoaded.value = true;
   } catch {
     myListings.value = [];
@@ -855,7 +947,15 @@ const profileForm = reactive({
   phone: '',
 });
 
+const isProfileFormUnchanged = computed(() => {
+  const currentFullName = authStore.user?.full_name || '';
+  const currentPhone = authStore.user?.phone || '';
+  return profileForm.fullName.trim() === currentFullName && profileForm.phone.trim() === currentPhone;
+});
+
 onMounted(async () => {
+  document.addEventListener('click', closeDropdown);
+
   // Luôn fetch fresh user để đảm bảo avatar_url mới nhất từ DB
   // (sessionStorage cache có thể không có avatar_url nếu đăng nhập trước khi tích hợp Cloudinary)
   try {
@@ -876,10 +976,19 @@ onMounted(async () => {
     });
   }
 
-  // Auto-open listings tab if query param tab=listings (from posting redirect)
-  if (route.query.tab === 'listings') {
+  // Mở tab ban đầu
+  const tab = route.query.tab;
+  if (tab === 'listings') {
     openListingsTab();
+  } else if (tab === 'appointments') {
+    openAppointmentsTab();
+  } else if (tab === 'password') {
+    activeTab.value = 'password';
   }
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeDropdown);
 });
 
 function startEditing() {
@@ -896,6 +1005,11 @@ function cancelEditing() {
 }
 
 async function handleUpdateProfile() {
+  if (isProfileFormUnchanged.value) {
+    isEditing.value = false;
+    return;
+  }
+
   // Nếu yêu cầu phone mà chưa nhập
   if (requirePhone.value && !profileForm.phone.trim()) {
     profileSuccess.value = false;
@@ -956,6 +1070,59 @@ const passwordForm = reactive({
   newPasswordConfirmation: '',
 });
 
+const isPasswordFormValid = computed(() => {
+  const current = passwordForm.currentPassword.trim();
+  const pwd = passwordForm.newPassword.trim();
+  const confirm = passwordForm.newPasswordConfirmation.trim();
+  
+  if (!current || !pwd || !confirm) return false;
+  if (pwd.length < 8) return false;
+  if (!/[a-z]/.test(pwd) || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) return false;
+  if (current === pwd) return false;
+  if (pwd !== confirm) return false;
+  
+  return true;
+});
+
+watch(
+  passwordForm,
+  (newVal) => {
+    const current = newVal.currentPassword.trim();
+    const pwd = newVal.newPassword.trim();
+    const confirm = newVal.newPasswordConfirmation.trim();
+
+    passwordSuccess.value = false;
+
+    if (!pwd && !confirm) {
+      passwordMessage.value = '';
+      return;
+    }
+
+    if (pwd) {
+      if (pwd.length < 8) {
+        passwordMessage.value = 'Mật khẩu mới phải có ít nhất 8 ký tự.';
+        return;
+      }
+      if (!/[a-z]/.test(pwd) || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) {
+        passwordMessage.value = 'Mật khẩu phải chứa chữ hoa, chữ thường và chữ số.';
+        return;
+      }
+      if (current && current === pwd) {
+        passwordMessage.value = 'Mật khẩu mới không trùng với mật khẩu cũ.';
+        return;
+      }
+    }
+
+    if (confirm && pwd !== confirm) {
+      passwordMessage.value = 'Xác nhận mật khẩu mới không khớp.';
+      return;
+    }
+
+    passwordMessage.value = '';
+  },
+  { deep: true }
+);
+
 function resetPasswordForm() {
   passwordForm.currentPassword = '';
   passwordForm.newPassword = '';
@@ -967,28 +1134,12 @@ function resetPasswordForm() {
 }
 
 async function handleChangePassword() {
-  // Trim passwords (BR.ACC.03)
+  // Trim passwords
   passwordForm.currentPassword = passwordForm.currentPassword.trim();
   passwordForm.newPassword = passwordForm.newPassword.trim();
   passwordForm.newPasswordConfirmation = passwordForm.newPasswordConfirmation.trim();
 
-  // Validate format (BR.ACC.03)
-  const pwd = passwordForm.newPassword;
-  if (pwd.length < 8) {
-    passwordSuccess.value = false;
-    passwordMessage.value = 'Mật khẩu mới phải có ít nhất 8 ký tự.';
-    return;
-  }
-  if (!/[a-z]/.test(pwd) || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) {
-    passwordSuccess.value = false;
-    passwordMessage.value = 'Mật khẩu phải chứa chữ hoa, chữ thường và chữ số.';
-    return;
-  }
-  if (pwd !== passwordForm.newPasswordConfirmation) {
-    passwordSuccess.value = false;
-    passwordMessage.value = 'Xác nhận mật khẩu mới không khớp.';
-    return;
-  }
+  if (!isPasswordFormValid.value) return;
 
   passwordLoading.value = true;
   passwordMessage.value = '';

@@ -195,8 +195,8 @@ const isFormValid = computed(() => {
   return true;
 });
 
-watch(email, () => { touched.value.email = true; validateForm(); });
-watch(password, () => { touched.value.password = true; validateForm(); });
+watch(email, () => { touched.value.email = true; errorMessage.value = ''; validateForm(); });
+watch(password, () => { touched.value.password = true; errorMessage.value = ''; validateForm(); });
 
 function validateForm(isSubmit = false) {
   if (isSubmit) {

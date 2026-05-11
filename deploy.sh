@@ -1,12 +1,41 @@
 #!/bin/bash
+
+LOCK_FILE="/tmp/propify-deploy.lock"
+
+if [ -f "$LOCK_FILE" ]; then
+    echo "Deploy already running"
+    exit 1
+fi
+
+trap "rm -f $LOCK_FILE" EXIT
+
+touch $LOCK_FILE
+
+set -e
+set -x
+trap 'echo "ERROR at line $LINENO"' ERR
+export PATH=/usr/local/bin:/usr/bin:/bin
+export NODE_ENV=production
+
 APP_DIR="/var/www/Propify"
 LOG_FILE="/var/www/Propify/deploy.log"
-exec > >(tee -a "$LOG_FILE") 2>&1
+> "$LOG_FILE"
+exec >> "$LOG_FILE" 2>&1
+
+echo "========== DEPLOY START $(date) =========="
+
+echo "USER: $(whoami)"
+echo "PWD: $(pwd)"
+echo "HOME: $HOME"
+
+id
+
+env
 
 echo "1. Bắt đầu tải mã nguồn mới nhất từ GitHub..."
 cd $APP_DIR
 git fetch origin main
-git pull origin main
+git reset --hard origin/main
 
 echo "2. Backend Laravel (API)..."
 cd $APP_DIR/PropifyBackend
