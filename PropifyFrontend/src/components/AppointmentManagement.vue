@@ -96,9 +96,10 @@
             <h3 class="dlg-title">Từ chối lịch hẹn</h3>
             <p class="dlg-desc">Bạn có chắc chắn muốn từ chối lịch hẹn?</p>
             <select v-model="dlgReason" class="dlg-select"><option value="" disabled>Chọn lý do *</option><option v-for="r in rejectReasons" :key="r" :value="r">{{ r }}</option></select>
+            <textarea v-if="dlgReason === 'Khác'" v-model="dlgCustomReason" class="dlg-textarea" rows="3" maxlength="255" placeholder="Nhập lý do cụ thể"></textarea>
             <div class="dlg-btns">
               <button class="btn-outline" @click="rejectVisible = false">Quay lại</button>
-              <button class="btn-primary" :disabled="!dlgReason || dlgLoading" @click="doReject">{{ dlgLoading ? 'Đang xử lý...' : 'Từ chối' }}</button>
+              <button class="btn-primary" :disabled="!canSubmitReason || dlgLoading" @click="doReject">{{ dlgLoading ? 'Đang xử lý...' : 'Từ chối' }}</button>
             </div>
           </div>
         </div>
@@ -113,9 +114,10 @@
             <h3 class="dlg-title">Hủy lịch hẹn</h3>
             <p class="dlg-desc">Bạn có chắc chắn muốn hủy lịch hẹn?</p>
             <select v-model="dlgReason" class="dlg-select"><option value="" disabled>Chọn lý do *</option><option v-for="r in cancelReasons" :key="r" :value="r">{{ r }}</option></select>
+            <textarea v-if="dlgReason === 'Khác'" v-model="dlgCustomReason" class="dlg-textarea" rows="3" maxlength="255" placeholder="Nhập lý do cụ thể"></textarea>
             <div class="dlg-btns">
               <button class="btn-outline" @click="cancelVisible = false">Quay lại</button>
-              <button class="btn-danger" :disabled="!dlgReason || dlgLoading" @click="doCancel">{{ dlgLoading ? 'Đang xử lý...' : 'Hủy lịch hẹn' }}</button>
+              <button class="btn-danger" :disabled="!canSubmitReason || dlgLoading" @click="doCancel">{{ dlgLoading ? 'Đang xử lý...' : 'Hủy lịch hẹn' }}</button>
             </div>
           </div>
         </div>
@@ -150,6 +152,7 @@ const approveVisible = ref(false);
 const rejectVisible = ref(false);
 const cancelVisible = ref(false);
 const dlgReason = ref('');
+const dlgCustomReason = ref('');
 const dlgLoading = ref(false);
 const dlgBookingId = ref(null);
 
@@ -159,19 +162,18 @@ const toastTitle = ref('');
 const toastMsg = ref('');
 
 const rejectReasons = [
-  'Tôi có lịch hẹn đột xuất',
-  'Khung giờ này đã có người khác đặt',
-  'Bất động sản tạm ngưng cho xem',
-  'Thông tin khách hàng không hợp lệ',
-  'Lý do cá nhân khác',
+  'Trùng lịch đột xuất',
+  'Căn hộ đã được chốt cọc',
+  'Căn hộ đang bảo trì/sửa chữa',
+  'Thời gian hẹn không phù hợp',
+  'Khác',
 ];
 const cancelReasons = [
-  'Tôi có việc bận đột xuất',
-  'Tôi đã tìm được nơi phù hợp',
-  'Tôi muốn đổi lịch hẹn khác',
-  'Không liên lạc được với đối phương',
-  'Thay đổi kế hoạch cá nhân',
-  'Lý do khác',
+  'Thay đổi kế hoạch',
+  'Việc bận đột xuất',
+  'Lý do thời tiết/Sức khỏe',
+  'Nhầm lẫn thông tin',
+  'Khác',
 ];
 
 const statusFilters = [
@@ -187,6 +189,12 @@ const statusFilters = [
 const filteredBookings = computed(() => {
   if (activeFilter.value === 'ALL') return bookings.value;
   return bookings.value.filter(b => b.status === activeFilter.value);
+});
+
+const canSubmitReason = computed(() => {
+  if (!dlgReason.value) return false;
+  if (dlgReason.value !== 'Khác') return true;
+  return dlgCustomReason.value.trim().length > 0;
 });
 
 function countByStatus(s) {
@@ -226,8 +234,12 @@ async function fetchBookings() {
 function switchView(v) { if (activeView.value === v) return; activeView.value = v; activeFilter.value = 'ALL'; fetchBookings(); }
 
 function handleApprove(b) { dlgBookingId.value = b.id; approveVisible.value = true; }
-function handleReject(b) { dlgBookingId.value = b.id; dlgReason.value = ''; rejectVisible.value = true; }
-function handleCancel(b) { dlgBookingId.value = b.id; dlgReason.value = ''; cancelVisible.value = true; }
+function handleReject(b) { dlgBookingId.value = b.id; dlgReason.value = ''; dlgCustomReason.value = ''; rejectVisible.value = true; }
+function handleCancel(b) { dlgBookingId.value = b.id; dlgReason.value = ''; dlgCustomReason.value = ''; cancelVisible.value = true; }
+
+function getFinalReason() {
+  return dlgReason.value === 'Khác' ? dlgCustomReason.value.trim() : dlgReason.value;
+}
 
 async function doApprove() {
   dlgLoading.value = true;
@@ -237,15 +249,15 @@ async function doApprove() {
 }
 
 async function doReject() {
-  if (!dlgReason.value) return; dlgLoading.value = true;
-  try { await appointmentService.updateBookingStatus(dlgBookingId.value, 'CANCELLED_BY_POSTER', dlgReason.value); rejectVisible.value = false; toast(true, 'Đã từ chối lịch hẹn'); await fetchBookings(); }
+  if (!canSubmitReason.value) return; dlgLoading.value = true;
+  try { await appointmentService.updateBookingStatus(dlgBookingId.value, 'CANCELLED_BY_POSTER', getFinalReason()); rejectVisible.value = false; toast(true, 'Đã từ chối lịch hẹn'); await fetchBookings(); }
   catch (e) { rejectVisible.value = false; toast(false, 'Thất bại', e.response?.data?.message || 'Có lỗi xảy ra.'); }
   finally { dlgLoading.value = false; }
 }
 
 async function doCancel() {
-  if (!dlgReason.value) return; dlgLoading.value = true;
-  try { await appointmentService.cancelBooking(dlgBookingId.value, dlgReason.value); cancelVisible.value = false; toast(true, 'Đã hủy lịch hẹn'); await fetchBookings(); }
+  if (!canSubmitReason.value) return; dlgLoading.value = true;
+  try { await appointmentService.cancelBooking(dlgBookingId.value, getFinalReason()); cancelVisible.value = false; toast(true, 'Đã hủy lịch hẹn'); await fetchBookings(); }
   catch (e) { cancelVisible.value = false; toast(false, 'Thất bại', e.response?.data?.message || 'Có lỗi xảy ra.'); }
   finally { dlgLoading.value = false; }
 }
@@ -269,6 +281,8 @@ onMounted(() => { fetchBookings(); });
 .dlg-desc { font-size: 13.5px; color: #64748b; margin: 0 0 18px; }
 .dlg-select { width: 100%; padding: 11px 36px 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 13.5px; color: #475569; outline: none; cursor: pointer; appearance: none; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center; transition: border-color 0.2s; margin-bottom: 18px; }
 .dlg-select:focus { border-color: #0ea5e9; }
+.dlg-textarea { width: 100%; padding: 11px 12px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: 13.5px; color: #475569; outline: none; resize: vertical; min-height: 76px; margin: -6px 0 18px; transition: border-color 0.2s; }
+.dlg-textarea:focus { border-color: #0ea5e9; }
 .dlg-btns { display: flex; gap: 12px; }
 .btn-outline { flex: 1; padding: 11px; border-radius: 12px; border: 2px solid #0ea5e9; background: #fff; color: #0ea5e9; font-size: 14px; font-weight: 700; cursor: pointer; transition: 0.2s; }
 .btn-outline:hover { background: #f0f9ff; }

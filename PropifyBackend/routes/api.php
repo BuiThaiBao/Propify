@@ -193,4 +193,5 @@ Route::prefix('v1/packages')->as('packages.')->middleware('auth:api')->group(fun
 // ==================== ADMIN ROUTES ====================
 Route::prefix('v1/admin')->as('admin.')->middleware('auth:api')->group(function () {
     Route::get('/listings', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'index'])->name('listings.index');
+    Route::patch('/listings/{id}/status', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'changeStatus'])->name('listings.change-status');
 });
