@@ -45,83 +45,72 @@
       </div>
     </div>
 
-    <form v-if="packageLoaded" @submit.prevent="handleSubmit" class="space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <Card v-if="packageLoaded" class="overflow-hidden">
+      <form @submit.prevent="handleSubmit">
         
-        <!-- Cấu hình cơ bản -->
-        <Card>
-          <CardHeader>Cấu hình cơ bản</CardHeader>
-          <CardBody class="space-y-4">
-            <div class="mb-4">
-              <Input
-                v-model="form.name"
-                label="Tên gói"
-                required
-                placeholder="Ví dụ: Gói Cơ bản"
-                :error="errors.name"
-              />
-            </div>
-
+        <!-- Section 1: Thông tin cơ bản -->
+        <div class="p-6 border-b border-gray-100">
+          <div class="mb-4">
+            <h3 class="text-lg font-bold text-gray-900">1. Thông tin cơ bản</h3>
+            <p class="text-sm text-gray-500">Tên gói và trạng thái hoạt động</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
             <Input
-              v-model.number="form.price"
-              type="number"
-              label="Giá tiền (VNĐ)"
+              v-model="form.name"
+              label="Tên gói"
               required
-              min="0"
-              placeholder="0"
-              :error="errors.price"
+              placeholder="Ví dụ: Gói Cơ bản"
+              :error="errors.name"
             />
-
-            <Input
-              v-model.number="form.daily_quota"
-              type="number"
-              label="Số lượt hiển thị/ngày (Daily Quota)"
-              required
-              min="0"
-              placeholder="100"
-              :error="errors.daily_quota"
-            />
-
-            <div class="flex items-center mt-4">
+            <div class="flex items-center mt-7 p-3 bg-gray-50 rounded-lg border border-gray-100">
               <input
                 id="is_active"
                 v-model="form.is_active"
                 type="checkbox"
                 class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
-              <label for="is_active" class="ml-2 block text-sm text-gray-900">
-                Kích hoạt (Cho phép người dùng mua)
+              <label for="is_active" class="ml-2 block text-sm font-medium text-gray-900">
+                Kích hoạt gói tin (Cho phép người dùng mua)
               </label>
             </div>
-          </CardBody>
-        </Card>
+          </div>
+        </div>
 
-        <!-- Ranking & UI -->
-        <Card>
-          <CardHeader>Ranking & Giao diện</CardHeader>
-          <CardBody class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <Input
-                v-model.number="form.priority"
-                type="number"
-                label="Độ ưu tiên"
-                required
-                min="1"
-                placeholder="1 (thấp), 3 (cao)"
-                :error="errors.priority"
-              />
-              <Input
-                v-model.number="form.multiplier"
-                type="number"
-                step="0.1"
-                label="Hệ số điểm (Multiplier)"
-                required
-                min="1"
-                placeholder="1.0"
-                :error="errors.multiplier"
-              />
-            </div>
-
+        <!-- Section 2: Thông số kỹ thuật & Xếp hạng -->
+        <div class="p-6 border-b border-gray-100 bg-gray-50/30">
+          <div class="mb-4">
+            <h3 class="text-lg font-bold text-gray-900">2. Thông số phân phối & Xếp hạng</h3>
+            <p class="text-sm text-gray-500">Quyết định mức độ ưu tiên hiển thị và đặc quyền của gói</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Input
+              v-model.number="form.daily_quota"
+              type="number"
+              label="Lượt hiển thị/ngày (Quota)"
+              required
+              min="0"
+              placeholder="100"
+              :error="errors.daily_quota"
+            />
+            <Input
+              v-model.number="form.priority"
+              type="number"
+              label="Tầng ưu tiên (Priority)"
+              required
+              min="1"
+              placeholder="1 (thấp), 3 (cao)"
+              :error="errors.priority"
+            />
+            <Input
+              v-model.number="form.multiplier"
+              type="number"
+              step="0.1"
+              label="Hệ số điểm (Multiplier)"
+              required
+              min="1"
+              placeholder="1.0"
+              :error="errors.multiplier"
+            />
             <Input
               v-model.number="form.decay_rate"
               type="number"
@@ -133,108 +122,94 @@
               placeholder="0.05"
               :error="errors.decay_rate"
             />
-
-            <div class="grid grid-cols-2 gap-4">
-              <Input
-                v-model="form.badge"
-                label="Badge hiển thị"
-                placeholder="HOT, VIP..."
-              />
-              <Input
-                v-model="form.color"
-                label="Màu sắc (Color code)"
-                placeholder="#FFD700"
-              />
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-
-      <!-- Actions -->
-      <div class="flex justify-end pt-4 border-t border-gray-200">
-        <Button variant="outline" class="mr-3" @click="$router.push({ name: 'Packages' })">
-          Hủy bỏ
-        </Button>
-        <Button type="submit" variant="primary" :loading="loading">
-          Lưu thay đổi
-        </Button>
-      </div>
-    </form>
-
-    <!-- ═══════════════ Pricing Management ═══════════════ -->
-    <Card v-if="packageLoaded" class="mt-6">
-      <CardHeader>Bảng giá theo thời hạn</CardHeader>
-      <CardBody>
-        <p class="text-sm text-gray-500 mb-4">Thiết lập giá cho từng thời hạn sử dụng gói. Người dùng sẽ chọn thời hạn khi nâng cấp tin đăng.</p>
-
-        <!-- Existing Pricings Table -->
-        <div v-if="pricings.length" class="overflow-x-auto mb-6">
-          <table class="min-w-full divide-y divide-gray-200 text-sm">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">Thời hạn</th>
-                <th class="px-4 py-3 text-left font-semibold text-gray-600">Nhãn hiển thị</th>
-                <th class="px-4 py-3 text-right font-semibold text-gray-600">Giá (VNĐ)</th>
-                <th class="px-4 py-3 text-center font-semibold text-gray-600">Trạng thái</th>
-                <th class="px-4 py-3 text-center font-semibold text-gray-600">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-              <tr v-for="p in pricings" :key="p.id" class="hover:bg-gray-50">
-                <td class="px-4 py-3 font-medium">{{ p.duration_days }} ngày</td>
-                <td class="px-4 py-3">{{ p.label }}</td>
-                <td class="px-4 py-3 text-right font-semibold text-blue-600">{{ Number(p.price).toLocaleString('vi-VN') }}đ</td>
-                <td class="px-4 py-3 text-center">
-                  <span :class="p.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'" class="px-2 py-1 rounded-full text-xs font-medium">
-                    {{ p.is_active ? 'Hoạt động' : 'Tắt' }}
-                  </span>
-                </td>
-                <td class="px-4 py-3 text-center">
-                  <button @click="togglePricingActive(p)" class="text-xs px-2 py-1 rounded hover:bg-gray-100 mr-1" :title="p.is_active ? 'Tắt' : 'Bật'">
-                    {{ p.is_active ? '🔇 Tắt' : '🔔 Bật' }}
-                  </button>
-                  <button @click="removePricing(p)" class="text-xs px-2 py-1 rounded hover:bg-red-50 text-red-600">🗑 Xóa</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div v-else class="text-center py-6 text-gray-400 text-sm">
-          Chưa có bảng giá nào. Thêm bên dưới.
-        </div>
-
-        <!-- Add Pricing Form -->
-        <div class="border-t border-gray-200 pt-4">
-          <h4 class="text-sm font-semibold text-gray-700 mb-3">Thêm mức giá mới</h4>
-          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Số ngày</label>
-              <select v-model.number="newPricing.duration_days" class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:ring-blue-500 focus:border-blue-500 px-3 py-2">
-                <option :value="0" disabled>Chọn...</option>
-                <option v-for="d in availableDurations" :key="d" :value="d">{{ d }} ngày</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Nhãn</label>
-              <input v-model="newPricing.label" type="text" placeholder="VD: 1 tuần" class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:ring-blue-500 focus:border-blue-500 px-3 py-2" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1">Giá (VNĐ)</label>
-              <input v-model.number="newPricing.price" type="number" min="0" placeholder="50000" class="w-full rounded-lg border-gray-300 shadow-sm text-sm focus:ring-blue-500 focus:border-blue-500 px-3 py-2" />
-            </div>
-            <Button variant="primary" size="sm" @click="addPricing" :loading="pricingLoading">
-              + Thêm
-            </Button>
+            <Input
+              v-model="form.badge"
+              label="Nhãn (Badge)"
+              placeholder="HOT, VIP..."
+            />
+            <Input
+              v-model="form.color"
+              label="Mã màu (Color hex)"
+              placeholder="#FFD700"
+            />
           </div>
-          <p v-if="pricingError" class="mt-2 text-xs text-red-600">{{ pricingError }}</p>
         </div>
-      </CardBody>
+
+        <!-- Section 3: Bảng giá tự động -->
+        <div class="p-6 border-b border-gray-100">
+          <div class="mb-4">
+            <h3 class="text-lg font-bold text-gray-900">3. Cấu hình bảng giá tự động</h3>
+            <p class="text-sm text-gray-500">Nhập giá gốc 1 ngày. Nếu giá bằng 0, hệ thống sẽ coi đây là gói miễn phí.</p>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div>
+              <Input
+                v-model.number="form.price"
+                type="number"
+                label="Giá 1 ngày (VNĐ)"
+                required
+                min="0"
+                placeholder="50000"
+                :error="errors.price"
+              />
+            </div>
+            
+            <div class="bg-white border rounded-xl overflow-hidden shadow-sm">
+              <div class="px-4 py-3 bg-gray-50 border-b text-sm font-semibold text-gray-700">
+                Bảng giá hệ thống hiện tại
+              </div>
+              <table class="min-w-full divide-y divide-gray-200 text-sm">
+                <thead class="bg-white">
+                  <tr>
+                    <th class="px-4 py-3 text-left font-medium text-gray-500">Thời hạn sử dụng</th>
+                    <th class="px-4 py-3 text-right font-medium text-gray-500">Thành tiền (VNĐ)</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                  <tr v-for="days in [3, 5, 7, 10, 15, 30]" :key="days" class="hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 font-medium text-gray-800">
+                      <div class="flex items-center gap-3">
+                        <input 
+                          type="checkbox" 
+                          :id="'duration-' + days"
+                          v-model="form.active_durations" 
+                          :value="days"
+                          class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                        <label :for="'duration-' + days" class="cursor-pointer">{{ days }} ngày</label>
+                      </div>
+                    </td>
+                    <td class="px-4 py-3 text-right font-bold" :class="form.active_durations.includes(days) ? 'text-blue-600' : 'text-gray-300 italic'">
+                      <template v-if="form.active_durations.includes(days)">
+                        {{ Number((form.price || 0) * days).toLocaleString('vi-VN') }} ₫
+                      </template>
+                      <template v-else>
+                        Tạm tắt
+                      </template>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="px-6 py-4 bg-gray-50 flex items-center justify-end gap-3 rounded-b-lg">
+          <Button variant="outline" type="button" @click="$router.push({ name: 'Packages' })">
+            Hủy bỏ
+          </Button>
+          <Button type="submit" variant="primary" :loading="loading">
+            Lưu thay đổi
+          </Button>
+        </div>
+      </form>
     </Card>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { usePackageApi } from '@/composables/usePackageApi'
 
@@ -248,41 +223,26 @@ const router = useRouter()
 const route = useRoute()
 const packageId = route.params.id
 
-const { fetchPackage, updatePackage, fetchPricings, createPricing, updatePricing: updatePricingApi, deletePricing: deletePricingApi, loading, error: apiError } = usePackageApi()
+const { fetchPackage, updatePackage, loading, error: apiError } = usePackageApi()
 
 const success = ref(false)
 const fetchError = ref('')
 const packageLoaded = ref(false)
 
-// ── Pricing state ──────────────────────────────────────────────────────
-const pricings = ref([])
-const pricingLoading = ref(false)
-const pricingError = ref('')
-const ALL_DURATIONS = [3, 7, 10, 15, 30]
-
-const newPricing = reactive({
-  duration_days: 0,
-  label: '',
-  price: 0,
-})
-
-import { computed } from 'vue'
-const availableDurations = computed(() => {
-  const used = pricings.value.map(p => p.duration_days)
-  return ALL_DURATIONS.filter(d => !used.includes(d))
-})
-
 const form = reactive({
   name: '',
-  price: 0,
   priority: 1,
   multiplier: 1.0,
   daily_quota: 100,
   decay_rate: 0.05,
   badge: '',
   color: '',
-  is_active: true
+  price: 50000,
+  is_active: true,
+  active_durations: [3, 7, 10, 15, 30]
 })
+
+// Removed is_paid watcher
 
 const errors = reactive({})
 
@@ -292,75 +252,28 @@ onMounted(async () => {
     if (res?.data) {
       const data = res.data
       form.name = data.name
-      form.price = Number(data.price)
       form.priority = Number(data.priority)
       form.multiplier = Number(data.multiplier)
       form.daily_quota = Number(data.daily_quota)
       form.decay_rate = Number(data.decay_rate)
       form.badge = data.badge || ''
       form.color = data.color || ''
+      form.price = Number(data.price || 0)
       form.is_active = Boolean(data.is_active)
+      
+      // Load active durations from pricings
+      if (data.pricings) {
+        form.active_durations = data.pricings
+          .filter(p => p.is_active)
+          .map(p => Number(p.duration_days))
+      }
+      
       packageLoaded.value = true
     }
   } catch (e) {
     fetchError.value = e.response?.data?.message || 'Không thể lấy thông tin gói tin'
   }
-
-  // Load pricings
-  await loadPricings()
 })
-
-async function loadPricings() {
-  try {
-    const res = await fetchPricings(packageId)
-    pricings.value = res?.data || []
-  } catch (e) {
-    console.error('Failed to load pricings', e)
-  }
-}
-
-async function addPricing() {
-  pricingError.value = ''
-  if (!newPricing.duration_days) { pricingError.value = 'Chọn số ngày'; return }
-  if (!newPricing.label) { pricingError.value = 'Nhập nhãn hiển thị'; return }
-  if (newPricing.price <= 0) { pricingError.value = 'Giá phải lớn hơn 0'; return }
-
-  pricingLoading.value = true
-  try {
-    await createPricing(packageId, {
-      duration_days: newPricing.duration_days,
-      label: newPricing.label,
-      price: newPricing.price,
-    })
-    newPricing.duration_days = 0
-    newPricing.label = ''
-    newPricing.price = 0
-    await loadPricings()
-  } catch (e) {
-    pricingError.value = e.response?.data?.message || 'Lỗi khi thêm'
-  } finally {
-    pricingLoading.value = false
-  }
-}
-
-async function togglePricingActive(p) {
-  try {
-    await updatePricingApi(packageId, p.id, { is_active: !p.is_active })
-    await loadPricings()
-  } catch (e) {
-    pricingError.value = e.response?.data?.message || 'Lỗi'
-  }
-}
-
-async function removePricing(p) {
-  if (!confirm(`Xóa pricing ${p.label}?`)) return
-  try {
-    await deletePricingApi(packageId, p.id)
-    await loadPricings()
-  } catch (e) {
-    pricingError.value = e.response?.data?.message || 'Lỗi'
-  }
-}
 
 const validate = () => {
   let isValid = true
@@ -368,11 +281,6 @@ const validate = () => {
 
   if (!form.name) {
     errors.name = 'Vui lòng nhập tên gói'
-    isValid = false
-  }
-
-  if (form.price === '' || form.price < 0) {
-    errors.price = 'Giá tiền không hợp lệ'
     isValid = false
   }
 
@@ -396,6 +304,11 @@ const validate = () => {
     isValid = false
   }
 
+  if (form.price < 0) {
+    errors.price = 'Giá không thể âm'
+    isValid = false
+  }
+
   return isValid
 }
 
@@ -407,14 +320,15 @@ const handleSubmit = async () => {
   try {
     await updatePackage(packageId, {
       name: form.name,
-      price: Number(form.price),
       priority: Number(form.priority),
       multiplier: Number(form.multiplier),
       daily_quota: Number(form.daily_quota),
       decay_rate: Number(form.decay_rate),
+      price: Number(form.price),
       badge: form.badge || null,
       color: form.color || null,
-      is_active: Boolean(form.is_active)
+      is_active: Boolean(form.is_active),
+      active_durations: form.active_durations
     })
     
     success.value = true
