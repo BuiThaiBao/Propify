@@ -11,7 +11,11 @@
     </div>
 
     <div class="mx-auto w-full max-w-[1240px] px-4 lg:px-6">
-      <p class="text-xs text-slate-500">Trang chủ &gt; {{ isEditMode ? 'Chỉnh sửa tin' : 'Đăng tin' }}</p>
+      <p class="text-xs text-slate-500">
+        <router-link to="/" class="hover:text-sky-600 hover:underline">Trang chủ</router-link>
+        <span> &gt; </span>
+        <span>{{ isEditMode ? 'Chỉnh sửa tin' : 'Đăng tin' }}</span>
+      </p>
       <h1 class="mt-2 text-[24px] font-extrabold tracking-tight text-slate-900">{{ isEditMode ? 'Chỉnh sửa tin đăng' : 'Đăng tin bất động sản' }}</h1>
 
       <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,760px)_330px] lg:justify-center">
@@ -19,7 +23,7 @@
         <section class="section-card">
           <header class="section-title">
             <img :src="uploadImageIcon" alt="upload" class="h-5 w-5" />
-            <h2 class="required">Hình ảnh, Video</h2>
+            <h2>Hình ảnh, Video</h2>
           </header>
           <p class="section-subtitle"><img :src="uploadImageIcon" alt="upload" class="inline h-3.5 w-3.5 align-[-2px]" /> Tải ảnh và video từ máy tính</p>
 
@@ -84,7 +88,7 @@
 
           <label class="mt-3 block">
             <span class="field-label required">Tiêu đề</span>
-            <input v-model="form.title" :class="['input mt-1', fieldError('title') && 'input-error']" maxlength="120" placeholder="Nhập tiêu đề" @blur="touchField('title')" />
+            <input v-model="form.title" :class="['input mt-1', fieldError('title') && 'input-error']" maxlength="120" placeholder="Nhập tiêu đề" @blur="handleTextBlur('title')" />
             <p v-if="fieldError('title')" class="field-error">{{ fieldErrorMessage('title') }}</p>
             <p class="mt-1 text-right text-[12px] text-slate-400">{{ titleCount }}/120 ký tự</p>
           </label>
@@ -100,7 +104,7 @@
 
           <label class="mt-3 block">
             <span class="field-label required">Mô tả</span>
-            <textarea v-model="form.description" :class="['input mt-1 min-h-[140px]', fieldError('description') && 'input-error']" maxlength="5000" placeholder="VD: Giới thiệu các đặc điểm nổi bật của bất động sản:&#10;- Các tiện ích xung quanh: gần công viên, gần trường học&#10;- Thời gian đến khu vực trung tâm, tiện ích xung quanh" @blur="touchField('description')"></textarea>
+            <textarea v-model="form.description" :class="['input mt-1 min-h-[140px]', fieldError('description') && 'input-error']" maxlength="5000" placeholder="VD: Giới thiệu các đặc điểm nổi bật của bất động sản:&#10;- Các tiện ích xung quanh: gần công viên, gần trường học&#10;- Thời gian đến khu vực trung tâm, tiện ích xung quanh" @blur="handleTextBlur('description', true)"></textarea>
             <p v-if="fieldError('description')" class="field-error">{{ fieldErrorMessage('description') }}</p>
             <p class="mt-1 text-right text-[12px] text-slate-400">{{ descriptionCount }}/5000</p>
           </label>
@@ -117,12 +121,12 @@
             </label>
             <label>
               <span class="field-label">Giấy tờ pháp lý</span>
-              <button type="button" class="input mt-1 legal-trigger" @click="toggleLegalDropdown">
+              <button type="button" class="input mt-1 legal-trigger" @click="toggleLegalDropdown" ref="legalTriggerRef">
                 <span v-if="!form.legalPaperTypes.length" class="text-slate-400">Chọn giấy tờ pháp lý</span>
                 <span v-else class="legal-selected-text">{{ selectedLegalPaperLabels }}</span>
-                <span class="text-slate-500">▾</span>
+                <span class="dropdown-arrow-icon">▾</span>
               </button>
-              <div v-if="showLegalDropdown" class="legal-dropdown mt-2">
+              <div v-if="showLegalDropdown" class="legal-dropdown mt-2" ref="legalDropdownRef">
                 <label v-for="option in legalPaperOptions" :key="option.value" class="legal-option">
                   <span>{{ option.label }}</span>
                   <input type="checkbox" :checked="form.legalPaperTypes.includes(option.value)" @change="toggleLegalPaper(option.value)" />
@@ -150,6 +154,41 @@
           <div class="mt-3 flex items-center gap-2">
             <input id="is-negotiable-info" v-model="form.isNegotiable" type="checkbox" class="h-4 w-4 rounded border-slate-300" />
             <label for="is-negotiable-info" class="text-[14px] text-slate-500">Giá Thương lượng</label>
+          </div>
+
+          <div v-if="form.demandType === 'RENT'" class="mt-3 space-y-3">
+            <div>
+              <p class="field-label">Thời gian thuê tối thiểu</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button type="button" :class="pillClass(form.rentMinTerm === '1_month')" @click="form.rentMinTerm = '1_month'">1 tháng</button>
+                <button type="button" :class="pillClass(form.rentMinTerm === '3_months')" @click="form.rentMinTerm = '3_months'">3 tháng</button>
+                <button type="button" :class="pillClass(form.rentMinTerm === '6_months')" @click="form.rentMinTerm = '6_months'">6 tháng</button>
+                <button type="button" :class="pillClass(form.rentMinTerm === '1_year')" @click="form.rentMinTerm = '1_year'">1 năm</button>
+              </div>
+              <p v-if="fieldError('rentMinTerm')" class="field-error mt-2">{{ fieldErrorMessage('rentMinTerm') }}</p>
+            </div>
+
+            <div>
+              <p class="field-label">Kỳ thanh toán</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button type="button" :class="pillClass(form.rentPaymentInterval === 'monthly')" @click="form.rentPaymentInterval = 'monthly'">1 tháng/lần</button>
+                <button type="button" :class="pillClass(form.rentPaymentInterval === 'quarter')" @click="form.rentPaymentInterval = 'quarter'">3 tháng/lần</button>
+                <button type="button" :class="pillClass(form.rentPaymentInterval === 'half_year')" @click="form.rentPaymentInterval = 'half_year'">6 tháng/lần</button>
+                <button type="button" :class="pillClass(form.rentPaymentInterval === 'yearly')" @click="form.rentPaymentInterval = 'yearly'">1 năm/lần</button>
+              </div>
+              <p v-if="fieldError('rentPaymentInterval')" class="field-error mt-2">{{ fieldErrorMessage('rentPaymentInterval') }}</p>
+            </div>
+
+            <div>
+              <p class="field-label">Đặt cọc</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button type="button" :class="pillClass(form.rentDeposit === 'none')" @click="form.rentDeposit = 'none'">Không</button>
+                <button type="button" :class="pillClass(form.rentDeposit === '1_month')" @click="form.rentDeposit = '1_month'">1 tháng</button>
+                <button type="button" :class="pillClass(form.rentDeposit === '3_months')" @click="form.rentDeposit = '3_months'">3 tháng</button>
+                <button type="button" :class="pillClass(form.rentDeposit === '6_months')" @click="form.rentDeposit = '6_months'">6 tháng</button>
+                <button type="button" :class="pillClass(form.rentDeposit === '1_year')" @click="form.rentDeposit = '1_year'">1 năm</button>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -202,11 +241,11 @@
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
               <span class="field-label">Đường / Phố</span>
-              <input v-model="form.streetCode" class="input mt-1" placeholder="Nhập đường/phố" />
+              <input v-model="form.streetCode" class="input mt-1" placeholder="Nhập đường/phố" @blur="handleTextBlur('streetCode')" />
             </label>
             <label>
               <span class="field-label">Địa chỉ cụ thể</span>
-              <input v-model="form.addressDetail" class="input mt-1" inputmode="text" autocomplete="off" placeholder="Nhập địa chỉ" />
+              <input v-model="form.addressDetail" class="input mt-1" inputmode="text" autocomplete="off" placeholder="Nhập địa chỉ" @blur="handleTextBlur('addressDetail')" />
             </label>
           </div>
 
@@ -280,7 +319,7 @@
             <button type="button" class="more-info-toggle" @click="showMoreDetail = !showMoreDetail">
               <span class="field-label">Thêm thông tin</span>
               <span class="more-info-badge">Điền đủ thông tin, tăng lượt tiếp cận</span>
-              <span class="more-info-arrow" :class="{ open: showMoreDetail }">⌄</span>
+              <span class="dropdown-arrow-icon">▾</span>
             </button>
           </div>
 
@@ -288,17 +327,11 @@
             <div class="grid gap-4 md:grid-cols-2">
               <label>
                 <span class="field-label">Tầng thứ</span>
-                <div class="unit-input mt-2">
-                  <input v-model="form.floorNumber" class="input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floorNumber', false)" />
-                  <span class="unit-label">m</span>
-                </div>
+                <input v-model="form.floorNumber" class="input mt-2" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floorNumber', false)" />
               </label>
               <label>
                 <span class="field-label">Số tầng</span>
-                <div class="unit-input mt-2">
-                  <input v-model="form.floors" class="input" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floors', false)" />
-                  <span class="unit-label">m</span>
-                </div>
+                <input v-model="form.floors" class="input mt-2" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floors', false)" />
               </label>
             </div>
 
@@ -340,13 +373,14 @@
             </div>
           </div>
 
-          <div class="mt-4">
+            <div class="mt-4">
             <p class="field-label">Nội thất</p>
             <div class="mt-2 flex items-center gap-2">
               <button type="button" :class="pillClass(form.furnitureStatus === 'FULL')" @click="setFurnitureStatus('FULL')">Có</button>
               <button type="button" :class="pillClass(form.furnitureStatus === 'NONE')" @click="setFurnitureStatus('NONE')">Không</button>
             </div>
-          </div>
+
+            </div>
 
           <div class="mt-4">
             <p class="field-label">Tiện ích</p>
@@ -381,7 +415,7 @@
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
               <span class="field-label required">Họ và tên</span>
-              <input v-model="form.contactName" :class="['input mt-1', fieldError('contactName') && 'input-error']" placeholder="Nhập họ tên" @blur="touchField('contactName')" />
+              <input v-model="form.contactName" :class="['input mt-1', fieldError('contactName') && 'input-error']" placeholder="Nhập họ tên" @blur="handleTextBlur('contactName')" />
               <p v-if="fieldError('contactName')" class="field-error">{{ fieldErrorMessage('contactName') }}</p>
             </label>
             <label>
@@ -393,12 +427,11 @@
 
           <label class="mt-3 block">
             <span class="field-label required">Email</span>
-            <input v-model="form.contactEmail" :class="['input mt-1', fieldError('contactEmail') && 'input-error']" type="email" placeholder="vd_email@gmail.com" @blur="touchField('contactEmail')" />
+            <input v-model="form.contactEmail" :class="['input mt-1', fieldError('contactEmail') && 'input-error']" type="email" placeholder="vd_email@gmail.com" @blur="handleTextBlur('contactEmail')" />
             <p v-if="fieldError('contactEmail')" class="field-error">{{ fieldErrorMessage('contactEmail') }}</p>
           </label>
         </section>
-
-        <AppointmentSlotsForm ref="appointmentForm" />
+          <AppointmentSlotsForm ref="appointmentForm" />
 
         <section class="section-card">
           <button type="button" class="appointment-header" @click="showVerificationSection = !showVerificationSection">
@@ -406,7 +439,7 @@
               <img :src="homeImageIcon" alt="verify" class="h-5 w-5" />
               <h2>Xác thực bất động sản</h2>
             </span>
-            <span class="chevron" :class="{ open: showVerificationSection }">⌃</span>
+            <span class="dropdown-arrow-icon">▾</span>
           </button>
 
           <div v-if="showVerificationSection" class="mt-4 space-y-4">
@@ -459,6 +492,21 @@
                 <span class="upload-pill mt-2">Chọn tệp ảnh</span>
                 <input class="hidden" type="file" multiple accept="image/*" @change="onLegalDocumentsChange" />
               </label>
+              <div v-if="legalDocumentPreviews.length" class="mt-3">
+                <p class="text-xs font-semibold text-slate-700">Ảnh giấy tờ pháp lý ({{ legalDocumentPreviews.length }})</p>
+                <div class="preview-grid mt-2">
+                  <figure v-for="(preview, idx) in legalDocumentPreviews" :key="preview.url" class="preview-card group">
+                    <img :src="preview.url" :alt="preview.name" class="preview-image" />
+                    <button
+                      type="button"
+                      class="absolute right-1 top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-600"
+                      title="Xóa ảnh"
+                      @click="removeLegalDocument(idx)"
+                    >✕</button>
+                    <figcaption class="preview-name" :title="preview.name">{{ preview.name }}</figcaption>
+                  </figure>
+                </div>
+              </div>
               <p v-if="verificationUploadError" class="field-error mt-2">{{ verificationUploadError }}</p>
             </div>
 
@@ -497,15 +545,6 @@
 
       <aside class="hidden lg:block">
         <div class="sticky top-24 space-y-4">
-          <div class="rounded-2xl border border-slate-200 bg-white p-4">
-            <div class="flex items-center gap-2 text-sm font-medium text-slate-700">
-              <span class="step-dot active">1</span>
-              <span>Điền thông tin</span>
-              <span class="mx-2 h-px flex-1 bg-slate-200"></span>
-              <span class="step-dot">2</span>
-              <span class="text-slate-400">Cấu hình tin đăng</span>
-            </div>
-          </div>
 
           <div class="rounded-2xl border border-slate-200 bg-white p-4">
             <p class="text-[28px] font-extrabold leading-none text-slate-300">{{ totalScore.toFixed(1) }}</p>
@@ -522,36 +561,117 @@
                   <span class="circle" :class="{ done: mediaDone }"></span>
                   <span>Hình ảnh và video</span>
                 </div>
-                <p class="score-value">{{ mediaDone ? '4/4đ' : '0/4đ' }}</p>
+                <div class="score-value-wrap">
+                  <p class="score-value">{{ mediaPoints }}/4đ</p>
+                  <button
+                    type="button"
+                    class="score-row-toggle"
+                    @click="mediaCollapsed = !mediaCollapsed"
+                    :aria-label="mediaCollapsed ? 'Mở rộng danh sách ảnh và video' : 'Thu gọn danh sách ảnh và video'"
+                  >
+                    <span class="score-row-toggle-icon" :class="{ collapsed: mediaCollapsed }">▾</span>
+                  </button>
+                </div>
               </div>
-              <p class="score-sub">Hoàn thiện {{ mediaDone ? '100%' : '0%' }}</p>
+              <p class="score-sub">Hoàn thiện {{ mediaPercent }}%</p>
+
+              <div v-if="!mediaCollapsed" class="mt-2 ml-3">
+                <div class="flex items-center justify-between text-sm">
+                  <div :class="imageCount > 0 ? 'text-emerald-600' : ''">• Hình ảnh</div>
+                  <div v-if="imageCount > 0" class="text-emerald-600">✓</div>
+                </div>
+                <div class="flex items-center justify-between text-sm mt-1">
+                  <div :class="videoPresent ? 'text-emerald-600' : ''">• Video</div>
+                  <div v-if="videoPresent" class="text-emerald-600">✓</div>
+                </div>
+              </div>
 
               <div class="score-row">
                 <div class="score-label">
                   <span class="circle" :class="{ done: infoDone }"></span>
                   <span>Thông tin BĐS</span>
                 </div>
-                <p class="score-value">{{ infoPoints }}/2đ</p>
+                <div class="score-value-wrap">
+                  <p class="score-value">{{ formatScorePoint(infoPoints) }}/2đ</p>
+                  <button
+                    type="button"
+                    class="score-row-toggle"
+                    @click="infoCollapsed = !infoCollapsed"
+                    :aria-label="infoCollapsed ? 'Mở rộng danh sách thông tin bất động sản' : 'Thu gọn danh sách thông tin bất động sản'"
+                  >
+                    <span class="score-row-toggle-icon" :class="{ collapsed: infoCollapsed }">▾</span>
+                  </button>
+                </div>
               </div>
               <p class="score-sub">Hoàn thiện {{ infoPercent }}%</p>
+              <div v-if="!infoCollapsed" class="mt-2 ml-3">
+                <div
+                  v-for="item in infoChecklist"
+                  :key="`info-${item.label}`"
+                  class="flex items-center justify-between text-sm mt-1"
+                >
+                  <div :class="item.done ? 'text-emerald-600' : ''">• {{ item.label }}</div>
+                  <div v-if="item.done" class="text-emerald-600">✓</div>
+                </div>
+              </div>
 
               <div class="score-row">
                 <div class="score-label">
                   <span class="circle" :class="{ done: detailDone }"></span>
                   <span>Chi tiết BĐS</span>
                 </div>
-                <p class="score-value">{{ detailPoints }}/3đ</p>
+                <div class="score-value-wrap">
+                  <p class="score-value">{{ formatScorePoint(detailPoints) }}/3đ</p>
+                  <button
+                    type="button"
+                    class="score-row-toggle"
+                    @click="detailCollapsed = !detailCollapsed"
+                    :aria-label="detailCollapsed ? 'Mở rộng danh sách chi tiết bất động sản' : 'Thu gọn danh sách chi tiết bất động sản'"
+                  >
+                    <span class="score-row-toggle-icon" :class="{ collapsed: detailCollapsed }">▾</span>
+                  </button>
+                </div>
               </div>
               <p class="score-sub">Hoàn thiện {{ detailPercent }}%</p>
+              <div v-if="!detailCollapsed" class="mt-2 ml-3">
+                <div
+                  v-for="item in detailChecklist"
+                  :key="`detail-${item.label}`"
+                  class="flex items-center justify-between text-sm mt-1"
+                >
+                  <div :class="item.done ? 'text-emerald-600' : ''">• {{ item.label }}</div>
+                  <div v-if="item.done" class="text-emerald-600">✓</div>
+                </div>
+              </div>
 
               <div class="score-row">
                 <div class="score-label">
                   <span class="circle" :class="{ done: contactDone }"></span>
                   <span>Thông tin liên hệ</span>
                 </div>
-                <p class="score-value" :class="contactDone ? 'text-emerald-600' : ''">{{ contactPoints }}/1đ</p>
+                <div class="score-value-wrap">
+                  <p class="score-value" :class="contactDone ? 'text-emerald-600' : ''">{{ formatScorePoint(contactPoints) }}/1đ</p>
+                  <button
+                    type="button"
+                    class="score-row-toggle"
+                    @click="contactCollapsed = !contactCollapsed"
+                    :aria-label="contactCollapsed ? 'Mở rộng danh sách thông tin liên hệ' : 'Thu gọn danh sách thông tin liên hệ'"
+                  >
+                    <span class="score-row-toggle-icon" :class="{ collapsed: contactCollapsed }">▾</span>
+                  </button>
+                </div>
               </div>
               <p class="score-sub">Hoàn thiện {{ contactPercent }}%</p>
+              <div v-if="!contactCollapsed" class="mt-2 ml-3">
+                <div
+                  v-for="item in contactChecklist"
+                  :key="`contact-${item.label}`"
+                  class="flex items-center justify-between text-sm mt-1"
+                >
+                  <div :class="item.done ? 'text-emerald-600' : ''">• {{ item.label }}</div>
+                  <div v-if="item.done" class="text-emerald-600">✓</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -569,6 +689,7 @@ import listingService from "@/services/listingService";
 import cloudinaryService from "@/services/cloudinaryService";
 import { useRoute, useRouter } from "vue-router";
 import AppointmentSlotsForm from "@/components/AppointmentSlotsForm.vue";
+
 import uploadImageIcon from "@/assets/images/listing/postlisting/uploadImage.png";
 import locationImageIcon from "@/assets/images/listing/postlisting/locationImage.png";
 import informationImageIcon from "@/assets/images/listing/postlisting/information.png";
@@ -682,6 +803,10 @@ function createInitialState() {
     identityCardFront: null,
     identityCardBack: null,
     legalDocuments: [],
+    // Rental-specific fields
+    rentMinTerm: '',
+    rentPaymentInterval: '',
+    rentDeposit: '',
   };
 }
 
@@ -710,16 +835,23 @@ const locationLoadError = ref("");
 const imagePreviews = ref([]);
 const frontCardPreviewUrl = ref("");
 const backCardPreviewUrl = ref("");
+const legalDocumentPreviews = ref([]);
 const showLegalDropdown = ref(false);
 const showMoreDetail = ref(true);
 const selectedAmenities = ref([]);
 const showVerificationSection = ref(true);
 const publicInfoAgreed = ref(false);
 const appointmentForm = ref(null);
+const pendingAppointmentRows = ref(null);
+const existingAppointmentSlotIds = ref([]);
 const imageUploadError = ref("");
 const videoUploadError = ref("");
 const verificationUploadError = ref("");
 const videoPreviewName = ref("");
+const mediaCollapsed = ref(false);
+const infoCollapsed = ref(false);
+const detailCollapsed = ref(false);
+const contactCollapsed = ref(false);
 
 const toasts = ref([]);
 let toastIdCounter = 1;
@@ -732,29 +864,67 @@ function pushToast(message, type = "info", duration = 2500) {
   }, duration);
 }
 
-const mediaDone = computed(() => form.images.length > 0);
-const infoFieldCount = computed(() => {
-  let count = 0;
-  if (form.title.trim()) count++;
-  if (form.description.trim().length >= 20) count++;
-  if (form.propertyType.trim()) count++;
-  if (form.provinceCode.trim()) count++;
-  return count;
-});
-const infoPercent = computed(() => Math.round((infoFieldCount.value / 4) * 100));
-const infoPoints = computed(() => (infoPercent.value >= 80 ? 2 : infoPercent.value >= 40 ? 1 : 0));
-const infoDone = computed(() => infoPoints.value === 2);
+const imageCount = computed(() => Array.isArray(form.images) ? form.images.length : 0);
+const videoPresent = computed(() => Boolean(form.video));
 
-const detailFieldCount = computed(() => {
-  let count = 0;
-  if (Number(form.area) > 0) count++;
-  if (form.isNegotiable || Number(form.price) > 0) count++;
-  if (Number(form.bedrooms) >= 0 && Number(form.bathrooms) >= 0 && (form.bedrooms !== "" || form.bathrooms !== "")) count++;
-  return count;
+// Image points: 0 -> 0, 1 -> 1, 2-3 -> 1, >=4 -> 2
+const imagePoints = computed(() => {
+  const c = imageCount.value || 0;
+  if (c === 0) return 0;
+  if (c === 1) return 1;
+  if (c >= 2 && c < 4) return 1;
+  return 2;
 });
-const detailPercent = computed(() => Math.round((detailFieldCount.value / 3) * 100));
-const detailPoints = computed(() => detailFieldCount.value);
-const detailDone = computed(() => detailFieldCount.value === 3);
+
+// Video gives 2 points if present
+const videoPoints = computed(() => (videoPresent.value ? 2 : 0));
+
+const mediaPoints = computed(() => Math.min(imagePoints.value + videoPoints.value, 4));
+const mediaPercent = computed(() => Math.round((mediaPoints.value / 4) * 100));
+const mediaDone = computed(() => mediaPoints.value === 4);
+
+const infoChecklist = computed(() => [
+  { label: 'Nhu cầu', done: Boolean(form.demandType) },
+  { label: 'Tiêu đề', done: Boolean(form.title?.trim()) },
+  { label: 'Mô tả', done: Boolean(form.description?.trim()) },
+  { label: 'Loại nhà đất', done: Boolean(form.propertyType?.trim()) },
+  { label: 'Giấy tờ pháp lý', done: Array.isArray(form.legalPaperTypes) && form.legalPaperTypes.length > 0 },
+  { label: 'Diện tích', done: Number(form.area) > 0 },
+  { label: form.demandType === 'RENT' ? 'Giá thuê' : 'Giá bán', done: form.isNegotiable || Number(form.price) > 0 },
+  { label: 'Dự án', done: Boolean(form.projectName?.trim()) },
+  { label: 'Tỉnh/thành phố', done: Boolean(form.provinceCode?.trim()) },
+  { label: 'Quận/huyện', done: Boolean(form.districtCode?.trim()) },
+  { label: 'Xã/phường', done: Boolean(form.wardCode?.trim()) },
+  { label: 'Đường/phố', done: Boolean(form.streetCode?.trim()) },
+  { label: 'Địa chỉ cụ thể', done: Boolean(form.addressDetail?.trim()) },
+]);
+
+const infoFilledCount = computed(() => infoChecklist.value.filter((item) => item.done).length);
+const infoTotalCount = computed(() => infoChecklist.value.length || 1);
+const infoPercent = computed(() => Math.round((infoFilledCount.value / infoTotalCount.value) * 100));
+const infoDone = computed(() => infoFilledCount.value === infoTotalCount.value);
+const infoPoints = computed(() => Number(((infoFilledCount.value / infoTotalCount.value) * 2).toFixed(1)));
+
+const detailChecklist = computed(() => [
+  { label: 'Số tầng', done: String(form.floors ?? '').trim() !== '' },
+  { label: 'Tầng thứ', done: String(form.floorNumber ?? '').trim() !== '' },
+  { label: 'Mặt tiền', done: String(form.facadeWidth ?? '').trim() !== '' },
+  { label: 'Chiều sâu', done: String(form.depth ?? '').trim() !== '' },
+  { label: 'Đường rộng', done: String(form.roadWidth ?? '').trim() !== '' },
+  { label: 'Số phòng ngủ', done: String(form.bedrooms ?? '').trim() !== '' },
+  { label: 'Số phòng tắm', done: String(form.bathrooms ?? '').trim() !== '' },
+  { label: 'Hướng ban công', done: Boolean(form.balconyDirectionCode) },
+  { label: 'Số ban công', done: String(form.balconies ?? '').trim() !== '' },
+  { label: 'Hướng nhà/đất', done: Boolean(form.directionCode) },
+  { label: 'Nội thất', done: Boolean(form.furnitureStatus) },
+  { label: 'Tiện ích', done: Array.isArray(selectedAmenities.value) && selectedAmenities.value.length > 0 },
+]);
+
+const detailFilledCount = computed(() => detailChecklist.value.filter((item) => item.done).length);
+const detailTotalCount = computed(() => detailChecklist.value.length || 1);
+const detailPercent = computed(() => Math.round((detailFilledCount.value / detailTotalCount.value) * 100));
+const detailPoints = computed(() => Number(((detailFilledCount.value / detailTotalCount.value) * 3).toFixed(1)));
+const detailDone = computed(() => detailFilledCount.value === detailTotalCount.value);
 
 const isContactNameValid = computed(() => {
   if (!form.contactName || !String(form.contactName).trim()) return false;
@@ -772,13 +942,25 @@ const isContactEmailValid = computed(() => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 });
 
-const contactDone = computed(() => isContactNameValid.value && isContactPhoneValid.value && isContactEmailValid.value);
-const contactPoints = computed(() => (contactDone.value ? 1 : 0));
-const contactPercent = computed(() => (contactDone.value ? 100 : 0));
+const contactChecklist = computed(() => [
+  { label: 'Đối tượng', done: Boolean(form.posterType) },
+  { label: 'Họ và tên', done: isContactNameValid.value },
+  { label: 'Số điện thoại', done: isContactPhoneValid.value },
+  { label: 'Email', done: isContactEmailValid.value },
+]);
+
+const contactFilledCount = computed(() => contactChecklist.value.filter((item) => item.done).length);
+const contactTotalCount = computed(() => contactChecklist.value.length || 1);
+const contactDone = computed(() => contactFilledCount.value === contactTotalCount.value);
+const contactPoints = computed(() => Number(((contactFilledCount.value / contactTotalCount.value) * 1).toFixed(1)));
+const contactPercent = computed(() => Math.round((contactFilledCount.value / contactTotalCount.value) * 100));
+
+function formatScorePoint(value) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
 
 const totalScore = computed(() => {
-  const media = mediaDone.value ? 4 : 0;
-  return media + infoPoints.value + detailPoints.value + contactPoints.value;
+  return mediaPoints.value + infoPoints.value + detailPoints.value + contactPoints.value;
 });
 
 const selectedLegalPaperLabels = computed(() => {
@@ -788,13 +970,44 @@ const selectedLegalPaperLabels = computed(() => {
     .join(", ");
 });
 
+// Refs for click-outside handling of the legal dropdown
+const legalTriggerRef = ref(null);
+const legalDropdownRef = ref(null);
+
+function onDocumentClick(e) {
+  if (!showLegalDropdown.value) return;
+  const triggerEl = legalTriggerRef.value;
+  const dropdownEl = legalDropdownRef.value;
+  const target = e.target;
+  if (triggerEl && triggerEl.contains && triggerEl.contains(target)) return;
+  if (dropdownEl && dropdownEl.contains && dropdownEl.contains(target)) return;
+  showLegalDropdown.value = false;
+}
+
+onMounted(() => {
+  document.addEventListener('click', onDocumentClick);
+});
+
+// If the appointment component wasn't mounted when we loaded edit data,
+// assign pending rows once the ref becomes available.
+watch(appointmentForm, (v) => {
+  if (v && pendingAppointmentRows.value) {
+    appointmentForm.value.appointmentRows = pendingAppointmentRows.value;
+    pendingAppointmentRows.value = null;
+  }
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onDocumentClick);
+});
+
 const shouldRequestVerification = computed(() => {
   return Boolean(form.identityCardFront || form.identityCardBack || (form.legalDocuments && form.legalDocuments.length));
 });
 
-const titleCount = computed(() => form.title.length);
-const descriptionCount = computed(() => form.description.length);
-const priceLabel = computed(() => (form.demandType === "RENT" ? "Giá thuê *" : "Giá bán *"));
+const titleCount = computed(() => normalizeSingleLineText(form.title).length);
+const descriptionCount = computed(() => normalizeMultilineText(form.description).length);
+const priceLabel = computed(() => (form.demandType === "RENT" ? "Giá thuê" : "Giá bán"));
 
 const currentPropertyTypeOptions = computed(() =>
   form.demandType === "RENT" ? rentPropertyTypeOptions : salePropertyTypeOptions,
@@ -842,6 +1055,7 @@ onMounted(async () => {
   await fetchProvinces();
 
   if (isEditMode.value) {
+    clearDraft(); // Xóa draft khi vào form sửa
     await loadListingForEdit();
   } else {
     loadFormFromDraft();
@@ -862,7 +1076,7 @@ async function loadListingForEdit() {
     form.propertyType = p.type || 'APARTMENT';
     form.provinceCode = p.province_code ? String(p.province_code) : '';
     form.districtCode = p.district_code ? String(p.district_code) : '';
-    form.wardCode = '';
+    form.wardCode = p.ward_code ? String(p.ward_code) : '';
     form.streetCode = p.street_code || '';
     form.projectName = p.project_name || '';
     form.addressDetail = p.address_detail || '';
@@ -889,25 +1103,52 @@ async function loadListingForEdit() {
     form.lng = p.lng ?? '';
     form.amenities = p.amenities || [];
     form.publicInfoAgreed = Boolean(p.public_info_agreed);
+    form.rentMinTerm = data.rent_min_term || '';
+    form.rentPaymentInterval = data.rent_payment_interval || '';
+    form.rentDeposit = data.rent_deposit || '';
     selectedAmenities.value = [...(p.amenities || [])];
     publicInfoAgreed.value = Boolean(p.public_info_agreed);
 
-    // Load existing appointment slots for edit form
-    if (appointmentForm.value && data.appointment_slots && Array.isArray(data.appointment_slots)) {
-      // Group slots by day_of_week
-      const groupedByDay = {};
-      data.appointment_slots.forEach(slot => {
-        if (!groupedByDay[slot.day_of_week]) {
-          groupedByDay[slot.day_of_week] = [];
+    const verificationDocuments = Array.isArray(data.verification_documents) ? data.verification_documents : [];
+    const idFrontDoc = verificationDocuments.find((doc) => doc.type === 'ID_FRONT');
+    const idBackDoc = verificationDocuments.find((doc) => doc.type === 'ID_BACK');
+    const legalDocs = verificationDocuments.filter((doc) => doc.type === 'LEGAL_DOCUMENT');
+
+    frontCardPreviewUrl.value = idFrontDoc?.url || '';
+    backCardPreviewUrl.value = idBackDoc?.url || '';
+    legalDocumentPreviews.value = legalDocs.map((doc, index) => ({
+      name: `Giấy tờ pháp lý ${index + 1}`,
+      url: doc.url,
+    }));
+    form.identityCardFront = idFrontDoc?.url || null;
+    form.identityCardBack = idBackDoc?.url || null;
+    form.legalDocuments = legalDocs.map((doc) => doc.url);
+
+    if (data.appointment_slots && Array.isArray(data.appointment_slots)) {
+      existingAppointmentSlotIds.value = data.appointment_slots.map((slot) => slot.id).filter(Boolean);
+      const groupedByTime = {};
+      data.appointment_slots.forEach((slot) => {
+        const key = `${slot.start_time}-${slot.end_time}`;
+        if (!groupedByTime[key]) {
+          groupedByTime[key] = { start_time: slot.start_time, end_time: slot.end_time, selected_days: [] };
         }
-        groupedByDay[slot.day_of_week].push({ start_time: slot.start_time, end_time: slot.end_time });
+        groupedByTime[key].selected_days.push(slot.day_of_week);
       });
-      // Convert to rows structure
-      appointmentForm.value.appointmentRows = Object.entries(groupedByDay).map(([day, times]) => ({
-        day_of_week: parseInt(day),
-        times: times,
+      const rows = Object.values(groupedByTime).map((row) => ({
+        start_time: row.start_time,
+        end_time: row.end_time,
+        selected_days: row.selected_days.sort((a, b) => a - b),
       }));
+      if (appointmentForm.value) {
+        appointmentForm.value.appointmentRows = rows;
+      } else {
+        pendingAppointmentRows.value = rows;
+      }
+    } else {
+      existingAppointmentSlotIds.value = [];
     }
+
+
 
     // Load existing images as URLs (not File objects)
     if (data.images && data.images.length > 0) {
@@ -925,7 +1166,10 @@ async function loadListingForEdit() {
       videoPreviewName.value = firstVideo?.url ? 'Video hiện tại' : '';
     }
 
-
+    // Load wards list for the selected province
+    if (form.provinceCode) {
+      await fetchWardsByProvince(form.provinceCode);
+    }
 
     // Set map marker if lat/lng exists
     if (form.lat && form.lng) {
@@ -1361,28 +1605,69 @@ function toggleLegalPaper(value) {
   form.legalPaperTypes = [...form.legalPaperTypes, value];
 }
 
-function onFrontCardChange(event) {
-  if (frontCardPreviewUrl.value) {
+async function uploadVerificationImage(file) {
+  if (!file) return null;
+  if (typeof file === 'string') return file;
+  const res = await cloudinaryService.uploadImage(file, 'listing');
+  return res.secure_url;
+}
+
+async function onFrontCardChange(event) {
+  if (frontCardPreviewUrl.value && String(frontCardPreviewUrl.value).startsWith('blob:')) {
     URL.revokeObjectURL(frontCardPreviewUrl.value);
   }
-  form.identityCardFront = event.target.files?.[0] || null;
-  frontCardPreviewUrl.value = form.identityCardFront ? URL.createObjectURL(form.identityCardFront) : "";
+  const file = event.target.files?.[0] || null;
+  if (!file) return;
+
+  const localPreviewUrl = URL.createObjectURL(file);
+  frontCardPreviewUrl.value = localPreviewUrl;
+  try {
+    pushToast('Đang tải lên hình ảnh...', 'info', 1200);
+    const uploadedUrl = await uploadVerificationImage(file);
+    form.identityCardFront = uploadedUrl;
+    if (frontCardPreviewUrl.value === localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrl);
+      frontCardPreviewUrl.value = uploadedUrl;
+    }
+  } catch (error) {
+    form.identityCardFront = null;
+    frontCardPreviewUrl.value = '';
+    verificationUploadError.value = 'Không thể tải ảnh CCCD mặt trước';
+    pushToast('Không thể tải ảnh CCCD mặt trước', 'error');
+  }
 }
 
-function onBackCardChange(event) {
-  if (backCardPreviewUrl.value) {
+async function onBackCardChange(event) {
+  if (backCardPreviewUrl.value && String(backCardPreviewUrl.value).startsWith('blob:')) {
     URL.revokeObjectURL(backCardPreviewUrl.value);
   }
-  form.identityCardBack = event.target.files?.[0] || null;
-  backCardPreviewUrl.value = form.identityCardBack ? URL.createObjectURL(form.identityCardBack) : "";
+  const file = event.target.files?.[0] || null;
+  if (!file) return;
+
+  const localPreviewUrl = URL.createObjectURL(file);
+  backCardPreviewUrl.value = localPreviewUrl;
+  try {
+    pushToast('Đang tải lên hình ảnh...', 'info', 1200);
+    const uploadedUrl = await uploadVerificationImage(file);
+    form.identityCardBack = uploadedUrl;
+    if (backCardPreviewUrl.value === localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrl);
+      backCardPreviewUrl.value = uploadedUrl;
+    }
+  } catch (error) {
+    form.identityCardBack = null;
+    backCardPreviewUrl.value = '';
+    verificationUploadError.value = 'Không thể tải ảnh CCCD mặt sau';
+    pushToast('Không thể tải ảnh CCCD mặt sau', 'error');
+  }
 }
 
-function onLegalDocumentsChange(event) {
+async function onLegalDocumentsChange(event) {
   verificationUploadError.value = "";
   const files = event.target.files ? Array.from(event.target.files) : [];
   if (!files.length) return;
 
-  const validExtensions = ["image/jpeg", "image/png", "image/jpg", "application/pdf"];
+  const validExtensions = ["image/jpeg", "image/png", "image/jpg"];
   const MAX_DOC_SIZE = 10 * 1024 * 1024;
   const MAX_DOC_COUNT = 5;
 
@@ -1403,18 +1688,79 @@ function onLegalDocumentsChange(event) {
     validFiles.push(file);
   }
 
-  if (validFiles.length > MAX_DOC_COUNT) {
-    verificationUploadError.value = "Tối đa 5 ảnh giấy tờ";
-    form.legalDocuments = validFiles.slice(0, MAX_DOC_COUNT);
-    pushToast("Không thể tải thêm file", "warning");
+  if (!validFiles.length) {
+    event.target.value = '';
     return;
   }
 
-  form.legalDocuments = validFiles;
+  const remaining = MAX_DOC_COUNT - legalDocumentPreviews.value.length;
+  if (remaining <= 0) {
+    verificationUploadError.value = "Tối đa 5 ảnh giấy tờ pháp lý";
+    pushToast("Không thể tải thêm file", "warning");
+    event.target.value = '';
+    return;
+  }
+
+  const filesToAdd = validFiles.slice(0, remaining);
+  if (validFiles.length > filesToAdd.length) {
+    verificationUploadError.value = "Tối đa 5 ảnh giấy tờ pháp lý";
+    pushToast("Không thể tải thêm file", "warning");
+  }
+
+  const newPreviews = filesToAdd.map((file) => ({
+    name: file.name,
+    url: URL.createObjectURL(file),
+    file,
+  }));
+  legalDocumentPreviews.value = [...legalDocumentPreviews.value, ...newPreviews];
+  form.legalDocuments = [...form.legalDocuments, ...filesToAdd];
+
+  event.target.value = '';
+}
+
+function removeLegalDocument(index) {
+  const removed = legalDocumentPreviews.value[index];
+  if (removed?.url && String(removed.url).startsWith('blob:')) {
+    URL.revokeObjectURL(removed.url);
+  }
+  legalDocumentPreviews.value = legalDocumentPreviews.value.filter((_, i) => i !== index);
+  form.legalDocuments = form.legalDocuments.filter((_, i) => i !== index);
+  pushToast("Đã xóa hình ảnh", "success");
 }
 
 function setQuickNumber(field, value) {
   form[field] = value;
+}
+
+function normalizeSingleLineText(value) {
+  return String(value ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeMultilineText(value) {
+  return String(value ?? "")
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/[\t ]+/g, " ").trim())
+    .join("\n")
+    .trim();
+}
+
+function handleTextBlur(field, multiline = false) {
+  const normalizedValue = multiline ? normalizeMultilineText(form[field]) : normalizeSingleLineText(form[field]);
+  form[field] = normalizedValue;
+  touchField(field);
+}
+
+function normalizeFormTextFields() {
+  form.title = normalizeSingleLineText(form.title);
+  form.description = normalizeMultilineText(form.description);
+  form.streetCode = normalizeSingleLineText(form.streetCode);
+  form.addressDetail = normalizeSingleLineText(form.addressDetail);
+  form.contactName = normalizeSingleLineText(form.contactName);
+  form.contactEmail = normalizeSingleLineText(form.contactEmail).toLowerCase();
+  locationSearchText.value = normalizeSingleLineText(locationSearchText.value);
 }
 
 // ── Validation helpers ──
@@ -1464,6 +1810,19 @@ function fieldErrorMessage(field) {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return 'Giá không hợp lệ';
     if (parsed <= 0) return 'Giá phải lớn hơn 0';
+    return '';
+  }
+
+  if (field === 'rentMinTerm') {
+    if (form.demandType !== 'RENT') return '';
+    // optional in UI, keep validation lenient (only error if explicitly touched)
+    if (touchedFields['rentMinTerm'] && !value) return 'Vui lòng chọn thời gian thuê tối thiểu';
+    return '';
+  }
+
+  if (field === 'rentPaymentInterval') {
+    if (form.demandType !== 'RENT') return '';
+    if (touchedFields['rentPaymentInterval'] && !value) return 'Vui lòng chọn kỳ thanh toán';
     return '';
   }
 
@@ -1534,14 +1893,23 @@ function onPhoneInput(event) {
 }
 
 function touchAllRequired() {
-  ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'contactName', 'contactPhone', 'contactEmail'].forEach(f => touchField(f));
+  const required = ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'contactName', 'contactPhone', 'contactEmail'];
+  if (form.demandType === 'RENT') {
+    required.push('rentMinTerm', 'rentPaymentInterval');
+  }
+  required.forEach((f) => touchField(f));
 }
 
 function hasRequiredErrors() {
-  return ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'contactName', 'contactPhone', 'contactEmail'].some(f => {
+  const base = ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'contactName', 'contactPhone', 'contactEmail'];
+  if (form.demandType === 'RENT') base.push('rentMinTerm', 'rentPaymentInterval');
+
+  const hasError = base.some((f) => {
     touchedFields[f] = true;
     return fieldError(f);
-  }) || (!form.isNegotiable && fieldError('price'));
+  });
+
+  return hasError || (!form.isNegotiable && fieldError('price'));
 }
 
 function setFurnitureStatus(status) {
@@ -1562,6 +1930,9 @@ const DRAFT_TTL_MS = 60 * 1000; // 1 minute
 let draftSaveTimer = null;
 
 function saveFormToDraft() {
+  // Chỉ lưu draft khi ở form đăng tin, không lưu khi ở form sửa
+  if (isEditMode.value) return;
+
   clearTimeout(draftSaveTimer);
   draftSaveTimer = setTimeout(() => {
     const draftData = {
@@ -1614,8 +1985,8 @@ function clearDraft() {
 
 function pillClass(active) {
   return active
-    ? "rounded-full bg-sky-500 px-4 py-1.5 text-xs font-semibold text-white"
-    : "rounded-full bg-slate-100 px-4 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200";
+    ? "rounded-full border border-sky-300 bg-white px-4 py-1.5 text-xs font-semibold text-sky-700 shadow-sm"
+    : "rounded-full border border-slate-200 bg-white px-4 py-1.5 text-xs text-slate-600 hover:bg-slate-50";
 }
 
 function quickChipClass(active) {
@@ -1630,19 +2001,29 @@ function clearImagePreviews() {
 }
 
 function clearIdCardPreviews() {
-  if (frontCardPreviewUrl.value) {
+  if (frontCardPreviewUrl.value && String(frontCardPreviewUrl.value).startsWith('blob:')) {
     URL.revokeObjectURL(frontCardPreviewUrl.value);
     frontCardPreviewUrl.value = "";
   }
-  if (backCardPreviewUrl.value) {
+  if (backCardPreviewUrl.value && String(backCardPreviewUrl.value).startsWith('blob:')) {
     URL.revokeObjectURL(backCardPreviewUrl.value);
     backCardPreviewUrl.value = "";
   }
 }
 
+function clearLegalDocumentPreviews() {
+  legalDocumentPreviews.value.forEach((preview) => {
+    if (preview?.url && String(preview.url).startsWith('blob:')) {
+      URL.revokeObjectURL(preview.url);
+    }
+  });
+  legalDocumentPreviews.value = [];
+}
+
 function resetForm() {
   clearImagePreviews();
   clearIdCardPreviews();
+  clearLegalDocumentPreviews();
   Object.assign(form, createInitialState());
   showLegalDropdown.value = false;
   showMoreDetail.value = true;
@@ -1656,13 +2037,7 @@ function resetForm() {
   verificationUploadError.value = "";
   videoPreviewName.value = "";
 
-  // Reset appointment form component
-  if (appointmentForm.value) {
-    appointmentForm.value.appointmentSlots = [
-      { day_of_week: '', start_time: '08:00', end_time: '09:00' }
-    ];
-    appointmentForm.value.duplicateError = '';
-  }
+
 }
 
 onBeforeUnmount(() => {
@@ -1693,18 +2068,26 @@ async function submitListing() {
   submitError.value = "";
   validationErrors.value = {};
   pushToast('Đang xử lý dữ liệu...', 'info');
+  normalizeFormTextFields();
   form.requestVerification = shouldRequestVerification.value;
   form.amenities = [...selectedAmenities.value];
   form.publicInfoAgreed = publicInfoAgreed.value;
-
-  // Lấy appointment slots từ component
-  const appointmentSlots = appointmentForm.value?.getFormData() || [];
-  // Appointment slots là optional, chỉ cảnh báo nếu user mở section nhưng không thêm
-  if (appointmentForm.value?.isOpen && appointmentSlots.length === 0) {
-    submitError.value = 'Vui lòng thêm ít nhất 1 khung giờ hẹn hoặc đóng phần Đặt lịch xem nhà';
-    pushToast('Vui lòng thêm ít nhất 1 khung giờ hẹn hoặc đóng phần Đặt lịch xem nhà', 'error');
-    loading.value = false;
-    return;
+  // Thu thập dữ liệu từ AppointmentSlotsForm (chỉ validate nếu có dữ liệu để lưu)
+  if (appointmentForm.value) {
+    const slots = appointmentForm.value.getFormData();
+    if (Array.isArray(slots) && slots.length > 0) {
+      const isValidAppointments = appointmentForm.value.validateAll();
+      if (!isValidAppointments) {
+        loading.value = false;
+        submitError.value = 'Lịch hẹn xem nhà không hợp lệ';
+        pushToast('Lịch hẹn xem nhà không hợp lệ', 'error');
+        return;
+      }
+      form.appointment_slots = slots;
+    } else {
+      // No slots provided by user
+      form.appointment_slots = [];
+    }
   }
 
   try {
@@ -1760,6 +2143,7 @@ async function submitListing() {
     }
 
     // 4. Submit to Backend
+    console.log('Submitting listing payload', JSON.parse(JSON.stringify(form)));
     let response;
     if (isEditMode.value) {
       response = await listingService.update(editListingId.value, form);
@@ -1767,16 +2151,18 @@ async function submitListing() {
       response = await listingService.create(form);
     }
 
-    // 5. Create appointment slots if any
-    const listingId = response.data?.data?.id || editListingId.value;
-    if (appointmentSlots.length > 0 && listingId) {
-      try {
-        await listingService.createAppointmentSlots(listingId, appointmentSlots);
-        pushToast('Tạo khung giờ hẹn thành công', 'success', 1500);
-      } catch (error) {
-        console.error('Failed to create appointment slots:', error);
-        pushToast('Cảnh báo: Không thể tạo khung giờ hẹn, vui lòng thử lại sau', 'warning', 2000);
+    // Ensure appointment slots are saved via dedicated endpoint (replace existing)
+    try {
+      const listingId = isEditMode.value ? editListingId.value : response.data?.data?.id;
+      const slotsPayload = form.appointment_slots || [];
+      console.log('Appointment slots payload for listing', listingId, slotsPayload);
+      if (listingId !== undefined && listingId !== null) {
+        await listingService.replaceAppointmentSlots(listingId, slotsPayload);
       }
+    } catch (slotErr) {
+      console.error('Failed to save appointment slots:', slotErr);
+      // don't block overall success, but notify user
+      pushToast('Lưu khung giờ xem nhà thất bại (không ảnh hưởng tới tin đăng)', 'warning');
     }
 
     submitError.value = "";
@@ -1882,15 +2268,6 @@ async function submitListing() {
 
 .collapsible-title h2 {
   margin-right: auto;
-}
-
-.chevron {
-  font-size: 14px;
-  color: #475569;
-}
-
-.chevron.open {
-  transform: rotate(180deg);
 }
 
 .appointment-header {
@@ -2007,6 +2384,14 @@ async function submitListing() {
   gap: 10px;
 }
 
+.dropdown-arrow-icon {
+  margin-left: auto;
+  color: #64748b;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 400;
+}
+
 .legal-selected-text {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2116,16 +2501,6 @@ async function submitListing() {
   background: #e6f6fe;
   border-radius: 999px;
   padding: 4px 10px;
-}
-
-.more-info-arrow {
-  margin-left: auto;
-  color: #475569;
-  transition: transform 0.2s ease;
-}
-
-.more-info-arrow.open {
-  transform: rotate(180deg);
 }
 
 .amenity-chip {
@@ -2285,6 +2660,38 @@ async function submitListing() {
   margin-top: -8px;
   font-size: 12px;
   color: #94a3b8;
+}
+
+.score-value-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.score-row-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+}
+
+.score-row-toggle:hover {
+  background: #eef6ff;
+}
+
+.score-row-toggle-icon {
+  display: inline-block;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.score-row-toggle-icon.collapsed {
+  transform: rotate(-90deg);
 }
 
 .circle {

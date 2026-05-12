@@ -58,7 +58,7 @@
               :image="getThumb(item)"
               :rating="null"
               :timeAgo="timeAgo(item.submitted_at)"
-              :views="item.views_count || 0"
+              :views="item.views ?? 0"
             />
           </div>
         </div>

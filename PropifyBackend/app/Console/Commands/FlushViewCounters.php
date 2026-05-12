@@ -59,6 +59,13 @@ final class FlushViewCounters extends Command
 
             $this->flushToDatabase($counters);
 
+            // Xoá cache của trang chủ/danh sách tin đăng để view mới hiển thị ngay lập tức
+            try {
+                Cache::tags(['listings:public'])->flush();
+            } catch (\Throwable $e) {
+                Log::warning('ViewTracking: failed to flush listings:public cache', ['error' => $e->getMessage()]);
+            }
+
             Log::info('ViewTracking: flush completed', [
                 'listings_updated' => count($counters),
                 'total_views'      => array_sum($counters),

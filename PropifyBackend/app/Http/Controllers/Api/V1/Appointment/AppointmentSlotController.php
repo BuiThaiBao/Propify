@@ -51,6 +51,21 @@ final class AppointmentSlotController
     }
 
     /**
+     * Thay thế toàn bộ khung giờ hẹn hiện tại của listing bằng danh sách mới.
+     */
+    public function replace(CreateSlotsRequest $request): JsonResponse
+    {
+        $dto = $request->toDto();
+
+        $createdSlots = $this->appointmentSlotService->replaceSlots($dto);
+
+        return ApiResponse::success(
+            data: AppointmentSlotResource::collection($createdSlots),
+            message: 'Cập nhật khung giờ hẹn thành công.'
+        );
+    }
+
+    /**
      * Cập nhật khung giờ hẹn (day_of_week, start_time, end_time).
      */
     public function update(UpdateSlotRequest $request): JsonResponse
