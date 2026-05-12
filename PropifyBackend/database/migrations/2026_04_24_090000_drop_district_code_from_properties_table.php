@@ -31,6 +31,12 @@ return new class extends Migration
         }
 
         Schema::table('properties', function (Blueprint $table): void {
+            try {
+                $table->dropIndex('idx_properties_region');
+            } catch (\Throwable $e) {
+                // Ignore when index does not exist.
+            }
+
             $table->string('district_code', 20)->after('province_code');
             $table->index(['province_code', 'district_code'], 'idx_properties_region');
         });
