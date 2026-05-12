@@ -561,36 +561,117 @@
                   <span class="circle" :class="{ done: mediaDone }"></span>
                   <span>Hình ảnh và video</span>
                 </div>
-                <p class="score-value">{{ mediaDone ? '4/4đ' : '0/4đ' }}</p>
+                <div class="score-value-wrap">
+                  <p class="score-value">{{ mediaPoints }}/4đ</p>
+                  <button
+                    type="button"
+                    class="score-row-toggle"
+                    @click="mediaCollapsed = !mediaCollapsed"
+                    :aria-label="mediaCollapsed ? 'Mở rộng danh sách ảnh và video' : 'Thu gọn danh sách ảnh và video'"
+                  >
+                    <span class="score-row-toggle-icon" :class="{ collapsed: mediaCollapsed }">▾</span>
+                  </button>
+                </div>
               </div>
-              <p class="score-sub">Hoàn thiện {{ mediaDone ? '100%' : '0%' }}</p>
+              <p class="score-sub">Hoàn thiện {{ mediaPercent }}%</p>
+
+              <div v-if="!mediaCollapsed" class="mt-2 ml-3">
+                <div class="flex items-center justify-between text-sm">
+                  <div :class="imageCount > 0 ? 'text-emerald-600' : ''">• Hình ảnh</div>
+                  <div v-if="imageCount > 0" class="text-emerald-600">✓</div>
+                </div>
+                <div class="flex items-center justify-between text-sm mt-1">
+                  <div :class="videoPresent ? 'text-emerald-600' : ''">• Video</div>
+                  <div v-if="videoPresent" class="text-emerald-600">✓</div>
+                </div>
+              </div>
 
               <div class="score-row">
                 <div class="score-label">
                   <span class="circle" :class="{ done: infoDone }"></span>
                   <span>Thông tin BĐS</span>
                 </div>
-                <p class="score-value">{{ infoPoints }}/2đ</p>
+                <div class="score-value-wrap">
+                  <p class="score-value">{{ formatScorePoint(infoPoints) }}/2đ</p>
+                  <button
+                    type="button"
+                    class="score-row-toggle"
+                    @click="infoCollapsed = !infoCollapsed"
+                    :aria-label="infoCollapsed ? 'Mở rộng danh sách thông tin bất động sản' : 'Thu gọn danh sách thông tin bất động sản'"
+                  >
+                    <span class="score-row-toggle-icon" :class="{ collapsed: infoCollapsed }">▾</span>
+                  </button>
+                </div>
               </div>
               <p class="score-sub">Hoàn thiện {{ infoPercent }}%</p>
+              <div v-if="!infoCollapsed" class="mt-2 ml-3">
+                <div
+                  v-for="item in infoChecklist"
+                  :key="`info-${item.label}`"
+                  class="flex items-center justify-between text-sm mt-1"
+                >
+                  <div :class="item.done ? 'text-emerald-600' : ''">• {{ item.label }}</div>
+                  <div v-if="item.done" class="text-emerald-600">✓</div>
+                </div>
+              </div>
 
               <div class="score-row">
                 <div class="score-label">
                   <span class="circle" :class="{ done: detailDone }"></span>
                   <span>Chi tiết BĐS</span>
                 </div>
-                <p class="score-value">{{ detailPoints }}/3đ</p>
+                <div class="score-value-wrap">
+                  <p class="score-value">{{ formatScorePoint(detailPoints) }}/3đ</p>
+                  <button
+                    type="button"
+                    class="score-row-toggle"
+                    @click="detailCollapsed = !detailCollapsed"
+                    :aria-label="detailCollapsed ? 'Mở rộng danh sách chi tiết bất động sản' : 'Thu gọn danh sách chi tiết bất động sản'"
+                  >
+                    <span class="score-row-toggle-icon" :class="{ collapsed: detailCollapsed }">▾</span>
+                  </button>
+                </div>
               </div>
               <p class="score-sub">Hoàn thiện {{ detailPercent }}%</p>
+              <div v-if="!detailCollapsed" class="mt-2 ml-3">
+                <div
+                  v-for="item in detailChecklist"
+                  :key="`detail-${item.label}`"
+                  class="flex items-center justify-between text-sm mt-1"
+                >
+                  <div :class="item.done ? 'text-emerald-600' : ''">• {{ item.label }}</div>
+                  <div v-if="item.done" class="text-emerald-600">✓</div>
+                </div>
+              </div>
 
               <div class="score-row">
                 <div class="score-label">
                   <span class="circle" :class="{ done: contactDone }"></span>
                   <span>Thông tin liên hệ</span>
                 </div>
-                <p class="score-value" :class="contactDone ? 'text-emerald-600' : ''">{{ contactPoints }}/1đ</p>
+                <div class="score-value-wrap">
+                  <p class="score-value" :class="contactDone ? 'text-emerald-600' : ''">{{ formatScorePoint(contactPoints) }}/1đ</p>
+                  <button
+                    type="button"
+                    class="score-row-toggle"
+                    @click="contactCollapsed = !contactCollapsed"
+                    :aria-label="contactCollapsed ? 'Mở rộng danh sách thông tin liên hệ' : 'Thu gọn danh sách thông tin liên hệ'"
+                  >
+                    <span class="score-row-toggle-icon" :class="{ collapsed: contactCollapsed }">▾</span>
+                  </button>
+                </div>
               </div>
               <p class="score-sub">Hoàn thiện {{ contactPercent }}%</p>
+              <div v-if="!contactCollapsed" class="mt-2 ml-3">
+                <div
+                  v-for="item in contactChecklist"
+                  :key="`contact-${item.label}`"
+                  class="flex items-center justify-between text-sm mt-1"
+                >
+                  <div :class="item.done ? 'text-emerald-600' : ''">• {{ item.label }}</div>
+                  <div v-if="item.done" class="text-emerald-600">✓</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -767,6 +848,10 @@ const imageUploadError = ref("");
 const videoUploadError = ref("");
 const verificationUploadError = ref("");
 const videoPreviewName = ref("");
+const mediaCollapsed = ref(false);
+const infoCollapsed = ref(false);
+const detailCollapsed = ref(false);
+const contactCollapsed = ref(false);
 
 const toasts = ref([]);
 let toastIdCounter = 1;
@@ -779,34 +864,67 @@ function pushToast(message, type = "info", duration = 2500) {
   }, duration);
 }
 
-const mediaDone = computed(() => form.images.length > 0);
+const imageCount = computed(() => Array.isArray(form.images) ? form.images.length : 0);
+const videoPresent = computed(() => Boolean(form.video));
 
-const infoFieldCount = computed(() => {
-  let count = 0;
-  if (form.title?.trim()) count++;
-  if (form.description?.trim().length >= 20) count++;
-  if (form.propertyType?.trim()) count++;
-  if (form.provinceCode?.trim()) count++;
-  return count;
+// Image points: 0 -> 0, 1 -> 1, 2-3 -> 1, >=4 -> 2
+const imagePoints = computed(() => {
+  const c = imageCount.value || 0;
+  if (c === 0) return 0;
+  if (c === 1) return 1;
+  if (c >= 2 && c < 4) return 1;
+  return 2;
 });
-const infoPercent = computed(() => Math.round((infoFieldCount.value / 4) * 100));
-const infoDone = computed(() => infoFieldCount.value === 4);
-const infoPoints = computed(() => infoDone.value ? 2 : infoPercent.value >= 40 ? 1 : 0);
 
+// Video gives 2 points if present
+const videoPoints = computed(() => (videoPresent.value ? 2 : 0));
 
-const detailFieldCount = computed(() => {
-  let count = 0;
-  if (Number(form.area) > 0) count++;
-  if (form.isNegotiable || Number(form.price) > 0) count++;
-  // Consider bedrooms/bathrooms filled only when user actually entered a value (non-empty)
-  const bedroomsFilled = form.bedrooms !== null && form.bedrooms !== undefined && String(form.bedrooms).trim() !== '';
-  const bathroomsFilled = form.bathrooms !== null && form.bathrooms !== undefined && String(form.bathrooms).trim() !== '';
-  if (bedroomsFilled || bathroomsFilled) count++;
-  return count;
-});
-const detailPercent = computed(() => Math.round((detailFieldCount.value / 3) * 100));
-const detailPoints = computed(() => detailFieldCount.value);
-const detailDone = computed(() => detailFieldCount.value === 3);
+const mediaPoints = computed(() => Math.min(imagePoints.value + videoPoints.value, 4));
+const mediaPercent = computed(() => Math.round((mediaPoints.value / 4) * 100));
+const mediaDone = computed(() => mediaPoints.value === 4);
+
+const infoChecklist = computed(() => [
+  { label: 'Nhu cầu', done: Boolean(form.demandType) },
+  { label: 'Tiêu đề', done: Boolean(form.title?.trim()) },
+  { label: 'Mô tả', done: Boolean(form.description?.trim()) },
+  { label: 'Loại nhà đất', done: Boolean(form.propertyType?.trim()) },
+  { label: 'Giấy tờ pháp lý', done: Array.isArray(form.legalPaperTypes) && form.legalPaperTypes.length > 0 },
+  { label: 'Diện tích', done: Number(form.area) > 0 },
+  { label: form.demandType === 'RENT' ? 'Giá thuê' : 'Giá bán', done: form.isNegotiable || Number(form.price) > 0 },
+  { label: 'Dự án', done: Boolean(form.projectName?.trim()) },
+  { label: 'Tỉnh/thành phố', done: Boolean(form.provinceCode?.trim()) },
+  { label: 'Quận/huyện', done: Boolean(form.districtCode?.trim()) },
+  { label: 'Xã/phường', done: Boolean(form.wardCode?.trim()) },
+  { label: 'Đường/phố', done: Boolean(form.streetCode?.trim()) },
+  { label: 'Địa chỉ cụ thể', done: Boolean(form.addressDetail?.trim()) },
+]);
+
+const infoFilledCount = computed(() => infoChecklist.value.filter((item) => item.done).length);
+const infoTotalCount = computed(() => infoChecklist.value.length || 1);
+const infoPercent = computed(() => Math.round((infoFilledCount.value / infoTotalCount.value) * 100));
+const infoDone = computed(() => infoFilledCount.value === infoTotalCount.value);
+const infoPoints = computed(() => Number(((infoFilledCount.value / infoTotalCount.value) * 2).toFixed(1)));
+
+const detailChecklist = computed(() => [
+  { label: 'Số tầng', done: String(form.floors ?? '').trim() !== '' },
+  { label: 'Tầng thứ', done: String(form.floorNumber ?? '').trim() !== '' },
+  { label: 'Mặt tiền', done: String(form.facadeWidth ?? '').trim() !== '' },
+  { label: 'Chiều sâu', done: String(form.depth ?? '').trim() !== '' },
+  { label: 'Đường rộng', done: String(form.roadWidth ?? '').trim() !== '' },
+  { label: 'Số phòng ngủ', done: String(form.bedrooms ?? '').trim() !== '' },
+  { label: 'Số phòng tắm', done: String(form.bathrooms ?? '').trim() !== '' },
+  { label: 'Hướng ban công', done: Boolean(form.balconyDirectionCode) },
+  { label: 'Số ban công', done: String(form.balconies ?? '').trim() !== '' },
+  { label: 'Hướng nhà/đất', done: Boolean(form.directionCode) },
+  { label: 'Nội thất', done: Boolean(form.furnitureStatus) },
+  { label: 'Tiện ích', done: Array.isArray(selectedAmenities.value) && selectedAmenities.value.length > 0 },
+]);
+
+const detailFilledCount = computed(() => detailChecklist.value.filter((item) => item.done).length);
+const detailTotalCount = computed(() => detailChecklist.value.length || 1);
+const detailPercent = computed(() => Math.round((detailFilledCount.value / detailTotalCount.value) * 100));
+const detailPoints = computed(() => Number(((detailFilledCount.value / detailTotalCount.value) * 3).toFixed(1)));
+const detailDone = computed(() => detailFilledCount.value === detailTotalCount.value);
 
 const isContactNameValid = computed(() => {
   if (!form.contactName || !String(form.contactName).trim()) return false;
@@ -824,21 +942,25 @@ const isContactEmailValid = computed(() => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 });
 
-const contactFieldCount = computed(() => {
-  let count = 0;
-  if (isContactNameValid.value) count++;
-  if (isContactPhoneValid.value) count++;
-  if (isContactEmailValid.value) count++;
-  return count;
-});
+const contactChecklist = computed(() => [
+  { label: 'Đối tượng', done: Boolean(form.posterType) },
+  { label: 'Họ và tên', done: isContactNameValid.value },
+  { label: 'Số điện thoại', done: isContactPhoneValid.value },
+  { label: 'Email', done: isContactEmailValid.value },
+]);
 
-const contactDone = computed(() => contactFieldCount.value === 3);
-const contactPoints = computed(() => (contactDone.value ? 1 : 0));
-const contactPercent = computed(() => Math.round((contactFieldCount.value / 3) * 100));
+const contactFilledCount = computed(() => contactChecklist.value.filter((item) => item.done).length);
+const contactTotalCount = computed(() => contactChecklist.value.length || 1);
+const contactDone = computed(() => contactFilledCount.value === contactTotalCount.value);
+const contactPoints = computed(() => Number(((contactFilledCount.value / contactTotalCount.value) * 1).toFixed(1)));
+const contactPercent = computed(() => Math.round((contactFilledCount.value / contactTotalCount.value) * 100));
+
+function formatScorePoint(value) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
 
 const totalScore = computed(() => {
-  const media = mediaDone.value ? 4 : 0;
-  return media + infoPoints.value + detailPoints.value + contactPoints.value;
+  return mediaPoints.value + infoPoints.value + detailPoints.value + contactPoints.value;
 });
 
 const selectedLegalPaperLabels = computed(() => {
@@ -2538,6 +2660,38 @@ async function submitListing() {
   margin-top: -8px;
   font-size: 12px;
   color: #94a3b8;
+}
+
+.score-value-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.score-row-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+}
+
+.score-row-toggle:hover {
+  background: #eef6ff;
+}
+
+.score-row-toggle-icon {
+  display: inline-block;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.score-row-toggle-icon.collapsed {
+  transform: rotate(-90deg);
 }
 
 .circle {
