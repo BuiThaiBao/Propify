@@ -30,6 +30,7 @@ class PackageServiceImpl implements PackageService
         if (!$package) {
             throw new BusinessException(ErrorCode::PackageNotFound);
         }
+        $package->load('pricings');
         return $package;
     }
 
@@ -41,7 +42,7 @@ class PackageServiceImpl implements PackageService
                 throw new BusinessException(ErrorCode::PackageAlreadyExists);
             }
 
-            return $this->packageRepository->create([
+            $package = $this->packageRepository->create([
                 'name' => $dto->name,
                 'slug' => $dto->slug,
                 'price' => $dto->price,
@@ -53,6 +54,9 @@ class PackageServiceImpl implements PackageService
                 'color' => $dto->color,
                 'is_active' => true,
             ]);
+
+            $this->syncPricings($package, $dto->activeDurations);
+            return $package;
         });
     }
 
@@ -73,9 +77,39 @@ class PackageServiceImpl implements PackageService
                 'is_active' => $dto->isActive,
             ]);
 
-            return $this->getById($id);
+            $package = $this->getById($id);
+            $this->syncPricings($package, $dto->activeDurations);
+            return $package;
         });
     }
+
+    private function syncPricings(Package $package, array $activeDurations): void
+    {
+        if ($package->price <= 0) {
+            // Nếu là gói miễn phí, xóa/disable toàn bộ pricings nếu có
+            \App\Models\PackagePricing::where('package_id', $package->id)->update(['is_active' => false]);
+            return;
+        }
+
+        // Tắt toàn bộ pricings cũ
+        \App\Models\PackagePricing::where('package_id', $package->id)->update(['is_active' => false]);
+
+        foreach ($activeDurations as $days) {
+            \App\Models\PackagePricing::updateOrCreate(
+                [
+                    'package_id' => $package->id,
+                    'duration_days' => $days
+                ],
+                [
+                    'price' => $package->price * $days,
+                    'label' => $days . ' ngày',
+                    'is_active' => true
+                ]
+            );
+        }
+    }
+
+
 
     public function delete(int $id): void
     {

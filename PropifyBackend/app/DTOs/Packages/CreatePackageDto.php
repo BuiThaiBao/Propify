@@ -17,6 +17,7 @@ final readonly class CreatePackageDto
         public float $decayRate,
         public ?string $badge,
         public ?string $color,
+        public array $activeDurations = [3, 7, 10, 15, 30],
     ) {
     }
 
@@ -31,7 +32,8 @@ final readonly class CreatePackageDto
             dailyQuota: (int) $request->input('daily_quota'),
             decayRate: (float) $request->input('decay_rate'),
             badge: $request->input('badge'),
-            color: $request->input('color')
+            color: $request->input('color'),
+            activeDurations: $request->input('active_durations', [3, 7, 10, 15, 30])
         );
     }
 }

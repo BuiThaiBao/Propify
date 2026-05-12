@@ -517,6 +517,8 @@ final class ListingServiceImpl implements ListingService
         return $updated;
     }
 
+
+
     /**
      * Tính content_score dựa trên chất lượng nội dung listing.
      *

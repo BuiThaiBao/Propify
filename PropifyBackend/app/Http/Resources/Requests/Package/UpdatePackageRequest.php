@@ -16,7 +16,7 @@ final class UpdatePackageRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'price' => ['required', 'numeric', 'min:0'],
+            'price' => ['nullable', 'numeric', 'min:0'],
             'priority' => ['required', 'integer', 'min:1'],
             'multiplier' => ['required', 'numeric', 'min:1'],
             'daily_quota' => ['required', 'integer', 'min:0'],
@@ -24,6 +24,8 @@ final class UpdatePackageRequest extends FormRequest
             'badge' => ['nullable', 'string', 'max:50'],
             'color' => ['nullable', 'string', 'max:50'],
             'is_active' => ['required', 'boolean'],
+            'active_durations' => ['nullable', 'array'],
+            'active_durations.*' => ['integer', 'in:3,7,10,15,30'],
         ];
     }
 }

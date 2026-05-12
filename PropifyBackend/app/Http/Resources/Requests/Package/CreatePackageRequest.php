@@ -19,13 +19,15 @@ final class CreatePackageRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:packages,slug'],
-            'price' => ['required', 'numeric', 'min:0'],
+            'price' => ['nullable', 'numeric', 'min:0'],
             'priority' => ['required', 'integer', 'min:1'],
             'multiplier' => ['required', 'numeric', 'min:1'],
             'daily_quota' => ['required', 'integer', 'min:0'],
             'decay_rate' => ['required', 'numeric', 'min:0', 'max:1'],
             'badge' => ['nullable', 'string', 'max:50'],
             'color' => ['nullable', 'string', 'max:50'],
+            'active_durations' => ['nullable', 'array'],
+            'active_durations.*' => ['integer', 'in:3,7,10,15,30'],
         ];
     }
 }
