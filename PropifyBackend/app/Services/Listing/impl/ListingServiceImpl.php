@@ -397,6 +397,44 @@ final class ListingServiceImpl implements ListingService
         return $this->listingRepository->paginateAdmin($status, $demandType, $keyword, $perPage);
     }
 
+    public function changeStatusForAdmin(int $listingId, string $status, ?string $rejectionReason = null): Listing
+    {
+        $listing = Listing::find($listingId);
+        if (!$listing) {
+            throw new BusinessException(ErrorCode::ListingNotFound);
+        }
+
+        $currentStatus = $listing->status;
+        $allowedTransitions = [
+            'PENDING' => ['ACTIVE', 'REJECTED'],
+            'ACTIVE' => ['LOCKED'],
+            'LOCKED' => ['ACTIVE'],
+        ];
+
+        // Nếu status mới giống status hiện tại, hoặc transition không hợp lệ
+        if ($currentStatus === $status || !isset($allowedTransitions[$currentStatus]) || !in_array($status, $allowedTransitions[$currentStatus], true)) {
+            // throw exception hoặc return.
+            // Trong trường hợp này tự định nghĩa mã lỗi hoặc message tương ứng. Dùng chung bad request tạm.
+            throw new \App\Exceptions\BusinessException(\App\Enums\ErrorCode::BadRequest, "Trạng thái hiện tại của listing không hỗ trợ chuyển sang trạng thái {$status}.");
+        }
+
+        $listing->status = $status;
+        if ($status === 'REJECTED') {
+            $listing->rejection_reason = $rejectionReason;
+        }
+
+        if ($status === 'ACTIVE' && !$listing->published_at) {
+            $listing->published_at = now();
+        }
+
+        $listing->save();
+
+        // Xóa cache danh sách tin công khai
+        Cache::tags(['listings:public'])->flush();
+
+        return $listing;
+    }
+
     /**
      * Nâng cấp gói tin cho listing.
      *

@@ -3,13 +3,48 @@ import { ref, watch, onMounted } from 'vue'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
-import { Search, Filter, Eye, CheckCircle, XCircle, Lock, MapPin, Maximize, Package as PackageIcon, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Search, Filter, Eye, CheckCircle, XCircle, Lock, MapPin, Maximize, Package as PackageIcon, ChevronLeft, ChevronRight, MoreVertical } from 'lucide-vue-next'
 import { listingService } from '@/services/listingService'
 
 const search = ref('')
 const statusFilter = ref('all')
 const typeFilter = ref('all')
 const confirmModal = ref({ open: false, title: '', desc: '', action: () => {} })
+const activeDropdown = ref(null)
+const dropdownPosition = ref({ top: 0, left: 0 })
+
+const toggleDropdown = (id, event) => {
+  if (activeDropdown.value === id) {
+    activeDropdown.value = null
+  } else {
+    if (event && event.currentTarget) {
+      const rect = event.currentTarget.getBoundingClientRect()
+      const dropdownWidth = 140 // min-w-[140px]
+      const viewportWidth = window.innerWidth
+      let left = rect.right + 8
+
+      // Prevent overflow on right edge - flip to left side
+      if (left + dropdownWidth > viewportWidth - 16) {
+        left = rect.left - dropdownWidth - 8
+      }
+
+      dropdownPosition.value = {
+        top: rect.top + rect.height / 2, // center vertically
+        left: left
+      }
+    }
+    activeDropdown.value = id
+  }
+}
+
+// Close dropdown when clicking outside
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.action-menu-container')) {
+      activeDropdown.value = null
+    }
+  })
+})
 
 const posts = ref([])
 const loading = ref(false)
@@ -102,11 +137,35 @@ onMounted(() => {
   fetchPosts()
 })
 
-function openConfirm(title, desc) {
+function openConfirm(title, desc, actionFn) {
   confirmModal.value = {
-    open: true, title, desc,
-    action: () => { confirmModal.value.open = false },
+    open: true, 
+    title, 
+    desc,
+    action: async () => { 
+      try {
+        if (actionFn) {
+          await actionFn()
+        }
+      } catch (err) {
+        console.error(err)
+        alert('Có lỗi xảy ra: ' + (err.response?.data?.message || err.message))
+      } finally {
+        confirmModal.value.open = false
+      }
+    },
   }
+}
+
+const updateStatus = async (id, status) => {
+  let rejectionReason = null
+  if (status === 'REJECTED') {
+    const reason = prompt("Lý do từ chối (có thể để trống):")
+    if (reason === null) return // User cancelled
+    rejectionReason = reason
+  }
+  await listingService.changeStatusForAdmin(id, { status, rejection_reason: rejectionReason })
+  fetchPosts()
 }
 </script>
 
@@ -143,13 +202,13 @@ function openConfirm(title, desc) {
       </div>
     </div>
 
-    <!-- Table -->
-    <div class="table-wrap">
-      <div class="table-scroll">
-        <table class="data-table">
-          <thead>
-            <tr class="table-head-row">
-              <th class="th">Tin đăng</th>
+     <!-- Table -->
+     <div class="table-wrap">
+       <div class="table-scroll" @scroll="activeDropdown = null">
+         <table class="data-table">
+           <thead class="sticky-thead">
+             <tr class="table-head-row">
+              <th class="th th-post">Tin đăng</th>
               <th class="th">Giá</th>
               <th class="th">Diện tích</th>
               <th class="th">Loại</th>
@@ -158,7 +217,7 @@ function openConfirm(title, desc) {
               <th class="th">Người đăng</th>
               <th class="th">Ngày đăng</th>
               <th class="th">Trạng thái</th>
-              <th class="th th-right">Hành động</th>
+              <th class="th th-right sticky-col w-12 text-center" style="padding: 12px 10px;"></th>
             </tr>
           </thead>
           <tbody>
@@ -170,7 +229,7 @@ function openConfirm(title, desc) {
             </tr>
             <tr v-for="post in posts" :key="post.id" class="table-row">
               <!-- Tin đăng -->
-              <td class="td">
+              <td class="td td-post">
                 <div class="post-info">
                   <img :src="post.image" :alt="post.title" class="post-img" />
                   <div class="post-text">
@@ -182,67 +241,69 @@ function openConfirm(title, desc) {
                   </div>
                 </div>
               </td>
-              <td class="td">
-                <span class="text-primary font-semibold text-sm">{{ post.price }}</span>
+              <td class="td whitespace-nowrap">
+                <span class="text-primary font-semibold text-[13px]">{{ post.price }}</span>
               </td>
-              <td class="td">
-                <span class="area-text">
+              <td class="td whitespace-nowrap">
+                <span class="area-text text-[13px]">
                   <Maximize :size="12" color="hsl(215,16%,47%)" />
                   {{ post.area }}
                 </span>
               </td>
-              <td class="td">
+              <td class="td whitespace-nowrap">
                 <span class="type-badge" :class="post.type === 'sale' ? 'type-sale' : 'type-rent'">
                   {{ post.type === 'sale' ? 'Mua bán' : 'Cho thuê' }}
                 </span>
               </td>
-              <td class="td">
-                <span v-if="post.package" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border" :style="{ borderColor: post.package.color + '40', color: post.package.color, backgroundColor: post.package.color + '10' }">
-                  <PackageIcon :size="14" />
+              <td class="td whitespace-nowrap">
+                <span v-if="post.package" class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border" :style="{ borderColor: post.package.color + '40', color: post.package.color, backgroundColor: post.package.color + '10' }">
+                  <PackageIcon :size="12" />
                   {{ post.package.name }}
                 </span>
                 <span v-else class="text-slate-400 text-xs italic">Tin thường</span>
               </td>
-              <td class="td text-sm" style="color: hsl(var(--foreground))">
+              <td class="td text-[13px] whitespace-nowrap" style="color: hsl(var(--foreground))">
                 <span class="views-text">
                   <Eye :size="14" color="hsl(215,16%,47%)" />
                   {{ post.views.toLocaleString('vi-VN') }}
                 </span>
               </td>
-              <td class="td text-sm" style="color: hsl(var(--foreground))">{{ post.author }}</td>
-              <td class="td text-sm" style="color: hsl(var(--muted-foreground))">{{ post.date }}</td>
+              <td class="td text-[13px]" style="color: hsl(var(--foreground))">{{ post.author }}</td>
+              <td class="td text-[13px]" style="color: hsl(var(--muted-foreground))">{{ post.date }}</td>
               <td class="td"><StatusBadge :status="post.status" /></td>
-              <td class="td">
-                <div class="actions">
-                  <button class="act-btn" title="Xem chi tiết" :id="`view-${post.id}`">
-                    <Eye :size="16" color="hsl(215,16%,47%)" />
-                  </button>
-                  <button
-                    class="act-btn act-btn-success"
-                    title="Duyệt tin"
-                    :id="`approve-${post.id}`"
-                    @click="openConfirm('Duyệt tin', `Bạn có muốn duyệt tin &quot;${post.title}&quot;?`)"
-                  >
-                    <CheckCircle :size="16" color="hsl(var(--success))" />
-                  </button>
-                  <button
-                    class="act-btn act-btn-danger"
-                    title="Từ chối"
-                    :id="`reject-${post.id}`"
-                    @click="openConfirm('Từ chối tin', `Bạn có muốn từ chối tin &quot;${post.title}&quot;?`)"
-                  >
-                    <XCircle :size="16" color="hsl(var(--destructive))" />
-                  </button>
-                  <button
-                    class="act-btn"
-                    title="Khóa tin"
-                    :id="`lock-${post.id}`"
-                    @click="openConfirm('Khóa tin', `Bạn có muốn khóa tin &quot;${post.title}&quot;?`)"
-                  >
-                    <Lock :size="16" color="hsl(215,16%,47%)" />
-                  </button>
-                </div>
-              </td>
+               <td class="td sticky-col action-menu-container p-0 align-middle">
+                 <div class="flex justify-center w-full">
+                    <button class="act-btn-more" @click.stop="toggleDropdown(post.id, $event)">
+                     <MoreVertical :size="18" color="hsl(215,16%,47%)" />
+                   </button>
+
+                   <!-- Dropdown positioned as fixed to escape overflow clipping -->
+                   <div v-if="activeDropdown === post.id"
+                        class="fixed bg-white rounded-md shadow-lg border border-slate-200 py-1 min-w-[140px] z-[100] -translate-y-1/2"
+                        :style="{ top: dropdownPosition.top + 'px', left: dropdownPosition.left + 'px' }">
+                     <button class="menu-item" :id="`view-${post.id}`" @click="toggleDropdown(null)">
+                       <Eye :size="15" />
+                       Xem chi tiết
+                     </button>
+                     <button v-if="post.status === 'pending'" class="menu-item text-green-600" :id="`approve-${post.id}`" @click="toggleDropdown(null); openConfirm('Duyệt tin', `Bạn có muốn duyệt tin &quot;${post.title}&quot;?`, () => updateStatus(post.id, 'ACTIVE'))">
+                       <CheckCircle :size="15" />
+                       Duyệt tin
+                     </button>
+                     <button v-if="post.status === 'pending'" class="menu-item text-red-600" :id="`reject-${post.id}`" @click="toggleDropdown(null); openConfirm('Từ chối', `Bạn có muốn từ chối tin &quot;${post.title}&quot;?`, () => updateStatus(post.id, 'REJECTED'))">
+                       <XCircle :size="15" />
+                       Từ chối
+                     </button>
+                     <button v-if="post.status === 'locked' || post.status === 'rejected'" class="menu-item text-green-600" :id="`unlock-${post.id}`" @click="toggleDropdown(null); openConfirm('Mở khóa', `Bạn có muốn mở khóa tin &quot;${post.title}&quot;?`, () => updateStatus(post.id, 'ACTIVE'))">
+                       <CheckCircle :size="15" />
+                       Mở khóa
+                     </button>
+                     <button v-if="post.status === 'approved'" class="menu-item text-slate-700" :id="`lock-${post.id}`" @click="toggleDropdown(null); openConfirm('Khóa tin', `Bạn có muốn khóa tin &quot;${post.title}&quot;?`, () => updateStatus(post.id, 'LOCKED'))">
+                       <Lock :size="15" />
+                       Khóa tin
+                     </button>
+                   </div>
+                 </div>
+               </td>
             </tr>
           </tbody>
         </table>
@@ -379,12 +440,19 @@ function openConfirm(title, desc) {
 }
 
 .table-scroll {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: calc(100vh - 280px);
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
+}
+
+.sticky-thead {
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
 .table-head-row {
@@ -394,12 +462,16 @@ function openConfirm(title, desc) {
 
 .th {
   text-align: left;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: hsl(var(--muted-foreground));
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 12px 20px;
+  padding: 12px 10px;
+  position: sticky;
+  top: 0;
+  background-color: hsl(var(--muted) / 0.5);
+  z-index: 20;
 }
 
 .th-right { text-align: right; }
@@ -407,12 +479,30 @@ function openConfirm(title, desc) {
 .table-row {
   border-bottom: 1px solid hsl(var(--border));
   transition: background-color 0.1s;
+  height: 85px;
 }
 
 .table-row:last-child { border-bottom: none; }
 .table-row:hover { background-color: hsl(var(--muted) / 0.3); }
 
-.td { padding: 12px 20px; vertical-align: middle; }
+.td { padding: 8px 10px; vertical-align: middle; }
+
+.sticky-col {
+  position: sticky;
+  right: 0;
+  background-color: hsl(var(--card));
+  z-index: 10;
+  box-shadow: -4px 0 6px -4px rgba(0,0,0,0.1);
+}
+
+.table-head-row .sticky-col {
+  background-color: hsl(var(--muted));
+  z-index: 25;
+}
+
+.table-row:hover .sticky-col {
+  background-color: hsl(var(--card) / 0.95);
+}
 
 /* Post info */
 .post-info {
@@ -429,51 +519,19 @@ function openConfirm(title, desc) {
   flex-shrink: 0;
 }
 
-.post-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: hsl(var(--foreground));
-  margin: 0 0 2px 0;
-  max-width: 260px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.post-text {
+  flex: 1;
+  min-width: 0; /* needed for overflow to work */
 }
 
-.post-loc {
-  font-size: 12px;
-  color: hsl(var(--muted-foreground));
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.area-text {
-  font-size: 14px;
-  color: hsl(var(--foreground));
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.views-text {
-  font-size: 13px;
-  color: hsl(var(--muted-foreground));
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-weight: 500;
-}
-
-/* Type badge */
 .type-badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: 9999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .type-sale {
@@ -510,6 +568,96 @@ function openConfirm(title, desc) {
 .act-btn:hover { background-color: hsl(var(--muted)); }
 .act-btn-success:hover { background-color: hsl(var(--success) / 0.1); }
 .act-btn-danger:hover { background-color: hsl(var(--destructive) / 0.1); }
+
+.act-btn-more {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s;
+}
+
+.act-btn-more:hover {
+  background-color: hsl(var(--muted));
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.15s;
+}
+.menu-item:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.th-post {
+  width: 25%;
+  min-width: 200px;
+}
+
+.td-post {
+  max-width: 280px;
+}
+
+.post-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  margin: 0 0 4px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.post-loc {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.area-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+}
+
+.views-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  white-space: nowrap;
+}
 
 /* Empty state */
 .empty-state {
