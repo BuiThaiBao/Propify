@@ -16,6 +16,7 @@ return new class extends Migration
         });
 
         Schema::table('listings', function (Blueprint $table) {
+            $table->dropIndex(['pushed_at']);
             $table->dropColumn('pushed_at');
         });
     }
@@ -30,7 +31,8 @@ return new class extends Migration
         });
 
         Schema::table('listings', function (Blueprint $table) {
-            $table->timestamp('pushed_at')->nullable()->after('expires_at');
+            $table->timestamp('pushed_at')->nullable()->after('package_expires_at');
+            $table->index('pushed_at');
         });
     }
 };
