@@ -22,8 +22,6 @@ const props = defineProps({
     <!-- Name -->
     <h3 class="pkg-name">{{ package.name }}</h3>
 
-    <!-- Price -->
-    <p class="pkg-price">{{ package.price }}</p>
     <p class="pkg-duration">{{ package.duration }}</p>
 
     <!-- Features -->
