@@ -1,81 +1,127 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { Check, Edit, Eye, Lock, Plus, Search, Star, Unlock } from 'lucide-vue-next'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
-import { Plus, Search, Edit, Lock, Unlock, Check, Star, Zap, Crown } from 'lucide-vue-next'
 import { usePackageApi } from '@/composables/usePackageApi'
 
 const router = useRouter()
-const search = ref('')
-const confirmModal = ref({ open: false, title: '', desc: '', action: null })
+const { fetchPackages, updatePackage, loading, error } = usePackageApi()
 
-const { fetchPackages, deletePackage, loading, error } = usePackageApi()
 const packages = ref([])
+const confirmModal = ref({ open: false, title: '', desc: '', action: null })
+const filters = reactive({
+  keyword: '',
+  status: 'all',
+})
+const statusOptions = [
+  { value: 'all', label: 'Tất cả', count: () => totalPackages.value },
+  { value: 'active', label: 'Đang hoạt động', count: () => activeCount.value },
+  { value: 'locked', label: 'Đã khóa', count: () => lockedCount.value },
+]
 
-onMounted(async () => {
-  await loadPackages()
+let searchTimer = null
+
+onMounted(() => {
+  loadPackages()
 })
 
-const loadPackages = async () => {
+watch(
+  () => filters.keyword,
+  () => {
+    clearTimeout(searchTimer)
+    searchTimer = setTimeout(loadPackages, 300)
+  },
+)
+
+watch(
+  () => filters.status,
+  () => loadPackages(),
+)
+
+async function loadPackages() {
   try {
-    const res = await fetchPackages()
-    if (res?.data) {
-      packages.value = res.data
-    }
-  } catch (e) {
-    console.error('Failed to load packages', e)
+    const response = await fetchPackages({
+      include_inactive: 1,
+      keyword: filters.keyword || undefined,
+      status: filters.status === 'all' ? undefined : filters.status,
+    })
+    packages.value = response?.data || []
+  } catch (err) {
+    packages.value = []
   }
 }
 
-const filtered = computed(() => {
-  return packages.value.filter(p => !search.value || p.name.toLowerCase().includes(search.value.toLowerCase()))
-})
+const totalPackages = computed(() => packages.value.length)
+const activeCount = computed(() => packages.value.filter((pkg) => pkg.is_active).length)
+const lockedCount = computed(() => packages.value.filter((pkg) => !pkg.is_active).length)
 
-const getIcon = (slug) => {
-  if (slug === 'gold') return Star
-  if (slug === 'silver') return Zap
-  if (slug === 'diamond') return Crown
-  return Star
+function activeDurations(pkg) {
+  return (pkg.pricings || [])
+    .filter((pricing) => pricing.is_active)
+    .map((pricing) => Number(pricing.duration_days))
+    .filter((days) => Number.isInteger(days) && days > 0)
+    .sort((a, b) => a - b)
 }
 
-const getColorClass = (slug) => {
-  if (slug === 'gold') return 'icon-warning'
-  if (slug === 'silver') return 'icon-muted'
-  if (slug === 'diamond') return 'icon-primary'
-  return 'icon-success'
+function buildUpdatePayload(pkg, nextActive) {
+  return {
+    name: pkg.name,
+    price: Number(pkg.price || 0),
+    priority: Number(pkg.priority || 1),
+    multiplier: Number(pkg.multiplier || 1),
+    daily_quota: Number(pkg.daily_quota || 0),
+    decay_rate: Number(pkg.decay_rate || 0),
+    badge: pkg.badge || null,
+    color: pkg.color || null,
+    is_active: nextActive,
+    active_durations: activeDurations(pkg),
+  }
 }
 
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)
+function formatPrice(price) {
+  return Number(price || 0).toLocaleString('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  })
 }
 
-const handleToggleActive = (pkg) => {
+function pricingSummary(pkg) {
+  const durations = activeDurations(pkg)
+  return durations.length ? durations.map((days) => `${days} ngày`).join(', ') : 'Chưa cấu hình'
+}
+
+function viewDetail(pkg) {
+  router.push({ name: 'PackageDetail', params: { id: pkg.id } })
+}
+
+function handleEdit(pkg) {
+  router.push({ name: 'PackageEdit', params: { id: pkg.id } })
+}
+
+function handleToggleActive(pkg) {
+  const nextActive = !pkg.is_active
   confirmModal.value = {
     open: true,
-    title: pkg.is_active ? 'Khóa gói' : 'Kích hoạt gói',
-    desc: `Bạn có chắc chắn muốn ${pkg.is_active ? 'khóa' : 'kích hoạt'} gói "${pkg.name}"?`,
+    title: nextActive ? 'Mở khóa gói tin' : 'Khóa gói tin',
+    desc: `Bạn có chắc chắn muốn ${nextActive ? 'mở khóa' : 'khóa'} gói "${pkg.name}"?`,
     action: async () => {
       try {
-        await deletePackage(pkg.id)
+        await updatePackage(pkg.id, buildUpdatePayload(pkg, nextActive))
         await loadPackages()
-      } catch (e) {
-        console.error('Failed to toggle package', e)
       } finally {
         confirmModal.value.open = false
       }
-    }
+    },
   }
-}
-
-const handleEdit = (pkg) => {
-  router.push({ name: 'PackageEdit', params: { id: pkg.id } })
 }
 </script>
 
 <template>
   <div>
-    <PageHeader title="Quản lý gói tin" description="Thêm, chỉnh sửa và quản lý các gói dịch vụ">
+    <PageHeader title="Quản lý gói tin" description="Tìm kiếm, lọc, xem chi tiết và chỉnh sửa các gói dịch vụ">
       <template #actions>
         <button class="btn-add gradient-primary" id="btn-add-package" @click="router.push({ name: 'PackageCreate' })">
           <Plus :size="16" /> Thêm gói mới
@@ -83,68 +129,84 @@ const handleEdit = (pkg) => {
       </template>
     </PageHeader>
 
-    <!-- Search -->
-    <div class="pkg-search">
-      <Search :size="16" class="search-icon" />
-      <input
-        v-model="search"
-        type="text"
-        placeholder="Tìm kiếm gói tin..."
-        class="search-input"
-        id="pkg-search"
-      />
-    </div>
+    <section class="filter-panel">
+      <div class="pkg-search">
+        <Search :size="18" class="search-icon" />
+        <input
+          v-model.trim="filters.keyword"
+          type="text"
+          placeholder="Tìm kiếm theo tên, slug, badge..."
+          class="search-input"
+          id="pkg-search"
+        />
+      </div>
 
-    <!-- Error/Loading -->
-    <div v-if="loading && packages.length === 0" class="py-8 text-center text-gray-500">Đang tải dữ liệu...</div>
-    <div v-if="error" class="py-4 text-red-500">{{ error }}</div>
+      <div class="status-tabs" aria-label="Lọc trạng thái gói tin">
+        <button
+          v-for="option in statusOptions"
+          :key="option.value"
+          type="button"
+          :class="['status-tab', filters.status === option.value && 'status-tab-active']"
+          @click="filters.status = option.value"
+        >
+          <span>{{ option.label }}</span>
+          <strong>{{ option.count() }}</strong>
+        </button>
+      </div>
+    </section>
 
-    <!-- Grid -->
-    <div class="pkg-grid" v-if="!loading || packages.length > 0">
-      <div
-        v-for="pkg in filtered"
+    <div v-if="loading && packages.length === 0" class="state-text">Đang tải dữ liệu...</div>
+    <div v-else-if="error" class="state-text state-error">{{ error }}</div>
+    <div v-else-if="packages.length === 0" class="state-text">Không tìm thấy gói tin phù hợp.</div>
+
+    <div v-else class="pkg-grid">
+      <article
+        v-for="pkg in packages"
         :key="pkg.id"
         class="pkg-card"
         :class="{ 'pkg-card--inactive': !pkg.is_active }"
       >
-        <!-- Locked badge -->
         <span v-if="!pkg.is_active" class="locked-badge">Đã khóa</span>
 
-        <!-- Icon -->
-        <div class="pkg-icon-wrap" :class="getColorClass(pkg.slug)" :style="pkg.color ? `background-color: ${pkg.color}20` : ''">
-          <component :is="getIcon(pkg.slug)" :size="24" :color="pkg.color || 'hsl(var(--primary))'" />
+        <div class="pkg-icon-wrap" :style="pkg.color ? { backgroundColor: `${pkg.color}20` } : null">
+          <Star :size="24" :color="pkg.color || '#3b82f6'" />
         </div>
 
-        <h3 class="pkg-name">{{ pkg.name }} <span v-if="pkg.badge" class="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">{{ pkg.badge }}</span></h3>
+        <h3 class="pkg-name">
+          {{ pkg.name }}
+          <span v-if="pkg.badge" class="pkg-badge">{{ pkg.badge }}</span>
+        </h3>
         <p class="pkg-price">{{ formatPrice(pkg.price) }}</p>
-        <p class="pkg-duration">Ưu tiên: {{ pkg.priority }} | HS: {{ pkg.multiplier }}x</p>
+        <p class="pkg-duration">Uu tien: {{ pkg.priority }} | HS: {{ pkg.multiplier }}x</p>
 
         <ul class="pkg-features">
           <li class="pkg-feature">
-            <Check :size="16" color="hsl(var(--success))" class="flex-shrink-0" />
+            <Check :size="16" color="#16a34a" />
             {{ pkg.daily_quota }} lượt hiển thị/ngày
           </li>
           <li class="pkg-feature">
-            <Check :size="16" color="hsl(var(--success))" class="flex-shrink-0" />
+            <Check :size="16" color="#16a34a" />
             Tốc độ tụt hạng: {{ pkg.decay_rate }}
+          </li>
+          <li class="pkg-feature">
+            <Check :size="16" color="#16a34a" />
+            Thời hạn: {{ pricingSummary(pkg) }}
           </li>
         </ul>
 
-        <!-- Actions -->
         <div class="pkg-actions">
+          <button class="pkg-btn" @click="viewDetail(pkg)" :id="`view-pkg-${pkg.id}`">
+            <Eye :size="14" /> Xem
+          </button>
           <button class="pkg-btn" @click="handleEdit(pkg)" :id="`edit-pkg-${pkg.id}`">
             <Edit :size="14" /> Sửa
           </button>
-          <button
-            class="pkg-btn"
-            :id="`toggle-pkg-${pkg.id}`"
-            @click="handleToggleActive(pkg)"
-          >
+          <button class="pkg-btn" @click="handleToggleActive(pkg)" :id="`toggle-pkg-${pkg.id}`">
             <component :is="pkg.is_active ? Lock : Unlock" :size="14" />
             {{ pkg.is_active ? 'Khóa' : 'Mở' }}
           </button>
         </div>
-      </div>
+      </article>
     </div>
 
     <ConfirmModal
@@ -166,148 +228,267 @@ const handleEdit = (pkg) => {
   border: none;
   border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: white;
   cursor: pointer;
-  transition: box-shadow 0.15s;
 }
-.btn-add:hover { box-shadow: 0 4px 12px hsl(217 91% 60% / 0.3); }
+
+.filter-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  background: #fff;
+  padding: 14px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
 
 .pkg-search {
   position: relative;
-  width: 320px;
-  margin-bottom: 24px;
+  width: min(420px, 100%);
 }
 
 .search-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: hsl(var(--muted-foreground));
+  color: #64748b;
 }
 
 .search-input {
   width: 100%;
-  padding: 8px 16px 8px 40px;
-  background-color: hsl(var(--card));
-  border: 1px solid hsl(var(--border));
-  border-radius: 8px;
+  height: 46px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #0f172a;
   font-size: 14px;
-  color: hsl(var(--foreground));
   outline: none;
+  padding: 0 14px 0 44px;
 }
-.search-input:focus { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2); }
+
+.search-input:focus {
+  background: #fff;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.status-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+  padding: 5px;
+}
+
+.status-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.status-tab strong {
+  display: inline-flex;
+  min-width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 12px;
+}
+
+.status-tab-active {
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+}
+
+.status-tab-active strong {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.state-text {
+  padding: 28px 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.state-error {
+  color: #dc2626;
+}
 
 .pkg-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
 }
 
 .pkg-card {
-  background-color: hsl(var(--card));
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: var(--shadow-card);
-  border: 1px solid hsl(var(--border) / 0.5);
   position: relative;
-  transition: box-shadow 0.2s;
+  display: flex;
+  min-height: 310px;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
 }
 
-.pkg-card:hover { box-shadow: var(--shadow-card-hover); }
-.pkg-card--inactive { opacity: 0.6; }
+.pkg-card--inactive {
+  opacity: 0.72;
+}
+
+.locked-badge,
+.pkg-badge {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
 
 .locked-badge {
   position: absolute;
-  top: 16px;
   right: 16px;
-  background-color: hsl(var(--muted));
-  color: hsl(var(--muted-foreground));
-  font-size: 11px;
-  font-weight: 500;
+  top: 16px;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 3px 8px;
+}
+
+.pkg-badge {
+  margin-left: 8px;
+  background: #fee2e2;
+  color: #dc2626;
   padding: 2px 8px;
-  border-radius: 9999px;
 }
 
 .pkg-icon-wrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  background: #eff6ff;
 }
 
-.icon-muted { background-color: hsl(var(--muted)); }
-.icon-primary { background-color: hsl(var(--primary) / 0.1); }
-.icon-warning { background-color: hsl(var(--warning) / 0.1); }
-.icon-success { background-color: hsl(var(--success) / 0.1); }
-
 .pkg-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: hsl(var(--foreground));
-  margin: 0 0 4px;
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 800;
 }
 
 .pkg-price {
-  font-size: 24px;
-  font-weight: 700;
-  color: hsl(var(--primary));
-  margin: 0 0 4px;
+  margin: 0;
+  color: #3b82f6;
+  font-size: 28px;
+  font-weight: 800;
 }
 
 .pkg-duration {
-  font-size: 12px;
-  color: hsl(var(--muted-foreground));
-  margin: 0 0 16px;
+  margin: 4px 0 18px;
+  color: #64748b;
+  font-size: 13px;
 }
 
 .pkg-features {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 24px;
   display: flex;
+  flex: 1;
   flex-direction: column;
-  gap: 8px;
+  gap: 9px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
 }
 
 .pkg-feature {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: #0f172a;
   font-size: 14px;
-  color: hsl(var(--foreground));
 }
 
 .pkg-actions {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  padding-top: 16px;
-  border-top: 1px solid hsl(var(--border));
+  border-top: 1px solid #e2e8f0;
+  padding-top: 18px;
 }
 
 .pkg-btn {
-  flex: 1;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 0;
-  font-size: 14px;
-  font-weight: 500;
-  border: 1px solid hsl(var(--border));
+  min-height: 42px;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  background-color: hsl(var(--card));
-  color: hsl(var(--foreground));
+  background: #fff;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.15s;
 }
 
-.pkg-btn:hover { background-color: hsl(var(--muted)); }
+.pkg-btn:hover {
+  background: #f8fafc;
+}
 
-@media (max-width: 1200px) { .pkg-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 640px) { .pkg-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1200px) {
+  .pkg-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .filter-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .status-tabs,
+  .pkg-search {
+    width: 100%;
+  }
+
+  .status-tabs {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .status-tab {
+    justify-content: space-between;
+  }
+
+  .pkg-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pkg-actions {
+    grid-template-columns: 1fr;
+  }
+}
 </style>
