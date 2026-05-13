@@ -20,11 +20,11 @@ export function usePackageApi() {
     }
   };
 
-  const fetchPackages = async () => {
+  const fetchPackages = async (params = {}) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await api.get('/v1/packages');
+      const response = await api.get('/v1/packages', { params });
       return response.data;
     } catch (err) {
       error.value = err.response?.data?.message || err.message || 'Có lỗi xảy ra khi lấy danh sách gói tin';

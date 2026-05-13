@@ -1,60 +1,35 @@
 <template>
-  <div class="max-w-4xl mx-auto space-y-6">
-    <div class="flex items-center justify-between">
+  <div class="mx-auto max-w-4xl space-y-6">
+    <div class="flex items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Sửa Gói Tin</h1>
+        <h1 class="text-2xl font-bold text-gray-900">Sửa gói tin</h1>
         <p class="mt-1 text-sm text-gray-500">Chỉnh sửa cấu hình gói tin hệ thống</p>
       </div>
-      <Button variant="outline" @click="$router.push({ name: 'Packages' })">
+      <Button variant="outline" @click="router.push({ name: 'Packages' })">
         Quay lại
       </Button>
     </div>
 
-    <!-- Error/Loading for fetching -->
     <div v-if="loading && !packageLoaded" class="py-8 text-center text-gray-500">Đang tải thông tin...</div>
     <div v-if="fetchError" class="py-4 text-red-500">{{ fetchError }}</div>
 
-    <!-- Error Alert -->
-    <div v-if="apiError" class="p-4 rounded-md bg-red-50 border border-red-200">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <svg class="w-5 h-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-          </svg>
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">Lỗi cập nhật gói tin</h3>
-          <div class="mt-2 text-sm text-red-700">
-            <p>{{ apiError }}</p>
-          </div>
-        </div>
-      </div>
+    <div v-if="apiError" class="rounded-md border border-red-200 bg-red-50 p-4">
+      <h3 class="text-sm font-medium text-red-800">Lỗi cập nhật gói tin</h3>
+      <p class="mt-2 text-sm text-red-700">{{ apiError }}</p>
     </div>
 
-    <!-- Success Alert -->
-    <div v-if="success" class="p-4 rounded-md bg-green-50 border border-green-200">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <svg class="w-5 h-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-          </svg>
-        </div>
-        <div class="ml-3">
-          <p class="text-sm font-medium text-green-800">Cập nhật gói tin thành công!</p>
-        </div>
-      </div>
+    <div v-if="success" class="rounded-md border border-green-200 bg-green-50 p-4">
+      <p class="text-sm font-medium text-green-800">Cập nhật gói tin thành công!</p>
     </div>
 
     <Card v-if="packageLoaded" class="overflow-hidden">
       <form @submit.prevent="handleSubmit">
-        
-        <!-- Section 1: Thông tin cơ bản -->
-        <div class="p-6 border-b border-gray-100">
+        <section class="border-b border-gray-100 p-6">
           <div class="mb-4">
             <h3 class="text-lg font-bold text-gray-900">1. Thông tin cơ bản</h3>
             <p class="text-sm text-gray-500">Tên gói và trạng thái hoạt động</p>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          <div class="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
             <Input
               v-model="form.name"
               label="Tên gói"
@@ -62,98 +37,55 @@
               placeholder="Ví dụ: Gói Cơ bản"
               :error="errors.name"
             />
-            <div class="flex items-center mt-7 p-3 bg-gray-50 rounded-lg border border-gray-100">
+            <label class="mt-7 flex items-center rounded-lg border border-gray-100 bg-gray-50 p-3">
               <input
-                id="is_active"
                 v-model="form.is_active"
                 type="checkbox"
-                class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <label for="is_active" class="ml-2 block text-sm font-medium text-gray-900">
-                Kích hoạt gói tin (Cho phép người dùng mua)
-              </label>
-            </div>
+              <span class="ml-2 text-sm font-medium text-gray-900">
+                Kích hoạt gói tin, cho phép người dùng mua
+              </span>
+            </label>
           </div>
-        </div>
+        </section>
 
-        <!-- Section 2: Thông số kỹ thuật & Xếp hạng -->
-        <div class="p-6 border-b border-gray-100 bg-gray-50/30">
+        <section class="border-b border-gray-100 bg-gray-50/30 p-6">
           <div class="mb-4">
-            <h3 class="text-lg font-bold text-gray-900">2. Thông số phân phối & Xếp hạng</h3>
+            <h3 class="text-lg font-bold text-gray-900">2. Thông số phân phối và xếp hạng</h3>
             <p class="text-sm text-gray-500">Quyết định mức độ ưu tiên hiển thị và đặc quyền của gói</p>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Input
-              v-model.number="form.daily_quota"
-              type="number"
-              label="Lượt hiển thị/ngày (Quota)"
-              required
-              min="0"
-              placeholder="100"
-              :error="errors.daily_quota"
-            />
-            <Input
-              v-model.number="form.priority"
-              type="number"
-              label="Tầng ưu tiên (Priority)"
-              required
-              min="1"
-              placeholder="1 (thấp), 3 (cao)"
-              :error="errors.priority"
-            />
-            <Input
-              v-model.number="form.multiplier"
-              type="number"
-              step="0.1"
-              label="Hệ số điểm (Multiplier)"
-              required
-              min="1"
-              placeholder="1.0"
-              :error="errors.multiplier"
-            />
-            <Input
-              v-model.number="form.decay_rate"
-              type="number"
-              step="0.001"
-              label="Tốc độ tụt hạng (Decay Rate)"
-              required
-              min="0"
-              max="1"
-              placeholder="0.005"
-              :error="errors.decay_rate"
-            />
-            <Input
-              v-model="form.badge"
-              label="Nhãn (Badge)"
-              placeholder="HOT, VIP..."
-            />
+          <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <Input v-model.number="form.daily_quota" type="number" label="Lượt hiển thị/ngày" required min="0" :error="errors.daily_quota" />
+            <Input v-model.number="form.priority" type="number" label="Tầng ưu tiên" required min="1" :error="errors.priority" />
+            <Input v-model.number="form.multiplier" type="number" step="0.1" label="Hệ số điểm" required min="1" :error="errors.multiplier" />
+            <Input v-model.number="form.decay_rate" type="number" step="0.001" label="Tốc độ tụt hạng" required min="0" max="1" :error="errors.decay_rate" />
+            <Input v-model="form.badge" label="Nhãn hiển thị" placeholder="HOT, VIP..." />
+            <Input v-model="form.color" label="Mã màu" placeholder="#FFD700" />
           </div>
-        </div>
+        </section>
 
-        <!-- Section 3: Bảng giá tự động -->
-        <div class="p-6 border-b border-gray-100">
+        <section class="border-b border-gray-100 p-6">
           <div class="mb-4">
-            <h3 class="text-lg font-bold text-gray-900">3. Cấu hình bảng giá tự động</h3>
-            <p class="text-sm text-gray-500">Nhập giá gốc 1 ngày. Nếu giá bằng 0, hệ thống sẽ coi đây là gói miễn phí.</p>
+            <h3 class="text-lg font-bold text-gray-900">3. Cấu hình bảng giá</h3>
+            <p class="text-sm text-gray-500">Nhập giá gốc 1 ngày. Hệ thống tự tính giá cho từng thời hạn đang bật.</p>
           </div>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-            <div>
-              <Input
-                v-model.number="form.price"
-                type="number"
-                label="Giá 1 ngày (VNĐ)"
-                required
-                min="0"
-                placeholder="50000"
-                :error="errors.price"
-              />
-            </div>
-            
-            <div class="bg-white border rounded-xl overflow-hidden shadow-sm">
-              <div class="px-4 py-3 bg-gray-50 border-b text-sm font-semibold text-gray-700">
-                Bảng giá hệ thống hiện tại
+          <div class="grid grid-cols-1 items-start gap-8 md:grid-cols-2">
+            <Input
+              v-model.number="form.price"
+              type="number"
+              label="Giá 1 ngày (VNĐ)"
+              required
+              min="0"
+              placeholder="50000"
+              :error="errors.price"
+            />
+
+            <div class="overflow-hidden rounded-xl border bg-white shadow-sm">
+              <div class="border-b bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-700">
+                Bảng giá theo thời hạn
               </div>
-              <div class="px-4 py-3 border-b bg-white">
+              <div class="border-b bg-white px-4 py-3">
                 <div class="flex gap-2">
                   <Input
                     v-model.number="newDuration"
@@ -163,31 +95,28 @@
                     placeholder="Số ngày"
                     :error="errors.active_durations"
                   />
-                  <Button type="button" variant="outline" @click="addDuration">
-                    Thêm
-                  </Button>
+                  <Button type="button" variant="outline" @click="addDuration">Thêm</Button>
                 </div>
               </div>
               <table class="min-w-full divide-y divide-gray-200 text-sm">
                 <thead class="bg-white">
                   <tr>
-                    <th class="px-4 py-3 text-left font-medium text-gray-500">Thời hạn sử dụng</th>
-                    <th class="px-4 py-3 text-right font-medium text-gray-500">Thành tiền (VNĐ)</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-500">Thời hạn</th>
+                    <th class="px-4 py-3 text-right font-medium text-gray-500">Thành tiền</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                  <tr v-for="days in visibleDurations" :key="days" class="hover:bg-gray-50 transition-colors">
+                  <tr v-for="days in visibleDurations" :key="days">
                     <td class="px-4 py-3 font-medium text-gray-800">
-                      <div class="flex items-center gap-3">
-                        <input 
-                          type="checkbox" 
-                          :id="'duration-' + days"
-                          v-model="form.active_durations" 
+                      <label class="flex cursor-pointer items-center gap-3">
+                        <input
+                          v-model="form.active_durations"
+                          type="checkbox"
                           :value="days"
-                          class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
-                        <label :for="'duration-' + days" class="cursor-pointer">{{ days }} ngày</label>
-                      </div>
+                        {{ days }} ngày
+                      </label>
                     </td>
                     <td class="px-4 py-3 text-right font-bold" :class="form.active_durations.includes(days) ? 'text-blue-600' : 'text-gray-300 italic'">
                       <template v-if="form.active_durations.includes(days)">
@@ -202,11 +131,10 @@
               </table>
             </div>
           </div>
-        </div>
+        </section>
 
-        <!-- Actions -->
-        <div class="px-6 py-4 bg-gray-50 flex items-center justify-end gap-3 rounded-b-lg">
-          <Button variant="outline" type="button" @click="$router.push({ name: 'Packages' })">
+        <div class="flex items-center justify-end gap-3 rounded-b-lg bg-gray-50 px-6 py-4">
+          <Button variant="outline" type="button" @click="router.push({ name: 'Packages' })">
             Hủy bỏ
           </Button>
           <Button type="submit" variant="primary" :loading="loading">
@@ -219,13 +147,10 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, onMounted, watch } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { usePackageApi } from '@/composables/usePackageApi'
-
 import Card from '@/components/ui/Card.vue'
-import CardHeader from '@/components/ui/CardHeader.vue'
-import CardBody from '@/components/ui/CardBody.vue'
 import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
 
@@ -233,7 +158,14 @@ const router = useRouter()
 const route = useRoute()
 const packageId = route.params.id
 
-const { fetchPackage, updatePackage, fetchDurationOptions, createDurationOption, loading, error: apiError } = usePackageApi()
+const {
+  fetchPackage,
+  updatePackage,
+  fetchDurationOptions,
+  createDurationOption,
+  loading,
+  error: apiError,
+} = usePackageApi()
 
 const success = ref(false)
 const fetchError = ref('')
@@ -244,35 +176,34 @@ const durationOptions = ref([])
 const form = reactive({
   name: '',
   priority: 1,
-  multiplier: 1.0,
+  multiplier: 1,
   daily_quota: 100,
   decay_rate: 0.05,
   badge: '',
+  color: '',
   price: 50000,
   is_active: true,
-  active_durations: [3, 7, 10, 15, 30]
+  active_durations: [3, 7, 10, 15, 30],
 })
-
-// Removed is_paid watcher
 
 const errors = reactive({})
 
 const sortedDurations = computed(() => {
-  return [...new Set(form.active_durations.map(days => Number(days)))]
-    .filter(days => Number.isInteger(days) && days > 0)
+  return [...new Set(form.active_durations.map((days) => Number(days)))]
+    .filter((days) => Number.isInteger(days) && days > 0)
     .sort((a, b) => a - b)
 })
 
 const visibleDurations = computed(() => {
   return [...new Set([
-    ...durationOptions.value.map(option => Number(option.days)),
-    ...form.active_durations.map(days => Number(days)),
+    ...durationOptions.value.map((option) => Number(option.days)),
+    ...form.active_durations.map((days) => Number(days)),
   ])]
-    .filter(days => Number.isInteger(days) && days > 0)
+    .filter((days) => Number.isInteger(days) && days > 0)
     .sort((a, b) => a - b)
 })
 
-const addDuration = async () => {
+async function addDuration() {
   const days = Number(newDuration.value)
   errors.active_durations = ''
 
@@ -281,10 +212,10 @@ const addDuration = async () => {
     return
   }
 
-  if (!durationOptions.value.some(option => Number(option.days) === days)) {
-    const res = await createDurationOption({ days })
-    if (res?.data) {
-      durationOptions.value.push(res.data)
+  if (!durationOptions.value.some((option) => Number(option.days) === days)) {
+    const response = await createDurationOption({ days })
+    if (response?.data) {
+      durationOptions.value.push(response.data)
     }
   }
 
@@ -295,71 +226,36 @@ const addDuration = async () => {
   newDuration.value = null
 }
 
-onMounted(async () => {
-  try {
-    const durationRes = await fetchDurationOptions()
-    durationOptions.value = durationRes?.data || []
-
-    const res = await fetchPackage(packageId)
-    if (res?.data) {
-      const data = res.data
-      form.name = data.name
-      form.priority = Number(data.priority)
-      form.multiplier = Number(data.multiplier)
-      form.daily_quota = Number(data.daily_quota)
-      form.decay_rate = Number(data.decay_rate)
-      form.badge = data.badge || ''
-      form.price = Number(data.price || 0)
-      form.is_active = Boolean(data.is_active)
-      
-      // Load active durations from pricings
-      if (data.pricings) {
-        form.active_durations = data.pricings
-          .filter(p => p.is_active)
-          .map(p => Number(p.duration_days))
-      }
-      
-      packageLoaded.value = true
-    }
-  } catch (e) {
-    fetchError.value = e.response?.data?.message || 'Không thể lấy thông tin gói tin'
-  }
-})
-
-const validate = () => {
+function validate() {
   let isValid = true
-  Object.keys(errors).forEach(key => errors[key] = '')
+  Object.keys(errors).forEach((key) => {
+    errors[key] = ''
+  })
 
   if (!form.name) {
     errors.name = 'Vui lòng nhập tên gói'
     isValid = false
   }
-
   if (form.priority < 1) {
     errors.priority = 'Độ ưu tiên phải lớn hơn hoặc bằng 1'
     isValid = false
   }
-
   if (form.multiplier < 1) {
-    errors.multiplier = 'Multiplier phải lớn hơn hoặc bằng 1'
+    errors.multiplier = 'Hệ số điểm phải lớn hơn hoặc bằng 1'
     isValid = false
   }
-
   if (form.daily_quota < 0) {
     errors.daily_quota = 'Quota không hợp lệ'
     isValid = false
   }
-
   if (form.decay_rate < 0 || form.decay_rate > 1) {
-    errors.decay_rate = 'Decay rate phải từ 0 đến 1'
+    errors.decay_rate = 'Tốc độ tụt hạng phải từ 0 đến 1'
     isValid = false
   }
-
   if (form.price < 0) {
     errors.price = 'Giá không thể âm'
     isValid = false
   }
-
   if (sortedDurations.value.length === 0) {
     errors.active_durations = 'Vui lòng thêm ít nhất một thời hạn'
     isValid = false
@@ -368,7 +264,7 @@ const validate = () => {
   return isValid
 }
 
-const handleSubmit = async () => {
+async function handleSubmit() {
   if (!validate()) return
 
   success.value = false
@@ -382,16 +278,45 @@ const handleSubmit = async () => {
       decay_rate: Number(form.decay_rate),
       price: Number(form.price),
       badge: form.badge || null,
+      color: form.color || null,
       is_active: Boolean(form.is_active),
-      active_durations: sortedDurations.value
+      active_durations: sortedDurations.value,
     })
-    
+
     success.value = true
     setTimeout(() => {
       router.push({ name: 'Packages' })
     }, 1000)
-  } catch (err) {
-    // Error is handled by composable and shown via apiError
+  } catch {
+    // usePackageApi exposes apiError for the template.
   }
 }
+
+onMounted(async () => {
+  try {
+    const durationResponse = await fetchDurationOptions()
+    durationOptions.value = durationResponse?.data || []
+
+    const response = await fetchPackage(packageId)
+    if (response?.data) {
+      const data = response.data
+      form.name = data.name
+      form.priority = Number(data.priority)
+      form.multiplier = Number(data.multiplier)
+      form.daily_quota = Number(data.daily_quota)
+      form.decay_rate = Number(data.decay_rate)
+      form.badge = data.badge || ''
+      form.color = data.color || ''
+      form.price = Number(data.price || 0)
+      form.is_active = Boolean(data.is_active)
+      form.active_durations = (data.pricings || [])
+        .filter((pricing) => pricing.is_active)
+        .map((pricing) => Number(pricing.duration_days))
+
+      packageLoaded.value = true
+    }
+  } catch (error) {
+    fetchError.value = error.response?.data?.message || 'Không thể lấy thông tin gói tin'
+  }
+})
 </script>

@@ -17,11 +17,35 @@ class PackageServiceImpl implements PackageService
     ){
 
     }
-    public function getAll()
+    public function getAll(?string $keyword = null, ?string $status = null, bool $includeInactive = false)
     {
-        return Package::with(['pricings' => function ($q) {
-            $q->where('is_active', true)->orderBy('duration_days');
-        }])->active()->byPriority()->get();
+        return Package::query()
+            ->with(['pricings' => function ($q) {
+                $q->orderBy('duration_days');
+            }])
+            ->withCount([
+                'listings',
+                'transactions',
+            ])
+            ->when(!$includeInactive, function ($query) {
+                $query->active();
+            })
+            ->when($status === 'active', function ($query) {
+                $query->where('is_active', true);
+            })
+            ->when($status === 'locked', function ($query) {
+                $query->where('is_active', false);
+            })
+            ->when($keyword, function ($query) use ($keyword) {
+                $query->where(function ($subQuery) use ($keyword) {
+                    $subQuery
+                        ->where('name', 'like', '%' . $keyword . '%')
+                        ->orWhere('slug', 'like', '%' . $keyword . '%')
+                        ->orWhere('badge', 'like', '%' . $keyword . '%');
+                });
+            })
+            ->byPriority()
+            ->get();
     }
 
     public function getById(int $id): Package
