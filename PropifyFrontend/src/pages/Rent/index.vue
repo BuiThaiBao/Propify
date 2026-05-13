@@ -56,6 +56,7 @@
               :location="item.property?.address_detail || ''"
               :author="getAuthor(item)"
               :image="getThumb(item)"
+              :package="item.package"
               :rating="null"
               :timeAgo="timeAgo(item.submitted_at)"
               :views="item.views ?? 0"

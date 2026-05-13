@@ -39,6 +39,7 @@
           :baths="item.property?.bathrooms || 0"
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
+          :package="item.package"
         />
       </div>
     </div>
@@ -81,6 +82,7 @@
           :baths="item.property?.bathrooms || 0"
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
+          :package="item.package"
         />
       </div>
     </div>
@@ -116,6 +118,7 @@
           :baths="item.property?.bathrooms || 0"
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
+          :package="item.package"
         />
       </div>
     </div>
@@ -151,6 +154,7 @@
           :baths="item.property?.bathrooms || 0"
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
+          :package="item.package"
         />
       </div>
     </div>
