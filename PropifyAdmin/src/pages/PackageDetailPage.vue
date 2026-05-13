@@ -2,19 +2,19 @@
   <div class="package-detail-page">
     <div class="detail-heading">
       <div>
-        <p class="breadcrumb">Quan ly goi tin / Chi tiet</p>
-        <h1>{{ packageData?.name || 'Chi tiet goi tin' }}</h1>
-        <p class="subtitle">Xem cau hinh hien thi, xep hang va bang gia theo thoi han.</p>
+        <p class="breadcrumb">Quản lý gói tin / Chi tiết</p>
+        <h1>{{ packageData?.name || 'Chi tiết gói tin' }}</h1>
+        <p class="subtitle">Xem cấu hình hiển thị, xếp hạng và bảng giá theo thời hạn.</p>
       </div>
       <div class="heading-actions">
-        <Button variant="outline" @click="router.push({ name: 'Packages' })">Quay lai</Button>
+        <Button variant="outline" @click="router.push({ name: 'Packages' })">Quay lại</Button>
         <Button v-if="packageData" variant="primary" @click="router.push({ name: 'PackageEdit', params: { id: packageId } })">
-          Chinh sua
+          Chỉnh sửa
         </Button>
       </div>
     </div>
 
-    <div v-if="loading && !packageData" class="state-card">Dang tai thong tin goi tin...</div>
+    <div v-if="loading && !packageData" class="state-card">Đang tải thông tin gói tin...</div>
     <div v-else-if="fetchError" class="state-card state-error">{{ fetchError }}</div>
 
     <template v-else-if="packageData">
@@ -28,37 +28,37 @@
             <h2>{{ packageData.name }}</h2>
             <span v-if="packageData.badge" class="badge">{{ packageData.badge }}</span>
             <span :class="['status-pill', packageData.is_active ? 'status-active' : 'status-locked']">
-              {{ packageData.is_active ? 'Dang hoat dong' : 'Da khoa' }}
+              {{ packageData.is_active ? 'Đang hoạt động' : 'Đã khóa' }}
             </span>
           </div>
           <p class="slug">Slug: {{ packageData.slug }}</p>
-          <p class="price">{{ formatPrice(packageData.price) }} <span>/ ngay</span></p>
+          <p class="price">{{ formatPrice(packageData.price) }} <span>/ ngày</span></p>
         </div>
       </section>
 
       <section class="metrics-grid">
         <div class="metric-card">
-          <span>Do uu tien</span>
+          <span>Độ ưu tiên</span>
           <strong>{{ packageData.priority }}</strong>
         </div>
         <div class="metric-card">
-          <span>He so diem</span>
+          <span>Hệ số điểm</span>
           <strong>{{ packageData.multiplier }}x</strong>
         </div>
         <div class="metric-card">
-          <span>Luot hien thi/ngay</span>
+          <span>Lượt hiển thị/ngày</span>
           <strong>{{ packageData.daily_quota }}</strong>
         </div>
         <div class="metric-card">
-          <span>Toc do tut hang</span>
+          <span>Tốc độ tụt hạng</span>
           <strong>{{ packageData.decay_rate }}</strong>
         </div>
         <div class="metric-card">
-          <span>Tin dang dang dung</span>
+          <span>Tin đăng đang dùng</span>
           <strong>{{ packageData.listings_count || 0 }}</strong>
         </div>
         <div class="metric-card">
-          <span>Giao dich</span>
+          <span>Giao dịch</span>
           <strong>{{ packageData.transactions_count || 0 }}</strong>
         </div>
       </section>
@@ -66,24 +66,24 @@
       <section class="content-grid">
         <article class="panel">
           <div class="panel-header">
-            <h3>Bang gia theo thoi han</h3>
-            <span>{{ activePricings.length }} muc dang bat</span>
+            <h3>Bảng giá theo thời hạn</h3>
+            <span>{{ activePricings.length }} mức đang bật</span>
           </div>
           <table class="pricing-table">
             <thead>
               <tr>
-                <th>Thoi han</th>
-                <th>Gia</th>
-                <th>Trang thai</th>
+                    <th>Thời hạn</th>
+                    <th>Giá</th>
+                    <th>Trạng thái</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="pricing in sortedPricings" :key="pricing.id">
-                <td>{{ pricing.label || `${pricing.duration_days} ngay` }}</td>
+                <td>{{ pricing.label || `${pricing.duration_days} ngày` }}</td>
                 <td>{{ formatPrice(pricing.price) }}</td>
                 <td>
                   <span :class="['mini-pill', pricing.is_active ? 'mini-active' : 'mini-muted']">
-                    {{ pricing.is_active ? 'Dang bat' : 'Dang tat' }}
+                    {{ pricing.is_active ? 'Đang bật' : 'Đang tắt' }}
                   </span>
                 </td>
               </tr>
@@ -93,7 +93,7 @@
 
         <article class="panel">
           <div class="panel-header">
-            <h3>Thong tin he thong</h3>
+            <h3>Thông tin hệ thống</h3>
           </div>
           <dl class="info-list">
             <div>
@@ -101,18 +101,18 @@
               <dd>#{{ packageData.id }}</dd>
             </div>
             <div>
-              <dt>Mau hien thi</dt>
+              <dt>Màu hiển thị</dt>
               <dd>
                 <span v-if="packageData.color" class="color-dot" :style="{ backgroundColor: packageData.color }"></span>
-                {{ packageData.color || 'Chua cau hinh' }}
+                {{ packageData.color || 'Chưa cấu hình' }}
               </dd>
             </div>
             <div>
-              <dt>Ngay tao</dt>
+              <dt>Ngày tạo</dt>
               <dd>{{ formatDate(packageData.created_at) }}</dd>
             </div>
             <div>
-              <dt>Cap nhat lan cuoi</dt>
+              <dt>Cập nhật lần cuối</dt>
               <dd>{{ formatDate(packageData.updated_at) }}</dd>
             </div>
           </dl>
@@ -152,7 +152,7 @@ function formatPrice(price) {
 }
 
 function formatDate(value) {
-  if (!value) return 'Chua co'
+  if (!value) return 'Chưa có'
   return new Date(value).toLocaleString('vi-VN')
 }
 
@@ -161,7 +161,7 @@ onMounted(async () => {
     const response = await fetchPackage(packageId)
     packageData.value = response?.data || null
   } catch (error) {
-    fetchError.value = error.response?.data?.message || 'Khong the tai chi tiet goi tin'
+    fetchError.value = error.response?.data?.message || 'Không thể tải chi tiết gói tin'
   }
 })
 </script>

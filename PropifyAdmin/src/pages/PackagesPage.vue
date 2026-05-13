@@ -16,9 +16,9 @@ const filters = reactive({
   status: 'all',
 })
 const statusOptions = [
-  { value: 'all', label: 'Tat ca', count: () => totalPackages.value },
-  { value: 'active', label: 'Dang hoat dong', count: () => activeCount.value },
-  { value: 'locked', label: 'Da khoa', count: () => lockedCount.value },
+  { value: 'all', label: 'Tất cả', count: () => totalPackages.value },
+  { value: 'active', label: 'Đang hoạt động', count: () => activeCount.value },
+  { value: 'locked', label: 'Đã khóa', count: () => lockedCount.value },
 ]
 
 let searchTimer = null
@@ -90,7 +90,7 @@ function formatPrice(price) {
 
 function pricingSummary(pkg) {
   const durations = activeDurations(pkg)
-  return durations.length ? durations.map((days) => `${days} ngay`).join(', ') : 'Chua cau hinh'
+  return durations.length ? durations.map((days) => `${days} ngày`).join(', ') : 'Chưa cấu hình'
 }
 
 function viewDetail(pkg) {
@@ -105,8 +105,8 @@ function handleToggleActive(pkg) {
   const nextActive = !pkg.is_active
   confirmModal.value = {
     open: true,
-    title: nextActive ? 'Mo khoa goi tin' : 'Khoa goi tin',
-    desc: `Ban co chac chan muon ${nextActive ? 'mo khoa' : 'khoa'} goi "${pkg.name}"?`,
+    title: nextActive ? 'Mở khóa gói tin' : 'Khóa gói tin',
+    desc: `Bạn có chắc chắn muốn ${nextActive ? 'mở khóa' : 'khóa'} gói "${pkg.name}"?`,
     action: async () => {
       try {
         await updatePackage(pkg.id, buildUpdatePayload(pkg, nextActive))
@@ -121,10 +121,10 @@ function handleToggleActive(pkg) {
 
 <template>
   <div>
-    <PageHeader title="Quan ly goi tin" description="Tim kiem, loc, xem chi tiet va chinh sua cac goi dich vu">
+    <PageHeader title="Quản lý gói tin" description="Tìm kiếm, lọc, xem chi tiết và chỉnh sửa các gói dịch vụ">
       <template #actions>
         <button class="btn-add gradient-primary" id="btn-add-package" @click="router.push({ name: 'PackageCreate' })">
-          <Plus :size="16" /> Them goi moi
+          <Plus :size="16" /> Thêm gói mới
         </button>
       </template>
     </PageHeader>
@@ -135,13 +135,13 @@ function handleToggleActive(pkg) {
         <input
           v-model.trim="filters.keyword"
           type="text"
-          placeholder="Tim kiem theo ten, slug, badge..."
+          placeholder="Tìm kiếm theo tên, slug, badge..."
           class="search-input"
           id="pkg-search"
         />
       </div>
 
-      <div class="status-tabs" aria-label="Loc trang thai goi tin">
+      <div class="status-tabs" aria-label="Lọc trạng thái gói tin">
         <button
           v-for="option in statusOptions"
           :key="option.value"
@@ -155,9 +155,9 @@ function handleToggleActive(pkg) {
       </div>
     </section>
 
-    <div v-if="loading && packages.length === 0" class="state-text">Dang tai du lieu...</div>
+    <div v-if="loading && packages.length === 0" class="state-text">Đang tải dữ liệu...</div>
     <div v-else-if="error" class="state-text state-error">{{ error }}</div>
-    <div v-else-if="packages.length === 0" class="state-text">Khong tim thay goi tin phu hop.</div>
+    <div v-else-if="packages.length === 0" class="state-text">Không tìm thấy gói tin phù hợp.</div>
 
     <div v-else class="pkg-grid">
       <article
@@ -166,7 +166,7 @@ function handleToggleActive(pkg) {
         class="pkg-card"
         :class="{ 'pkg-card--inactive': !pkg.is_active }"
       >
-        <span v-if="!pkg.is_active" class="locked-badge">Da khoa</span>
+        <span v-if="!pkg.is_active" class="locked-badge">Đã khóa</span>
 
         <div class="pkg-icon-wrap" :style="pkg.color ? { backgroundColor: `${pkg.color}20` } : null">
           <Star :size="24" :color="pkg.color || '#3b82f6'" />
@@ -182,15 +182,15 @@ function handleToggleActive(pkg) {
         <ul class="pkg-features">
           <li class="pkg-feature">
             <Check :size="16" color="#16a34a" />
-            {{ pkg.daily_quota }} luot hien thi/ngay
+            {{ pkg.daily_quota }} lượt hiển thị/ngày
           </li>
           <li class="pkg-feature">
             <Check :size="16" color="#16a34a" />
-            Toc do tut hang: {{ pkg.decay_rate }}
+            Tốc độ tụt hạng: {{ pkg.decay_rate }}
           </li>
           <li class="pkg-feature">
             <Check :size="16" color="#16a34a" />
-            Thoi han: {{ pricingSummary(pkg) }}
+            Thời hạn: {{ pricingSummary(pkg) }}
           </li>
         </ul>
 
@@ -199,11 +199,11 @@ function handleToggleActive(pkg) {
             <Eye :size="14" /> Xem
           </button>
           <button class="pkg-btn" @click="handleEdit(pkg)" :id="`edit-pkg-${pkg.id}`">
-            <Edit :size="14" /> Sua
+            <Edit :size="14" /> Sửa
           </button>
           <button class="pkg-btn" @click="handleToggleActive(pkg)" :id="`toggle-pkg-${pkg.id}`">
             <component :is="pkg.is_active ? Lock : Unlock" :size="14" />
-            {{ pkg.is_active ? 'Khoa' : 'Mo' }}
+            {{ pkg.is_active ? 'Khóa' : 'Mở' }}
           </button>
         </div>
       </article>

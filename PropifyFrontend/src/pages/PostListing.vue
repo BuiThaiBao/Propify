@@ -124,7 +124,7 @@
               <button type="button" class="input mt-1 legal-trigger" @click="toggleLegalDropdown" ref="legalTriggerRef">
                 <span v-if="!form.legalPaperTypes.length" class="text-slate-400">Chọn giấy tờ pháp lý</span>
                 <span v-else class="legal-selected-text">{{ selectedLegalPaperLabels }}</span>
-                <span class="dropdown-arrow-icon">▾</span>
+                <span class="dropdown-arrow-icon" aria-hidden="true"></span>
               </button>
               <div v-if="showLegalDropdown" class="legal-dropdown mt-2" ref="legalDropdownRef">
                 <label v-for="option in legalPaperOptions" :key="option.value" class="legal-option">
@@ -228,24 +228,45 @@
               <p v-if="fieldError('provinceCode')" class="field-error">{{ fieldErrorMessage('provinceCode') }}</p>
             </label>
             <label>
-              <span class="field-label">Phường / Xã</span>
-              <select v-model="form.wardCode" class="input mt-1" :disabled="!form.provinceCode || wardsLoading">
+              <span class="field-label required">Phường / Xã</span>
+              <select
+                v-model="form.wardCode"
+                :class="['input mt-1', fieldError('wardCode') && 'input-error']"
+                :disabled="!form.provinceCode || wardsLoading"
+                @change="touchField('wardCode')"
+                @blur="touchField('wardCode')"
+              >
                 <option value="">{{ wardsLoading ? 'Đang tải phường/xã...' : 'Chọn Phường/Xã' }}</option>
                 <option v-for="ward in wards" :key="ward.code" :value="String(ward.code)">
                   {{ ward.name }}
                 </option>
               </select>
+              <p v-if="fieldError('wardCode')" class="field-error">{{ fieldErrorMessage('wardCode') }}</p>
             </label>
           </div>
 
           <div class="mt-3 grid gap-3 md:grid-cols-2">
             <label>
-              <span class="field-label">Đường / Phố</span>
-              <input v-model="form.streetCode" class="input mt-1" placeholder="Nhập đường/phố" @blur="handleTextBlur('streetCode')" />
+              <span class="field-label required">Đường / Phố</span>
+              <input
+                v-model="form.streetCode"
+                :class="['input mt-1', fieldError('streetCode') && 'input-error']"
+                placeholder="Nhập đường/phố"
+                @blur="handleTextBlur('streetCode')"
+              />
+              <p v-if="fieldError('streetCode')" class="field-error">{{ fieldErrorMessage('streetCode') }}</p>
             </label>
             <label>
-              <span class="field-label">Địa chỉ cụ thể</span>
-              <input v-model="form.addressDetail" class="input mt-1" inputmode="text" autocomplete="off" placeholder="Nhập địa chỉ" @blur="handleTextBlur('addressDetail')" />
+              <span class="field-label required">Địa chỉ cụ thể</span>
+              <input
+                v-model="form.addressDetail"
+                :class="['input mt-1', fieldError('addressDetail') && 'input-error']"
+                inputmode="text"
+                autocomplete="off"
+                placeholder="Nhập địa chỉ"
+                @blur="handleTextBlur('addressDetail')"
+              />
+              <p v-if="fieldError('addressDetail')" class="field-error">{{ fieldErrorMessage('addressDetail') }}</p>
             </label>
           </div>
 
@@ -319,7 +340,7 @@
             <button type="button" class="more-info-toggle" @click="showMoreDetail = !showMoreDetail">
               <span class="field-label">Thêm thông tin</span>
               <span class="more-info-badge">Điền đủ thông tin, tăng lượt tiếp cận</span>
-              <span class="dropdown-arrow-icon">▾</span>
+              <span class="dropdown-arrow-icon" aria-hidden="true"></span>
             </button>
           </div>
 
@@ -439,7 +460,7 @@
               <img :src="homeImageIcon" alt="verify" class="h-5 w-5" />
               <h2>Xác thực bất động sản</h2>
             </span>
-            <span class="dropdown-arrow-icon">▾</span>
+            <span class="dropdown-arrow-icon" aria-hidden="true"></span>
           </button>
 
           <div v-if="showVerificationSection" class="mt-4 space-y-4">
@@ -569,7 +590,7 @@
                     @click="mediaCollapsed = !mediaCollapsed"
                     :aria-label="mediaCollapsed ? 'Mở rộng danh sách ảnh và video' : 'Thu gọn danh sách ảnh và video'"
                   >
-                    <span class="score-row-toggle-icon" :class="{ collapsed: mediaCollapsed }">▾</span>
+                    <span class="score-row-toggle-icon" :class="{ collapsed: mediaCollapsed }" aria-hidden="true"></span>
                   </button>
                 </div>
               </div>
@@ -599,7 +620,7 @@
                     @click="infoCollapsed = !infoCollapsed"
                     :aria-label="infoCollapsed ? 'Mở rộng danh sách thông tin bất động sản' : 'Thu gọn danh sách thông tin bất động sản'"
                   >
-                    <span class="score-row-toggle-icon" :class="{ collapsed: infoCollapsed }">▾</span>
+                    <span class="score-row-toggle-icon" :class="{ collapsed: infoCollapsed }" aria-hidden="true"></span>
                   </button>
                 </div>
               </div>
@@ -628,7 +649,7 @@
                     @click="detailCollapsed = !detailCollapsed"
                     :aria-label="detailCollapsed ? 'Mở rộng danh sách chi tiết bất động sản' : 'Thu gọn danh sách chi tiết bất động sản'"
                   >
-                    <span class="score-row-toggle-icon" :class="{ collapsed: detailCollapsed }">▾</span>
+                    <span class="score-row-toggle-icon" :class="{ collapsed: detailCollapsed }" aria-hidden="true"></span>
                   </button>
                 </div>
               </div>
@@ -657,7 +678,7 @@
                     @click="contactCollapsed = !contactCollapsed"
                     :aria-label="contactCollapsed ? 'Mở rộng danh sách thông tin liên hệ' : 'Thu gọn danh sách thông tin liên hệ'"
                   >
-                    <span class="score-row-toggle-icon" :class="{ collapsed: contactCollapsed }">▾</span>
+                    <span class="score-row-toggle-icon" :class="{ collapsed: contactCollapsed }" aria-hidden="true"></span>
                   </button>
                 </div>
               </div>
@@ -1804,6 +1825,21 @@ function fieldErrorMessage(field) {
     return '';
   }
 
+  if (field === 'wardCode') {
+    if (!value || !String(value).trim()) return 'Vui lòng chọn Phường/Xã';
+    return '';
+  }
+
+  if (field === 'streetCode') {
+    if (!value || !String(value).trim()) return 'Vui lòng nhập Đường/Phố';
+    return '';
+  }
+
+  if (field === 'addressDetail') {
+    if (!value || !String(value).trim()) return 'Vui lòng nhập địa chỉ cụ thể';
+    return '';
+  }
+
   if (field === 'price') {
     if (form.isNegotiable) return '';
     if (!value) return 'Giá phải lớn hơn 0';
@@ -1893,7 +1929,7 @@ function onPhoneInput(event) {
 }
 
 function touchAllRequired() {
-  const required = ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'contactName', 'contactPhone', 'contactEmail'];
+  const required = ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail'];
   if (form.demandType === 'RENT') {
     required.push('rentMinTerm', 'rentPaymentInterval');
   }
@@ -1901,7 +1937,7 @@ function touchAllRequired() {
 }
 
 function hasRequiredErrors() {
-  const base = ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'contactName', 'contactPhone', 'contactEmail'];
+  const base = ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail'];
   if (form.demandType === 'RENT') base.push('rentMinTerm', 'rentPaymentInterval');
 
   const hasError = base.some((f) => {
@@ -2059,8 +2095,7 @@ async function submitListing() {
   // Validate required fields first
   touchAllRequired();
   if (hasRequiredErrors()) {
-    submitError.value = 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại';
-    pushToast('Dữ liệu không hợp lệ. Vui lòng kiểm tra lại', 'error');
+    submitError.value = "";
     return;
   }
 
@@ -2386,10 +2421,14 @@ async function submitListing() {
 
 .dropdown-arrow-icon {
   margin-left: auto;
-  color: #64748b;
-  font-size: 18px;
-  line-height: 1;
-  font-weight: 400;
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid #0f172a;
+  border-bottom: 2px solid #0f172a;
+  transform: rotate(45deg);
+  transform-origin: center;
+  flex: 0 0 auto;
 }
 
 .legal-selected-text {
@@ -2686,12 +2725,17 @@ async function submitListing() {
 
 .score-row-toggle-icon {
   display: inline-block;
-  line-height: 1;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #0f172a;
+  border-bottom: 2px solid #0f172a;
+  transform: rotate(45deg);
+  transform-origin: center;
   transition: transform 0.2s ease;
 }
 
 .score-row-toggle-icon.collapsed {
-  transform: rotate(-90deg);
+  transform: rotate(-45deg);
 }
 
 .circle {
