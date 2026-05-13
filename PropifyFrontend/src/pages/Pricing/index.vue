@@ -117,13 +117,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import packageService from '@/services/packageService';
+import { computed, onMounted } from 'vue';
 import AppFooter from '@/components/common/AppFooter.vue';
+import { usePackages } from '@/composables/usePackages';
 
-const loading = ref(true);
-const error = ref('');
-const packages = ref([]);
+const { packages, loading, error, fetchPackages } = usePackages();
 
 const displayPackages = computed(() => {
   const allowedSlugs = ['electron', 'ruby', 'gold', 'free', 'basic'];
@@ -137,20 +135,6 @@ const displayPackages = computed(() => {
 onMounted(() => {
   fetchPackages();
 });
-
-async function fetchPackages() {
-  loading.value = true;
-  error.value = '';
-  try {
-    const res = await packageService.getPackages();
-    packages.value = res?.data?.data || [];
-  } catch (err) {
-    error.value = 'Không thể tải bảng giá. Vui lòng thử lại.';
-    packages.value = [];
-  } finally {
-    loading.value = false;
-  }
-}
 
 function formatCurrency(value) {
   return Number(value || 0).toLocaleString('vi-VN');
@@ -247,3 +231,4 @@ function getFeatures(pkg) {
   return featMap[pkg.slug] || [];
 }
 </script>
+

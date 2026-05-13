@@ -15,6 +15,9 @@ final class ViewTrackingServiceImpl implements ViewTrackingService
     /** Redis key prefix cho atomic counter */
     private const COUNTER_PREFIX = 'listing:views:';
 
+    /** Redis set of listing ids with pending counters */
+    private const DIRTY_SET_KEY = 'listing:views:dirty';
+
     /** Dedup TTL: 30 phút (1800 giây) */
     private const DEDUP_TTL = 1800;
 
@@ -70,7 +73,10 @@ final class ViewTrackingServiceImpl implements ViewTrackingService
 
         // 5. Atomic increment counter
         $counterKey = self::COUNTER_PREFIX . $listingId;
-        Redis::incr($counterKey);
+        Redis::pipeline(function ($pipe) use ($counterKey, $listingId) {
+            $pipe->incr($counterKey);
+            $pipe->sadd(self::DIRTY_SET_KEY, (string) $listingId);
+        });
 
         Log::debug('ViewTracking: view counted', [
             'listing_id' => $listingId,

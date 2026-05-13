@@ -159,41 +159,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { onMounted } from 'vue';
 import ListingCardHome from '@/components/shared/ListingCardHome.vue';
-import listingService from '@/services/listingService';
+import { useHomeListings } from '@/composables/useHomeListings';
 
-const saleListings = ref([]);
-const rentListings = ref([]);
-const saleLoading = ref(true);
-const rentLoading = ref(true);
+const { saleListings, rentListings, saleLoading, rentLoading, init } = useHomeListings();
 
-onMounted(async () => {
-  fetchSale();
-  fetchRent();
+onMounted(() => {
+  init();
 });
-
-async function fetchSale() {
-  try {
-    const res = await listingService.getPublicListings({ demand_type: 'SALE', per_page: 6 });
-    saleListings.value = res.data.data || [];
-  } catch (e) {
-    console.error('Failed to fetch sale listings', e);
-  } finally {
-    saleLoading.value = false;
-  }
-}
-
-async function fetchRent() {
-  try {
-    const res = await listingService.getPublicListings({ demand_type: 'RENT', per_page: 6 });
-    rentListings.value = res.data.data || [];
-  } catch (e) {
-    console.error('Failed to fetch rent listings', e);
-  } finally {
-    rentLoading.value = false;
-  }
-}
 
 function getThumb(item) {
   if (item.images && item.images.length > 0) {

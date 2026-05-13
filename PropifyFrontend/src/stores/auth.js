@@ -4,6 +4,11 @@ import authService from "@/services/authService";
 
 /** Named constant for localStorage key */
 const TOKEN_KEY = "access_token";
+const USER_CACHE_KEY = "auth_user";
+
+function isPageReload() {
+  return performance.getEntriesByType("navigation")?.[0]?.type === "reload";
+}
 
 export const useAuthStore = defineStore("auth", () => {
   // ============ STATE ============
@@ -31,7 +36,8 @@ export const useAuthStore = defineStore("auth", () => {
     token.value = savedToken;
 
     // Thử restore user từ sessionStorage cache trước (tránh gọi /me mỗi lần)
-    const cachedUser = sessionStorage.getItem('auth_user');
+    const shouldUseCache = !isPageReload();
+    const cachedUser = shouldUseCache ? sessionStorage.getItem(USER_CACHE_KEY) : null;
     if (cachedUser) {
       try {
         const parsedUser = JSON.parse(cachedUser);
@@ -42,7 +48,7 @@ export const useAuthStore = defineStore("auth", () => {
         user.value = parsedUser;
         return; // Cache hit — không cần gọi API
       } catch {
-        sessionStorage.removeItem('auth_user');
+        sessionStorage.removeItem(USER_CACHE_KEY);
       }
     }
 
@@ -172,7 +178,7 @@ export const useAuthStore = defineStore("auth", () => {
 
     user.value = userData;
     // Lưu vào sessionStorage để tránh gọi /me lần sau khi chuyển route
-    sessionStorage.setItem('auth_user', JSON.stringify(user.value));
+    sessionStorage.setItem(USER_CACHE_KEY, JSON.stringify(user.value));
   }
 
   /**
@@ -194,7 +200,7 @@ export const useAuthStore = defineStore("auth", () => {
     user.value = null;
     token.value = null;
     localStorage.removeItem(TOKEN_KEY);
-    sessionStorage.removeItem('auth_user');
+    sessionStorage.removeItem(USER_CACHE_KEY);
   }
 
   /**

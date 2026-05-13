@@ -164,6 +164,9 @@ import MapWidget from '@/components/shared/MapWidget.vue';
 import TabFilterGroup from '@/components/shared/TabFilterGroup.vue';
 import RadioFilterGroup from '@/components/shared/RadioFilterGroup.vue';
 import { useSaleListings } from '@/composables/useSaleListings';
+import { useHomeListings } from '@/composables/useHomeListings';
+import { useRentListings } from '@/composables/useRentListings';
+import { usePackages } from '@/composables/usePackages';
 
 const {
   saleListings, saleLoading, saleTotal,
@@ -171,6 +174,9 @@ const {
   saleSuggestions, visiblePages,
   init, onSearch, goToPage,
 } = useSaleListings();
+const { init: prefetchHomeListings } = useHomeListings();
+const { init: prefetchRentListings } = useRentListings();
+const { fetchPackages: prefetchPackages } = usePackages();
 
 const posterType = ref('all');
 const priceRange = ref('all');
@@ -178,7 +184,26 @@ const areaRange = ref('all');
 
 onMounted(() => {
   init();
+  prefetchSiblingPages();
 });
+
+function prefetchSiblingPages() {
+  const run = () => {
+    prefetchHomeListings();
+    prefetchRentListings();
+    prefetchPackages();
+    import('@/pages/Rent/index.vue');
+    import('@/pages/Pricing/index.vue');
+    import('@/pages/Home.vue');
+  };
+
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(run, { timeout: 1500 });
+    return;
+  }
+
+  window.setTimeout(run, 300);
+}
 
 function getThumb(item) {
   if (item.images && item.images.length > 0) {

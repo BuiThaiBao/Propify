@@ -117,67 +117,25 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import { KeyRound, ChevronDown, User, DollarSign, Ruler } from 'lucide-vue-next';
 import RentLayout from '@/layouts/RentLayout.vue';
 import TopSearchBar from '@/components/shared/TopSearchBar.vue';
 import RentCard from '@/components/shared/RentCard.vue';
-import listingService from '@/services/listingService';
 import SidebarWidget from '@/components/shared/SidebarWidget.vue';
 import MapWidget from '@/components/shared/MapWidget.vue';
 import TabFilterGroup from '@/components/shared/TabFilterGroup.vue';
 import RadioFilterGroup from '@/components/shared/RadioFilterGroup.vue';
+import { useRentListings } from '@/composables/useRentListings';
 
 const posterType = ref('all');
 const priceRange = ref('all');
 const areaRange = ref('all');
-const rentListings = ref([]);
-const rentLoading = ref(true);
-const rentTotal = ref(0);
-const searchKeyword = ref('');
+const { rentListings, rentLoading, rentTotal, searchKeyword, rentSuggestions, init, onSearch } = useRentListings();
 
-const rentSuggestions = computed(() => {
-  const query = normalizeText(searchKeyword.value);
-  if (!query) return [];
-
-  const candidates = rentListings.value.flatMap((item) => [
-    item.title,
-    item.property?.address_detail,
-    item.property?.project_name,
-  ]).filter(Boolean);
-
-  return [...new Set(candidates)]
-    .filter((text) => normalizeText(text).includes(query))
-    .slice(0, 8);
+onMounted(() => {
+  init();
 });
-
-onMounted(async () => {
-  await fetchRentListings();
-});
-
-async function fetchRentListings() {
-  rentLoading.value = true;
-  try {
-    const response = await listingService.getPublicListings({
-      demand_type: 'RENT',
-      keyword: searchKeyword.value?.trim() || undefined,
-      per_page: 20,
-    });
-    rentListings.value = response?.data?.data || [];
-    rentTotal.value = Number(response?.data?.meta?.total || rentListings.value.length || 0);
-  } catch (error) {
-    console.error('Failed to fetch rent listings', error);
-    rentListings.value = [];
-    rentTotal.value = 0;
-  } finally {
-    rentLoading.value = false;
-  }
-}
-
-async function onSearch(value) {
-  searchKeyword.value = value || '';
-  await fetchRentListings();
-}
 
 function getThumb(item) {
   if (item.images && item.images.length > 0) {
@@ -234,10 +192,4 @@ function isVerified(item) {
   return value === true || Number(value) === 1;
 }
 
-function normalizeText(value) {
-  return String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase();
-}
 </script>

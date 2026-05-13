@@ -406,7 +406,9 @@ function startViewTimer(listingId) {
   viewTrackTimer = setTimeout(() => {
     // Double-check visibility khi timer fire (user có thể đã chuyển tab)
     if (document.visibilityState === 'visible') {
-      listingService.trackView(listingId);
+      listingService.trackView(listingId).catch(() => {
+        // View tracking should never affect the listing detail UX.
+      });
     }
   }, 5000);
 }

@@ -100,7 +100,7 @@ final class EloquentListingRepository implements ListingRepository
                 'listings.id', 'listings.property_id', 'listings.owner_id', 'listings.title',
                 'listings.demand_type', 'listings.status', 'listings.is_verified',
                 'listings.has_video', 'listings.package_id', 'listings.score',
-                'listings.submitted_at', 'listings.published_at',
+                'listings.views', 'listings.submitted_at', 'listings.published_at',
             ])
             // Tính final_score trong SQL để sort chính xác
             ->selectRaw('
