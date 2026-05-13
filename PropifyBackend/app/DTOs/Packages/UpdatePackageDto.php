@@ -16,7 +16,7 @@ final readonly class UpdatePackageDto
         public ?string $badge,
         public ?string $color,
         public bool $isActive,
-        public array $activeDurations = [3, 7, 10, 15, 30],
+        public array $activeDurations = [],
     ) {
     }
 
@@ -32,7 +32,7 @@ final readonly class UpdatePackageDto
             badge: $request->input('badge'),
             color: $request->input('color'),
             isActive: (bool) $request->boolean('is_active'),
-            activeDurations: $request->input('active_durations', [3, 7, 10, 15, 30])
+            activeDurations: $request->input('active_durations', [])
         );
     }
 }

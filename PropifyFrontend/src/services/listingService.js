@@ -180,33 +180,10 @@ const listingService = {
    * @param {number} id - Listing ID
    */
   trackView(id) {
-    const url = `${api.defaults.baseURL}/v1/listings/${id}/view`;
-    const token = localStorage.getItem("access_token");
-
-    // Payload cho sendBeacon
-    const headers = { "Content-Type": "application/json" };
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-
-    // sendBeacon: reliable cho analytics, không bị cancel khi user rời trang
-    if (navigator.sendBeacon) {
-      const blob = new Blob([JSON.stringify({})], { type: "application/json" });
-      const sent = navigator.sendBeacon(url, blob);
-      if (sent) return;
-    }
-
-    // Fallback: fetch fire-and-forget
-    const fetchHeaders = { "Content-Type": "application/json" };
-    if (token) fetchHeaders["Authorization"] = `Bearer ${token}`;
-
-    fetch(url, {
-      method: "POST",
-      headers: fetchHeaders,
-      body: JSON.stringify({}),
-      keepalive: true,
-    }).catch(() => {
-      // Silent fail — view tracking should never break UX
+    return api.post(`/v1/listings/${id}/view`, {}, {
+      headers: {
+        "X-Anon-Id": getAnonId(),
+      },
     });
   },
 
@@ -217,5 +194,17 @@ const listingService = {
     });
   },
 };
+
+function getAnonId() {
+  const key = "propify_anon_id";
+  let anonId = localStorage.getItem(key);
+
+  if (!anonId) {
+    anonId = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    localStorage.setItem(key, anonId);
+  }
+
+  return anonId;
+}
 
 export default listingService;

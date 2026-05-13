@@ -27,7 +27,7 @@ final class CreatePackageRequest extends FormRequest
             'badge' => ['nullable', 'string', 'max:50'],
             'color' => ['nullable', 'string', 'max:50'],
             'active_durations' => ['nullable', 'array'],
-            'active_durations.*' => ['integer', 'in:3,7,10,15,30'],
+            'active_durations.*' => ['integer', 'min:1', 'max:3650', 'distinct'],
         ];
     }
 }

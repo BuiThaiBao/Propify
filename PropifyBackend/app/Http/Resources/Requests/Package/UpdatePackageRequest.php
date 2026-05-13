@@ -25,7 +25,7 @@ final class UpdatePackageRequest extends FormRequest
             'color' => ['nullable', 'string', 'max:50'],
             'is_active' => ['required', 'boolean'],
             'active_durations' => ['nullable', 'array'],
-            'active_durations.*' => ['integer', 'in:3,7,10,15,30'],
+            'active_durations.*' => ['integer', 'min:1', 'max:3650', 'distinct'],
         ];
     }
 }

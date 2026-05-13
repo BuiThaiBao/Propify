@@ -114,12 +114,12 @@
             <Input
               v-model.number="form.decay_rate"
               type="number"
-              step="0.01"
+              step="0.001"
               label="Tốc độ tụt hạng (Decay Rate)"
               required
               min="0"
               max="1"
-              placeholder="0.05"
+              placeholder="0.005"
               :error="errors.decay_rate"
             />
             <Input
@@ -158,6 +158,21 @@
               <div class="px-4 py-3 bg-gray-50 border-b text-sm font-semibold text-gray-700">
                 Xem trước bảng giá hệ thống
               </div>
+              <div class="px-4 py-3 border-b bg-white">
+                <div class="flex gap-2">
+                  <Input
+                    v-model.number="newDuration"
+                    type="number"
+                    min="1"
+                    max="3650"
+                    placeholder="Số ngày"
+                    :error="errors.active_durations"
+                  />
+                  <Button type="button" variant="outline" @click="addDuration">
+                    Thêm
+                  </Button>
+                </div>
+              </div>
               <table class="min-w-full divide-y divide-gray-200 text-sm">
                 <thead class="bg-white">
                   <tr>
@@ -166,7 +181,7 @@
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                  <tr v-for="days in [3, 5, 7, 10, 15, 30]" :key="days" class="hover:bg-gray-50 transition-colors">
+                  <tr v-for="days in visibleDurations" :key="days" class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 font-medium text-gray-800">
                       <div class="flex items-center gap-3">
                         <input 
@@ -209,7 +224,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePackageApi } from '@/composables/usePackageApi'
 
@@ -221,9 +236,11 @@ import Select from '@/components/ui/Select.vue'
 import Button from '@/components/ui/Button.vue'
 
 const router = useRouter()
-const { createPackage, loading, error: apiError } = usePackageApi()
+const { createPackage, fetchDurationOptions, createDurationOption, loading, error: apiError } = usePackageApi()
 
 const success = ref(false)
+const newDuration = ref(null)
+const durationOptions = ref([])
 
 const form = reactive({
   name: '',
@@ -241,6 +258,54 @@ const form = reactive({
 // Removed is_paid watcher
 
 const errors = reactive({})
+
+const sortedDurations = computed(() => {
+  return [...new Set(form.active_durations.map(days => Number(days)))]
+    .filter(days => Number.isInteger(days) && days > 0)
+    .sort((a, b) => a - b)
+})
+
+const visibleDurations = computed(() => {
+  return [...new Set([
+    ...durationOptions.value.map(option => Number(option.days)),
+    ...form.active_durations.map(days => Number(days)),
+  ])]
+    .filter(days => Number.isInteger(days) && days > 0)
+    .sort((a, b) => a - b)
+})
+
+onMounted(async () => {
+  try {
+    const res = await fetchDurationOptions()
+    durationOptions.value = res?.data || []
+    form.active_durations = visibleDurations.value
+  } catch (err) {
+    durationOptions.value = []
+  }
+})
+
+const addDuration = async () => {
+  const days = Number(newDuration.value)
+  errors.active_durations = ''
+
+  if (!Number.isInteger(days) || days < 1 || days > 3650) {
+    errors.active_durations = 'Số ngày phải từ 1 đến 3650'
+    return
+  }
+
+  if (!durationOptions.value.some(option => Number(option.days) === days)) {
+    const res = await createDurationOption({ days })
+    if (res?.data) {
+      durationOptions.value.push(res.data)
+    }
+  }
+
+  if (!form.active_durations.includes(days)) {
+    form.active_durations.push(days)
+  }
+
+  newDuration.value = null
+}
 
 const validate = () => {
   let isValid = true
@@ -281,6 +346,11 @@ const validate = () => {
     isValid = false
   }
 
+  if (sortedDurations.value.length === 0) {
+    errors.active_durations = 'Vui lòng thêm ít nhất một thời hạn'
+    isValid = false
+  }
+
   return isValid
 }
 
@@ -300,7 +370,7 @@ const handleSubmit = async () => {
       price: Number(form.price),
       badge: form.badge || null,
       color: form.color || null,
-      active_durations: form.active_durations
+      active_durations: sortedDurations.value
     })
     
     success.value = true

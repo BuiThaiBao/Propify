@@ -36,13 +36,14 @@ final class PackagePricingController
         $package = Package::findOrFail($packageId);
 
         $validated = $request->validate([
-            'duration_days' => ['required', 'integer', 'in:3,7,10,15,30'],
+            'duration_days' => ['required', 'integer', 'min:1', 'max:3650'],
             'price'         => ['required', 'numeric', 'min:0'],
             'label'         => ['required', 'string', 'max:50'],
             'is_active'     => ['sometimes', 'boolean'],
         ], [
             'duration_days.required' => 'Vui lòng chọn số ngày.',
-            'duration_days.in'       => 'Số ngày phải là 3, 7, 10, 15 hoặc 30.',
+            'duration_days.min'      => 'Số ngày phải lớn hơn hoặc bằng 1.',
+            'duration_days.max'      => 'Số ngày không được vượt quá 3650.',
             'price.required'         => 'Vui lòng nhập giá.',
             'price.min'              => 'Giá phải lớn hơn hoặc bằng 0.',
             'label.required'         => 'Vui lòng nhập nhãn hiển thị.',
