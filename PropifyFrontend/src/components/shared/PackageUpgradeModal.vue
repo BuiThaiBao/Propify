@@ -35,9 +35,16 @@
               ]"
             >
               <!-- Package Header Badge -->
-              <div class="pkg-header" :class="`pkg-header--${pkg.slug}`">
-                <span v-if="slugIcon(pkg.slug)" class="pkg-icon">{{ slugIcon(pkg.slug) }}</span>
-                <span class="pkg-badge-label" :class="`pkg-badge-label--${pkg.slug}`">{{ slugLabel(pkg.slug) }}</span>
+              <div class="pkg-header-badge">
+                <span v-if="getIconSrc(pkg)" class="relative inline-block h-[4rem]">
+                  <img :src="getIconSrc(pkg)" class="block h-full w-auto" alt="" />
+                  <span class="absolute top-[30%] right-1.5 flex h-[37%] items-center justify-center px-3 text-[10px] font-extrabold tracking-wide text-white whitespace-nowrap">
+                    {{ slugLabel(pkg.slug) }}
+                  </span>
+                </span>
+                <span v-else class="pkg-badge-label pkg-badge-label--free">
+                  {{ slugLabel(pkg.slug) }}
+                </span>
               </div>
 
               <!-- Daily Price -->
@@ -153,8 +160,8 @@ const selectedPricing = ref(null);
 
 // Only show: electron, ruby, gold, free (exclude silver/bac)
 const displayPackages = computed(() => {
-  const allowedSlugs = ['electron', 'ruby', 'gold', 'free'];
-  const slugOrder = { electron: 0, ruby: 1, gold: 2, free: 3 };
+  const allowedSlugs = ['dimond', 'electron', 'ruby', 'gold', 'free'];
+  const slugOrder = { dimond: 0, electron: 1, ruby: 2, gold: 3, free: 4 };
   return [...packages.value]
     .filter(p => allowedSlugs.includes(p.slug))
     .sort((a, b) => (slugOrder[a.slug] ?? 99) - (slugOrder[b.slug] ?? 99));
@@ -241,22 +248,34 @@ function formatPrice(value) {
 }
 
 function slugLabel(slug) {
-  const map = { electron: 'Electron', ruby: 'Ruby', gold: 'Vàng', free: 'Tin thường' };
+  const map = { dimond: 'Diamond', electron: 'Electron', ruby: 'Ruby', gold: 'Vàng', free: 'Tin thường' };
   return map[slug] || slug;
 }
 
-function slugIcon(slug) {
-  const map = { electron: '⚡', ruby: '💎', gold: '🏅', free: '📋' };
-  return map[slug] || null;
+const priorityIconMap = {
+  2: '/vip.svg',
+  3: '/premium.svg',
+  4: '/dimond.svg',
+};
+
+function getIconSrc(pkg) {
+  const priority = Number(pkg.priority || 0);
+  return priorityIconMap[priority] || null;
 }
 
 function getPushPrice(pkg) {
-  const map = { electron: 'Miễn phí', ruby: '8.000đ', gold: '5.000đ', free: '1.000đ' };
+  const map = { dimond: 'Miễn phí', electron: 'Miễn phí', ruby: '8.000đ', gold: '5.000đ', free: '1.000đ' };
   return map[pkg.slug] || 'N/A';
 }
 
 function getFeatures(pkg) {
   const featMap = {
+    dimond: [
+      { text: 'Gói <strong>DUY NHẤT</strong> tích hợp 3D', enabled: true },
+      { text: '<strong>TOP 1</strong> phủ sóng trên hệ sinh thái', enabled: true },
+      { text: 'Giao diện hiển thị chuyên biệt', enabled: true },
+      { text: 'Tự động đẩy tin <strong>MIỄN PHÍ</strong>', enabled: true },
+    ],
     electron: [
       { text: 'Gói <strong>DUY NHẤT</strong> tích hợp 3D', enabled: true },
       { text: '<strong>TOP 1</strong> phủ sóng trên hệ sinh thái', enabled: true },
@@ -419,11 +438,11 @@ function getFeatures(pkg) {
 }
 
 /* ─── Package Header ─── */
-.pkg-header {
+.pkg-header-badge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 14px 16px 10px;
+  padding: 10px 16px 4px;
+  height: 64px;
 }
 
 .pkg-icon {
@@ -445,6 +464,11 @@ function getFeatures(pkg) {
 }
 
 /* Ruby - red gradient */
+.pkg-badge-label--dimond {
+  background: linear-gradient(135deg, #0f172a, #334155);
+  color: #fff;
+}
+
 .pkg-badge-label--ruby {
   background: linear-gradient(135deg, #dc2626, #b91c1c);
   color: #fff;
@@ -619,6 +643,10 @@ function getFeatures(pkg) {
   color: #fff !important;
 }
 
+.pkg-action-btn--ready.pkg-action-btn--dimond {
+  background: linear-gradient(135deg, #0f172a, #334155) !important;
+}
+
 .pkg-action-btn--ready.pkg-action-btn--electron {
   background: linear-gradient(135deg, #1e293b, #334155) !important;
 }
@@ -667,6 +695,10 @@ function getFeatures(pkg) {
 }
 
 /* ─── Card Slug Borders ─── */
+.package-card--dimond {
+  border-top: 3px solid #0f172a;
+}
+
 .package-card--electron {
   border-top: 3px solid #1e293b;
 }

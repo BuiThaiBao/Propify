@@ -57,8 +57,7 @@
               :location="item.property?.address_detail || ''"
               :author="getAuthor(item)"
               :image="getThumb(item)"
-              :badge="getPackageBadge(item.package)"
-              :badge-color="getPackageColor(item.package)"
+              :package="item.package"
               :rating="null"
               :timeAgo="timeAgo(item.submitted_at)"
               :views="item.views ?? 0"
@@ -220,17 +219,7 @@ function getAuthor(item) {
   };
 }
 
-function getPackageBadge(pkg) {
-  if (!pkg?.slug) return null;
-  const map = { electron: 'Electron', ruby: 'Ruby', gold: 'VIP' };
-  return map[pkg.slug] || null;
-}
 
-function getPackageColor(pkg) {
-  if (!pkg?.slug) return null;
-  const map = { electron: '#1e293b', ruby: '#dc2626', gold: '#f59e0b' };
-  return map[pkg.slug] || null;
-}
 
 function formatPrice(value) {
   const num = Number(value || 0);

@@ -1,17 +1,19 @@
 
 <template>
 	<RouterLink :to="to" class="block no-underline text-inherit">
-	<div class="bg-white rounded-2xl p-4 flex gap-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
+	<div 
+		class="bg-white rounded-2xl p-4 flex gap-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group overflow-hidden"
+		:class="{ 'border-diamond': Number(package?.priority) === 4 }"
+	>
 		<div class="relative w-[220px] h-[220px] shrink-0 rounded-xl overflow-hidden">
 			<img :src="image" alt="Property" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
 
-			<div class="absolute top-3 left-3 flex gap-1.5">
-				<span
-					v-if="badge"
-					class="text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-md"
-					:style="{ background: badgeColor || '#94a3b8' }"
-				>
-					{{ badge }}
+			<div v-if="packageIcon" class="absolute -top-2 -left-2">
+				<span class="relative inline-block">
+					<img :src="packageIcon" class="block h-[4.3rem] w-auto" alt="" />
+					<span class="absolute top-[30%] right-2 flex h-[37%] items-center justify-center px-3 text-[10px] font-extrabold tracking-wide text-white whitespace-nowrap">
+						{{ packageLabel }}
+					</span>
 				</span>
 			</div>
 
@@ -116,9 +118,12 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 import { MapPin, Maximize, Bed, Bath, Heart, Eye, Phone, CheckCircle, CalendarDays } from 'lucide-vue-next';
 
-defineProps({
+const priorityIconMap = { 2: '/vip.svg', 3: '/premium.svg', 4: '/dimond.svg' };
+
+const props = defineProps({
 	to: { type: String, default: '#' },
 	image: { type: String, default: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60' },
 	verified: { type: Boolean, default: true },
@@ -136,9 +141,17 @@ defineProps({
 		default: () => ({ name: 'Nguyễn Thị Lan', role: 'Môi giới' })
 	},
 	timeAgo: { type: String, default: '5 giờ trước' },
-	badge: { type: String, default: null },
-	badgeColor: { type: String, default: null },
+	package: { type: Object, default: null },
 	views: { type: [Number, String], default: 215 },
+});
+
+const packageIcon = computed(() => {
+	const priority = Number(props.package?.priority || 0);
+	return priorityIconMap[priority] || null;
+});
+
+const packageLabel = computed(() => {
+	return props.package?.badge || props.package?.name || null;
 });
 
 function getInitials(name) {
@@ -148,3 +161,52 @@ function getInitials(name) {
 	return name.substring(0, 2).toUpperCase();
 }
 </script>
+
+<style scoped>
+.border-diamond {
+	position: relative;
+	border: none !important; /* Hide default border to show animation */
+	background: #fff;
+	background-clip: padding-box;
+}
+
+.border-diamond::after {
+	content: "";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	border-radius: 1rem;
+	padding: 2px; /* Border thickness */
+	background: conic-gradient(
+		from var(--angle),
+		transparent 70%,
+		#3b82f6 85%,
+		#60a5fa 95%,
+		transparent 100%
+	);
+	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+	-webkit-mask-composite: xor;
+	mask-composite: exclude;
+	animation: diamond-rotate 2s linear infinite;
+	pointer-events: none;
+	z-index: 10;
+}
+
+@property --angle {
+	syntax: "<angle>";
+	initial-value: 0deg;
+	inherits: false;
+}
+
+@keyframes diamond-rotate {
+	from {
+		--angle: 0deg;
+	}
+	to {
+		--angle: 360deg;
+	}
+}
+</style>
