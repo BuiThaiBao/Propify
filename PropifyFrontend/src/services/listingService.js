@@ -79,6 +79,15 @@ const listingService = {
     return api.put(`/v1/listings/${id}`, data);
   },
 
+  updateVerification(id, payload) {
+    return api.patch(`/v1/listings/${id}/verification`, {
+      identity_card_front: payload.identityCardFront,
+      identity_card_back: payload.identityCardBack,
+      legal_documents: payload.legalDocuments || [],
+      public_info_agreed: payload.publicInfoAgreed || false,
+    });
+  },
+
   lock(id) {
     return api.post(`/v1/listings/${id}/lock`);
   },

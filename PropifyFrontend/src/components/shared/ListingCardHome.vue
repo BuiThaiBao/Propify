@@ -8,7 +8,12 @@
 			<div class="relative aspect-[4/3] overflow-hidden">
 				<img :src="image" alt="Property" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
 
-				<div class="absolute left-0 top-0 flex min-h-[3.5rem] items-center gap-1.5 z-10">
+				<div
+					:class="[
+						'absolute flex min-h-[3.5rem] items-center gap-1.5 z-10',
+						packageIcon ? 'left-0 top-0' : 'left-3 top-3'
+					]"
+				>
 					<span v-if="packageIcon" class="relative inline-block">
 						<img :src="packageIcon" class="block h-[3.5rem] w-auto" alt="" />
 						<span class="absolute top-[30%] right-1 flex h-[37%] items-center justify-center px-2.5 text-[9px] font-extrabold tracking-wide text-white whitespace-nowrap">
@@ -27,10 +32,14 @@
 
 			<button
 				type="button"
-				class="absolute right-4 top-4 rounded-full bg-white/90 p-1.5 text-slate-600 shadow-sm backdrop-blur hover:bg-white z-10"
+				:class="[
+					'absolute right-4 top-4 rounded-full p-1.5 shadow-sm backdrop-blur z-10',
+					isFavorite ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-white/90 text-slate-600 hover:bg-white'
+				]"
 				aria-label="Yêu thích"
+				@click.prevent.stop="$emit('toggleFavorite')"
 			>
-				<Heart class="h-4 w-4" />
+				<Heart class="h-4 w-4" :fill="isFavorite ? 'currentColor' : 'none'" />
 			</button>
 		</div>
 
@@ -79,6 +88,8 @@ import { Bath, Bed, CheckCircle2, Heart, MapPin, Maximize } from 'lucide-vue-nex
 const priorityIconMap = { 2: '/vip.svg', 3: '/premium.svg', 4: '/dimond.svg' };
 
 const props = defineProps({
+	listingId: { type: [Number, String], default: null },
+	isFavorite: { type: Boolean, default: false },
 	to: { type: String, default: '#' },
 	image: { type: String, default: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60' },
 	verified: { type: Boolean, default: false },
@@ -93,6 +104,8 @@ const props = defineProps({
 	timeAgo: { type: String, default: '' },
 	package: { type: Object, default: null },
 });
+
+defineEmits(['toggleFavorite']);
 
 const packageIcon = computed(() => {
 	const priority = Number(props.package?.priority || 0);

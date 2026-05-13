@@ -51,20 +51,6 @@ final class AuthServiceImpl implements AuthService
             Log::warning('Login attempt by non-active user', ['user_id' => $user->id, 'status' => $user->status?->value]);
             throw new BusinessException(ErrorCode::AuthNotVerified);
         }
-        // Chỉ chặn admin login trên client site (không có platform=admin)
-        if ($user->role === UserRole::Admin && request()->input('platform') !== 'admin') {
-            $guard->logout();
-            Log::warning('Admin user attempted to login on client site', ['user_id' => $user->id]);
-            throw new BusinessException(ErrorCode::AuthAdminNotAllowed);
-        }
-
-        // Chặn user thường login trên admin site
-        if ($user->role !== UserRole::Admin && request()->input('platform') === 'admin') {
-            $guard->logout();
-            Log::warning('Non-admin user attempted to login on admin site', ['user_id' => $user->id]);
-            throw new BusinessException(ErrorCode::AuthLoginFailed);
-        }
-
         Log::info('User logged in', ['user_id' => $user->id]);
 
         return AuthResultDto::fromUserAndToken($user, $token, $guard->factory()->getTTL());

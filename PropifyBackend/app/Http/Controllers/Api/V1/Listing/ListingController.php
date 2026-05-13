@@ -66,6 +66,24 @@ final class ListingController
         );
     }
 
+    public function updateVerification(Request $request, int $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'identity_card_front' => ['required', 'string', 'url', 'max:2048'],
+            'identity_card_back' => ['required', 'string', 'url', 'max:2048'],
+            'legal_documents' => ['nullable', 'array', 'max:5'],
+            'legal_documents.*' => ['string', 'url', 'max:2048'],
+            'public_info_agreed' => ['nullable', 'boolean'],
+        ]);
+
+        $listing = $this->listingService->updateVerification($request->user(), $id, $validated);
+
+        return ApiResponse::success(
+            data: new ListingResource($listing),
+            message: 'Cap nhat thong tin xac thuc bat dong san thanh cong.'
+        );
+    }
+
     public function lock(Request $request, int $id): JsonResponse
     {
         $listing = $this->listingService->lock($request->user(), $id);

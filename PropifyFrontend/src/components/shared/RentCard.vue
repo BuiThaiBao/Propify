@@ -18,8 +18,16 @@
 			</div>
 
 			<div class="absolute top-3 right-3">
-				<button class="bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-2 rounded-full transition-all shadow-sm">
-					<Heart class="w-4 h-4" />
+				<button
+					type="button"
+					:class="[
+						'backdrop-blur-md p-2 rounded-full transition-all shadow-sm',
+						isFavorite ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-white/20 hover:bg-white/30 text-white'
+					]"
+					aria-label="Yêu thích"
+					@click.prevent.stop="$emit('toggleFavorite')"
+				>
+					<Heart class="w-4 h-4" :fill="isFavorite ? 'currentColor' : 'none'" />
 				</button>
 			</div>
 
@@ -124,6 +132,8 @@ import { MapPin, Maximize, Bed, Bath, Heart, Eye, Phone, CheckCircle, CalendarDa
 const priorityIconMap = { 2: '/vip.svg', 3: '/premium.svg', 4: '/dimond.svg' };
 
 const props = defineProps({
+	listingId: { type: [Number, String], default: null },
+	isFavorite: { type: Boolean, default: false },
 	to: { type: String, default: '#' },
 	image: { type: String, default: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60' },
 	verified: { type: Boolean, default: true },
@@ -144,6 +154,8 @@ const props = defineProps({
 	package: { type: Object, default: null },
 	views: { type: [Number, String], default: 312 },
 });
+
+defineEmits(['toggleFavorite']);
 
 const packageIcon = computed(() => {
 	const priority = Number(props.package?.priority || 0);

@@ -377,6 +377,80 @@ final class ListingServiceImpl implements ListingService
         });
     }
 
+    public function updateVerification(User $user, int $id, array $payload): Listing
+    {
+        $updated = DB::transaction(function () use ($user, $id, $payload) {
+            $listing = Listing::query()->lockForUpdate()->findOrFail($id);
+
+            if ((int) $listing->owner_id !== (int) $user->id) {
+                throw new BusinessException(ErrorCode::AuthForbidden);
+            }
+
+            $identityCardFront = $payload['identity_card_front'] ?? null;
+            $identityCardBack = $payload['identity_card_back'] ?? null;
+            $legalDocuments = $payload['legal_documents'] ?? [];
+            $requestVerification = (bool) ($identityCardFront || $identityCardBack || count($legalDocuments) > 0);
+
+            $this->listingRepository->updateListing($listing->id, [
+                'request_verification' => $requestVerification,
+            ]);
+
+            if ($listing->property_id) {
+                $this->listingRepository->updateProperty($listing->property_id, [
+                    'public_info_agreed' => (bool) ($payload['public_info_agreed'] ?? false),
+                ]);
+            }
+
+            $this->listingRepository->deleteVerificationDocuments($listing->id);
+            $sortOrder = 0;
+
+            if ($identityCardFront) {
+                $this->listingRepository->createVerificationDocument([
+                    'listing_id' => $listing->id,
+                    'document_type' => 'ID_FRONT',
+                    'file_url' => $identityCardFront,
+                    'mime_type' => 'image/jpeg',
+                    'file_size' => 0,
+                    'sort_order' => $sortOrder++,
+                ]);
+            }
+
+            if ($identityCardBack) {
+                $this->listingRepository->createVerificationDocument([
+                    'listing_id' => $listing->id,
+                    'document_type' => 'ID_BACK',
+                    'file_url' => $identityCardBack,
+                    'mime_type' => 'image/jpeg',
+                    'file_size' => 0,
+                    'sort_order' => $sortOrder++,
+                ]);
+            }
+
+            foreach ($legalDocuments as $documentUrl) {
+                $this->listingRepository->createVerificationDocument([
+                    'listing_id' => $listing->id,
+                    'document_type' => 'LEGAL_DOCUMENT',
+                    'file_url' => $documentUrl,
+                    'mime_type' => 'image/jpeg',
+                    'file_size' => 0,
+                    'sort_order' => $sortOrder++,
+                ]);
+            }
+
+            return $listing->fresh()->load([
+                'property.attributes.group',
+                'images',
+                'videos',
+                'verificationDocuments',
+                'appointments',
+            ]);
+        });
+
+        $this->clearPublicListingsCache();
+
+        return $updated;
+    }
+
     public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
     {
         $page = request()->input('page', 1);

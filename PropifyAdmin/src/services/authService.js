@@ -13,7 +13,7 @@ const authService = {
    * @returns {Promise<import('axios').AxiosResponse>} Response containing { user, access_token, token_type, expires_in }
    */
   login(email, password) {
-    return api.post("/v1/auth/login", { email, password, platform: 'admin' });
+    return api.post("/v1/auth/login", { email, password });
   },
 
   /**
