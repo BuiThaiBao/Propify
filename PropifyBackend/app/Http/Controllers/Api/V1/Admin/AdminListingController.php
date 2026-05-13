@@ -43,4 +43,26 @@ final class AdminListingController extends Controller
             ],
         );
     }
+
+    public function changeStatus(Request $request, int $id): JsonResponse
+    {
+        if ($request->user()->role !== \App\Enums\UserRole::Admin) {
+            throw new BusinessException(ErrorCode::AuthForbidden);
+        }
+
+        $request->validate([
+            'status' => 'required|string|in:ACTIVE,REJECTED,LOCKED',
+            'rejection_reason' => 'nullable|string',
+        ]);
+
+        $status = $request->input('status');
+        $rejectionReason = $request->input('rejection_reason');
+
+        $listing = $this->listingService->changeStatusForAdmin($id, $status, $rejectionReason);
+
+        return ApiResponse::success(
+            data: new ListingResource($listing),
+            message: 'Cập nhật trạng thái tin đăng thành công.'
+        );
+    }
 }

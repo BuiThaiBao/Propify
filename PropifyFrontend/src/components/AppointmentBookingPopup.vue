@@ -81,18 +81,21 @@
             <!-- Contact form -->
             <div class="section-label">Vui lòng cung cấp thông tin liên hệ của bạn</div>
             <div class="form-fields">
-              <div class="input-group">
+              <div class="input-group" :class="{ 'has-error': nameError }">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#94a3b8"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                <input v-model="form.full_name" type="text" placeholder="Họ và tên *" />
+                <input v-model="form.full_name" type="text" placeholder="Họ và tên *" @blur="validateName" />
               </div>
-              <div class="input-group">
+              <p v-if="nameError" class="field-error">{{ nameError }}</p>
+              <div class="input-group" :class="{ 'has-error': phoneError }">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#94a3b8"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                <input v-model="form.phone" type="tel" placeholder="Số điện thoại *" />
+                <input v-model="form.phone" type="tel" placeholder="Số điện thoại *" @blur="validatePhone(true)" />
               </div>
-              <div class="input-group">
+              <p v-if="phoneError" class="field-error">{{ phoneError }}</p>
+              <div class="input-group" :class="{ 'has-error': emailError }">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#94a3b8"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                <input v-model="form.email" type="email" placeholder="Email" />
+                <input v-model="form.email" type="email" placeholder="Email" @blur="validateEmail(true)" />
               </div>
+              <p v-if="emailError" class="field-error">{{ emailError }}</p>
               <div class="input-group textarea-group">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#94a3b8"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 <textarea v-model="form.note" placeholder="Ghi chú" maxlength="1000" rows="3"></textarea>
@@ -183,6 +186,13 @@ const confirmVisible = ref(false);
 const resultVisible = ref(false);
 const resultSuccess = ref(false);
 const resultMsg = ref('');
+const nameError = ref('');
+const phoneError = ref('');
+const emailError = ref('');
+const phoneTouched = ref(false);
+const emailTouched = ref(false);
+let phoneValidateTimer = null;
+let emailValidateTimer = null;
 
 const form = ref({
   full_name: '',
@@ -218,6 +228,26 @@ const selectedDateSlots = computed(() => {
   if (selectedDateIndex.value < 0 || selectedDateIndex.value >= allDates.value.length) return [];
   return allDates.value[selectedDateIndex.value]?.slots || [];
 });
+
+function validateName() {
+  nameError.value = form.value.full_name.trim() ? '' : 'Vui lòng nhập họ và tên.';
+}
+
+function validatePhone(force = false) {
+  if (!phoneTouched.value && !force) return;
+  const digits = form.value.phone.replace(/\D/g, '');
+  phoneError.value = digits.length === 10 ? '' : 'Số điện thoại phải đủ 10 chữ số.';
+}
+
+function validateEmail(force = false) {
+  if (!emailTouched.value && !force) return;
+  const email = form.value.email.trim();
+  if (!email) {
+    emailError.value = '';
+    return;
+  }
+  emailError.value = /^[^@\s]+@gmail\.com$/i.test(email) ? '' : 'Email phải có đuôi @gmail.com.';
+}
 
 function scrollDates(dir) {
   const newIdx = dateScrollIndex.value + dir;
@@ -307,7 +337,26 @@ watch(() => props.visible, (val) => {
   if (val) {
     fetchSlots();
     form.value = { full_name: '', phone: '', email: '', note: '' };
+    nameError.value = '';
+    phoneError.value = '';
+    emailError.value = '';
+    phoneTouched.value = false;
+    emailTouched.value = false;
+    if (phoneValidateTimer) clearTimeout(phoneValidateTimer);
+    if (emailValidateTimer) clearTimeout(emailValidateTimer);
   }
+});
+
+watch(() => form.value.phone, () => {
+  phoneTouched.value = true;
+  if (phoneValidateTimer) clearTimeout(phoneValidateTimer);
+  phoneValidateTimer = setTimeout(() => validatePhone(), 350);
+});
+
+watch(() => form.value.email, () => {
+  emailTouched.value = true;
+  if (emailValidateTimer) clearTimeout(emailValidateTimer);
+  emailValidateTimer = setTimeout(() => validateEmail(), 350);
 });
 </script>
 
@@ -416,12 +465,14 @@ watch(() => props.visible, (val) => {
   transition: border-color 0.2s; background: #fff;
 }
 .input-group:focus-within { border-color: #0ea5e9; }
+.input-group.has-error { border-color: #ef4444; }
 .input-group svg { flex-shrink: 0; }
 .input-group input, .input-group textarea {
   flex: 1; border: none; outline: none; padding: 12px 0;
   font-size: 14px; color: #1e293b; background: transparent; font-family: inherit;
 }
 .input-group input::placeholder, .input-group textarea::placeholder { color: #94a3b8; }
+.field-error { margin: -6px 0 2px; font-size: 12px; color: #ef4444; }
 .textarea-group { align-items: flex-start; position: relative; }
 .textarea-group svg { margin-top: 12px; }
 .textarea-group textarea { resize: none; min-height: 60px; }
