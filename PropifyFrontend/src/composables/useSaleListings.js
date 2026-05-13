@@ -7,6 +7,7 @@
  */
 import { ref, computed } from 'vue';
 import listingService from '@/services/listingService';
+import { hydrateListingAddresses } from '@/utils/addressFormatter';
 
 // ==================== MODULE-LEVEL STATE (persist qua navigation) ====================
 
@@ -38,6 +39,7 @@ async function fetchPageData(page, keyword) {
     page,
   });
   const data = response?.data?.data || [];
+  await hydrateListingAddresses(data);
   const meta = response?.data?.meta || {};
   return { data, meta };
 }
@@ -76,6 +78,7 @@ export function useSaleListings() {
 
     const candidates = saleListings.value.flatMap((item) => [
       item.title,
+      item.property?.full_address,
       item.property?.address_detail,
       item.property?.project_name,
     ]).filter(Boolean);

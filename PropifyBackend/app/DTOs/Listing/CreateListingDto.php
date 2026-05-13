@@ -60,6 +60,7 @@ final readonly class CreateListingDto
         public ?string $appointmentContactEmail,
         public ?string $appointmentNote,
         public ?int $packageId,
+        public bool $saveAsDraft = false,
     ) {
     }
 }

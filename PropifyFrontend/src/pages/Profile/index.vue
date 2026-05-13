@@ -564,6 +564,7 @@ import listingService from '@/services/listingService';
 import PackageUpgradeModal from '@/components/shared/PackageUpgradeModal.vue';
 import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
 import AppointmentManagement from '@/components/AppointmentManagement.vue';
+import { buildPropertyAddress, hydrateListingAddresses } from '@/utils/addressFormatter';
 
 const authStore = useAuthStore();
 const route = useRoute();
@@ -805,7 +806,7 @@ function formatCurrency(value) {
 }
 
 function buildAddress(property) {
-  return property?.address_detail || '';
+  return property?.full_address || buildPropertyAddress(property);
 }
 
 function normalizeListings(items) {
@@ -853,6 +854,7 @@ async function loadMyListings(page = 1) {
 
     const data = response?.data?.data || [];
     const meta = response?.data?.meta || {};
+    await hydrateListingAddresses(data);
 
     myListings.value = normalizeListings(data);
     listingPagination.currentPage = Number(meta.current_page || 1);

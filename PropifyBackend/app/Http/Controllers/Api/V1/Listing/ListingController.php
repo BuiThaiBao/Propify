@@ -23,7 +23,9 @@ final class ListingController
 
         return ApiResponse::created(
             data: new ListingResource($listing),
-            message: 'Tao tin dang thanh cong. Tin dang dang cho duyet.'
+            message: $listing->status === 'DRAFT'
+                ? 'Luu tin nhap thanh cong.'
+                : 'Tao tin dang thanh cong. Tin dang dang cho duyet.'
         );
     }
 
