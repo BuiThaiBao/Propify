@@ -57,9 +57,12 @@
               :author="getAuthor(item)"
               :image="getThumb(item)"
               :package="item.package"
+              :listing-id="item.id"
+              :is-favorite="isFavorite(item)"
               :rating="null"
               :timeAgo="timeAgo(item.submitted_at)"
               :views="item.views ?? 0"
+              @toggle-favorite="toggleFavorite(item)"
             />
           </div>
         </div>
@@ -119,6 +122,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { KeyRound, ChevronDown, User, DollarSign, Ruler } from 'lucide-vue-next';
 import RentLayout from '@/layouts/RentLayout.vue';
 import TopSearchBar from '@/components/shared/TopSearchBar.vue';
@@ -128,15 +132,65 @@ import MapWidget from '@/components/shared/MapWidget.vue';
 import TabFilterGroup from '@/components/shared/TabFilterGroup.vue';
 import RadioFilterGroup from '@/components/shared/RadioFilterGroup.vue';
 import { useRentListings } from '@/composables/useRentListings';
+import favoriteService from '@/services/favoriteService';
+import { useAuthStore } from '@/stores/auth';
 
+const router = useRouter();
+const authStore = useAuthStore();
 const posterType = ref('all');
 const priceRange = ref('all');
 const areaRange = ref('all');
+const favoriteIds = ref(new Set());
 const { rentListings, rentLoading, rentTotal, searchKeyword, rentSuggestions, init, onSearch } = useRentListings();
 
 onMounted(() => {
   init();
+  loadFavoriteIds();
 });
+
+async function loadFavoriteIds() {
+  if (!authStore.isAuthenticated) return;
+  try {
+    const response = await favoriteService.getFavoriteIds();
+    favoriteIds.value = new Set(response.data?.data || []);
+  } catch {
+    favoriteIds.value = new Set();
+  }
+}
+
+function isFavorite(item) {
+  return Boolean(item?.is_favorited) || favoriteIds.value.has(Number(item.id));
+}
+
+async function toggleFavorite(item) {
+  if (!authStore.isAuthenticated) {
+    router.push({ name: 'Login', query: { redirect: `/listings/${item.id}` } });
+    return;
+  }
+
+  const id = Number(item.id);
+  const wasFavorite = isFavorite(item);
+  const next = new Set(favoriteIds.value);
+  if (wasFavorite) next.delete(id);
+  else next.add(id);
+  favoriteIds.value = next;
+  item.is_favorited = !wasFavorite;
+
+  try {
+    const response = await favoriteService.toggle(id);
+    item.is_favorited = Boolean(response.data?.data?.is_favorited);
+    const synced = new Set(favoriteIds.value);
+    if (item.is_favorited) synced.add(id);
+    else synced.delete(id);
+    favoriteIds.value = synced;
+  } catch {
+    item.is_favorited = wasFavorite;
+    const rollback = new Set(favoriteIds.value);
+    if (wasFavorite) rollback.add(id);
+    else rollback.delete(id);
+    favoriteIds.value = rollback;
+  }
+}
 
 function getThumb(item) {
   if (item.images && item.images.length > 0) {

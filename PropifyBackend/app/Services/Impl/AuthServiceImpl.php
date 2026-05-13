@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 final class AuthServiceImpl implements AuthService
 {
@@ -51,23 +52,10 @@ final class AuthServiceImpl implements AuthService
             Log::warning('Login attempt by non-active user', ['user_id' => $user->id, 'status' => $user->status?->value]);
             throw new BusinessException(ErrorCode::AuthNotVerified);
         }
-        // Chỉ chặn admin login trên client site (không có platform=admin)
-        if ($user->role === UserRole::Admin && request()->input('platform') !== 'admin') {
-            $guard->logout();
-            Log::warning('Admin user attempted to login on client site', ['user_id' => $user->id]);
-            throw new BusinessException(ErrorCode::AuthAdminNotAllowed);
-        }
-
-        // Chặn user thường login trên admin site
-        if ($user->role !== UserRole::Admin && request()->input('platform') === 'admin') {
-            $guard->logout();
-            Log::warning('Non-admin user attempted to login on admin site', ['user_id' => $user->id]);
-            throw new BusinessException(ErrorCode::AuthLoginFailed);
-        }
 
         Log::info('User logged in', ['user_id' => $user->id]);
 
-        return AuthResultDto::fromUserAndToken($user, $token, $guard->factory()->getTTL());
+        return AuthResultDto::fromUserAndToken($user, $token, $this->makeRefreshToken($user), $guard->factory()->getTTL());
     }
 
     /**
@@ -144,7 +132,7 @@ final class AuthServiceImpl implements AuthService
         $guard = $this->authFactory->guard('api');
         $token = $guard->login($user);
 
-        return AuthResultDto::fromUserAndToken($user, $token, $guard->factory()->getTTL());
+        return AuthResultDto::fromUserAndToken($user, $token, $this->makeRefreshToken($user), $guard->factory()->getTTL());
     }
 
     /**
@@ -198,23 +186,43 @@ final class AuthServiceImpl implements AuthService
         Log::info('Password reset successfully', ['user_id' => $user->id]);
     }
 
-    public function logout(): void
+    public function logout(?string $refreshToken = null): void
     {
         /** @var \Tymon\JWTAuth\JWTGuard $guard */
         $guard = $this->authFactory->guard('api');
         /** @var User $user */
         $user = $guard->user();
         $this->processToken();
+        $this->invalidateToken($refreshToken);
         Log::info('User logged out', ['user_id' => $user?->id]);
         $guard->logout();
     }
 
-    public function refresh(): string
+    public function refresh(string $refreshToken): AuthResultDto
     {
-        $this->processToken();
-        /** @var \Tymon\JWTAuth\JWTGuard $guard */
-        $guard = $this->authFactory->guard('api');
-        return $guard->refresh();
+        try {
+            $payload = JWTAuth::setToken($refreshToken)->getPayload();
+            if ($payload->get('typ') !== 'refresh') {
+                throw new JWTException('Invalid token type.');
+            }
+
+            /** @var User $user */
+            $user = JWTAuth::setToken($refreshToken)->authenticate();
+            if (!$user || $user->status !== UserStatus::Active) {
+                throw new JWTException('Invalid refresh subject.');
+            }
+
+            $this->invalidateToken($refreshToken);
+
+            /** @var \Tymon\JWTAuth\JWTGuard $guard */
+            $guard = $this->authFactory->guard('api');
+            $accessToken = $guard->login($user);
+
+            return AuthResultDto::fromUserAndToken($user, $accessToken, $this->makeRefreshToken($user), $guard->factory()->getTTL());
+        } catch (JWTException $e) {
+            Log::warning('Refresh token failed', ['message' => $e->getMessage()]);
+            throw new BusinessException(ErrorCode::AuthUnauthorized);
+        }
     }
 
     public function me(): ?User
@@ -232,6 +240,32 @@ final class AuthServiceImpl implements AuthService
             if ($ttl > 0) {
                 $this->tokenProcessService->addTokenToBlacklist((string) $token, $ttl);
             }
+        }
+    }
+
+    private function makeRefreshToken(User $user): string
+    {
+        $factory = JWTAuth::factory();
+        $originalTtl = $factory->getTTL();
+
+        try {
+            $factory->setTTL((int) config('jwt.refresh_ttl', 20160));
+            return JWTAuth::claims(['typ' => 'refresh'])->fromUser($user);
+        } finally {
+            $factory->setTTL($originalTtl);
+        }
+    }
+
+    private function invalidateToken(?string $token): void
+    {
+        if (!$token) {
+            return;
+        }
+
+        try {
+            JWTAuth::setToken($token)->invalidate();
+        } catch (JWTException $e) {
+            Log::warning('Token invalidation failed', ['message' => $e->getMessage()]);
         }
     }
 }

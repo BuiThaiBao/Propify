@@ -27,6 +27,7 @@ final class ListingResource extends JsonResource
             'is_verified' => $this->is_verified,
             'views' => $this->views ?? 0,
             'package_expires_at' => $this->package_expires_at?->toIso8601String(),
+            'is_favorited' => (bool) ($this->is_favorited ?? false),
             'request_verification' => $this->request_verification,
             'appointment_at' => $this->appointment_at?->toIso8601String(),
             'rent_min_term' => $this->rent_min_term,
@@ -38,6 +39,7 @@ final class ListingResource extends JsonResource
             'appointment_contact_phone' => $this->appointment_contact_phone,
             'appointment_contact_email' => $this->appointment_contact_email,
             'appointment_note' => $this->appointment_note,
+            'created_at' => $this->created_at?->toIso8601String(),
             'submitted_at' => $this->submitted_at?->toIso8601String(),
             'property' => [
                 'id' => $this->property?->id,

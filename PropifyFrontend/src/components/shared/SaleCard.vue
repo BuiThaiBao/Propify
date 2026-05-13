@@ -3,7 +3,7 @@
 	<RouterLink :to="to" class="block no-underline text-inherit">
 	<div 
 		class="bg-white rounded-2xl p-4 flex gap-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group overflow-hidden"
-		:class="{ 'border-diamond': Number(package?.priority) === 4 }"
+		:class="packageBorderClass"
 	>
 		<div class="relative w-[220px] h-[220px] shrink-0 rounded-xl overflow-hidden">
 			<img :src="image" alt="Property" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -18,8 +18,16 @@
 			</div>
 
 			<div class="absolute top-3 right-3">
-				<button class="bg-white/20 backdrop-blur-md hover:bg-white/30 text-white p-2 rounded-full transition-all shadow-sm">
-					<Heart class="w-4 h-4" />
+				<button
+					type="button"
+					:class="[
+						'backdrop-blur-md p-2 rounded-full transition-all shadow-sm',
+						isFavorite ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-white/20 hover:bg-white/30 text-white'
+					]"
+					aria-label="Yêu thích"
+					@click.prevent.stop="$emit('toggleFavorite')"
+				>
+					<Heart class="w-4 h-4" :fill="isFavorite ? 'currentColor' : 'none'" />
 				</button>
 			</div>
 
@@ -124,6 +132,8 @@ import { MapPin, Maximize, Bed, Bath, Heart, Eye, Phone, CheckCircle, CalendarDa
 const priorityIconMap = { 2: '/vip.svg', 3: '/premium.svg', 4: '/dimond.svg' };
 
 const props = defineProps({
+	listingId: { type: [Number, String], default: null },
+	isFavorite: { type: Boolean, default: false },
 	to: { type: String, default: '#' },
 	image: { type: String, default: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60' },
 	verified: { type: Boolean, default: true },
@@ -145,6 +155,8 @@ const props = defineProps({
 	views: { type: [Number, String], default: 215 },
 });
 
+defineEmits(['toggleFavorite']);
+
 const packageIcon = computed(() => {
 	const priority = Number(props.package?.priority || 0);
 	return priorityIconMap[priority] || null;
@@ -152,6 +164,15 @@ const packageIcon = computed(() => {
 
 const packageLabel = computed(() => {
 	return props.package?.badge || props.package?.name || null;
+});
+
+const packageBorderClass = computed(() => {
+	const slug = String(props.package?.slug || '').toLowerCase();
+	const priority = Number(props.package?.priority || 0);
+	if (slug === 'ruby') return 'border-package border-package-ruby';
+	if (slug === 'gold' || priority === 3) return 'border-package border-package-gold';
+	if (slug === 'dimond' || slug === 'diamond' || priority === 4) return 'border-package border-package-diamond';
+	return '';
 });
 
 function getInitials(name) {
@@ -163,14 +184,14 @@ function getInitials(name) {
 </script>
 
 <style scoped>
-.border-diamond {
+.border-package {
 	position: relative;
 	border: none !important; /* Hide default border to show animation */
 	background: #fff;
 	background-clip: padding-box;
 }
 
-.border-diamond::after {
+.border-package::after {
 	content: "";
 	position: absolute;
 	top: 0;
@@ -182,8 +203,8 @@ function getInitials(name) {
 	background: conic-gradient(
 		from var(--angle),
 		transparent 70%,
-		#3b82f6 85%,
-		#60a5fa 95%,
+		var(--package-border-color) 85%,
+		var(--package-border-glow) 95%,
 		transparent 100%
 	);
 	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -193,6 +214,21 @@ function getInitials(name) {
 	animation: diamond-rotate 2s linear infinite;
 	pointer-events: none;
 	z-index: 10;
+}
+
+.border-package-diamond {
+	--package-border-color: #3b82f6;
+	--package-border-glow: #60a5fa;
+}
+
+.border-package-ruby {
+	--package-border-color: #dc2626;
+	--package-border-glow: #fb7185;
+}
+
+.border-package-gold {
+	--package-border-color: #d97706;
+	--package-border-glow: #facc15;
 }
 
 @property --angle {

@@ -14,16 +14,15 @@ const route = useRoute();
 const authStore = useAuthStore();
 
 onMounted(async () => {
-  const token = route.query.token;
+  if (route.query.error) {
+    router.replace("/login");
+    return;
+  }
 
-  if (token) {
-    try {
-      await authStore.setTokenFromGoogle(token);
-      router.replace("/");
-    } catch {
-      router.replace("/login");
-    }
-  } else {
+  try {
+    await authStore.setTokenFromGoogle();
+    router.replace("/");
+  } catch {
     router.replace("/login");
   }
 });

@@ -8,7 +8,7 @@
         <h2 class="text-[1.75rem] font-bold text-slate-800 leading-tight">
           Tin mua bán bất động sản
         </h2>
-        <router-link to="/listings?type=SALE" class="px-5 py-2.5 rounded-full border border-slate-200 text-[0.85rem] font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2">
+        <router-link to="/sales" class="px-5 py-2.5 rounded-full border border-slate-200 text-[0.85rem] font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2">
           Xem tất cả
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
@@ -26,6 +26,7 @@
         <ListingCardHome
           v-for="item in saleListings"
           :key="item.id"
+          :listing-id="item.id"
           :to="'/listings/' + item.id"
           :image="getThumb(item)"
           :verified="item.is_verified"
@@ -40,6 +41,8 @@
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
           :package="item.package"
+          :is-favorite="isFavorite(item)"
+          @toggle-favorite="toggleFavorite(item)"
         />
       </div>
     </div>
@@ -51,7 +54,7 @@
         <h2 class="text-[1.75rem] font-bold text-slate-800 leading-tight">
           Tin cho thuê bất động sản
         </h2>
-        <router-link to="/listings?type=RENT" class="px-5 py-2.5 rounded-full border border-slate-200 text-[0.85rem] font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2">
+        <router-link to="/rent" class="px-5 py-2.5 rounded-full border border-slate-200 text-[0.85rem] font-medium text-slate-700 hover:bg-slate-50 transition-colors flex items-center gap-2">
           Xem tất cả
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
@@ -69,6 +72,7 @@
         <ListingCardHome
           v-for="item in rentListings"
           :key="item.id"
+          :listing-id="item.id"
           :to="'/listings/' + item.id"
           :image="getThumb(item)"
           :verified="item.is_verified"
@@ -83,6 +87,8 @@
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
           :package="item.package"
+          :is-favorite="isFavorite(item)"
+          @toggle-favorite="toggleFavorite(item)"
         />
       </div>
     </div>
@@ -105,6 +111,7 @@
         <ListingCardHome
           v-for="item in saleListings.slice(0,3)"
           :key="'viewed-' + item.id"
+          :listing-id="item.id"
           :to="'/listings/' + item.id"
           :image="getThumb(item)"
           :verified="item.is_verified"
@@ -119,6 +126,8 @@
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
           :package="item.package"
+          :is-favorite="isFavorite(item)"
+          @toggle-favorite="toggleFavorite(item)"
         />
       </div>
     </div>
@@ -134,13 +143,17 @@
         </h2>
       </div>
 
-      <div v-if="rentListings.length === 0" class="text-center text-gray-400 py-8">
+      <div v-if="favoriteLoading" class="flex justify-center py-10">
+        <div class="h-8 w-8 animate-spin rounded-full border-4 border-rose-500 border-t-transparent"></div>
+      </div>
+      <div v-else-if="favoriteListings.length === 0" class="text-center text-gray-400 py-8">
         Bạn chưa lưu tin yêu thích nào.
       </div>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <ListingCardHome
-          v-for="item in rentListings.slice(0,3)"
+          v-for="item in favoriteListings.slice(0,3)"
           :key="'fav-' + item.id"
+          :listing-id="item.id"
           :to="'/listings/' + item.id"
           :image="getThumb(item)"
           :verified="item.is_verified"
@@ -148,13 +161,15 @@
           :title="item.title"
           :location="item.property?.address_detail || ''"
           :price="formatPrice(item.property?.price)"
-          :unit="'/tháng'"
+          :unit="item.demand_type === 'RENT' ? '/tháng' : ''"
           :area="item.property?.area || 0"
           :beds="item.property?.bedrooms || 0"
           :baths="item.property?.bathrooms || 0"
           :rating="null"
           :timeAgo="timeAgo(item.submitted_at)"
           :package="item.package"
+          :is-favorite="true"
+          @toggle-favorite="toggleFavorite(item)"
         />
       </div>
     </div>
@@ -163,15 +178,112 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import ListingCardHome from '@/components/shared/ListingCardHome.vue';
 import { useHomeListings } from '@/composables/useHomeListings';
+import favoriteService from '@/services/favoriteService';
+import { useAuthStore } from '@/stores/auth';
 
 const { saleListings, rentListings, saleLoading, rentLoading, init } = useHomeListings();
+const router = useRouter();
+const authStore = useAuthStore();
+const favoriteIds = ref(new Set());
+const favoriteListings = ref([]);
+const favoriteLoading = ref(false);
 
 onMounted(() => {
   init();
+  loadFavorites();
 });
+
+watch(
+  () => authStore.isAuthenticated,
+  () => {
+    loadFavorites();
+  },
+);
+
+async function loadFavorites() {
+  if (!authStore.isAuthenticated) {
+    favoriteIds.value = new Set();
+    favoriteListings.value = [];
+    return;
+  }
+
+  favoriteLoading.value = true;
+  try {
+    const [idsResponse, listingsResponse] = await Promise.all([
+      favoriteService.getFavoriteIds(),
+      favoriteService.getFavorites(),
+    ]);
+    favoriteIds.value = new Set(idsResponse.data?.data || []);
+    favoriteListings.value = (listingsResponse.data?.data || []).map((item) => ({
+      ...item,
+      is_favorited: true,
+    }));
+  } catch (e) {
+    console.error('Failed to fetch favorite listings', e);
+    favoriteIds.value = new Set();
+    favoriteListings.value = [];
+  } finally {
+    favoriteLoading.value = false;
+  }
+}
+
+function isFavorite(item) {
+  return Boolean(item?.is_favorited) || favoriteIds.value.has(Number(item.id));
+}
+
+async function toggleFavorite(item) {
+  if (!authStore.isAuthenticated) {
+    router.push({ name: 'Login', query: { redirect: `/listings/${item.id}` } });
+    return;
+  }
+
+  const id = Number(item.id);
+  const wasFavorite = isFavorite(item);
+  const next = new Set(favoriteIds.value);
+  if (wasFavorite) next.delete(id);
+  else next.add(id);
+  favoriteIds.value = next;
+  item.is_favorited = !wasFavorite;
+  syncFavoriteListings(item, !wasFavorite);
+
+  try {
+    const response = await favoriteService.toggle(id);
+    const isFavorited = Boolean(response.data?.data?.is_favorited);
+    item.is_favorited = isFavorited;
+
+    const synced = new Set(favoriteIds.value);
+    if (isFavorited) synced.add(id);
+    else synced.delete(id);
+    favoriteIds.value = synced;
+    syncFavoriteListings(item, isFavorited);
+  } catch (e) {
+    console.error('Failed to toggle favorite listing', e);
+    item.is_favorited = wasFavorite;
+
+    const rollback = new Set(favoriteIds.value);
+    if (wasFavorite) rollback.add(id);
+    else rollback.delete(id);
+    favoriteIds.value = rollback;
+    syncFavoriteListings(item, wasFavorite);
+  }
+}
+
+function syncFavoriteListings(item, isFavorited) {
+  const id = Number(item.id);
+  if (!isFavorited) {
+    favoriteListings.value = favoriteListings.value.filter((favorite) => Number(favorite.id) !== id);
+    return;
+  }
+
+  const exists = favoriteListings.value.some((favorite) => Number(favorite.id) === id);
+  if (!exists) {
+    favoriteListings.value = [{ ...item, is_favorited: true }, ...favoriteListings.value];
+  }
+}
 
 function getThumb(item) {
   if (item.images && item.images.length > 0) {
