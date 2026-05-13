@@ -85,13 +85,15 @@ final class ListingServiceImpl implements ListingService
                 Log::debug('[ListingService] Attributes synced', ['attribute_ids' => $dto->attributeIds]);
             }
 
+            $listingStatus = $dto->saveAsDraft ? 'DRAFT' : 'PENDING';
+
             $listing = $this->listingRepository->createListing([
                 'property_id' => $property->id,
                 'owner_id' => $user->id,
                 'demand_type' => $dto->demandType,
                 'title' => $dto->title,
                 'description' => $dto->description,
-                'status' => 'PENDING',
+                'status' => $listingStatus,
                 'package_id' => $dto->packageId,
                 'score' => $this->calculateContentScore($dto),
                 'is_verified' => false,
@@ -107,10 +109,10 @@ final class ListingServiceImpl implements ListingService
                 'appointment_contact_phone' => $dto->appointmentContactPhone,
                 'appointment_contact_email' => $dto->appointmentContactEmail,
                 'appointment_note' => $dto->appointmentNote,
-                'submitted_at' => now(),
+                'submitted_at' => $dto->saveAsDraft ? null : now(),
             ]);
 
-            Log::debug('[ListingService] Listing created', ['listing_id' => $listing->id, 'status' => 'PENDING']);
+            Log::debug('[ListingService] Listing created', ['listing_id' => $listing->id, 'status' => $listingStatus]);
 
             Log::debug('[ListingService] Saving images', ['count' => count($dto->images)]);
             foreach ($dto->images as $index => $imageUrl) {
@@ -255,11 +257,13 @@ final class ListingServiceImpl implements ListingService
             }
 
             // Update listing — reset status to PENDING
+            $listingStatus = $dto->saveAsDraft ? 'DRAFT' : 'PENDING';
+
             $this->listingRepository->updateListing($listing->id, [
                 'demand_type' => $dto->demandType,
                 'title' => $dto->title,
                 'description' => $dto->description,
-                'status' => 'PENDING',
+                'status' => $listingStatus,
                 'has_video' => $dto->video !== null,
                 'request_verification' => $dto->requestVerification,
                 'rent_min_term' => $dto->rentMinTerm,
@@ -271,6 +275,7 @@ final class ListingServiceImpl implements ListingService
                 'appointment_contact_phone' => $dto->appointmentContactPhone,
                 'appointment_contact_email' => $dto->appointmentContactEmail,
                 'appointment_note' => $dto->appointmentNote,
+                'submitted_at' => $dto->saveAsDraft ? null : now(),
             ]);
 
             // Replace images

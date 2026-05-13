@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import listingService from '@/services/listingService';
+import { hydrateListingAddresses } from '@/utils/addressFormatter';
 
 const saleListings = ref([]);
 const rentListings = ref([]);
@@ -15,7 +16,9 @@ async function fetchSale() {
   saleLoading.value = true;
   try {
     const res = await listingService.getPublicListings({ demand_type: 'SALE', per_page: 6 });
-    saleListings.value = res.data.data || [];
+    const listings = res.data.data || [];
+    await hydrateListingAddresses(listings);
+    saleListings.value = listings;
     saleInitialized = true;
   } catch (e) {
     console.error('Failed to fetch sale listings', e);
@@ -30,7 +33,9 @@ async function fetchRent() {
   rentLoading.value = true;
   try {
     const res = await listingService.getPublicListings({ demand_type: 'RENT', per_page: 6 });
-    rentListings.value = res.data.data || [];
+    const listings = res.data.data || [];
+    await hydrateListingAddresses(listings);
+    rentListings.value = listings;
     rentInitialized = true;
   } catch (e) {
     console.error('Failed to fetch rent listings', e);

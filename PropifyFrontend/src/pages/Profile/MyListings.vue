@@ -229,6 +229,7 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import listingService from "@/services/listingService";
 import PackageUpgradeModal from "@/components/shared/PackageUpgradeModal.vue";
+import { buildPropertyAddress, hydrateListingAddresses } from "@/utils/addressFormatter";
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -270,7 +271,7 @@ function toListingCode(id) {
 
 function buildAddress(property) {
   if (!property) return "";
-  return property.address_detail || "";
+  return property.full_address || buildPropertyAddress(property);
 }
 
 function statusLabel(status) {
@@ -341,6 +342,7 @@ async function reload(page = 1) {
 
     const data = response?.data?.data || [];
     const meta = response?.data?.meta || {};
+    await hydrateListingAddresses(data);
 
     rows.value = normalizeRows(data);
     pagination.currentPage = Number(meta.current_page || 1);
