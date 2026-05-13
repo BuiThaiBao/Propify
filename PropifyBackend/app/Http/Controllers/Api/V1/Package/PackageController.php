@@ -3,10 +3,12 @@
 namespace App\Http\Controllers\Api\V1\Package;
 
 use App\DTOs\Packages\CreatePackageDto;
+use App\Enums\UserRole;
 use App\Helpers\ApiResponse;
 use App\Http\Resources\Requests\Package\CreatePackageRequest;
 use App\Services\Packages\PackageService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 final class PackageController
 {
@@ -24,9 +26,16 @@ final class PackageController
             message: 'Tạo gói tin thành công.'
         );
     }
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $packages = $this->packageService->getAll();
+        $includeInactive = $request->boolean('include_inactive')
+            && $request->user('api')?->role === UserRole::Admin;
+
+        $packages = $this->packageService->getAll(
+            keyword: $request->input('keyword'),
+            status: $request->input('status'),
+            includeInactive: $includeInactive,
+        );
         
         return ApiResponse::success(
             data: $packages,
