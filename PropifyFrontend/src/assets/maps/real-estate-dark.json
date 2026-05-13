@@ -1,0 +1,418 @@
+{
+  "version": 8,
+  "name": "Propify Real Estate Dark",
+  "metadata": {
+    "propify:purpose": "Premium dark real-estate property detail map optimized for nearby-place evaluation.",
+    "propify:theme": "dark",
+    "maptiler:sourceSchema": "OpenMapTiles",
+    "maptiler:replaceToken": "{MAPTILER_KEY}"
+  },
+  "center": [106.7009, 10.7769],
+  "zoom": 13,
+  "pitch": 0,
+  "bearing": 0,
+  "glyphs": "https://api.maptiler.com/fonts/{fontstack}/{range}.pbf?key={MAPTILER_KEY}",
+  "sprite": "https://api.maptiler.com/maps/streets-v2/sprite",
+  "sources": {
+    "maptiler": {
+      "type": "vector",
+      "url": "https://api.maptiler.com/tiles/v3/tiles.json?key={MAPTILER_KEY}"
+    },
+    "property": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": []
+      }
+    },
+    "nearby-radius": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": []
+      }
+    },
+    "route-preview": {
+      "type": "geojson",
+      "data": {
+        "type": "FeatureCollection",
+        "features": []
+      }
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#111827"
+      }
+    },
+    {
+      "id": "landcover-park",
+      "type": "fill",
+      "source": "maptiler",
+      "source-layer": "landcover",
+      "minzoom": 5,
+      "filter": ["in", ["get", "class"], ["literal", ["wood", "grass", "park", "scrub"]]],
+      "paint": {
+        "fill-color": "#1f4d35",
+        "fill-opacity": ["interpolate", ["linear"], ["zoom"], 6, 0.45, 13, 0.7]
+      }
+    },
+    {
+      "id": "landuse-public",
+      "type": "fill",
+      "source": "maptiler",
+      "source-layer": "landuse",
+      "minzoom": 10,
+      "filter": ["in", ["get", "class"], ["literal", ["school", "hospital", "university", "park", "cemetery"]]],
+      "paint": {
+        "fill-color": [
+          "match",
+          ["get", "class"],
+          "school",
+          "#1e3a8a",
+          "university",
+          "#1e3a8a",
+          "hospital",
+          "#7f1d1d",
+          "park",
+          "#1f4d35",
+          "#263241"
+        ],
+        "fill-opacity": 0.56
+      }
+    },
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "maptiler",
+      "source-layer": "water",
+      "paint": {
+        "fill-color": "#143a5a"
+      }
+    },
+    {
+      "id": "waterway",
+      "type": "line",
+      "source": "maptiler",
+      "source-layer": "waterway",
+      "minzoom": 11,
+      "paint": {
+        "line-color": "#1d5f8f",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 11, 0.7, 16, 2.2],
+        "line-opacity": 0.8
+      }
+    },
+    {
+      "id": "building-footprints",
+      "type": "fill",
+      "source": "maptiler",
+      "source-layer": "building",
+      "minzoom": 14,
+      "paint": {
+        "fill-color": "#273244",
+        "fill-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0.45, 17, 0.78]
+      }
+    },
+    {
+      "id": "building-3d",
+      "type": "fill-extrusion",
+      "source": "maptiler",
+      "source-layer": "building",
+      "minzoom": 15,
+      "paint": {
+        "fill-extrusion-color": "#303b4f",
+        "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 15, 0, 16, ["coalesce", ["get", "render_height"], ["get", "height"], 12]],
+        "fill-extrusion-base": ["coalesce", ["get", "render_min_height"], ["get", "min_height"], 0],
+        "fill-extrusion-opacity": ["interpolate", ["linear"], ["zoom"], 15, 0, 16, 0.42]
+      }
+    },
+    {
+      "id": "road-minor",
+      "type": "line",
+      "source": "maptiler",
+      "source-layer": "transportation",
+      "minzoom": 13,
+      "filter": ["in", ["get", "class"], ["literal", ["minor", "service", "track", "path"]]],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#334155",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 13, 0.7, 17, 3.2],
+        "line-opacity": 0.85
+      }
+    },
+    {
+      "id": "road-major",
+      "type": "line",
+      "source": "maptiler",
+      "source-layer": "transportation",
+      "filter": ["in", ["get", "class"], ["literal", ["primary", "secondary", "tertiary", "trunk", "motorway"]]],
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": ["match", ["get", "class"], "motorway", "#6b5b34", "trunk", "#665c3d", "#475569"],
+        "line-width": ["interpolate", ["linear"], ["zoom"], 7, 0.9, 12, 2.5, 16, 6],
+        "line-opacity": 0.92
+      }
+    },
+    {
+      "id": "rail-transit",
+      "type": "line",
+      "source": "maptiler",
+      "source-layer": "transportation",
+      "minzoom": 10,
+      "filter": ["in", ["get", "class"], ["literal", ["rail", "transit", "subway"]]],
+      "paint": {
+        "line-color": "#a78bfa",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.6, 16, 2],
+        "line-opacity": 0.55,
+        "line-dasharray": [1, 1.2]
+      }
+    },
+    {
+      "id": "route-preview-glow",
+      "type": "line",
+      "source": "route-preview",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#38bdf8",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 11, 5, 17, 11],
+        "line-opacity": 0.22
+      }
+    },
+    {
+      "id": "route-preview",
+      "type": "line",
+      "source": "route-preview",
+      "layout": {
+        "line-cap": "round",
+        "line-join": "round"
+      },
+      "paint": {
+        "line-color": "#7dd3fc",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 11, 2, 17, 5],
+        "line-opacity": 0.86
+      }
+    },
+    {
+      "id": "nearby-radius-fill",
+      "type": "fill",
+      "source": "nearby-radius",
+      "paint": {
+        "fill-color": "#38bdf8",
+        "fill-opacity": 0.11
+      }
+    },
+    {
+      "id": "nearby-radius-line",
+      "type": "line",
+      "source": "nearby-radius",
+      "paint": {
+        "line-color": "#7dd3fc",
+        "line-width": 1.5,
+        "line-opacity": 0.45,
+        "line-dasharray": [2, 2]
+      }
+    },
+    {
+      "id": "poi-education",
+      "type": "circle",
+      "source": "maptiler",
+      "source-layer": "poi",
+      "minzoom": 12,
+      "filter": ["in", ["get", "class"], ["literal", ["school", "university", "college", "kindergarten"]]],
+      "paint": {
+        "circle-color": "#60a5fa",
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 3, 16, 6],
+        "circle-stroke-color": "#0f172a",
+        "circle-stroke-width": 1.5,
+        "circle-opacity": 0.95
+      }
+    },
+    {
+      "id": "poi-healthcare",
+      "type": "circle",
+      "source": "maptiler",
+      "source-layer": "poi",
+      "minzoom": 12,
+      "filter": ["in", ["get", "class"], ["literal", ["hospital", "clinic", "pharmacy", "doctors", "dentist"]]],
+      "paint": {
+        "circle-color": "#f87171",
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 3, 16, 6],
+        "circle-stroke-color": "#0f172a",
+        "circle-stroke-width": 1.5,
+        "circle-opacity": 0.95
+      }
+    },
+    {
+      "id": "poi-shopping",
+      "type": "circle",
+      "source": "maptiler",
+      "source-layer": "poi",
+      "minzoom": 13,
+      "filter": ["in", ["get", "class"], ["literal", ["supermarket", "mall", "convenience", "marketplace", "department_store"]]],
+      "paint": {
+        "circle-color": "#fbbf24",
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 13, 3, 16, 5.5],
+        "circle-stroke-color": "#0f172a",
+        "circle-stroke-width": 1.4,
+        "circle-opacity": 0.92
+      }
+    },
+    {
+      "id": "poi-transport",
+      "type": "circle",
+      "source": "maptiler",
+      "source-layer": "poi",
+      "minzoom": 12,
+      "filter": ["in", ["get", "class"], ["literal", ["bus_stop", "subway", "railway_station", "train_station", "airport"]]],
+      "paint": {
+        "circle-color": "#a78bfa",
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 12, 2.8, 16, 5.5],
+        "circle-stroke-color": "#0f172a",
+        "circle-stroke-width": 1.4,
+        "circle-opacity": 0.9
+      }
+    },
+    {
+      "id": "poi-lifestyle-food",
+      "type": "circle",
+      "source": "maptiler",
+      "source-layer": "poi",
+      "minzoom": 15,
+      "filter": ["in", ["get", "class"], ["literal", ["restaurant", "cafe", "gym", "fitness_centre", "playground", "cinema"]]],
+      "paint": {
+        "circle-color": ["match", ["get", "class"], "restaurant", "#f59e0b", "cafe", "#f59e0b", "#4ade80"],
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 15, 2.5, 17, 4.8],
+        "circle-stroke-color": "#0f172a",
+        "circle-stroke-width": 1.2,
+        "circle-opacity": 0.85
+      }
+    },
+    {
+      "id": "poi-label-priority",
+      "type": "symbol",
+      "source": "maptiler",
+      "source-layer": "poi",
+      "minzoom": 14,
+      "filter": ["in", ["get", "class"], ["literal", ["school", "university", "kindergarten", "hospital", "clinic", "pharmacy", "supermarket", "mall", "marketplace", "bus_stop", "subway", "railway_station", "train_station"]]],
+      "layout": {
+        "text-field": ["coalesce", ["get", "name:vi"], ["get", "name:en"], ["get", "name"]],
+        "text-font": ["Roboto Medium", "Arial Unicode MS Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 14, 10, 17, 12],
+        "text-offset": [0, 1.1],
+        "text-anchor": "top",
+        "text-max-width": 8,
+        "text-optional": true
+      },
+      "paint": {
+        "text-color": "#dbeafe",
+        "text-halo-color": "#0f172a",
+        "text-halo-width": 1.4,
+        "text-opacity": ["interpolate", ["linear"], ["zoom"], 14, 0, 15, 0.92]
+      }
+    },
+    {
+      "id": "place-label-city",
+      "type": "symbol",
+      "source": "maptiler",
+      "source-layer": "place",
+      "filter": ["in", ["get", "class"], ["literal", ["city", "town"]]],
+      "layout": {
+        "text-field": ["coalesce", ["get", "name:vi"], ["get", "name:en"], ["get", "name"]],
+        "text-font": ["Roboto Medium", "Arial Unicode MS Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 5, 13, 11, 18],
+        "text-max-width": 10
+      },
+      "paint": {
+        "text-color": "#cbd5e1",
+        "text-halo-color": "#111827",
+        "text-halo-width": 1.5
+      }
+    },
+    {
+      "id": "road-label",
+      "type": "symbol",
+      "source": "maptiler",
+      "source-layer": "transportation_name",
+      "minzoom": 13,
+      "layout": {
+        "symbol-placement": "line",
+        "text-field": ["coalesce", ["get", "name:vi"], ["get", "name:en"], ["get", "name"]],
+        "text-font": ["Roboto Regular", "Arial Unicode MS Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 13, 10, 17, 12],
+        "text-pitch-alignment": "viewport",
+        "text-rotation-alignment": "map"
+      },
+      "paint": {
+        "text-color": "#94a3b8",
+        "text-halo-color": "#111827",
+        "text-halo-width": 1.2,
+        "text-opacity": ["interpolate", ["linear"], ["zoom"], 13, 0.45, 16, 0.9]
+      }
+    },
+    {
+      "id": "property-radius-glow",
+      "type": "circle",
+      "source": "property",
+      "paint": {
+        "circle-color": "#38bdf8",
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 24, 16, 52],
+        "circle-blur": 0.85,
+        "circle-opacity": ["case", ["boolean", ["feature-state", "selected"], false], 0.32, 0.18]
+      }
+    },
+    {
+      "id": "property-marker-shadow",
+      "type": "circle",
+      "source": "property",
+      "paint": {
+        "circle-color": "#000000",
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 10, 16, 16],
+        "circle-translate": [0, 3],
+        "circle-blur": 0.5,
+        "circle-opacity": 0.36
+      }
+    },
+    {
+      "id": "property-marker",
+      "type": "circle",
+      "source": "property",
+      "paint": {
+        "circle-color": ["case", ["boolean", ["feature-state", "selected"], false], "#38bdf8", "#0ea5e9"],
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 8, 16, 13],
+        "circle-stroke-color": "#f8fafc",
+        "circle-stroke-width": 3
+      }
+    },
+    {
+      "id": "property-label",
+      "type": "symbol",
+      "source": "property",
+      "minzoom": 11,
+      "layout": {
+        "text-field": ["coalesce", ["get", "label"], "BDS dang xem"],
+        "text-font": ["Roboto Bold", "Arial Unicode MS Bold"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 11, 12, 16, 14],
+        "text-offset": [0, -1.6],
+        "text-anchor": "bottom",
+        "text-allow-overlap": true
+      },
+      "paint": {
+        "text-color": "#f8fafc",
+        "text-halo-color": "#020617",
+        "text-halo-width": 2
+      }
+    }
+  ]
+}

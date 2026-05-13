@@ -159,7 +159,15 @@
               <h2 class="text-[17px] font-bold text-slate-800">Vị trí bản đồ</h2>
             </div>
             <p class="mb-3 text-sm text-slate-600">{{ fullAddress }}</p>
-            <div class="h-[300px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+            <div class="relative h-[360px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+              <button
+                v-if="hasLatLng"
+                type="button"
+                class="absolute left-3 top-3 z-10 rounded-lg border border-white/70 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-sky-700"
+                @click.stop="toggleMapMode"
+              >
+                {{ mapMode === 'satellite' ? 'Bản đồ' : 'Vệ tinh' }}
+              </button>
               <div v-show="hasLatLng" ref="mapElement" class="h-full w-full"></div>
               <div v-if="!hasLatLng" class="flex h-full w-full items-center justify-center text-slate-400">
                 Bản đồ không được hỗ trợ cho vị trí này
@@ -236,6 +244,9 @@ import AppointmentBookingPopup from '@/components/AppointmentBookingPopup.vue';
 import { buildPropertyAddress, hydratePropertyAddress } from '@/utils/addressFormatter';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import realEstateLightStyle from '@/assets/maps/real-estate-light.json';
 
 const route = useRoute();
 const router = useRouter();
@@ -258,8 +269,27 @@ const listing = ref(props.previewListing || {});
 const activeImageIndex = ref(0);
 const mapElement = ref(null);
 const showAppointmentPopup = ref(false);
+const mapMode = ref('standard');
 let map = null;
-let marker = null;
+
+const SATELLITE_LAYER_ID = 'satellite-base';
+const SATELLITE_SOURCE_ID = 'satellite';
+const SATELLITE_HIDDEN_BASE_LAYERS = [
+  'landcover-park',
+  'landuse-public',
+  'water',
+  'waterway',
+  'aeroway',
+  'building-footprints',
+  'building-3d',
+  'road-minor-casing',
+  'road-minor',
+  'road-major-casing',
+  'road-major',
+  'rail-transit',
+  'place-label-city',
+  'road-label',
+];
 
 const displayImages = computed(() => {
   if (!listing.value?.images?.length) return [];
@@ -446,41 +476,207 @@ function trackViewNow(listingId) {
   });
 }
 
+function replaceMapTilerKey(value, key) {
+  if (typeof value === 'string') {
+    return value.replaceAll('{MAPTILER_KEY}', key);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceMapTilerKey(item, key));
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([entryKey, entryValue]) => [
+        entryKey,
+        replaceMapTilerKey(entryValue, key),
+      ])
+    );
+  }
+
+  return value;
+}
+
+function createPropertyFeature(lat, lng) {
+  return {
+    type: 'Feature',
+    id: 'selected-property',
+    properties: {
+      label: 'BĐS đang xem',
+      title: listing.value?.title || 'BĐS đang xem',
+    },
+    geometry: {
+      type: 'Point',
+      coordinates: [lng, lat],
+    },
+  };
+}
+
+function createRadiusFeature(lat, lng, radiusMeters = 800) {
+  const steps = 96;
+  const coordinates = [];
+  const earthRadius = 6378137;
+  const latRad = (lat * Math.PI) / 180;
+
+  for (let i = 0; i <= steps; i += 1) {
+    const angle = (i / steps) * Math.PI * 2;
+    const dx = radiusMeters * Math.cos(angle);
+    const dy = radiusMeters * Math.sin(angle);
+    const pointLat = lat + (dy / earthRadius) * (180 / Math.PI);
+    const pointLng = lng + (dx / (earthRadius * Math.cos(latRad))) * (180 / Math.PI);
+    coordinates.push([pointLng, pointLat]);
+  }
+
+  return {
+    type: 'Feature',
+    properties: {
+      radius_meters: radiusMeters,
+      label: 'Khoảng 10 phút đi bộ',
+    },
+    geometry: {
+      type: 'Polygon',
+      coordinates: [coordinates],
+    },
+  };
+}
+
+function buildRealEstateMapStyle(lat, lng) {
+  const mapTilerKey = import.meta.env.VITE_MAPTILER_KEY;
+  const style = replaceMapTilerKey(realEstateLightStyle, mapTilerKey);
+  const propertyFeature = createPropertyFeature(lat, lng);
+  const radiusFeature = createRadiusFeature(lat, lng);
+
+  style.center = [lng, lat];
+  style.zoom = 15;
+  style.pitch = 0;
+  style.sources.property.data = {
+    type: 'FeatureCollection',
+    features: [propertyFeature],
+  };
+  style.sources['nearby-radius'].data = {
+    type: 'FeatureCollection',
+    features: [radiusFeature],
+  };
+  style.sources[SATELLITE_SOURCE_ID] = {
+    type: 'raster',
+    url: `https://api.maptiler.com/maps/hybrid/tiles.json?key=${mapTilerKey}`,
+    tileSize: 512,
+  };
+  style.layers.splice(1, 0, {
+    id: SATELLITE_LAYER_ID,
+    type: 'raster',
+    source: SATELLITE_SOURCE_ID,
+    layout: {
+      visibility: 'none',
+    },
+    paint: {
+      'raster-opacity': 0.92,
+      'raster-saturation': -0.18,
+      'raster-contrast': 0.08,
+      'raster-brightness-min': 0.08,
+      'raster-brightness-max': 0.96,
+    },
+  });
+
+  return style;
+}
+
+function setMapMode(mode) {
+  mapMode.value = mode;
+
+  if (!map?.getLayer(SATELLITE_LAYER_ID)) return;
+
+  const isSatellite = mode === 'satellite';
+
+  map.setLayoutProperty(
+    SATELLITE_LAYER_ID,
+    'visibility',
+    isSatellite ? 'visible' : 'none'
+  );
+
+  SATELLITE_HIDDEN_BASE_LAYERS.forEach((layerId) => {
+    if (!map.getLayer(layerId)) return;
+    map.setLayoutProperty(layerId, 'visibility', isSatellite ? 'none' : 'visible');
+  });
+
+  map.easeTo({
+    pitch: isSatellite ? 0 : 38,
+    duration: 450,
+    essential: true,
+  });
+}
+
+function toggleMapMode() {
+  setMapMode(mapMode.value === 'satellite' ? 'standard' : 'satellite');
+}
+
 function initMap() {
   if (!mapElement.value || map) return;
-  const lat = listing.value.property.lat;
-  const lng = listing.value.property.lng;
+  const lat = Number(listing.value.property.lat);
+  const lng = Number(listing.value.property.lng);
 
-  map = L.map(mapElement.value, {
-    zoomControl: true,
-    scrollWheelZoom: false, // Prevent accidental scrolling
-  }).setView([lat, lng], 15);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  map = new maplibregl.Map({
+    container: mapElement.value,
+    style: buildRealEstateMapStyle(lat, lng),
+    center: [lng, lat],
+    zoom: 15,
+    minZoom: 5,
     maxZoom: 19,
-    attribution: "© OpenStreetMap",
-  }).addTo(map);
+    pitch: 0,
+    maxPitch: 55,
+    antialias: true,
+    cooperativeGestures: false,
+  });
 
-  marker = L.circleMarker([lat, lng], {
-    radius: 12,
-    color: "#0284c7", // sky-600
-    fillColor: "#38bdf8", // sky-400
-    fillOpacity: 0.8,
-    weight: 3,
-  }).addTo(map);
+  map.addControl(
+    new maplibregl.NavigationControl({
+      visualizePitch: true,
+    }),
+    'top-right'
+  );
+
+  map.scrollZoom.enable();
+  map.doubleClickZoom.enable();
+  map.touchZoomRotate.enable();
+
+  map.on('load', () => {
+    setMapMode(mapMode.value);
+
+    map.setFeatureState(
+      {
+        source: 'property',
+        id: 'selected-property',
+      },
+      {
+        selected: true,
+      }
+    );
+
+    setTimeout(() => {
+      if (!map) return;
+      map.easeTo({
+        center: [lng, lat],
+        zoom: 15.5,
+        pitch: 38,
+        duration: 900,
+        essential: true,
+      });
+    }, 250);
+  });
 }
 
 
-onMounted(async () => {
-  if (props.previewMode) {
-    if (hasLatLng.value) {
-      await nextTick();
-      setTimeout(() => initMap(), 200);
-    }
-    return;
-  }
-
+onMounted(() => {
   loadListing();
+});
+
+onUnmounted(() => {
+  if (map) {
+    map.remove();
+    map = null;
+  }
 });
 </script>
 
