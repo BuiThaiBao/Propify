@@ -53,12 +53,18 @@ final class AdminListingController extends Controller
         $request->validate([
             'status' => 'required|string|in:ACTIVE,REJECTED,LOCKED',
             'rejection_reason' => 'nullable|string',
+            'reason' => 'nullable|string',
         ]);
 
         $status = $request->input('status');
-        $rejectionReason = $request->input('rejection_reason');
+        $rejectionReason = $request->input('reason', $request->input('rejection_reason'));
 
-        $listing = $this->listingService->changeStatusForAdmin($id, $status, $rejectionReason);
+        $listing = $this->listingService->changeStatusForAdmin(
+            listingId: $id,
+            status: $status,
+            rejectionReason: $rejectionReason,
+            adminUserId: (int) $request->user()->id,
+        );
 
         return ApiResponse::success(
             data: new ListingResource($listing),

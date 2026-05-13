@@ -36,6 +36,7 @@ final class Listing extends Model
         'rejection_reason',
         'submitted_at',
         'published_at',
+        'approved_by',
         'expired_at',
         'views',
         'package_expires_at',
@@ -67,6 +68,11 @@ final class Listing extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_id');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
     }
 
     /** Gói tin đã mua */
@@ -106,6 +112,11 @@ final class Listing extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class, 'listing_id');
+    }
+
+    public function statusHistories(): HasMany
+    {
+        return $this->hasMany(ListingStatusHistory::class, 'listing_id');
     }
 
     /** Danh sách yêu thích */

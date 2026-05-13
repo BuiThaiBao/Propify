@@ -1,368 +1,777 @@
 <script setup>
-import { computed } from 'vue'
-import { Eye, CheckCircle, XCircle, Lock } from 'lucide-vue-next'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { Ban, CheckCircle, Info, Lock, MoreHorizontal } from 'lucide-vue-next'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 
 const props = defineProps({
-  search: String,
-  filterStatus: String,
-  filterType: String,
+  posts: {
+    type: Array,
+    default: () => [],
+  },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+  error: {
+    type: String,
+    default: '',
+  },
+  actionError: {
+    type: String,
+    default: '',
+  },
+  updatingPostId: {
+    type: [Number, String],
+    default: null,
+  },
 })
 
-const allPosts = [
-  {
-    id: 1,
-    title: 'Căn hộ 3PN Vinhomes Central Park',
-    location: 'Quận Bình Thạnh, TP.HCM',
-    price: '5.2 tỷ',
-    area: '120m²',
-    type: 'sale',
-    typeLabel: 'Mua bán',
-    poster: 'Nguyễn Văn A',
-    date: '15/03/2024',
-    status: 'approved',
-    statusLabel: 'Đã duyệt',
-    image: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=80&h=60&fit=crop',
-  },
-  {
-    id: 2,
-    title: 'Nhà phố Quận 2 mặt tiền đường lớn',
-    location: 'Quận 2, TP.HCM',
-    price: '8.5 tỷ',
-    area: '150m²',
-    type: 'sale',
-    typeLabel: 'Mua bán',
-    poster: 'Trần Thị B',
-    date: '18/03/2024',
-    status: 'pending',
-    statusLabel: 'Chờ duyệt',
-    image: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=80&h=60&fit=crop',
-  },
-  {
-    id: 3,
-    title: 'Cho thuê căn hộ Masteri Thảo Điền',
-    location: 'TP Thủ Đức, TP.HCM',
-    price: '15 tr/tháng',
-    area: '70m²',
-    type: 'rent',
-    typeLabel: 'Cho thuê',
-    poster: 'Lê Văn C',
-    date: '20/03/2024',
-    status: 'rejected',
-    statusLabel: 'Từ chối',
-    image: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=80&h=60&fit=crop',
-  },
-  {
-    id: 4,
-    title: 'Biệt thự Phú Mỹ Hưng view sông',
-    location: 'Quận 7, TP.HCM',
-    price: '25 tỷ',
-    area: '350m²',
-    type: 'sale',
-    typeLabel: 'Mua bán',
-    poster: 'Phạm Văn D',
-    date: '22/03/2024',
-    status: 'approved',
-    statusLabel: 'Đã duyệt',
-    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=80&h=60&fit=crop',
-  },
-  {
-    id: 5,
-    title: 'Cho thuê văn phòng Landmark 81',
-    location: 'Quận Bình Thạnh, TP.HCM',
-    price: '50 tr/tháng',
-    area: '200m²',
-    type: 'rent',
-    typeLabel: 'Cho thuê',
-    poster: 'Hoàng Thị E',
-    date: '25/03/2024',
-    status: 'pending',
-    statusLabel: 'Chờ duyệt',
-    image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=80&h=60&fit=crop',
-  },
-  {
-    id: 6,
-    title: 'Đất nền Long An mặt tiền QL1A',
-    location: 'Long An',
-    price: '1.8 tỷ',
-    area: '100m²',
-    type: 'sale',
-    typeLabel: 'Mua bán',
-    poster: 'Đỗ Văn F',
-    date: '28/03/2024',
-    status: 'locked',
-    statusLabel: 'Đã khóa',
-    image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=80&h=60&fit=crop',
-  },
-]
+const emit = defineEmits(['change-status'])
 
-const statusVariantMap = {
-  approved: 'success',
-  pending: 'warning',
-  rejected: 'danger',
-  locked: 'locked',
+const selectedIds = ref(new Set())
+const activeMenuId = ref(null)
+const menuPosition = ref({ top: 0, left: 0 })
+const reasonModal = ref({
+  open: false,
+  post: null,
+  action: null,
+  reason: '',
+})
+
+const normalizedPosts = computed(() => props.posts.map((post) => ({
+  ...post,
+  imageUrl: getImageUrl(post),
+  priceText: formatPrice(post.property?.price),
+  packageName: post.package?.name || 'Free',
+  ownerName: post.owner?.full_name || '--',
+  approverName: post.approver?.full_name || (post.approved_by ? `ID ${post.approved_by}` : '--'),
+  propertyType: formatPropertyType(post.property?.type),
+  address: post.property?.address_detail || post.property?.project_name || '--',
+  statusKey: mapStatusKey(post.status),
+  statusLabel: mapStatusLabel(post.status),
+  verificationKey: post.is_verified ? 'approved' : 'locked',
+  verificationLabel: post.is_verified ? 'Đã xác thực' : 'Chưa xác thực',
+  createdAtText: formatDateTime(post.created_at),
+  submittedAtText: formatDateTime(post.submitted_at),
+  publishedAtText: formatDateTime(post.published_at),
+})))
+
+const allVisibleSelected = computed(() => {
+  return normalizedPosts.value.length > 0 &&
+    normalizedPosts.value.every((post) => selectedIds.value.has(post.id))
+})
+
+function getImageUrl(post) {
+  const images = post.images ?? []
+  return images.find((image) => image.is_thumbnail)?.url ||
+    images[0]?.url ||
+    'https://placehold.co/80x60?text=No+Image'
 }
 
-const filteredPosts = computed(() => {
-  return allPosts.filter(post => {
-    const matchSearch = !props.search ||
-      post.title.toLowerCase().includes(props.search.toLowerCase()) ||
-      post.poster.toLowerCase().includes(props.search.toLowerCase())
-    const matchStatus = props.filterStatus === 'all' || post.status === props.filterStatus
-    const matchType = props.filterType === 'all' || post.type === props.filterType
-    return matchSearch && matchStatus && matchType
+function formatPrice(value) {
+  const amount = Number(value)
+  if (!Number.isFinite(amount) || amount <= 0) return '--'
+  return new Intl.NumberFormat('vi-VN').format(amount)
+}
+
+function formatDateTime(value) {
+  if (!value) return '--'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '--'
+
+  const time = new Intl.DateTimeFormat('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
+  const day = new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date)
+
+  return `${time} ${day}`
+}
+
+function formatPropertyType(type) {
+  const labels = {
+    APARTMENT: 'Chung cư',
+    HOUSE: 'Nhà riêng',
+    VILLA: 'Biệt thự',
+    LAND: 'Đất nền',
+    TOWNHOUSE: 'Liền kề',
+    HOTEL: 'Khách sạn',
+    RESORT: 'Resort',
+  }
+
+  if (!type) return '--'
+  return labels[type] || type
+    .toLowerCase()
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function mapStatusKey(status) {
+  const statuses = {
+    ACTIVE: 'approved',
+    PENDING: 'pending',
+    REJECTED: 'rejected',
+    LOCKED: 'locked',
+    EXPIRED: 'locked',
+  }
+
+  return statuses[status] || 'pending'
+}
+
+function mapStatusLabel(status) {
+  const labels = {
+    ACTIVE: 'Đã duyệt',
+    PENDING: 'Chờ duyệt',
+    REJECTED: 'Từ chối',
+    LOCKED: 'Đã khóa',
+    EXPIRED: 'Tin hết hạn',
+  }
+
+  return labels[status] || status || 'Chờ duyệt'
+}
+
+function toggleSelected(id) {
+  const next = new Set(selectedIds.value)
+  if (next.has(id)) {
+    next.delete(id)
+  } else {
+    next.add(id)
+  }
+  selectedIds.value = next
+}
+
+function toggleAllVisible() {
+  if (allVisibleSelected.value) {
+    selectedIds.value = new Set()
+    return
+  }
+
+  selectedIds.value = new Set(normalizedPosts.value.map((post) => post.id))
+}
+
+function getActions(post) {
+  const actions = []
+
+  if (['PENDING', 'LOCKED', 'REJECTED'].includes(post.status)) {
+    actions.push({
+      label: 'Duyệt tin',
+      status: 'ACTIVE',
+      icon: CheckCircle,
+      className: 'approve-action',
+    })
+  }
+
+  if (post.status === 'ACTIVE') {
+    actions.push({
+      label: 'Khóa tin',
+      status: 'LOCKED',
+      icon: Lock,
+      className: 'lock-action',
+    })
+  }
+
+  if (['PENDING', 'ACTIVE'].includes(post.status)) {
+    actions.push({
+      label: 'Từ chối',
+      status: 'REJECTED',
+      icon: Ban,
+      className: 'reject-action',
+    })
+  }
+
+  return actions
+}
+
+function toggleMenu(post, event) {
+  if (activeMenuId.value === post.id) {
+    activeMenuId.value = null
+    return
+  }
+
+  const rect = event.currentTarget.getBoundingClientRect()
+  const menuWidth = 128
+  const left = Math.max(12, rect.left - menuWidth - 8)
+
+  menuPosition.value = {
+    top: rect.top,
+    left,
+  }
+  activeMenuId.value = post.id
+}
+
+function closeMenu() {
+  activeMenuId.value = null
+}
+
+function handleAction(post, action) {
+  if (['REJECTED', 'LOCKED'].includes(action.status)) {
+    closeMenu()
+    reasonModal.value = {
+      open: true,
+      post,
+      action,
+      reason: '',
+    }
+    return
+  }
+
+  closeMenu()
+  emit('change-status', {
+    id: post.id,
+    status: action.status,
+    rejectionReason: null,
   })
+}
+
+function closeReasonModal() {
+  reasonModal.value = {
+    open: false,
+    post: null,
+    action: null,
+    reason: '',
+  }
+}
+
+function submitReasonModal() {
+  const { post, action, reason } = reasonModal.value
+  if (!post || !action) return
+
+  emit('change-status', {
+    id: post.id,
+    status: action.status,
+    rejectionReason: reason.trim() || null,
+  })
+  closeReasonModal()
+}
+
+function handleDocumentClick(event) {
+  if (!event.target.closest('.action-menu') && !event.target.closest('.more-btn')) {
+    closeMenu()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick)
+  window.addEventListener('resize', closeMenu)
+  window.addEventListener('scroll', closeMenu, true)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+  window.removeEventListener('resize', closeMenu)
+  window.removeEventListener('scroll', closeMenu, true)
 })
 </script>
 
 <template>
   <div class="posts-table-wrap">
-    <table class="posts-table">
-      <thead>
-        <tr>
-          <th>Tin đăng</th>
-          <th>Giá</th>
-          <th>Diện tích</th>
-          <th>Loại</th>
-          <th>Người đăng</th>
-          <th>Ngày đăng</th>
-          <th>Trạng thái</th>
-          <th>Hành động</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="post in filteredPosts" :key="post.id" class="post-row">
-          <!-- Tin đăng -->
-          <td>
-            <div class="post-info">
-              <img :src="post.image" :alt="post.title" class="post-img" />
-              <div>
-                <p class="post-title">{{ post.title }}</p>
-                <p class="post-location">📍 {{ post.location }}</p>
-              </div>
-            </div>
-          </td>
-
-          <!-- Giá -->
-          <td>
-            <span class="post-price">{{ post.price }}</span>
-          </td>
-
-          <!-- Diện tích -->
-          <td>
-            <span class="post-area">⊡ {{ post.area }}</span>
-          </td>
-
-          <!-- Loại -->
-          <td>
-            <StatusBadge :text="post.typeLabel" variant="info" />
-          </td>
-
-          <!-- Người đăng -->
-          <td>
-            <span class="post-poster">{{ post.poster }}</span>
-          </td>
-
-          <!-- Ngày đăng -->
-          <td>
-            <span class="post-date">{{ post.date }}</span>
-          </td>
-
-          <!-- Trạng thái -->
-          <td>
-            <StatusBadge
-              :text="post.statusLabel"
-              :variant="statusVariantMap[post.status]"
-            />
-          </td>
-
-          <!-- Hành động -->
-          <td>
-            <div class="post-actions">
-              <button class="action-btn view" title="Xem" :id="`view-post-${post.id}`">
-                <Eye :size="15" />
+    <div class="posts-table-scroll">
+      <table class="posts-table">
+        <thead>
+          <tr>
+            <th class="sticky-left select-cell">
+              <input
+                type="checkbox"
+                class="row-checkbox"
+                :checked="allVisibleSelected"
+                :disabled="loading || normalizedPosts.length === 0"
+                aria-label="Chọn tất cả tin đăng"
+                @change="toggleAllVisible"
+              />
+            </th>
+            <th class="col-id">ID</th>
+            <th class="col-image">Ảnh</th>
+            <th class="col-title">Tên tin đăng</th>
+            <th class="col-address">Địa chỉ</th>
+            <th class="col-price">
+              <span class="header-with-info">Giá <Info :size="14" /></span>
+            </th>
+            <th class="col-package">Gói tin</th>
+            <th class="col-owner">Chủ nhà</th>
+            <th class="col-type">Loại hình</th>
+            <th class="col-date">Ngày tạo</th>
+            <th class="col-date">
+              <span class="header-with-info">Ngày đăng tin <Info :size="14" /></span>
+            </th>
+            <th class="col-date">
+              <span class="header-with-info">Ngày duyệt đăng tin <Info :size="14" /></span>
+            </th>
+            <th class="col-approver">Người duyệt</th>
+            <th class="sticky-right sticky-verify col-verify">TT xác minh</th>
+            <th class="sticky-right sticky-status col-status">Trạng thái tin</th>
+            <th class="sticky-right sticky-action action-cell"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-if="actionError">
+            <td class="sticky-left select-cell"></td>
+            <td colspan="12" class="state-cell error-cell">{{ actionError }}</td>
+            <td class="sticky-right sticky-verify col-verify"></td>
+            <td class="sticky-right sticky-status col-status"></td>
+            <td class="sticky-right sticky-action action-cell"></td>
+          </tr>
+          <tr v-if="loading">
+            <td class="sticky-left select-cell"></td>
+            <td colspan="12" class="state-cell">Đang tải dữ liệu...</td>
+            <td class="sticky-right sticky-verify col-verify"></td>
+            <td class="sticky-right sticky-status col-status"></td>
+            <td class="sticky-right sticky-action action-cell"></td>
+          </tr>
+          <tr v-else-if="error">
+            <td class="sticky-left select-cell"></td>
+            <td colspan="12" class="state-cell error-cell">{{ error }}</td>
+            <td class="sticky-right sticky-verify col-verify"></td>
+            <td class="sticky-right sticky-status col-status"></td>
+            <td class="sticky-right sticky-action action-cell"></td>
+          </tr>
+          <tr v-else-if="normalizedPosts.length === 0">
+            <td class="sticky-left select-cell"></td>
+            <td colspan="12" class="state-cell">Không có tin đăng phù hợp.</td>
+            <td class="sticky-right sticky-verify col-verify"></td>
+            <td class="sticky-right sticky-status col-status"></td>
+            <td class="sticky-right sticky-action action-cell"></td>
+          </tr>
+          <tr v-for="post in normalizedPosts" v-else :key="post.id">
+            <td class="sticky-left select-cell">
+              <input
+                type="checkbox"
+                class="row-checkbox"
+                :checked="selectedIds.has(post.id)"
+                :aria-label="`Chọn tin đăng ${post.id}`"
+                @change="toggleSelected(post.id)"
+              />
+            </td>
+            <td class="col-id id-text">{{ post.id }}</td>
+            <td class="col-image">
+              <img :src="post.imageUrl" :alt="post.title" class="post-img" />
+            </td>
+            <td class="col-title title-text">{{ post.title || '--' }}</td>
+            <td class="col-address address-text">{{ post.address }}</td>
+            <td class="col-price price-text">{{ post.priceText }}</td>
+            <td class="col-package">{{ post.packageName }}</td>
+            <td class="col-owner truncate-text">{{ post.ownerName }}</td>
+            <td class="col-type">{{ post.propertyType }}</td>
+            <td class="col-date">{{ post.createdAtText }}</td>
+            <td class="col-date">{{ post.submittedAtText }}</td>
+            <td class="col-date">{{ post.publishedAtText }}</td>
+            <td class="col-approver truncate-text">{{ post.approverName }}</td>
+            <td class="sticky-right sticky-verify col-verify">
+              <StatusBadge :status="post.verificationKey" :label="post.verificationLabel" />
+            </td>
+            <td class="sticky-right sticky-status col-status">
+              <StatusBadge :status="post.statusKey" :label="post.statusLabel" />
+            </td>
+            <td class="sticky-right sticky-action action-cell">
+              <button
+                class="more-btn"
+                :disabled="updatingPostId === post.id"
+                :aria-label="`Mở thao tác tin đăng ${post.id}`"
+                @click.stop="toggleMenu(post, $event)"
+              >
+                <MoreHorizontal :size="20" />
               </button>
-              <button class="action-btn approve" title="Duyệt" :id="`approve-post-${post.id}`">
-                <CheckCircle :size="15" />
-              </button>
-              <button class="action-btn reject" title="Từ chối" :id="`reject-post-${post.id}`">
-                <XCircle :size="15" />
-              </button>
-              <button class="action-btn lock" title="Khóa" :id="`lock-post-${post.id}`">
-                <Lock :size="15" />
-              </button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-    <div v-if="filteredPosts.length === 0" class="empty-state">
-      <p>Không tìm thấy tin đăng phù hợp</p>
+    <div
+      v-if="activeMenuId"
+      class="action-menu"
+      :style="{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }"
+      @click.stop
+    >
+      <template v-for="post in normalizedPosts" :key="post.id">
+        <button
+          v-for="action in getActions(post)"
+          v-show="activeMenuId === post.id"
+          :key="action.status"
+          class="action-menu-item"
+          :class="action.className"
+          :disabled="updatingPostId === post.id"
+          @click="handleAction(post, action)"
+        >
+          <component :is="action.icon" :size="15" />
+          <span>{{ action.label }}</span>
+        </button>
+      </template>
+    </div>
+
+    <div v-if="reasonModal.open" class="reason-modal-backdrop" @click.self="closeReasonModal">
+      <div class="reason-modal" role="dialog" aria-modal="true">
+        <h3 class="reason-modal-title">
+          {{ reasonModal.action?.status === 'LOCKED' ? 'Khóa tin' : 'Từ chối tin' }}
+        </h3>
+        <p class="reason-modal-desc">
+          {{ reasonModal.post?.title }}
+        </p>
+        <label class="reason-label" for="status-reason">
+          {{ reasonModal.action?.status === 'LOCKED' ? 'Lý do khóa tin' : 'Lý do từ chối' }}
+        </label>
+        <textarea
+          id="status-reason"
+          v-model="reasonModal.reason"
+          class="reason-textarea"
+          rows="4"
+          placeholder="Nhập lý do..."
+          autofocus
+        ></textarea>
+        <div class="reason-actions">
+          <button class="reason-btn secondary" type="button" @click="closeReasonModal">Hủy</button>
+          <button class="reason-btn primary" type="button" @click="submitReasonModal">
+            Xác nhận
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .posts-table-wrap {
-  background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid #e7edf5;
+  border-radius: 8px;
   overflow: hidden;
+}
+
+.posts-table-scroll {
+  max-width: 100%;
+  max-height: calc(100vh - 260px);
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
 .posts-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
+  min-width: 1840px;
+  width: max-content;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: #1b365d;
+  font-size: 14px;
 }
 
-.posts-table thead tr {
-  background-color: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.posts-table th {
-  padding: 12px 14px;
-  text-align: left;
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  white-space: nowrap;
-}
-
-.post-row {
-  border-bottom: 1px solid #f1f5f9;
-  transition: background-color 0.1s;
-}
-
-.post-row:last-child {
-  border-bottom: none;
-}
-
-.post-row:hover {
-  background-color: #f8fafc;
-}
-
+.posts-table th,
 .posts-table td {
-  padding: 12px 14px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #f0f3f7;
+  background: #ffffff;
+  text-align: left;
+  white-space: nowrap;
   vertical-align: middle;
 }
 
-/* Post info */
-.post-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.post-img {
-  width: 60px;
-  height: 45px;
-  object-fit: cover;
-  border-radius: 6px;
-  flex-shrink: 0;
-  border: 1px solid #e2e8f0;
-}
-
-.post-title {
+.posts-table th {
+  height: 44px;
+  min-height: 44px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #f1f3f6;
+  color: #40536f;
   font-size: 13px;
-  font-weight: 600;
-  color: #0f172a;
-  margin: 0 0 2px 0;
-  max-width: 220px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 700;
 }
 
-.post-location {
-  font-size: 11px;
-  color: #94a3b8;
-  margin: 0;
+.posts-table tbody tr:nth-child(even) td {
+  background: #f7f8fa;
 }
 
-.post-price {
-  font-weight: 600;
-  color: #2563eb;
+.posts-table tbody tr:hover td {
+  background: #f1f6ff;
 }
 
-.post-area {
-  color: #64748b;
+.sticky-left {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  box-shadow: 1px 0 0 #e8edf3;
 }
 
-.post-poster {
-  color: #0f172a;
-  font-weight: 500;
+.sticky-right {
+  position: sticky;
+  z-index: 3;
+  box-shadow: -1px 0 0 #e8edf3;
 }
 
-.post-date {
-  color: #64748b;
-  white-space: nowrap;
+.sticky-action {
+  right: 0;
 }
 
-/* Actions */
-.post-actions {
-  display: flex;
+.sticky-status {
+  right: 56px;
+}
+
+.sticky-verify {
+  right: 186px;
+}
+
+thead .sticky-left,
+thead .sticky-right {
+  z-index: 8;
+}
+
+.select-cell {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  text-align: center !important;
+}
+
+.action-cell {
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  text-align: center !important;
+}
+
+.row-checkbox {
+  width: 18px;
+  height: 18px;
+  border: 1px solid #17365f;
+  border-radius: 4px;
+  accent-color: #1d4ed8;
+  cursor: pointer;
+}
+
+.col-id { width: 58px; min-width: 58px; }
+.col-image { width: 54px; min-width: 54px; }
+.col-title { width: 240px; max-width: 240px; }
+.col-address { width: 280px; max-width: 280px; }
+.col-price { width: 132px; min-width: 132px; }
+.col-package { width: 104px; min-width: 104px; }
+.col-owner { width: 196px; max-width: 196px; }
+.col-approver { width: 160px; max-width: 160px; }
+.col-type { width: 110px; min-width: 110px; }
+.col-date { width: 150px; min-width: 150px; }
+.col-status { width: 130px; min-width: 130px; }
+.col-verify { width: 130px; min-width: 130px; }
+
+.header-with-info {
+  display: inline-flex;
   align-items: center;
   gap: 4px;
 }
 
-.action-btn {
+.header-with-info svg {
+  color: #b13cff;
+}
+
+.post-img {
   width: 30px;
   height: 30px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
+  border-radius: 4px;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+}
+
+.truncate-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.title-text {
+  max-width: 240px;
+  min-width: 240px;
+  white-space: normal !important;
+  overflow: visible;
+  color: #1b365d;
+  font-weight: 500;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.address-text {
+  max-width: 280px;
+  min-width: 280px;
+  white-space: normal !important;
+  overflow: visible;
+  color: #334155;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.id-text {
+  color: #0094ff;
+  font-weight: 500;
+}
+
+.price-text {
+  color: #12335e;
+  font-weight: 600;
+}
+
+.more-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.15s;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #17365f;
+  cursor: pointer;
 }
 
-.action-btn.view {
-  background-color: #f1f5f9;
-  color: #64748b;
+.more-btn:hover {
+  background: #e8eef7;
 }
 
-.action-btn.view:hover {
-  background-color: #e2e8f0;
-  color: #0f172a;
+.more-btn:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 
-.action-btn.approve {
-  background-color: #d1fae5;
+.action-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 128px;
+  overflow: hidden;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+}
+
+.action-menu-item {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: #ffffff;
+  color: #17365f;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.action-menu-item:hover:not(:disabled) {
+  background: #f4f7fb;
+}
+
+.action-menu-item:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.approve-action {
   color: #059669;
 }
 
-.action-btn.approve:hover {
-  background-color: #a7f3d0;
+.lock-action {
+  color: #475569;
 }
 
-.action-btn.reject {
-  background-color: #fee2e2;
+.reject-action {
   color: #dc2626;
 }
 
-.action-btn.reject:hover {
-  background-color: #fecaca;
+.reason-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
 }
 
-.action-btn.lock {
-  background-color: #f1f5f9;
+.reason-modal {
+  width: min(460px, 100%);
+  border-radius: 10px;
+  border: 1px solid #dbe3ef;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.22);
+  padding: 20px;
+}
+
+.reason-modal-title {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.reason-modal-desc {
+  margin: 6px 0 16px;
   color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
-.action-btn.lock:hover {
-  background-color: #e2e8f0;
+.reason-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.empty-state {
-  padding: 40px;
-  text-align: center;
-  color: #94a3b8;
-  font-size: 14px;
+.reason-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 108px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #0f172a;
+  font: inherit;
+  outline: none;
+}
+
+.reason-textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.reason-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.reason-btn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reason-btn.secondary {
+  border: 1px solid #dbe3ef;
+  background: #ffffff;
+  color: #334155;
+}
+
+.reason-btn.primary {
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.state-cell {
+  height: 80px !important;
+  color: #64748b;
+  text-align: center !important;
+}
+
+.error-cell {
+  color: #dc2626;
 }
 </style>

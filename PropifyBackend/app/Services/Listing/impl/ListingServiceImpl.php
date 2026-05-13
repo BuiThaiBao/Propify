@@ -6,6 +6,7 @@ use App\DTOs\Listing\CreateListingDto;
 use App\Enums\ErrorCode;
 use App\Exceptions\BusinessException;
 use App\Models\Listing;
+use App\Models\ListingStatusHistory;
 use App\Models\Package;
 use App\Models\Transaction;
 use App\Models\User;
@@ -397,42 +398,66 @@ final class ListingServiceImpl implements ListingService
         return $this->listingRepository->paginateAdmin($status, $demandType, $keyword, $perPage);
     }
 
-    public function changeStatusForAdmin(int $listingId, string $status, ?string $rejectionReason = null): Listing
+    public function changeStatusForAdmin(int $listingId, string $status, ?string $rejectionReason = null, ?int $adminUserId = null): Listing
     {
-        $listing = Listing::find($listingId);
-        if (!$listing) {
-            throw new BusinessException(ErrorCode::ListingNotFound);
+        if ($adminUserId === null) {
+            throw new BusinessException(ErrorCode::AuthForbidden);
         }
 
-        $currentStatus = $listing->status;
-        $allowedTransitions = [
-            'PENDING' => ['ACTIVE', 'REJECTED'],
-            'ACTIVE' => ['LOCKED'],
-            'LOCKED' => ['ACTIVE'],
-        ];
+        $listing = DB::transaction(function () use ($listingId, $status, $rejectionReason, $adminUserId) {
+            $listing = Listing::query()->lockForUpdate()->find($listingId);
+            if (!$listing) {
+                throw new BusinessException(ErrorCode::ListingNotFound);
+            }
 
-        // Nếu status mới giống status hiện tại, hoặc transition không hợp lệ
-        if ($currentStatus === $status || !isset($allowedTransitions[$currentStatus]) || !in_array($status, $allowedTransitions[$currentStatus], true)) {
-            // throw exception hoặc return.
-            // Trong trường hợp này tự định nghĩa mã lỗi hoặc message tương ứng. Dùng chung bad request tạm.
-            throw new \App\Exceptions\BusinessException(\App\Enums\ErrorCode::BadRequest, "Trạng thái hiện tại của listing không hỗ trợ chuyển sang trạng thái {$status}.");
-        }
+            $currentStatus = $listing->status;
+            $allowedTransitions = [
+                'PENDING' => ['ACTIVE', 'REJECTED'],
+                'ACTIVE' => ['LOCKED', 'REJECTED'],
+                'LOCKED' => ['ACTIVE'],
+                'REJECTED' => ['ACTIVE'],
+            ];
 
-        $listing->status = $status;
-        if ($status === 'REJECTED') {
-            $listing->rejection_reason = $rejectionReason;
-        }
+            if ($currentStatus === $status || !isset($allowedTransitions[$currentStatus]) || !in_array($status, $allowedTransitions[$currentStatus], true)) {
+                throw new \App\Exceptions\BusinessException(\App\Enums\ErrorCode::BadRequest, "Trạng thái hiện tại của listing không hỗ trợ chuyển sang trạng thái {$status}.");
+            }
 
-        if ($status === 'ACTIVE' && !$listing->published_at) {
-            $listing->published_at = now();
-        }
+            $listing->status = $status;
+            if ($status === 'REJECTED') {
+                $listing->rejection_reason = $rejectionReason;
+            }
 
-        $listing->save();
+            if ($status === 'ACTIVE') {
+                $listing->published_at = now();
+                $listing->approved_by = $adminUserId;
+            }
+
+            $listing->save();
+
+            ListingStatusHistory::create([
+                'user_id' => $adminUserId,
+                'listing_id' => $listing->id,
+                'action' => $status,
+                'reason' => $rejectionReason,
+            ]);
+
+            return $listing;
+        });
 
         // Xóa cache danh sách tin công khai
         Cache::tags(['listings:public'])->flush();
 
-        return $listing;
+        return $listing->load([
+            'property.attributes.group',
+            'images',
+            'videos',
+            'verificationDocuments',
+            'appointmentSlots',
+            'appointments',
+            'owner',
+            'approver',
+            'package',
+        ]);
     }
 
     /**
