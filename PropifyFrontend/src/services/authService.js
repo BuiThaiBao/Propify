@@ -10,7 +10,7 @@ const authService = {
    *
    * @param {string} email - User's email address
    * @param {string} password - User's password
-   * @returns {Promise<import('axios').AxiosResponse>} Response containing { user, access_token, token_type, expires_in }
+   * @returns {Promise<import('axios').AxiosResponse>} Response containing { user, token_type, expires_in } and auth cookies
    */
   login(email, password) {
     return api.post("/v1/auth/login", { email, password });

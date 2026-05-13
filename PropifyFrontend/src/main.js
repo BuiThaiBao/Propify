@@ -16,7 +16,7 @@ app.use(router);
 
 const authStore = useAuthStore();
 
-// 1. Khởi tạo auth (restore token từ localStorage)
+// 1. Khởi tạo auth (restore access token từ cookie)
 authStore.initAuth().finally(() => {
   // 2. LUÔN mount app dù auth thành công hay thất bại
   app.mount("#app");

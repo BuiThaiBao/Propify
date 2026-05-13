@@ -2,13 +2,18 @@
 	<RouterLink :to="to" class="block no-underline text-inherit">
 	<article 
 		class="group overflow-hidden rounded-[22px] bg-white shadow-[0_2px_12px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(15,23,42,0.14)]"
-		:class="{ 'border-diamond': Number(package?.priority) === 4 }"
+		:class="packageBorderClass"
 	>
 		<div class="relative overflow-hidden rounded-t-[22px] bg-slate-100">
 			<div class="relative aspect-[4/3] overflow-hidden">
 				<img :src="image" alt="Property" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
 
-				<div class="absolute left-0 top-0 flex min-h-[3.5rem] items-center gap-1.5 z-10">
+				<div
+					:class="[
+						'absolute flex min-h-[3.5rem] items-center gap-1.5 z-10',
+						packageIcon ? 'left-0 top-0' : 'left-3 top-3'
+					]"
+				>
 					<span v-if="packageIcon" class="relative inline-block">
 						<img :src="packageIcon" class="block h-[3.5rem] w-auto" alt="" />
 						<span class="absolute top-[30%] right-1 flex h-[37%] items-center justify-center px-2.5 text-[9px] font-extrabold tracking-wide text-white whitespace-nowrap">
@@ -27,10 +32,14 @@
 
 			<button
 				type="button"
-				class="absolute right-4 top-4 rounded-full bg-white/90 p-1.5 text-slate-600 shadow-sm backdrop-blur hover:bg-white z-10"
+				:class="[
+					'absolute right-4 top-4 rounded-full p-1.5 shadow-sm backdrop-blur z-10',
+					isFavorite ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-white/90 text-slate-600 hover:bg-white'
+				]"
 				aria-label="Yêu thích"
+				@click.prevent.stop="$emit('toggleFavorite')"
 			>
-				<Heart class="h-4 w-4" />
+				<Heart class="h-4 w-4" :fill="isFavorite ? 'currentColor' : 'none'" />
 			</button>
 		</div>
 
@@ -79,6 +88,8 @@ import { Bath, Bed, CheckCircle2, Heart, MapPin, Maximize } from 'lucide-vue-nex
 const priorityIconMap = { 2: '/vip.svg', 3: '/premium.svg', 4: '/dimond.svg' };
 
 const props = defineProps({
+	listingId: { type: [Number, String], default: null },
+	isFavorite: { type: Boolean, default: false },
 	to: { type: String, default: '#' },
 	image: { type: String, default: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60' },
 	verified: { type: Boolean, default: false },
@@ -94,6 +105,8 @@ const props = defineProps({
 	package: { type: Object, default: null },
 });
 
+defineEmits(['toggleFavorite']);
+
 const packageIcon = computed(() => {
 	const priority = Number(props.package?.priority || 0);
 	return priorityIconMap[priority] || null;
@@ -101,6 +114,15 @@ const packageIcon = computed(() => {
 
 const packageLabel = computed(() => {
 	return props.package?.badge || props.package?.name || null;
+});
+
+const packageBorderClass = computed(() => {
+	const slug = String(props.package?.slug || '').toLowerCase();
+	const priority = Number(props.package?.priority || 0);
+	if (slug === 'ruby') return 'border-package border-package-ruby';
+	if (slug === 'gold' || priority === 3) return 'border-package border-package-gold';
+	if (slug === 'dimond' || slug === 'diamond' || priority === 4) return 'border-package border-package-diamond';
+	return '';
 });
 </script>
 
@@ -123,13 +145,13 @@ const packageLabel = computed(() => {
 	overflow: hidden;
 }
 
-.border-diamond {
+.border-package {
 	position: relative;
 	background: #fff;
 	background-clip: padding-box;
 }
 
-.border-diamond::after {
+.border-package::after {
 	content: "";
 	position: absolute;
 	top: 0;
@@ -141,8 +163,8 @@ const packageLabel = computed(() => {
 	background: conic-gradient(
 		from var(--angle),
 		transparent 70%,
-		#3b82f6 85%,
-		#60a5fa 95%,
+		var(--package-border-color) 85%,
+		var(--package-border-glow) 95%,
 		transparent 100%
 	);
 	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -152,6 +174,21 @@ const packageLabel = computed(() => {
 	animation: diamond-rotate 2s linear infinite;
 	pointer-events: none;
 	z-index: 10;
+}
+
+.border-package-diamond {
+	--package-border-color: #3b82f6;
+	--package-border-glow: #60a5fa;
+}
+
+.border-package-ruby {
+	--package-border-color: #dc2626;
+	--package-border-glow: #fb7185;
+}
+
+.border-package-gold {
+	--package-border-color: #d97706;
+	--package-border-glow: #facc15;
 }
 
 @property --angle {

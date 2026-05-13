@@ -14,12 +14,13 @@
       <p class="text-xs text-slate-500">
         <router-link to="/" class="hover:text-sky-600 hover:underline">Trang chủ</router-link>
         <span> &gt; </span>
-        <span>{{ isEditMode ? 'Chỉnh sửa tin' : 'Đăng tin' }}</span>
+        <span>{{ pageBreadcrumb }}</span>
       </p>
-      <h1 class="mt-2 text-[24px] font-extrabold tracking-tight text-slate-900">{{ isEditMode ? 'Chỉnh sửa tin đăng' : 'Đăng tin bất động sản' }}</h1>
+      <h1 class="mt-2 text-[24px] font-extrabold tracking-tight text-slate-900">{{ pageTitle }}</h1>
 
       <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,760px)_330px] lg:justify-center">
-      <form class="space-y-4 lg:w-[760px]" @submit.prevent="submitListing">
+      <form class="space-y-4 lg:w-[760px]" @submit.prevent="isVerificationOnlyMode ? submitVerificationOnly() : submitListing()">
+        <template v-if="!isVerificationOnlyMode">
         <section class="section-card">
           <header class="section-title">
             <img :src="uploadImageIcon" alt="upload" class="h-5 w-5" />
@@ -463,6 +464,7 @@
           </label>
         </section>
           <AppointmentSlotsForm ref="appointmentForm" />
+        </template>
 
         <section class="section-card">
           <button type="button" class="appointment-header" @click="showVerificationSection = !showVerificationSection">
@@ -904,6 +906,17 @@ const router = useRouter();
 const authStore = useAuthStore();
 const isEditMode = computed(() => !!route.params.id);
 const editListingId = computed(() => route.params.id);
+const isVerificationOnlyMode = computed(() => isEditMode.value && route.query.mode === 'verification');
+const pageBreadcrumb = computed(() => {
+  if (isVerificationOnlyMode.value) return 'Xác thực bất động sản';
+  return isEditMode.value ? 'Chỉnh sửa tin' : 'Đăng tin';
+});
+const pageTitle = computed(() => {
+  if (isVerificationOnlyMode.value) return 'Xác thực bất động sản';
+  return isEditMode.value ? 'Chỉnh sửa tin đăng' : 'Đăng tin bất động sản';
+});
+const submitButtonLabel = computed(() => (isVerificationOnlyMode.value ? 'Gửi thông tin xác thực' : 'Tiếp tục'));
+const submitLoadingLabel = computed(() => (isVerificationOnlyMode.value ? 'Đang lưu xác thực...' : 'Đang đăng tin...'));
 const isHydratingEdit = ref(false);
 const isSyncingAdminFromMap = ref(false);
 const editLoading = ref(false);
@@ -1327,19 +1340,24 @@ async function loadListingForEdit() {
     publicInfoAgreed.value = Boolean(p.public_info_agreed);
 
     const verificationDocuments = Array.isArray(data.verification_documents) ? data.verification_documents : [];
-    const idFrontDoc = verificationDocuments.find((doc) => doc.type === 'ID_FRONT');
-    const idBackDoc = verificationDocuments.find((doc) => doc.type === 'ID_BACK');
-    const legalDocs = verificationDocuments.filter((doc) => doc.type === 'LEGAL_DOCUMENT');
+    const idFrontDoc = verificationDocuments.find((doc) => getVerificationDocumentType(doc) === 'ID_FRONT');
+    const idBackDoc = verificationDocuments.find((doc) => getVerificationDocumentType(doc) === 'ID_BACK');
+    const legalDocs = verificationDocuments.filter((doc) => getVerificationDocumentType(doc) === 'LEGAL_DOCUMENT');
+    const idFrontUrl = getVerificationDocumentUrl(idFrontDoc);
+    const idBackUrl = getVerificationDocumentUrl(idBackDoc);
 
-    frontCardPreviewUrl.value = idFrontDoc?.url || '';
-    backCardPreviewUrl.value = idBackDoc?.url || '';
+    frontCardPreviewUrl.value = idFrontUrl;
+    backCardPreviewUrl.value = idBackUrl;
     legalDocumentPreviews.value = legalDocs.map((doc, index) => ({
       name: `Giấy tờ pháp lý ${index + 1}`,
-      url: doc.url,
-    }));
-    form.identityCardFront = idFrontDoc?.url || null;
-    form.identityCardBack = idBackDoc?.url || null;
-    form.legalDocuments = legalDocs.map((doc) => doc.url);
+      url: getVerificationDocumentUrl(doc),
+    })).filter((preview) => preview.url);
+    form.identityCardFront = idFrontUrl || null;
+    form.identityCardBack = idBackUrl || null;
+    form.legalDocuments = legalDocumentPreviews.value.map((preview) => preview.url);
+    if (isVerificationOnlyMode.value) {
+      showVerificationSection.value = true;
+    }
 
     if (data.appointment_slots && Array.isArray(data.appointment_slots)) {
       existingAppointmentSlotIds.value = data.appointment_slots.map((slot) => slot.id).filter(Boolean);
@@ -2385,6 +2403,64 @@ onBeforeUnmount(() => {
   clearImagePreviews();
   clearIdCardPreviews();
 });
+
+async function submitVerificationOnly() {
+  if (loading.value) {
+    pushToast('Bạn đã nhấn lưu quá nhanh', 'warning');
+    return;
+  }
+
+  if (!form.identityCardFront || !form.identityCardBack) {
+    submitError.value = 'Vui lòng tải lên CCCD/CMND mặt trước và mặt sau.';
+    pushToast(submitError.value, 'error');
+    return;
+  }
+
+  loading.value = true;
+  submitError.value = "";
+  validationErrors.value = {};
+
+  try {
+    const uploadSingle = async (file) => {
+      if (!file) return null;
+      if (typeof file === 'string') return file;
+      pushToast('Đang tải lên hình ảnh...', 'info', 1200);
+      const res = await cloudinaryService.uploadImage(file, 'listing');
+      return res.secure_url;
+    };
+
+    const uploadMultiple = async (files) => {
+      const urls = [];
+      for (const file of files) {
+        urls.push(await uploadSingle(file));
+      }
+      return urls.filter(Boolean);
+    };
+
+    const payload = {
+      identityCardFront: await uploadSingle(form.identityCardFront),
+      identityCardBack: await uploadSingle(form.identityCardBack),
+      legalDocuments: await uploadMultiple(form.legalDocuments || []),
+      publicInfoAgreed: publicInfoAgreed.value,
+    };
+
+    const response = await listingService.updateVerification(editListingId.value, payload);
+    pushToast(response.data?.message || 'Cập nhật thông tin xác thực thành công', 'success');
+    router.push('/profile?tab=listings');
+  } catch (error) {
+    if (error.response && error.response.data) {
+      const data = error.response.data;
+      validationErrors.value = data?.errors || {};
+      submitError.value = data?.message || 'Không thể lưu thông tin xác thực. Vui lòng thử lại';
+    } else {
+      submitError.value = error.message || 'Không thể lưu thông tin xác thực. Vui lòng thử lại';
+    }
+
+    pushToast(submitError.value, 'error');
+  } finally {
+    loading.value = false;
+  }
+}
 
 async function submitListing() {
   if (loading.value) {

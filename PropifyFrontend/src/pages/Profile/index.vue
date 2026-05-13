@@ -77,7 +77,13 @@
         </div>
 
         <!-- Tin đăng yêu thích -->
-        <button class="flex items-center gap-2.5 w-full px-5 py-3.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-500 transition-all text-left">
+        <button
+          :class="['flex items-center gap-2.5 w-full px-5 py-3.5 text-sm transition-all text-left',
+            activeTab === 'favorites'
+              ? 'bg-gradient-to-r from-sky-100 to-sky-50 text-sky-500 font-semibold border-l-[3px] border-sky-500'
+              : 'text-slate-600 hover:bg-slate-50 hover:text-sky-500']"
+          @click="openFavoritesTab"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
@@ -346,8 +352,11 @@
                 <th class="px-3 py-4 whitespace-nowrap">Ảnh</th>
                 <th class="px-3 py-4 whitespace-nowrap">Mã tin đăng</th>
                 <th class="px-3 py-4 min-w-[200px]">Tin đăng</th>
+                <th class="px-3 py-4 whitespace-nowrap">Ngày tạo</th>
                 <th class="px-3 py-4 min-w-[180px]">Địa chỉ</th>
                 <th class="px-3 py-4 whitespace-nowrap">Giá</th>
+                <th class="px-3 py-4 whitespace-nowrap">Gói tin</th>
+                <th class="px-3 py-4 whitespace-nowrap">Xác thực</th>
                 <th class="px-3 py-4 text-center whitespace-nowrap">Hiển thị</th>
                 <th class="px-3 py-4 whitespace-nowrap">Trạng thái</th>
                 <th class="pl-3 pr-5 py-4 w-12 text-center"></th>
@@ -355,10 +364,10 @@
             </thead>
             <tbody>
               <tr v-if="listingsLoading">
-                <td class="px-3 py-6 text-center text-slate-400" colspan="9">Đang tải dữ liệu...</td>
+                <td class="px-3 py-6 text-center text-slate-400" colspan="12">Đang tải dữ liệu...</td>
               </tr>
               <tr v-else-if="myListings.length === 0">
-                <td class="px-3 py-6 text-center text-slate-400" colspan="9">Bạn chưa có tin đăng nào.</td>
+                <td class="px-3 py-6 text-center text-slate-400" colspan="12">Bạn chưa có tin đăng nào.</td>
               </tr>
               <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="router.push('/listings/' + item.id)">
                 <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap">{{ item.id }}</td>
@@ -368,8 +377,19 @@
                 </td>
                 <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.code }}</td>
                 <td class="px-3 py-4 font-semibold text-slate-700 group-hover:text-sky-600">{{ item.title }}</td>
+                <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.createdAt }}</td>
                 <td class="px-3 py-4 text-slate-500">{{ item.address }}</td>
                 <td class="px-3 py-4 font-semibold text-slate-700 whitespace-nowrap">{{ item.price }}</td>
+                <td class="px-3 py-4 whitespace-nowrap">
+                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', packageBadgeClass(item.package)]">
+                    {{ packageLabel(item.package) }}
+                  </span>
+                </td>
+                <td class="px-3 py-4 whitespace-nowrap">
+                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', verificationBadgeClass(item.isVerified)]">
+                    {{ item.isVerified ? 'Đã xác thực' : 'Chưa xác thực' }}
+                  </span>
+                </td>
                 <td class="px-3 py-4 whitespace-nowrap">
                   <div class="flex items-center justify-center gap-1.5 text-slate-500">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -390,14 +410,27 @@
                     <div v-if="openDropdownId === item.id" :style="{ top: dropdownStyle.top, left: dropdownStyle.left }" class="absolute w-[200px] bg-white border border-slate-100 shadow-xl rounded-xl py-2 z-[9999] text-left">
                       <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('edit', item)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                        Thông tin chi tiết
+                        Sửa tin đăng
                       </button>
                       <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('upgrade', item)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                         Nâng cấp gói tin
                       </button>
-                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('publish', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('verify', item)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                        Xác thực BĐS
+                      </button>
+                      <button
+                        :disabled="item.status !== 'DRAFT'"
+                        :class="[
+                          'w-full text-left px-4 py-2.5 text-[0.85rem] flex items-center gap-3 transition-colors',
+                          item.status === 'DRAFT'
+                            ? 'text-slate-700 hover:bg-slate-50'
+                            : 'cursor-not-allowed text-slate-300 bg-slate-50'
+                        ]"
+                        @click.stop="handleDropdownAction('publish', item)"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                         Đăng tin
                       </button>
                       <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unpublish', item)">
@@ -529,6 +562,56 @@
       <section v-if="activeTab === 'appointments'" class="bg-white rounded-xl shadow-sm p-8">
         <AppointmentManagement />
       </section>
+
+      <!-- ===== FAVORITES TAB ===== -->
+      <section v-if="activeTab === 'favorites'" class="bg-white rounded-xl shadow-sm p-8">
+        <h2 class="text-xl font-bold text-slate-800 mb-6">Tin đăng yêu thích</h2>
+
+        <div v-if="favoritesLoading" class="py-8 text-center text-sm text-slate-400">
+          Đang tải dữ liệu...
+        </div>
+
+        <div v-else-if="favoriteListings.length === 0" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
+          Bạn chưa có tin đăng yêu thích nào.
+        </div>
+
+        <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <article
+            v-for="item in favoriteListings"
+            :key="item.id"
+            class="group overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-sky-200 hover:shadow-md"
+          >
+            <div class="flex gap-4 p-3">
+              <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-24 w-28 rounded-lg object-cover" />
+              <div v-else class="h-24 w-28 rounded-lg bg-slate-100"></div>
+
+              <div class="min-w-0 flex-1">
+                <button class="line-clamp-2 text-left text-sm font-bold text-slate-800 group-hover:text-sky-600" @click="router.push('/listings/' + item.id)">
+                  {{ item.title }}
+                </button>
+                <p class="mt-1 line-clamp-2 text-xs text-slate-500">{{ item.address }}</p>
+                <p class="mt-2 text-sm font-bold text-sky-600">{{ item.price }}</p>
+                <div class="mt-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    class="rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-600"
+                    @click="router.push('/listings/' + item.id)"
+                  >
+                    Xem chi tiết
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-100"
+                    @click="removeFavorite(item)"
+                  >
+                    Bỏ yêu thích
+                  </button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
     </main>
 
     <ConfirmActionModal
@@ -561,6 +644,7 @@ import { useRoute, useRouter } from 'vue-router';
 import userService from '@/services/userService';
 import cloudinaryService from '@/services/cloudinaryService';
 import listingService from '@/services/listingService';
+import favoriteService from '@/services/favoriteService';
 import PackageUpgradeModal from '@/components/shared/PackageUpgradeModal.vue';
 import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
 import AppointmentManagement from '@/components/AppointmentManagement.vue';
@@ -662,7 +746,7 @@ async function uploadAvatar() {
 }
 
 // ── Tabs ──
-const validTabs = ['profile', 'listings', 'appointments', 'password'];
+const validTabs = ['profile', 'listings', 'appointments', 'favorites', 'password'];
 const initialTab = validTabs.includes(route.query.tab) ? route.query.tab : 'profile';
 const activeTab = ref(initialTab);
 
@@ -677,6 +761,24 @@ watch(activeTab, (newTab) => {
 });
 
 // ── Dropdown ──
+watch(
+  () => route.query.tab,
+  (tab) => {
+    const nextTab = validTabs.includes(tab) ? tab : 'profile';
+    if (nextTab === activeTab.value) return;
+
+    if (nextTab === 'listings') {
+      openListingsTab();
+    } else if (nextTab === 'appointments') {
+      openAppointmentsTab();
+    } else if (nextTab === 'favorites') {
+      openFavoritesTab();
+    } else {
+      activeTab.value = nextTab;
+    }
+  },
+);
+
 const openDropdownId = ref(null);
 const dropdownStyle = reactive({ top: '0px', left: '0px' });
 
@@ -697,9 +799,17 @@ function handleDropdownAction(action, item) {
   closeDropdown();
   if (action === 'edit') {
     router.push('/listings/' + item.id + '/edit');
+  } else if (action === 'verify') {
+    router.push({ path: '/listings/' + item.id + '/edit', query: { mode: 'verification' } });
   } else if (action === 'upgrade') {
     if (item.status === 'ACTIVE') openUpgradeModal(item);
     else alert('Chỉ có thể nâng cấp tin đang đăng.');
+  } else if (action === 'publish') {
+    if (item.status === 'DRAFT') {
+      alert('Tính năng đang phát triển');
+    } else {
+      alert('Chỉ có thể đăng tin nháp.');
+    }
   } else if (action === 'lock') {
     if (item.status === 'ACTIVE') openLockListingModal(item);
     else alert('Chỉ có thể khóa tin đang đăng.');
@@ -753,6 +863,9 @@ const lockListingTarget = ref(null);
 const lockingListing = ref(false);
 const listingActionMessage = ref('');
 const listingActionSuccess = ref(false);
+const favoritesLoaded = ref(false);
+const favoritesLoading = ref(false);
+const favoriteListings = ref([]);
 
 // ── Phone required from đăng tin ──
 const requirePhone = ref(false);
@@ -805,8 +918,32 @@ function formatCurrency(value) {
   return number.toLocaleString('vi-VN');
 }
 
+function formatListingDate(value) {
+  if (!value) return '--';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '--';
+  return date.toLocaleDateString('vi-VN');
+}
+
 function buildAddress(property) {
   return property?.full_address || buildPropertyAddress(property);
+}
+
+function packageLabel(pkg) {
+  return pkg?.badge || pkg?.name || 'Thường';
+}
+
+function packageBadgeClass(pkg) {
+  const priority = Number(pkg?.priority || 0);
+  if (priority === 4) return 'bg-sky-100 text-sky-700';
+  if (priority === 3) return 'bg-rose-100 text-rose-700';
+  if (priority === 2) return 'bg-amber-100 text-amber-700';
+  if (priority === 1) return 'bg-indigo-100 text-indigo-700';
+  return 'bg-slate-100 text-slate-600';
+}
+
+function verificationBadgeClass(isVerified) {
+  return isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600';
 }
 
 function normalizeListings(items) {
@@ -817,11 +954,26 @@ function normalizeListings(items) {
       code: toListingCode(item.id),
       title: item.title || '(Không tiêu đề)',
       thumbnail,
+      createdAt: formatListingDate(item.created_at || item.submitted_at),
       address: buildAddress(item.property),
       price: formatCurrency(item?.property?.price),
       status: item.status,
       package: item.package || null,
+      isVerified: Boolean(item.is_verified),
       views: item.views ?? 0,
+    };
+  });
+}
+
+function normalizeFavoriteListings(items) {
+  return items.map((item) => {
+    const thumbnail = item?.images?.find((img) => img?.is_thumbnail)?.url || item?.images?.[0]?.url || '';
+    return {
+      id: item.id,
+      title: item.title || '(Không tiêu đề)',
+      thumbnail,
+      address: buildAddress(item.property),
+      price: formatCurrency(item?.property?.price),
     };
   });
 }
@@ -939,6 +1091,37 @@ function openAppointmentsTab() {
   expandedSections.appointments = true;
 }
 
+async function openFavoritesTab() {
+  activeTab.value = 'favorites';
+  if (!favoritesLoaded.value) {
+    await loadFavorites();
+  }
+}
+
+async function loadFavorites() {
+  favoritesLoading.value = true;
+  try {
+    const response = await favoriteService.getFavorites();
+    favoriteListings.value = normalizeFavoriteListings(response?.data?.data || []);
+    favoritesLoaded.value = true;
+  } catch {
+    favoriteListings.value = [];
+  } finally {
+    favoritesLoading.value = false;
+  }
+}
+
+async function removeFavorite(item) {
+  const previous = [...favoriteListings.value];
+  favoriteListings.value = favoriteListings.value.filter((favorite) => favorite.id !== item.id);
+
+  try {
+    await favoriteService.toggle(item.id);
+  } catch {
+    favoriteListings.value = previous;
+  }
+}
+
 // ── Profile form ──
 const isEditing = ref(false);
 const profileLoading = ref(false);
@@ -984,6 +1167,8 @@ onMounted(async () => {
     openListingsTab();
   } else if (tab === 'appointments') {
     openAppointmentsTab();
+  } else if (tab === 'favorites') {
+    openFavoritesTab();
   } else if (tab === 'password') {
     activeTab.value = 'password';
   }
