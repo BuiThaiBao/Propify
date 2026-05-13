@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import authService from "@/services/authService";
+import { getAccessToken } from "@/utils/authCookies";
 
-const TOKEN_KEY = "admin_access_token";
 const USER_CACHE_KEY = "admin_user";
 
 function decodeJwtPayload(jwt) {
@@ -35,7 +35,7 @@ export const useAuthStore = defineStore("auth", () => {
   const isAdmin = computed(() => user.value?.role === "ADMIN");
 
   async function initAuth() {
-    const savedToken = localStorage.getItem(TOKEN_KEY);
+    const savedToken = getAccessToken();
     if (!savedToken) return;
 
     if (roleFromToken(savedToken) !== "ADMIN") {
@@ -59,10 +59,10 @@ export const useAuthStore = defineStore("auth", () => {
   async function login(email, password) {
     loading.value = true;
     try {
-      const res = await authService.login(email, password);
-      const data = res.data.data;
+      await authService.login(email, password);
+      token.value = getAccessToken();
 
-      if (roleFromToken(data.access_token) !== "ADMIN") {
+      if (!token.value || roleFromToken(token.value) !== "ADMIN") {
         clearAuth();
         return {
           success: false,
@@ -70,8 +70,6 @@ export const useAuthStore = defineStore("auth", () => {
         };
       }
 
-      token.value = data.access_token;
-      localStorage.setItem(TOKEN_KEY, data.access_token);
       await fetchUser();
 
       return { success: true };
@@ -101,7 +99,6 @@ export const useAuthStore = defineStore("auth", () => {
   function clearAuth() {
     user.value = null;
     token.value = null;
-    localStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_CACHE_KEY);
   }
 

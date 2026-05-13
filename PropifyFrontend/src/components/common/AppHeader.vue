@@ -43,9 +43,11 @@
 
         <!-- Đã đăng nhập: hiện Account icon với dropdown -->
         <template v-else>
-          <div class="relative" ref="accountDropdownRef">
-            <button
-              class="p-2 text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/15"
+          <div class="relative flex items-center gap-1" ref="accountDropdownRef">
+            <router-link
+              to="/profile?tab=favorites"
+              @click="accountMenuOpen = false"
+              class="inline-flex h-9 w-9 items-center justify-center text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/15"
               title="Yêu thích"
             >
               <svg
@@ -63,10 +65,10 @@
                   d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
                 />
               </svg>
-            </button>
+            </router-link>
             <button
               @click="accountMenuOpen = !accountMenuOpen"
-              class="p-2 text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/15"
+              class="inline-flex h-9 w-9 items-center justify-center text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/15"
               title="Tài khoản"
             >
               <svg

@@ -1,9 +1,8 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import authService from "@/services/authService";
+import { getAccessToken } from "@/utils/authCookies";
 
-/** Named constant for localStorage key */
-const TOKEN_KEY = "access_token";
 const USER_CACHE_KEY = "auth_user";
 
 function decodeJwtPayload(jwt) {
@@ -47,11 +46,11 @@ export const useAuthStore = defineStore("auth", () => {
 
   /**
    * Khởi tạo auth khi app mount.
-   * Đọc token từ localStorage → restore user từ sessionStorage (cache),
+   * Đọc access token từ cookie → restore user từ sessionStorage (cache),
    * chỉ gọi /me nếu cache bị miss.
    */
   async function initAuth() {
-    const savedToken = localStorage.getItem(TOKEN_KEY);
+    const savedToken = getAccessToken();
     if (!savedToken) return;
 
     if (roleFromToken(savedToken) === "ADMIN") {
@@ -97,16 +96,12 @@ export const useAuthStore = defineStore("auth", () => {
   async function login(email, password) {
     loading.value = true;
     try {
-      const res = await authService.login(email, password);
-      const data = res.data.data;
-
-      if (roleFromToken(data.access_token) === "ADMIN") {
+      await authService.login(email, password);
+      token.value = getAccessToken();
+      if (!token.value || roleFromToken(token.value) === "ADMIN") {
         clearAuth();
         return { success: false, message: "Tài khoản quản trị không được phép đăng nhập tại đây." };
       }
-
-      token.value = data.access_token;
-      localStorage.setItem(TOKEN_KEY, data.access_token);
 
       // Fetch full user data (avatar_url, phone, ...) thay vì dùng data rút gọn từ login response
       await fetchUser();
@@ -172,16 +167,12 @@ export const useAuthStore = defineStore("auth", () => {
   async function verifyOtp(email, otp) {
     loading.value = true;
     try {
-      const res = await authService.verifyOtp(email, otp);
-      const data = res.data.data;
-
-      if (roleFromToken(data.access_token) === "ADMIN") {
+      await authService.verifyOtp(email, otp);
+      token.value = getAccessToken();
+      if (!token.value || roleFromToken(token.value) === "ADMIN") {
         clearAuth();
         return { success: false, message: "Tài khoản quản trị không được phép đăng nhập tại đây." };
       }
-
-      token.value = data.access_token;
-      localStorage.setItem(TOKEN_KEY, data.access_token);
 
       // Fetch full user data
       await fetchUser();
@@ -235,7 +226,6 @@ export const useAuthStore = defineStore("auth", () => {
   function clearAuth() {
     user.value = null;
     token.value = null;
-    localStorage.removeItem(TOKEN_KEY);
     sessionStorage.removeItem(USER_CACHE_KEY);
   }
 
@@ -245,14 +235,14 @@ export const useAuthStore = defineStore("auth", () => {
    *
    * @param {string} googleToken - JWT token from Google OAuth callback
    */
-  async function setTokenFromGoogle(googleToken) {
-    if (roleFromToken(googleToken) === "ADMIN") {
+  async function setTokenFromGoogle() {
+    const googleToken = getAccessToken();
+    if (!googleToken || roleFromToken(googleToken) === "ADMIN") {
       clearAuth();
       throw new Error("ADMIN_NOT_ALLOWED");
     }
 
     token.value = googleToken;
-    localStorage.setItem(TOKEN_KEY, googleToken);
 
     try {
       await fetchUser();

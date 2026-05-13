@@ -2,7 +2,7 @@
 	<RouterLink :to="to" class="block no-underline text-inherit">
 	<article 
 		class="group overflow-hidden rounded-[22px] bg-white shadow-[0_2px_12px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(15,23,42,0.14)]"
-		:class="{ 'border-diamond': Number(package?.priority) === 4 }"
+		:class="packageBorderClass"
 	>
 		<div class="relative overflow-hidden rounded-t-[22px] bg-slate-100">
 			<div class="relative aspect-[4/3] overflow-hidden">
@@ -115,6 +115,15 @@ const packageIcon = computed(() => {
 const packageLabel = computed(() => {
 	return props.package?.badge || props.package?.name || null;
 });
+
+const packageBorderClass = computed(() => {
+	const slug = String(props.package?.slug || '').toLowerCase();
+	const priority = Number(props.package?.priority || 0);
+	if (slug === 'ruby') return 'border-package border-package-ruby';
+	if (slug === 'gold' || priority === 3) return 'border-package border-package-gold';
+	if (slug === 'dimond' || slug === 'diamond' || priority === 4) return 'border-package border-package-diamond';
+	return '';
+});
 </script>
 
 <style scoped>
@@ -136,13 +145,13 @@ const packageLabel = computed(() => {
 	overflow: hidden;
 }
 
-.border-diamond {
+.border-package {
 	position: relative;
 	background: #fff;
 	background-clip: padding-box;
 }
 
-.border-diamond::after {
+.border-package::after {
 	content: "";
 	position: absolute;
 	top: 0;
@@ -154,8 +163,8 @@ const packageLabel = computed(() => {
 	background: conic-gradient(
 		from var(--angle),
 		transparent 70%,
-		#3b82f6 85%,
-		#60a5fa 95%,
+		var(--package-border-color) 85%,
+		var(--package-border-glow) 95%,
 		transparent 100%
 	);
 	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
@@ -165,6 +174,21 @@ const packageLabel = computed(() => {
 	animation: diamond-rotate 2s linear infinite;
 	pointer-events: none;
 	z-index: 10;
+}
+
+.border-package-diamond {
+	--package-border-color: #3b82f6;
+	--package-border-glow: #60a5fa;
+}
+
+.border-package-ruby {
+	--package-border-color: #dc2626;
+	--package-border-glow: #fb7185;
+}
+
+.border-package-gold {
+	--package-border-color: #d97706;
+	--package-border-glow: #facc15;
 }
 
 @property --angle {

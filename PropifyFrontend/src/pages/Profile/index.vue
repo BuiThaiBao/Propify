@@ -760,6 +760,24 @@ watch(activeTab, (newTab) => {
 });
 
 // ── Dropdown ──
+watch(
+  () => route.query.tab,
+  (tab) => {
+    const nextTab = validTabs.includes(tab) ? tab : 'profile';
+    if (nextTab === activeTab.value) return;
+
+    if (nextTab === 'listings') {
+      openListingsTab();
+    } else if (nextTab === 'appointments') {
+      openAppointmentsTab();
+    } else if (nextTab === 'favorites') {
+      openFavoritesTab();
+    } else {
+      activeTab.value = nextTab;
+    }
+  },
+);
+
 const openDropdownId = ref(null);
 const dropdownStyle = reactive({ top: '0px', left: '0px' });
 

@@ -52,6 +52,18 @@ Route::prefix('v1/auth')->as('auth.')->group(function () {
         ->middleware('throttle:10,1')
         ->name('reset-password');
 
+    Route::get('/login', function (\Illuminate\Http\Request $request) {
+        if ($request->expectsJson()) {
+            return \App\Helpers\ApiResponse::error(
+                message: 'Endpoint đăng nhập chỉ hỗ trợ phương thức POST.',
+                statusCode: 405,
+                errorCode: \App\Enums\ErrorCode::ValidationError
+            );
+        }
+
+        return redirect(rtrim((string) config('app.frontend_url'), '/') . '/login');
+    })->name('login.redirect');
+
     Route::post('/login', [AuthController::class, 'login'])
         ->middleware('throttle:5,1')
         ->name('login');
