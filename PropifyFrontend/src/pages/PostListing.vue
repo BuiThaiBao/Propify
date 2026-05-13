@@ -88,8 +88,8 @@
           </div>
 
           <label class="mt-3 block">
-            <span class="field-label required">Tiêu đề</span>
-            <input v-model="form.title" :class="['input mt-1', fieldError('title') && 'input-error']" maxlength="120" placeholder="Nhập tiêu đề" @blur="handleTextBlur('title')" />
+            <span class="field-label required">Tên bất động sản</span>
+            <input v-model="form.title" :class="['input mt-1', fieldError('title') && 'input-error']" maxlength="120" placeholder="Nhập tên bất động sản" @blur="handleTextBlur('title')" />
             <p v-if="fieldError('title')" class="field-error">{{ fieldErrorMessage('title') }}</p>
             <p class="mt-1 text-right text-[12px] text-slate-400">{{ titleCount }}/120 ký tự</p>
           </label>
@@ -150,10 +150,34 @@
           </div>
 
           <div class="mt-3 grid gap-3 md:grid-cols-1">
-            <label>
+            <label class="price-field">
               <span class="field-label required">{{ priceLabel }}</span>
-              <input v-model="form.price" :class="['input mt-1 disabled:bg-slate-100', fieldError('price') && 'input-error']" :disabled="form.isNegotiable" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'price', false)" @blur="touchField('price')" />
+              <div class="relative mt-1">
+                <input
+                  v-model="form.price"
+                  :class="['input pr-10 disabled:bg-slate-100', fieldError('price') && 'input-error']"
+                  :disabled="form.isNegotiable"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="Nhập số"
+                  @input="onNumberInput($event, 'price', false)"
+                  @focus="priceFocused = true"
+                  @blur="handlePriceBlur"
+                />
+                <span v-if="fieldError('price')" class="price-error-icon" aria-hidden="true">!</span>
+              </div>
               <p v-if="fieldError('price')" class="field-error">{{ fieldErrorMessage('price') }}</p>
+              <div v-if="showPriceSuggestions" class="price-suggestion-panel">
+                <button
+                  v-for="suggestion in priceSuggestions"
+                  :key="suggestion.value"
+                  type="button"
+                  class="price-suggestion-item"
+                  @mousedown.prevent="selectPriceSuggestion(suggestion.value)"
+                >
+                  {{ suggestion.label }}
+                </button>
+              </div>
             </label>
           </div>
 
@@ -959,6 +983,7 @@ const mediaCollapsed = ref(false);
 const infoCollapsed = ref(false);
 const detailCollapsed = ref(false);
 const contactCollapsed = ref(false);
+const priceFocused = ref(false);
 
 const toasts = ref([]);
 let toastIdCounter = 1;
@@ -985,18 +1010,16 @@ const infoChecklist = computed(() => [
   { label: 'Tiêu đề', done: Boolean(form.title?.trim()), points: 0.25 },
   { label: 'Mô tả', done: Boolean(form.description?.trim()), points: 0.25 },
   { label: 'Loại nhà đất', done: Boolean(form.propertyType?.trim()), points: 0.2 },
-  { label: 'Giấy tờ pháp lý', done: Array.isArray(form.legalPaperTypes) && form.legalPaperTypes.length > 0, points: 0.1 },
+  { label: 'Giấy tờ pháp lý', done: Array.isArray(form.legalPaperTypes) && form.legalPaperTypes.length > 0, points: form.demandType === 'RENT' ? 0.1 : 0.15 },
   { label: 'Diện tích', done: Number(form.area) > 0, points: 0.25 },
-  { label: form.demandType === 'RENT' ? 'Giá thuê' : 'Giá bán', done: form.isNegotiable || Number(form.price) > 0, points: 0.2 },
+  { label: form.demandType === 'RENT' ? 'Giá thuê' : 'Giá bán', done: form.isNegotiable || Number(form.price) > 0, points: form.demandType === 'RENT' ? 0.2 : 0.3 },
   ...(form.demandType === 'RENT'
     ? [
         { label: 'Thời gian cho thuê', done: Boolean(form.rentMinTerm), points: 0.05 },
         { label: 'Kỳ thanh toán', done: Boolean(form.rentPaymentInterval), points: 0.05 },
         { label: 'Đặt cọc', done: Boolean(form.rentDeposit), points: 0.05 },
       ]
-    : [
-        { label: 'Dự án', done: Boolean(form.projectName?.trim()), points: 0.15 },
-      ]),
+    : []),
   { label: 'Tỉnh/thành phố', done: Boolean(form.provinceCode?.trim()), points: 0.15 },
   { label: 'Xã/phường', done: Boolean(form.wardCode?.trim()), points: 0.1 },
   { label: 'Đường/phố', done: Boolean(form.streetCode?.trim()), points: 0.1 },
@@ -1156,6 +1179,24 @@ const shouldRequestVerification = computed(() => {
 const titleCount = computed(() => normalizeSingleLineText(form.title).length);
 const descriptionCount = computed(() => normalizeMultilineText(form.description).length);
 const priceLabel = computed(() => (form.demandType === "RENT" ? "Giá thuê" : "Giá bán"));
+const priceSuggestions = computed(() => {
+  const base = Number(String(form.price || '').replace(/[^0-9]/g, ''));
+  if (!base || form.isNegotiable) return [];
+
+  const multipliers = form.demandType === 'RENT'
+    ? [1000000, 10000000, 100000000, 1000000000]
+    : [10000000, 100000000, 1000000000, 10000000000];
+
+  return multipliers
+    .map((multiplier) => base * multiplier)
+    .filter((value, index, arr) => value > 0 && arr.indexOf(value) === index)
+    .map((value) => ({
+      value,
+      label: value.toLocaleString('vi-VN'),
+    }));
+});
+
+const showPriceSuggestions = computed(() => priceFocused.value && priceSuggestions.value.length > 0);
 
 const currentPropertyTypeOptions = computed(() =>
   form.demandType === "RENT" ? rentPropertyTypeOptions : salePropertyTypeOptions,
@@ -2149,10 +2190,10 @@ function fieldErrorMessage(field) {
 
   if (field === 'price') {
     if (form.isNegotiable) return '';
-    if (!value) return 'Giá phải lớn hơn 0';
+    if (!value) return `${priceLabel.value} phải lớn hơn 999`;
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return 'Giá không hợp lệ';
-    if (parsed <= 0) return 'Giá phải lớn hơn 0';
+    if (parsed < 1000) return `${priceLabel.value} phải lớn hơn 999`;
     return '';
   }
 
@@ -2220,6 +2261,19 @@ function onNumberInput(event, field, allowDecimal = false) {
   
   form[field] = value;
   event.target.value = value;
+}
+
+function handlePriceBlur() {
+  touchField('price');
+  window.setTimeout(() => {
+    priceFocused.value = false;
+  }, 120);
+}
+
+function selectPriceSuggestion(value) {
+  form.price = String(value);
+  touchField('price');
+  priceFocused.value = false;
 }
 
 function onPhoneInput(event) {
@@ -2945,6 +2999,53 @@ async function submitListing() {
   content: ' *';
   color: #ef4444;
   font-weight: 700;
+}
+
+.price-field {
+  position: relative;
+  display: block;
+}
+
+.price-error-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  display: inline-flex;
+  height: 16px;
+  width: 16px;
+  transform: translateY(-50%);
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.price-suggestion-panel {
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid #38bdf8;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.price-suggestion-item {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 13px;
+  color: #0f172a;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.price-suggestion-item:hover {
+  background: #eff6ff;
+  color: #0284c7;
 }
 
 .with-icon {
