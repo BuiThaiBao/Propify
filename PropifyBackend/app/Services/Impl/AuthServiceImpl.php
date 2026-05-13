@@ -211,7 +211,6 @@ final class AuthServiceImpl implements AuthService
 
     public function refresh(): string
     {
-        $this->processToken();
         /** @var \Tymon\JWTAuth\JWTGuard $guard */
         $guard = $this->authFactory->guard('api');
         return $guard->refresh();
