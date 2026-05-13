@@ -172,9 +172,19 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
     });
 });
 
-Route::prefix('v1/packages')->as('packages.')->middleware('auth:api')->group(function () {
+// ==================== PACKAGES: PUBLIC ROUTES ====================
+Route::prefix('v1/packages')->as('packages.')->group(function () {
     Route::get('/', [PackageController::class, 'index'])->name('index');
     Route::get('/{id}', [PackageController::class, 'show'])->name('show');
+});
+
+// ==================== PACKAGES: PROTECTED ROUTES ====================
+Route::prefix('v1/packages')->as('packages.admin.')->middleware('auth:api')->group(function () {
+    Route::get('/duration-options', [\App\Http\Controllers\Api\V1\Package\PackageDurationOptionController::class, 'index'])
+        ->name('duration-options.index');
+    Route::post('/duration-options', [\App\Http\Controllers\Api\V1\Package\PackageDurationOptionController::class, 'store'])
+        ->name('duration-options.store');
+
     Route::post('/', [PackageController::class, 'create'])->name('create');
     Route::put('/{id}', [PackageController::class, 'update'])->name('update');
     Route::delete('/{id}', [PackageController::class, 'destroy'])->name('destroy');

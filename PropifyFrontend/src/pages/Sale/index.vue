@@ -197,13 +197,13 @@ function getAuthor(item) {
 
 function getPackageBadge(pkg) {
   if (!pkg?.slug) return null;
-  const map = { gold: 'VIP', silver: 'HOT' };
+  const map = { electron: 'Electron', ruby: 'Ruby', gold: 'VIP' };
   return map[pkg.slug] || null;
 }
 
 function getPackageColor(pkg) {
   if (!pkg?.slug) return null;
-  const map = { gold: '#FFD700', silver: '#C0C0C0' };
+  const map = { electron: '#1e293b', ruby: '#dc2626', gold: '#f59e0b' };
   return map[pkg.slug] || null;
 }
 

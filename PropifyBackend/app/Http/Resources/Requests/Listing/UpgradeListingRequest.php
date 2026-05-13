@@ -15,7 +15,7 @@ final class UpgradeListingRequest extends FormRequest
     {
         return [
             'package_id'    => ['required', 'integer', 'exists:packages,id'],
-            'duration_days' => ['required', 'integer', 'in:3,7,10,15,30'],
+            'duration_days' => ['required', 'integer', 'min:1', 'max:3650'],
         ];
     }
 
@@ -25,7 +25,8 @@ final class UpgradeListingRequest extends FormRequest
             'package_id.required'    => 'Vui lòng chọn gói tin.',
             'package_id.exists'      => 'Gói tin không tồn tại.',
             'duration_days.required' => 'Vui lòng chọn thời hạn.',
-            'duration_days.in'       => 'Thời hạn phải là 3, 7, 10, 15 hoặc 30 ngày.',
+            'duration_days.min'      => 'Thời hạn phải lớn hơn hoặc bằng 1 ngày.',
+            'duration_days.max'      => 'Thời hạn không được vượt quá 3650 ngày.',
         ];
     }
 }

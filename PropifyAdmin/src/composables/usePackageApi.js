@@ -76,6 +76,34 @@ export function usePackageApi() {
     }
   };
 
+  const fetchDurationOptions = async () => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await api.get('/v1/packages/duration-options');
+      return response.data;
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Lỗi khi lấy danh sách thời hạn';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const createDurationOption = async (durationData) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await api.post('/v1/packages/duration-options', durationData);
+      return response.data;
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Lỗi khi tạo thời hạn';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // ── Package Pricings ─────────────────────────────────────────────────
 
   const fetchPricings = async (packageId) => {
@@ -140,6 +168,8 @@ export function usePackageApi() {
     createPackage,
     updatePackage,
     deletePackage,
+    fetchDurationOptions,
+    createDurationOption,
     fetchPricings,
     createPricing,
     updatePricing,

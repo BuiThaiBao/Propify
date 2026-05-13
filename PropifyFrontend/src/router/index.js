@@ -64,6 +64,11 @@ const routes = [
     component: () => import("@/pages/PostListing.vue"),
     meta: { requiresAuth: true },
   },
+  {
+    path: "/pricing",
+    name: "Pricing",
+    component: () => import("@/pages/Pricing/index.vue"),
+  },
 ];
 
 const router = createRouter({

@@ -25,64 +25,76 @@
           <!-- Package Cards -->
           <div v-else class="packages-grid">
             <div
-              v-for="pkg in sortedPackages"
+              v-for="pkg in displayPackages"
               :key="pkg.id"
               :class="[
                 'package-card',
+                `package-card--${pkg.slug}`,
                 { 'package-card--current': isCurrent(pkg) },
                 { 'package-card--selected': selectedPkg?.id === pkg.id },
-                { 'package-card--gold': pkg.slug === 'gold' },
-                { 'package-card--silver': pkg.slug === 'silver' },
-                { 'package-card--basic': pkg.slug === 'basic' },
               ]"
             >
-              <!-- Badge -->
-              <div v-if="pkg.badge" class="package-badge" :style="{ background: pkg.color }">
-                {{ pkg.badge }}
+              <!-- Package Header Badge -->
+              <div class="pkg-header" :class="`pkg-header--${pkg.slug}`">
+                <span v-if="slugIcon(pkg.slug)" class="pkg-icon">{{ slugIcon(pkg.slug) }}</span>
+                <span class="pkg-badge-label" :class="`pkg-badge-label--${pkg.slug}`">{{ slugLabel(pkg.slug) }}</span>
               </div>
 
-              <!-- Name -->
-              <h3 class="package-name">{{ pkg.name }}</h3>
+              <!-- Daily Price -->
+              <div class="pkg-daily-price">
+                <span class="pkg-price-value">{{ pkg.slug === 'free' ? 'Miễn phí' : formatPrice(pkg.price) + 'đ' }}</span>
+                <span v-if="pkg.slug !== 'free'" class="pkg-price-unit">/ ngày</span>
+              </div>
+
+              <!-- Push Price -->
+              <div class="pkg-push-row">
+                <span class="pkg-push-label">Đẩy tin (lần)</span>
+                <span class="pkg-push-value">{{ getPushPrice(pkg) }}</span>
+              </div>
+
+              <!-- Duration Pricings -->
+              <div class="pkg-durations">
+                <div
+                  v-for="pricing in pkg.pricings"
+                  :key="pricing.id"
+                  :class="['pkg-duration-row', { 'pkg-duration-row--active': selectedPricing?.id === pricing.id && selectedPkg?.id === pkg.id }]"
+                  @click="selectPricing(pkg, pricing)"
+                >
+                  <span class="pkg-duration-label">{{ pricing.label }}</span>
+                  <span class="pkg-duration-price">{{ formatPrice(pricing.price) }}đ</span>
+                </div>
+                <div v-if="pkg.slug === 'free' && (!pkg.pricings || pkg.pricings.length === 0)" class="pkg-free-durations">
+                  <div class="pkg-duration-row pkg-duration-row--free">
+                    <span class="pkg-duration-label">Gói 7 ngày</span>
+                    <span class="pkg-duration-price pkg-duration-price--free">Miễn phí</span>
+                  </div>
+                  <div class="pkg-duration-row pkg-duration-row--free">
+                    <span class="pkg-duration-label">Gói 15 ngày</span>
+                    <span class="pkg-duration-price pkg-duration-price--free">Miễn phí</span>
+                  </div>
+                  <div class="pkg-duration-row pkg-duration-row--free">
+                    <span class="pkg-duration-label">Gói 30 ngày</span>
+                    <span class="pkg-duration-price pkg-duration-price--free">Miễn phí</span>
+                  </div>
+                  <div class="pkg-duration-row pkg-duration-row--free">
+                    <span class="pkg-duration-label">Gói 90 ngày</span>
+                    <span class="pkg-duration-price pkg-duration-price--free">Miễn phí</span>
+                  </div>
+                </div>
+              </div>
 
               <!-- Features -->
-              <ul class="package-features">
-                <li>
-                  <span class="feature-icon">⚡</span>
-                  Ưu tiên hiển thị: <strong>Tầng {{ pkg.priority }}</strong>
-                </li>
-                <li>
-                  <span class="feature-icon">📈</span>
-                  Hệ số điểm: <strong>×{{ pkg.multiplier }}</strong>
-                </li>
-                <li>
-                  <span class="feature-icon">👁️</span>
-                  Lượt hiển thị/ngày: <strong>{{ pkg.daily_quota }}</strong>
+              <ul class="pkg-features">
+                <li v-for="(feat, idx) in getFeatures(pkg)" :key="idx" :class="feat.enabled ? 'feat-enabled' : 'feat-disabled'">
+                  <span class="feat-icon">{{ feat.enabled ? '✅' : '❌' }}</span>
+                  <span v-html="feat.text"></span>
                 </li>
               </ul>
 
-              <!-- Duration picker (shown when package has pricings) -->
-              <div v-if="pkg.pricings?.length" class="duration-picker">
-                <label class="duration-label">Chọn thời hạn:</label>
-                <div class="duration-options">
-                  <button
-                    v-for="pricing in pkg.pricings"
-                    :key="pricing.id"
-                    :class="['duration-btn', { 'duration-btn--active': selectedPricing?.id === pricing.id && selectedPkg?.id === pkg.id }]"
-                    @click="selectPricing(pkg, pricing)"
-                  >
-                    <span class="duration-days">{{ pricing.label }}</span>
-                    <span class="duration-price">{{ formatPrice(pricing.price) }}đ</span>
-                  </button>
-                </div>
-              </div>
-              <div v-else class="no-pricing">
-                Chưa có bảng giá
-              </div>
-
               <!-- Action -->
               <button
-                v-if="canUpgrade(pkg) || isCurrent(pkg)"
-                :class="['package-btn', selectedPkg?.id === pkg.id && selectedPricing ? 'package-btn--upgrade' : 'package-btn--disabled']"
+                v-if="pkg.slug !== 'free' && (canUpgrade(pkg) || isCurrent(pkg))"
+                :class="['pkg-action-btn', `pkg-action-btn--${pkg.slug}`, selectedPkg?.id === pkg.id && selectedPricing ? 'pkg-action-btn--ready' : '']"
                 :disabled="upgrading || !(selectedPkg?.id === pkg.id && selectedPricing)"
                 @click="doUpgrade(pkg)"
               >
@@ -90,15 +102,15 @@
                   <div class="btn-spinner"></div> Đang xử lý...
                 </template>
                 <template v-else-if="isCurrent(pkg)">
-                  🔄 Gia hạn {{ pkg.name }}
+                  🔄 Gia hạn {{ slugLabel(pkg.slug) }}
                 </template>
                 <template v-else>
-                  Nâng cấp lên {{ pkg.name }}
+                  Nâng cấp lên {{ slugLabel(pkg.slug) }}
                 </template>
               </button>
               <button
-                v-else
-                class="package-btn package-btn--disabled"
+                v-else-if="pkg.slug !== 'free'"
+                class="pkg-action-btn pkg-action-btn--disabled"
                 disabled
               >
                 Không thể chọn
@@ -139,8 +151,13 @@ const upgradingPkgId = ref(null);
 const selectedPkg = ref(null);
 const selectedPricing = ref(null);
 
-const sortedPackages = computed(() => {
-  return [...packages.value].sort((a, b) => a.priority - b.priority);
+// Only show: electron, ruby, gold, free (exclude silver/bac)
+const displayPackages = computed(() => {
+  const allowedSlugs = ['electron', 'ruby', 'gold', 'free'];
+  const slugOrder = { electron: 0, ruby: 1, gold: 2, free: 3 };
+  return [...packages.value]
+    .filter(p => allowedSlugs.includes(p.slug))
+    .sort((a, b) => (slugOrder[a.slug] ?? 99) - (slugOrder[b.slug] ?? 99));
 });
 
 const currentPackageName = computed(() => {
@@ -175,7 +192,6 @@ function isCurrent(pkg) {
 
 function canUpgrade(pkg) {
   const currentPriority = getCurrentPriority();
-  // Cho phép gia hạn cùng gói hoặc nâng cấp lên gói cao hơn
   return pkg.priority > currentPriority || isCurrent(pkg);
 }
 
@@ -223,6 +239,51 @@ function close() {
 function formatPrice(value) {
   return Number(value || 0).toLocaleString('vi-VN');
 }
+
+function slugLabel(slug) {
+  const map = { electron: 'Electron', ruby: 'Ruby', gold: 'Vàng', free: 'Tin thường' };
+  return map[slug] || slug;
+}
+
+function slugIcon(slug) {
+  const map = { electron: '⚡', ruby: '💎', gold: '🏅', free: '📋' };
+  return map[slug] || null;
+}
+
+function getPushPrice(pkg) {
+  const map = { electron: 'Miễn phí', ruby: '8.000đ', gold: '5.000đ', free: '1.000đ' };
+  return map[pkg.slug] || 'N/A';
+}
+
+function getFeatures(pkg) {
+  const featMap = {
+    electron: [
+      { text: 'Gói <strong>DUY NHẤT</strong> tích hợp 3D', enabled: true },
+      { text: '<strong>TOP 1</strong> phủ sóng trên hệ sinh thái', enabled: true },
+      { text: 'Giao diện hiển thị chuyên biệt', enabled: true },
+      { text: 'Tự động đẩy tin <strong>MIỄN PHÍ</strong>', enabled: true },
+    ],
+    ruby: [
+      { text: 'Không tích hợp 3D', enabled: false },
+      { text: 'Nhận tag <strong>Ruby</strong>', enabled: true },
+      { text: 'Người xem ước tính <strong>X10</strong>', enabled: true },
+      { text: 'Kích thước lớn, tăng lượt xem', enabled: true },
+      { text: '<strong>TOP 2</strong> hiển thị trong danh sách', enabled: true },
+    ],
+    gold: [
+      { text: 'Không tích hợp 3D', enabled: false },
+      { text: 'Nhận tag <strong>Vàng</strong>', enabled: true },
+      { text: 'Người xem ước tính <strong>X6</strong>', enabled: true },
+      { text: '<strong>TOP 3</strong> hiển thị trong danh sách', enabled: true },
+    ],
+    free: [
+      { text: 'Không tích hợp 3D', enabled: false },
+      { text: 'Miễn phí hiển thị trong danh sách', enabled: true },
+      { text: 'Lượt tiếp cận tự nhiên', enabled: true },
+    ],
+  };
+  return featMap[pkg.slug] || [];
+}
 </script>
 
 <style scoped>
@@ -241,11 +302,11 @@ function formatPrice(value) {
 .modal-container {
   background: #fff;
   border-radius: 20px;
-  max-width: 860px;
+  max-width: 1100px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.18);
   animation: modal-slide-up 0.3s ease;
 }
 
@@ -310,118 +371,233 @@ function formatPrice(value) {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ─── PACKAGES GRID ─── */
 .packages-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  padding: 24px 28px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  padding: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
+  .packages-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 540px) {
   .packages-grid { grid-template-columns: 1fr; }
 }
 
+/* ─── PACKAGE CARD ─── */
 .package-card {
   position: relative;
-  border: 2px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 24px 20px;
-  text-align: center;
+  border: 1px solid #e8ecf0;
+  padding: 0;
+  text-align: left;
   transition: all 0.3s ease;
   background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.package-card:first-child {
+  border-radius: 0 0 0 0;
 }
 
 .package-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+  z-index: 2;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.package-card--selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  z-index: 3;
 }
 
 .package-card--current {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  background: #fafcff;
 }
 
-.package-card--gold {
-  border-color: #fbbf24;
+/* ─── Package Header ─── */
+.pkg-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 16px 10px;
 }
 
-.package-card--gold:hover {
-  box-shadow: 0 12px 32px rgba(251, 191, 36, 0.2);
+.pkg-icon {
+  font-size: 16px;
 }
 
-.package-card--silver {
-  border-color: #94a3b8;
-}
-
-.package-badge {
-  position: absolute;
-  top: -10px;
-  right: 16px;
-  color: #fff;
-  font-size: 11px;
+.pkg-badge-label {
+  font-size: 12px;
   font-weight: 700;
   padding: 3px 10px;
-  border-radius: 8px;
-  letter-spacing: 0.5px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  border-radius: 4px;
+  letter-spacing: 0.3px;
 }
 
-.package-name {
-  font-size: 20px;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 8px 0 12px;
+/* Electron - dark navy */
+.pkg-badge-label--electron {
+  background: #1e293b;
+  color: #fff;
 }
 
-.package-price {
-  margin-bottom: 20px;
+/* Ruby - red gradient */
+.pkg-badge-label--ruby {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
 }
 
-.price-value {
-  font-size: 28px;
-  font-weight: 800;
-  color: #1e40af;
+/* Gold - amber */
+.pkg-badge-label--gold {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
 }
 
-.price-unit {
-  font-size: 14px;
+/* Free - light gray */
+.pkg-badge-label--free {
+  background: #f1f5f9;
   color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+/* ─── Daily Price ─── */
+.pkg-daily-price {
+  padding: 4px 16px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.pkg-price-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.5px;
+}
+
+.pkg-price-unit {
+  font-size: 14px;
+  color: #94a3b8;
   margin-left: 4px;
 }
 
-.price-free {
-  font-size: 24px;
-  font-weight: 700;
-  color: #16a34a;
-}
-
-.package-features {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 20px;
-  text-align: left;
-}
-
-.package-features li {
-  padding: 6px 0;
-  font-size: 13px;
-  color: #475569;
-  border-bottom: 1px solid #f8fafc;
-}
-
-.package-features li:last-child {
-  border-bottom: none;
-}
-
-.feature-icon {
-  margin-right: 6px;
-}
-
-.package-btn {
-  width: 100%;
+/* ─── Push Price Row ─── */
+.pkg-push-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 10px 16px;
-  border-radius: 12px;
-  font-size: 14px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 13px;
+}
+
+.pkg-push-label {
+  color: #64748b;
+}
+
+.pkg-push-value {
+  font-weight: 600;
+  color: #334155;
+}
+
+/* ─── Duration Pricings ─── */
+.pkg-durations {
+  padding: 8px 16px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pkg-duration-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 13px;
+}
+
+.pkg-duration-row:hover {
+  background: #f8fafc;
+}
+
+.pkg-duration-row--active {
+  background: #eff6ff;
+  border: 1.5px solid #3b82f6;
+}
+
+.pkg-duration-row--free {
+  cursor: default;
+}
+
+.pkg-duration-row--free:hover {
+  background: transparent;
+}
+
+.pkg-duration-label {
+  color: #475569;
+  font-weight: 500;
+}
+
+.pkg-duration-price {
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.pkg-duration-price--free {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.pkg-free-durations {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ─── Features ─── */
+.pkg-features {
+  list-style: none;
+  padding: 12px 16px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.pkg-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.feat-icon {
+  flex-shrink: 0;
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+.feat-enabled {
+  color: #334155;
+}
+
+.feat-disabled {
+  color: #94a3b8;
+}
+
+/* ─── Action Button ─── */
+.pkg-action-btn {
+  margin: 0 16px 16px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
   font-weight: 600;
   border: none;
   cursor: pointer;
@@ -430,31 +606,37 @@ function formatPrice(value) {
   align-items: center;
   justify-content: center;
   gap: 6px;
+  background: #f1f5f9;
+  color: #94a3b8;
 }
 
-.package-btn--current {
-  background: #dbeafe;
-  color: #2563eb;
-  cursor: default;
-}
-
-.package-btn--upgrade {
-  background: #2563eb;
-  color: #fff;
-}
-
-.package-btn--upgrade:hover:not(:disabled) {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-}
-
-.package-btn--upgrade:disabled {
-  opacity: 0.7;
+.pkg-action-btn:disabled {
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
-.package-btn--disabled {
+.pkg-action-btn--ready {
+  color: #fff !important;
+}
+
+.pkg-action-btn--ready.pkg-action-btn--electron {
+  background: linear-gradient(135deg, #1e293b, #334155) !important;
+}
+
+.pkg-action-btn--ready.pkg-action-btn--ruby {
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+}
+
+.pkg-action-btn--ready.pkg-action-btn--gold {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+}
+
+.pkg-action-btn--ready:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.pkg-action-btn--disabled {
   background: #f1f5f9;
   color: #94a3b8;
   cursor: not-allowed;
@@ -469,6 +651,7 @@ function formatPrice(value) {
   animation: spin 0.6s linear infinite;
 }
 
+/* ─── Current Info ─── */
 .current-info {
   padding: 12px 28px 20px;
   text-align: center;
@@ -483,72 +666,21 @@ function formatPrice(value) {
   color: #1e40af;
 }
 
-.package-card--selected {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+/* ─── Card Slug Borders ─── */
+.package-card--electron {
+  border-top: 3px solid #1e293b;
 }
 
-.duration-picker {
-  margin-bottom: 16px;
+.package-card--ruby {
+  border-top: 3px solid #dc2626;
 }
 
-.duration-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
-  margin-bottom: 8px;
-  text-align: left;
+.package-card--gold {
+  border-top: 3px solid #f59e0b;
 }
 
-.duration-options {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.duration-btn {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  background: #f8fafc;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 13px;
-}
-
-.duration-btn:hover {
-  border-color: #93c5fd;
-  background: #eff6ff;
-}
-
-.duration-btn--active {
-  border-color: #3b82f6;
-  background: #dbeafe;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
-}
-
-.duration-days {
-  font-weight: 600;
-  color: #334155;
-}
-
-.duration-price {
-  font-weight: 700;
-  color: #1e40af;
-}
-
-.no-pricing {
-  padding: 16px;
-  text-align: center;
-  font-size: 13px;
-  color: #94a3b8;
-  background: #f8fafc;
-  border-radius: 10px;
-  margin-bottom: 16px;
+.package-card--free {
+  border-top: 3px solid #e2e8f0;
 }
 
 /* Transition */

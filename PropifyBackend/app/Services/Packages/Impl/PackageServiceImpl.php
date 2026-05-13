@@ -85,16 +85,16 @@ class PackageServiceImpl implements PackageService
 
     private function syncPricings(Package $package, array $activeDurations): void
     {
-        if ($package->price <= 0) {
-            // Nếu là gói miễn phí, xóa/disable toàn bộ pricings nếu có
-            \App\Models\PackagePricing::where('package_id', $package->id)->update(['is_active' => false]);
-            return;
-        }
-
         // Tắt toàn bộ pricings cũ
         \App\Models\PackagePricing::where('package_id', $package->id)->update(['is_active' => false]);
 
-        foreach ($activeDurations as $days) {
+        $durations = collect($activeDurations)
+            ->map(fn ($days) => (int) $days)
+            ->filter(fn ($days) => $days > 0)
+            ->unique()
+            ->values();
+
+        foreach ($durations as $days) {
             \App\Models\PackagePricing::updateOrCreate(
                 [
                     'package_id' => $package->id,

@@ -291,6 +291,7 @@ const navLinks = [
   { label: "Trang chủ", href: "/" },
   { label: "Mua bán", href: "/sales" },
   { label: "Cho thuê", href: "/rent" },
+  { label: "Bảng giá", href: "/pricing" },
   { label: "Tin tức", href: "/news" },
   { label: "Liên hệ", href: "/contact" },
 ];
