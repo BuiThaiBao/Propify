@@ -795,14 +795,15 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
-import * as L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import listingService from "@/services/listingService";
 import cloudinaryService from "@/services/cloudinaryService";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import AppointmentSlotsForm from "@/components/AppointmentSlotsForm.vue";
 import ListingDetail from "@/pages/ListingDetail.vue";
+import realEstateLightStyle from "@/assets/maps/real-estate-light.json";
 
 import uploadImageIcon from "@/assets/images/listing/postlisting/uploadImage.png";
 import locationImageIcon from "@/assets/images/listing/postlisting/locationImage.png";
@@ -954,7 +955,8 @@ const touchedFields = reactive({});
 const locationSearchText = ref("");
 const mapElement = ref(null);
 let map = null;
-let locationMarker = null;
+const POSTING_LOCATION_SOURCE_ID = "property";
+const POSTING_LOCATION_FEATURE_ID = "posting-location";
 const provinces = ref([]);
 const wards = ref([]);
 const wardsLoading = ref(false);
@@ -1465,41 +1467,131 @@ async function loadListingForEdit() {
 function initializeMap() {
   if (!mapElement.value || map) return;
 
-  map = L.map(mapElement.value, {
-    zoomControl: true,
-  }).setView([10.7769, 106.7009], 11);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  map = new maplibregl.Map({
+    container: mapElement.value,
+    style: buildPostingMapStyle(),
+    center: [106.7009, 10.7769],
+    zoom: 11,
+    minZoom: 5,
     maxZoom: 19,
-    attribution: "",
-  }).addTo(map);
+    pitch: 0,
+    maxPitch: 45,
+    antialias: true,
+    cooperativeGestures: false,
+  });
+
+  map.addControl(
+    new maplibregl.NavigationControl({
+      visualizePitch: true,
+    }),
+    "top-right"
+  );
+
+  map.scrollZoom.enable();
+  map.doubleClickZoom.enable();
+  map.touchZoomRotate.enable();
 
   map.on("click", async (event) => {
-    const { lat, lng } = event.latlng;
+    const { lat, lng } = event.lngLat;
     setMarkerPosition(lat, lng, 16);
     await reverseGeocodeFromLatLng(lat, lng);
   });
 }
 
+function replaceMapTilerKey(value, key) {
+  if (typeof value === "string") {
+    return value.replaceAll("{MAPTILER_KEY}", key);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceMapTilerKey(item, key));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([entryKey, entryValue]) => [
+        entryKey,
+        replaceMapTilerKey(entryValue, key),
+      ]),
+    );
+  }
+
+  return value;
+}
+
+function buildPostingMapStyle() {
+  const style = replaceMapTilerKey(realEstateLightStyle, import.meta.env.VITE_MAPTILER_KEY);
+
+  style.center = [106.7009, 10.7769];
+  style.zoom = 11;
+  style.pitch = 0;
+  style.sources[POSTING_LOCATION_SOURCE_ID].data = {
+    type: "FeatureCollection",
+    features: [],
+  };
+  style.sources["nearby-radius"].data = {
+    type: "FeatureCollection",
+    features: [],
+  };
+
+  return style;
+}
+
+function createPostingLocationFeature(lat, lng) {
+  return {
+    type: "Feature",
+    id: POSTING_LOCATION_FEATURE_ID,
+    properties: {
+      label: "Vị trí đã chọn",
+      title: "Vị trí bất động sản",
+    },
+    geometry: {
+      type: "Point",
+      coordinates: [lng, lat],
+    },
+  };
+}
+
 function setMarkerPosition(lat, lng, zoom = 16) {
-  form.lat = Number(lat).toFixed(7);
-  form.lng = Number(lng).toFixed(7);
+  const numericLat = Number(lat);
+  const numericLng = Number(lng);
+  if (!Number.isFinite(numericLat) || !Number.isFinite(numericLng)) return;
+
+  form.lat = numericLat.toFixed(7);
+  form.lng = numericLng.toFixed(7);
 
   if (!map) return;
 
-  if (!locationMarker) {
-    locationMarker = L.circleMarker([lat, lng], {
-      radius: 8,
-      color: "#2563eb",
-      fillColor: "#3b82f6",
-      fillOpacity: 0.9,
-      weight: 2,
-    }).addTo(map);
-  } else {
-    locationMarker.setLatLng([lat, lng]);
-  }
+  const updateMarker = () => {
+    map.getSource(POSTING_LOCATION_SOURCE_ID)?.setData({
+      type: "FeatureCollection",
+      features: [createPostingLocationFeature(numericLat, numericLng)],
+    });
 
-  map.setView([lat, lng], zoom);
+    map.setFeatureState(
+      {
+        source: POSTING_LOCATION_SOURCE_ID,
+        id: POSTING_LOCATION_FEATURE_ID,
+      },
+      {
+        selected: true,
+      },
+    );
+
+    map.easeTo({
+      center: [numericLng, numericLat],
+      zoom,
+      pitch: 0,
+      duration: 550,
+      essential: true,
+    });
+  };
+
+  if (map.getSource(POSTING_LOCATION_SOURCE_ID)) {
+    updateMarker();
+  } else {
+    map.once("load", updateMarker);
+  }
 }
 
 function composeAddressQuery({ includeDetail = true } = {}) {
@@ -1537,6 +1629,7 @@ async function geocodeAddressToMap(address, zoom = 15) {
     const lng = Number(result.lon);
 
     setMarkerPosition(lat, lng, zoom);
+    await reverseGeocodeFromLatLng(lat, lng);
   } catch {
     // Silent fail to avoid interrupting the form flow.
   } finally {
@@ -2452,7 +2545,6 @@ onBeforeUnmount(() => {
   if (map) {
     map.remove();
     map = null;
-    locationMarker = null;
   }
   clearImagePreviews();
   clearIdCardPreviews();
@@ -2990,7 +3082,7 @@ async function submitListing() {
 
 .location-map {
   width: 100%;
-  height: 290px;
+  height: 360px;
   z-index: 1;
 }
 
