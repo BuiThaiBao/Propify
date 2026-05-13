@@ -10,6 +10,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 use Tymon\JWTAuth\Exceptions\JWTException;
@@ -61,6 +62,14 @@ final class ApiExceptionHandler
         $exceptions->render(function (Throwable $e, Request $request) {
             if (!self::isApiRequest($request)) {
                 return null;
+            }
+
+            if ($e instanceof MethodNotAllowedHttpException) {
+                return ApiResponse::error(
+                    message: 'Phương thức HTTP không được hỗ trợ cho endpoint này.',
+                    statusCode: 405,
+                    errorCode: ErrorCode::ValidationError
+                );
             }
 
             // Check if exception exists in our predefined map

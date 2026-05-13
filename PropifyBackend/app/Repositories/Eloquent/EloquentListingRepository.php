@@ -114,7 +114,7 @@ final class EloquentListingRepository implements ListingRepository
             ')
             ->leftJoin('packages', 'listings.package_id', '=', 'packages.id')
             ->with([
-                'property:id,type,address_detail,area,price,bedrooms,bathrooms,contact_name,poster_type,project_name',
+                'property:id,type,province_code,ward_code,street_code,project_name,address_detail,area,price,bedrooms,bathrooms,contact_name,poster_type',
                 'images:id,listing_id,image_url,is_thumbnail,sort_order',
                 'owner:id,full_name,avatar_url',
                 'package:id,name,slug,badge,color,priority',

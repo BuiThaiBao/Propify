@@ -54,13 +54,16 @@
               :area="item.property?.area || 0"
               :beds="item.property?.bedrooms || 0"
               :baths="item.property?.bathrooms || 0"
-              :location="item.property?.address_detail || ''"
+              :location="item.property?.full_address || item.property?.address_detail || ''"
               :author="getAuthor(item)"
               :image="getThumb(item)"
               :package="item.package"
+              :listing-id="item.id"
+              :is-favorite="isFavorite(item)"
               :rating="null"
               :timeAgo="timeAgo(item.submitted_at)"
               :views="item.views ?? 0"
+              @toggle-favorite="toggleFavorite(item)"
             />
           </div>
 
@@ -154,6 +157,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { Building2, ChevronDown, ChevronLeft, ChevronRight, User, DollarSign, Ruler } from 'lucide-vue-next';
 import SaleLayout from '@/layouts/SaleLayout.vue';
 import TopSearchBar from '@/components/shared/TopSearchBar.vue';
@@ -166,7 +170,11 @@ import { useSaleListings } from '@/composables/useSaleListings';
 import { useHomeListings } from '@/composables/useHomeListings';
 import { useRentListings } from '@/composables/useRentListings';
 import { usePackages } from '@/composables/usePackages';
+import favoriteService from '@/services/favoriteService';
+import { useAuthStore } from '@/stores/auth';
 
+const router = useRouter();
+const authStore = useAuthStore();
 const {
   saleListings, saleLoading, saleTotal,
   currentPage, lastPage, searchKeyword,
@@ -180,11 +188,57 @@ const { fetchPackages: prefetchPackages } = usePackages();
 const posterType = ref('all');
 const priceRange = ref('all');
 const areaRange = ref('all');
+const favoriteIds = ref(new Set());
 
 onMounted(() => {
   init();
+  loadFavoriteIds();
   prefetchSiblingPages();
 });
+
+async function loadFavoriteIds() {
+  if (!authStore.isAuthenticated) return;
+  try {
+    const response = await favoriteService.getFavoriteIds();
+    favoriteIds.value = new Set(response.data?.data || []);
+  } catch {
+    favoriteIds.value = new Set();
+  }
+}
+
+function isFavorite(item) {
+  return Boolean(item?.is_favorited) || favoriteIds.value.has(Number(item.id));
+}
+
+async function toggleFavorite(item) {
+  if (!authStore.isAuthenticated) {
+    router.push({ name: 'Login', query: { redirect: `/listings/${item.id}` } });
+    return;
+  }
+
+  const id = Number(item.id);
+  const wasFavorite = isFavorite(item);
+  const next = new Set(favoriteIds.value);
+  if (wasFavorite) next.delete(id);
+  else next.add(id);
+  favoriteIds.value = next;
+  item.is_favorited = !wasFavorite;
+
+  try {
+    const response = await favoriteService.toggle(id);
+    item.is_favorited = Boolean(response.data?.data?.is_favorited);
+    const synced = new Set(favoriteIds.value);
+    if (item.is_favorited) synced.add(id);
+    else synced.delete(id);
+    favoriteIds.value = synced;
+  } catch {
+    item.is_favorited = wasFavorite;
+    const rollback = new Set(favoriteIds.value);
+    if (wasFavorite) rollback.add(id);
+    else rollback.delete(id);
+    favoriteIds.value = rollback;
+  }
+}
 
 function prefetchSiblingPages() {
   const run = () => {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\DTOs\Auth\LoginCredentialsDto;
+use App\Enums\UserRole;
 use App\Helpers\ApiResponse;
 use App\Http\Resources\AuthTokenResource;
 use App\Http\Resources\Requests\Auth\Auth\CheckResetOtpRequest;
@@ -13,6 +14,7 @@ use App\Http\Resources\Requests\Auth\Auth\ResetPasswordRequest;
 use App\Http\Resources\Requests\Auth\Auth\VerifyOtpRequest;
 use App\Http\Resources\UserResource;
 use App\Services\AuthService;
+use App\Support\AuthCookieFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -76,11 +78,18 @@ final class AuthController
             email: $request->validated('email'),
             otp: $request->validated('otp'),
         );
+        $client = $this->client($request);
 
-        return ApiResponse::success(
+        $response = ApiResponse::success(
             data: new AuthTokenResource($result),
             message: 'Xác thực OTP thành công'
         );
+
+        foreach (AuthCookieFactory::makeAuthCookies($result, $client) as $cookie) {
+            $response->withCookie($cookie);
+        }
+
+        return $response;
     }
 
     // Login Documentation
@@ -94,11 +103,26 @@ final class AuthController
     {
         $dto = LoginCredentialsDto::fromRequest($request);
         $result = $this->authService->login($dto);
+        $client = $this->client($request);
 
-        return ApiResponse::success(
+        if ($client === AuthCookieFactory::CLIENT_ADMIN && $result->role !== UserRole::Admin->value) {
+            return ApiResponse::forbidden('Tài khoản không có quyền truy cập trang quản trị.');
+        }
+
+        if ($client !== AuthCookieFactory::CLIENT_ADMIN && $result->role === UserRole::Admin->value) {
+            return ApiResponse::forbidden('Tài khoản quản trị không được phép đăng nhập tại đây.');
+        }
+
+        $response = ApiResponse::success(
             data: new AuthTokenResource($result),
             message: 'Đăng nhập thành công'
         );
+
+        foreach (AuthCookieFactory::makeAuthCookies($result, $client) as $cookie) {
+            $response->withCookie($cookie);
+        }
+
+        return $response;
     }
 
     // Get User Info Documentation
@@ -123,13 +147,20 @@ final class AuthController
 
 
 
-    public function logout(): JsonResponse
+    public function logout(Request $request): JsonResponse
     {
-        $this->authService->logout();
+        $client = $this->client($request);
+        $this->authService->logout($request->cookie(AuthCookieFactory::refreshCookieName($client)));
 
-        return ApiResponse::success(
+        $response = ApiResponse::success(
             message: 'Đăng xuất thành công'
         );
+
+        foreach (AuthCookieFactory::forgetAuthCookies($client) as $cookie) {
+            $response->withCookie($cookie);
+        }
+
+        return $response;
     }
 
 
@@ -140,17 +171,24 @@ final class AuthController
 
 
 
-    public function refresh(): JsonResponse
+    public function refresh(Request $request): JsonResponse
     {
-        $token = $this->authService->refresh();
+        $client = $this->client($request);
+        $result = $this->authService->refresh((string) $request->cookie(AuthCookieFactory::refreshCookieName($client), ''));
 
-        return ApiResponse::success(
+        $response = ApiResponse::success(
             data: [
-                'access_token' => $token,
                 'token_type' => 'bearer',
+                'expires_in' => $result->expiresIn,
             ],
             message: 'Token đã được làm mới'
         );
+
+        foreach (AuthCookieFactory::makeAuthCookies($result, $client) as $cookie) {
+            $response->withCookie($cookie);
+        }
+
+        return $response;
     }
 
 
@@ -210,5 +248,9 @@ final class AuthController
             message: 'Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập.'
         );
     }
-}
 
+    private function client(Request $request): string
+    {
+        return AuthCookieFactory::normalizeClient($request->header('X-Client-App'));
+    }
+}

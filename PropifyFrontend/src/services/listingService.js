@@ -68,6 +68,7 @@ const listingService = {
       identity_card_front: payload.identityCardFront || null,
       identity_card_back: payload.identityCardBack || null,
       legal_documents: payload.legalDocuments || [],
+      save_as_draft: payload.saveAsDraft || false,
     };
 
     Object.keys(data).forEach(key => {
@@ -77,6 +78,15 @@ const listingService = {
     });
 
     return api.put(`/v1/listings/${id}`, data);
+  },
+
+  updateVerification(id, payload) {
+    return api.patch(`/v1/listings/${id}/verification`, {
+      identity_card_front: payload.identityCardFront,
+      identity_card_back: payload.identityCardBack,
+      legal_documents: payload.legalDocuments || [],
+      public_info_agreed: payload.publicInfoAgreed || false,
+    });
   },
 
   lock(id) {
@@ -136,6 +146,7 @@ const listingService = {
       identity_card_front: payload.identityCardFront || null,
       identity_card_back: payload.identityCardBack || null,
       legal_documents: payload.legalDocuments || [],
+      save_as_draft: payload.saveAsDraft || false,
     };
 
     // Remove undefined/null/empty strings for cleaner payload

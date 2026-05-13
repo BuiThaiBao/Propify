@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue';
 import listingService from '@/services/listingService';
+import { hydrateListingAddresses } from '@/utils/addressFormatter';
 
 const rentListings = ref([]);
 const rentLoading = ref(true);
@@ -34,6 +35,7 @@ async function fetchRentListings() {
       keyword: keyword?.trim() || undefined,
       per_page: 20,
     });
+    await hydrateListingAddresses(response?.data?.data || []);
     cache.set(key, response);
     applyData(response);
   } catch (error) {
@@ -52,6 +54,7 @@ export function useRentListings() {
 
     const candidates = rentListings.value.flatMap((item) => [
       item.title,
+      item.property?.full_address,
       item.property?.address_detail,
       item.property?.project_name,
     ]).filter(Boolean);

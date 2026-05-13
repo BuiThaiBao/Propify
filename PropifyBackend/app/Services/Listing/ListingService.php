@@ -17,6 +17,8 @@ interface ListingService
 
     public function update(User $user, int $id, CreateListingDto $dto): Listing;
 
+    public function updateVerification(User $user, int $id, array $payload): Listing;
+
     public function lock(User $user, int $id): Listing;
 
     public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;

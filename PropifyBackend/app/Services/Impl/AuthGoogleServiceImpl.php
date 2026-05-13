@@ -2,9 +2,11 @@
 
 namespace App\Services\Impl;
 
+use App\DTOs\Auth\AuthResultDto;
 use App\Services\Auth\Adapters\GoogleSocialiteAdapter;
 use App\Services\Auth\UserUpsertService;
 use App\Services\AuthGoogleService;
+use App\Support\AuthCookieFactory;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -47,8 +49,15 @@ final class AuthGoogleServiceImpl implements AuthGoogleService
             }
 
             $token = JWTAuth::fromUser($user);
+            $refreshToken = $this->makeRefreshToken($user);
+            $result = AuthResultDto::fromUserAndToken($user, $token, $refreshToken, JWTAuth::factory()->getTTL());
 
-            return redirect(config('app.frontend_url') . "/login-success?token=$token");
+            $response = redirect(config('app.frontend_url') . "/login-success");
+            foreach (AuthCookieFactory::makeAuthCookies($result, AuthCookieFactory::CLIENT_USER) as $cookie) {
+                $response->withCookie($cookie);
+            }
+
+            return $response;
         } catch (\Exception $e) {
             Log::error('Google Auth Error', [
                 'message' => $e->getMessage(),
@@ -56,6 +65,19 @@ final class AuthGoogleServiceImpl implements AuthGoogleService
             ]);
 
             return redirect(config('app.frontend_url') . "/?error=google_auth_failed");
+        }
+    }
+
+    private function makeRefreshToken($user): string
+    {
+        $factory = JWTAuth::factory();
+        $originalTtl = $factory->getTTL();
+
+        try {
+            $factory->setTTL((int) config('jwt.refresh_ttl', 20160));
+            return JWTAuth::claims(['typ' => 'refresh'])->fromUser($user);
+        } finally {
+            $factory->setTTL($originalTtl);
         }
     }
 }

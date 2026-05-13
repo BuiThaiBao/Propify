@@ -16,17 +16,21 @@ final class CreateListingRequest extends FormRequest
 
     public function rules(): array
     {
+        $isDraft = filter_var($this->input('save_as_draft', false), FILTER_VALIDATE_BOOLEAN);
+        $required = $isDraft ? 'nullable' : 'required';
+
         return [
-            'demand_type' => ['required', Rule::in(['SALE', 'RENT'])],
-            'title' => ['required', 'string', 'max:120'],
-            'description' => ['required', 'string', 'min:20', 'max:5000'],
-            'property_type' => ['required', 'string', 'max:50'],
-            'province_code' => ['required', 'string', 'max:20'],
-            'ward_code' => ['required', 'string', 'max:20'],
-            'street_code' => ['required', 'string', 'max:255'],
+            'save_as_draft' => ['nullable', 'boolean'],
+            'demand_type' => [$required, Rule::in(['SALE', 'RENT'])],
+            'title' => [$required, 'string', 'max:120'],
+            'description' => $isDraft ? ['nullable', 'string', 'max:5000'] : ['required', 'string', 'min:20', 'max:5000'],
+            'property_type' => [$required, 'string', 'max:50'],
+            'province_code' => [$required, 'string', 'max:20'],
+            'ward_code' => [$required, 'string', 'max:20'],
+            'street_code' => [$required, 'string', 'max:255'],
             'project_name' => ['nullable', 'string', 'max:255'],
-            'address_detail' => ['required', 'string', 'max:255'],
-            'area' => ['required', 'numeric', 'gt:0'],
+            'address_detail' => [$required, 'string', 'max:255'],
+            'area' => [$required, 'numeric', $isDraft ? 'gte:0' : 'gt:0'],
             'price' => ['nullable', 'numeric', 'gte:0'],
             'is_negotiable' => ['nullable', 'boolean'],
             'bedrooms' => ['nullable', 'integer', 'min:0', 'max:9'],
@@ -40,15 +44,15 @@ final class CreateListingRequest extends FormRequest
             'direction_code' => ['nullable', 'string', 'max:30'],
             'balcony_direction_code' => ['nullable', 'string', 'max:30'],
             'furniture_status' => ['nullable', Rule::in(['NONE', 'BASIC', 'FULL'])],
-            'contact_name' => ['required', 'string', 'max:100'],
-            'contact_phone' => ['required', 'regex:/^(03|05|07|08|09)\d{8}$/'],
+            'contact_name' => [$required, 'string', 'max:100'],
+            'contact_phone' => [$required, 'regex:/^(03|05|07|08|09)\d{8}$/'],
             'contact_email' => ['nullable', 'regex:/^[A-Za-z0-9._%+-]+@gmail\.com$/', 'max:255'],
-            'poster_type' => ['required', Rule::in(['OWNER', 'BROKER'])],
+            'poster_type' => [$required, Rule::in(['OWNER', 'BROKER'])],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
             'lng' => ['nullable', 'numeric', 'between:-180,180'],
             'package_id' => ['nullable', 'integer', 'exists:packages,id'],
 
-            'images' => ['required', 'array', 'min:1', 'max:10'],
+            'images' => $isDraft ? ['nullable', 'array', 'max:10'] : ['required', 'array', 'min:1', 'max:10'],
             'images.*' => ['string', 'url', 'max:2048'],
             'video' => ['nullable', 'string', 'url', 'max:2048'],
 
@@ -110,6 +114,11 @@ final class CreateListingRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
+            $isDraft = filter_var($this->input('save_as_draft', false), FILTER_VALIDATE_BOOLEAN);
+            if ($isDraft) {
+                return;
+            }
+
             $isNegotiable = filter_var($this->input('is_negotiable', false), FILTER_VALIDATE_BOOLEAN);
             $price = $this->input('price');
 
@@ -138,18 +147,19 @@ final class CreateListingRequest extends FormRequest
     public function toDto(): CreateListingDto
     {
         $validated = $this->validated();
+        $isDraft = (bool) ($validated['save_as_draft'] ?? false);
 
         return new CreateListingDto(
-            demandType: $validated['demand_type'],
-            title: trim($validated['title']),
-            description: trim($validated['description']),
-            propertyType: $validated['property_type'],
-            provinceCode: $validated['province_code'],
+            demandType: $validated['demand_type'] ?? 'SALE',
+            title: trim($validated['title'] ?? 'Tin nháp chưa có tiêu đề'),
+            description: trim($validated['description'] ?? ''),
+            propertyType: $validated['property_type'] ?? 'APARTMENT',
+            provinceCode: $validated['province_code'] ?? '0',
             wardCode: $validated['ward_code'] ?? null,
             streetCode: $validated['street_code'] ?? null,
             projectName: isset($validated['project_name']) ? trim($validated['project_name']) : null,
             addressDetail: isset($validated['address_detail']) ? trim($validated['address_detail']) : null,
-            area: (float) $validated['area'],
+            area: isset($validated['area']) ? (float) $validated['area'] : 0.0,
             price: isset($validated['price']) ? (float) $validated['price'] : 0.0,
             isNegotiable: (bool) ($validated['is_negotiable'] ?? false),
             bedrooms: (int) ($validated['bedrooms'] ?? 0),
@@ -163,10 +173,10 @@ final class CreateListingRequest extends FormRequest
             directionCode: $validated['direction_code'] ?? null,
             balconyDirectionCode: $validated['balcony_direction_code'] ?? null,
             furnitureStatus: $validated['furniture_status'] ?? null,
-            contactName: trim($validated['contact_name']),
-            contactPhone: trim($validated['contact_phone']),
+            contactName: trim($validated['contact_name'] ?? ''),
+            contactPhone: trim($validated['contact_phone'] ?? ''),
             contactEmail: isset($validated['contact_email']) ? trim($validated['contact_email']) : null,
-            posterType: $validated['poster_type'],
+            posterType: $validated['poster_type'] ?? 'OWNER',
             lat: isset($validated['lat']) ? (float) $validated['lat'] : null,
             lng: isset($validated['lng']) ? (float) $validated['lng'] : null,
             images: $validated['images'] ?? [],
@@ -191,6 +201,7 @@ final class CreateListingRequest extends FormRequest
             rentMinTerm: $validated['rent_min_term'] ?? $this->input('rentMinTerm') ?? null,
             rentPaymentInterval: $validated['rent_payment_interval'] ?? $this->input('rentPaymentInterval') ?? null,
             rentDeposit: $validated['rent_deposit'] ?? $this->input('rentDeposit') ?? null,
+            saveAsDraft: $isDraft,
         );
     }
 }

@@ -183,6 +183,10 @@ const addRow = () => {
 const removeRow = (index) => {
   appointmentRows.value.splice(index, 1);
   touchedRows.value.splice(index, 1);
+  if (appointmentRows.value.length === 0) {
+    appointmentRows.value.push({ start_time: '08:00', end_time: '09:00', selected_days: [] });
+    touchedRows.value.push(false);
+  }
   validateAll();
 };
 
@@ -210,26 +214,43 @@ const toggleDay = (rowIndex, dayValue, isChecked) => {
 const validateAll = () => {
   duplicateError.value = '';
 
-  for (let i = 0; i < appointmentRows.value.length; i += 1) {
-    touchedRows.value[i] = true;
-  }
+  const activeRows = appointmentRows.value
+    .map((row, index) => ({ row, index }))
+    .filter(({ row }) => {
+      const hasSelectedDays = (row.selected_days || []).length > 0;
+      const hasCustomTime = normalizeTimeValue(row.start_time) !== '08:00' || normalizeTimeValue(row.end_time) !== '09:00';
+      return hasSelectedDays || hasCustomTime;
+    });
+
+  if (activeRows.length === 0) return true;
 
   const hasTimeOverlap = (startA, endA, startB, endB) => startA < endB && endA > startB;
 
-  for (let r = 0; r < appointmentRows.value.length; r += 1) {
-    const row = appointmentRows.value[r];
+  for (let r = 0; r < activeRows.length; r += 1) {
+    const { row, index } = activeRows[r];
+    touchedRows.value[index] = true;
     const startTime = normalizeTimeValue(row.start_time);
     const endTime = normalizeTimeValue(row.end_time);
     row.start_time = startTime;
     row.end_time = endTime;
 
-    if ((row.selected_days || []).length === 0 || !startTime || !endTime || startTime >= endTime) {
-      duplicateError.value = 'Vui lòng điền đủ thông tin cần thiết';
+    if ((row.selected_days || []).length === 0) {
+      duplicateError.value = 'Vui lòng chọn thứ cho khung giờ đã nhập.';
       return false;
     }
 
-    for (let u = r + 1; u < appointmentRows.value.length; u += 1) {
-      const other = appointmentRows.value[u];
+    if (!startTime || !endTime) {
+      duplicateError.value = 'Vui lòng nhập đủ giờ bắt đầu và giờ kết thúc.';
+      return false;
+    }
+
+    if (startTime >= endTime) {
+      duplicateError.value = 'Giờ kết thúc phải lớn hơn giờ bắt đầu.';
+      return false;
+    }
+
+    for (let u = r + 1; u < activeRows.length; u += 1) {
+      const other = activeRows[u].row;
       const otherStartTime = normalizeTimeValue(other.start_time);
       const otherEndTime = normalizeTimeValue(other.end_time);
       const commonDays = (row.selected_days || []).filter((day) => (other.selected_days || []).includes(day));
@@ -257,7 +278,10 @@ const getFormData = () => {
   appointmentRows.value.forEach((row) => {
     const startTime = normalizeTimeValue(row.start_time);
     const endTime = normalizeTimeValue(row.end_time);
-    if (!startTime || !endTime || (row.selected_days || []).length === 0) return;
+    const hasSelectedDays = (row.selected_days || []).length > 0;
+    const hasCustomTime = startTime !== '08:00' || endTime !== '09:00';
+    if (!hasSelectedDays && !hasCustomTime) return;
+    if (!startTime || !endTime || !hasSelectedDays || startTime >= endTime) return;
 
     (row.selected_days || []).forEach((day) => {
       out.push({

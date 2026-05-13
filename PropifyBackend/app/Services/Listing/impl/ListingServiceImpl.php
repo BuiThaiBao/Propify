@@ -86,13 +86,15 @@ final class ListingServiceImpl implements ListingService
                 Log::debug('[ListingService] Attributes synced', ['attribute_ids' => $dto->attributeIds]);
             }
 
+            $listingStatus = $dto->saveAsDraft ? 'DRAFT' : 'PENDING';
+
             $listing = $this->listingRepository->createListing([
                 'property_id' => $property->id,
                 'owner_id' => $user->id,
                 'demand_type' => $dto->demandType,
                 'title' => $dto->title,
                 'description' => $dto->description,
-                'status' => 'PENDING',
+                'status' => $listingStatus,
                 'package_id' => $dto->packageId,
                 'score' => $this->calculateContentScore($dto),
                 'is_verified' => false,
@@ -108,10 +110,10 @@ final class ListingServiceImpl implements ListingService
                 'appointment_contact_phone' => $dto->appointmentContactPhone,
                 'appointment_contact_email' => $dto->appointmentContactEmail,
                 'appointment_note' => $dto->appointmentNote,
-                'submitted_at' => now(),
+                'submitted_at' => $dto->saveAsDraft ? null : now(),
             ]);
 
-            Log::debug('[ListingService] Listing created', ['listing_id' => $listing->id, 'status' => 'PENDING']);
+            Log::debug('[ListingService] Listing created', ['listing_id' => $listing->id, 'status' => $listingStatus]);
 
             Log::debug('[ListingService] Saving images', ['count' => count($dto->images)]);
             foreach ($dto->images as $index => $imageUrl) {
@@ -256,11 +258,13 @@ final class ListingServiceImpl implements ListingService
             }
 
             // Update listing — reset status to PENDING
+            $listingStatus = $dto->saveAsDraft ? 'DRAFT' : 'PENDING';
+
             $this->listingRepository->updateListing($listing->id, [
                 'demand_type' => $dto->demandType,
                 'title' => $dto->title,
                 'description' => $dto->description,
-                'status' => 'PENDING',
+                'status' => $listingStatus,
                 'has_video' => $dto->video !== null,
                 'request_verification' => $dto->requestVerification,
                 'rent_min_term' => $dto->rentMinTerm,
@@ -272,6 +276,7 @@ final class ListingServiceImpl implements ListingService
                 'appointment_contact_phone' => $dto->appointmentContactPhone,
                 'appointment_contact_email' => $dto->appointmentContactEmail,
                 'appointment_note' => $dto->appointmentNote,
+                'submitted_at' => $dto->saveAsDraft ? null : now(),
             ]);
 
             // Replace images
@@ -376,6 +381,80 @@ final class ListingServiceImpl implements ListingService
                 'appointments',
             ]);
         });
+    }
+
+    public function updateVerification(User $user, int $id, array $payload): Listing
+    {
+        $updated = DB::transaction(function () use ($user, $id, $payload) {
+            $listing = Listing::query()->lockForUpdate()->findOrFail($id);
+
+            if ((int) $listing->owner_id !== (int) $user->id) {
+                throw new BusinessException(ErrorCode::AuthForbidden);
+            }
+
+            $identityCardFront = $payload['identity_card_front'] ?? null;
+            $identityCardBack = $payload['identity_card_back'] ?? null;
+            $legalDocuments = $payload['legal_documents'] ?? [];
+            $requestVerification = (bool) ($identityCardFront || $identityCardBack || count($legalDocuments) > 0);
+
+            $this->listingRepository->updateListing($listing->id, [
+                'request_verification' => $requestVerification,
+            ]);
+
+            if ($listing->property_id) {
+                $this->listingRepository->updateProperty($listing->property_id, [
+                    'public_info_agreed' => (bool) ($payload['public_info_agreed'] ?? false),
+                ]);
+            }
+
+            $this->listingRepository->deleteVerificationDocuments($listing->id);
+            $sortOrder = 0;
+
+            if ($identityCardFront) {
+                $this->listingRepository->createVerificationDocument([
+                    'listing_id' => $listing->id,
+                    'document_type' => 'ID_FRONT',
+                    'file_url' => $identityCardFront,
+                    'mime_type' => 'image/jpeg',
+                    'file_size' => 0,
+                    'sort_order' => $sortOrder++,
+                ]);
+            }
+
+            if ($identityCardBack) {
+                $this->listingRepository->createVerificationDocument([
+                    'listing_id' => $listing->id,
+                    'document_type' => 'ID_BACK',
+                    'file_url' => $identityCardBack,
+                    'mime_type' => 'image/jpeg',
+                    'file_size' => 0,
+                    'sort_order' => $sortOrder++,
+                ]);
+            }
+
+            foreach ($legalDocuments as $documentUrl) {
+                $this->listingRepository->createVerificationDocument([
+                    'listing_id' => $listing->id,
+                    'document_type' => 'LEGAL_DOCUMENT',
+                    'file_url' => $documentUrl,
+                    'mime_type' => 'image/jpeg',
+                    'file_size' => 0,
+                    'sort_order' => $sortOrder++,
+                ]);
+            }
+
+            return $listing->fresh()->load([
+                'property.attributes.group',
+                'images',
+                'videos',
+                'verificationDocuments',
+                'appointments',
+            ]);
+        });
+
+        $this->clearPublicListingsCache();
+
+        return $updated;
     }
 
     public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator

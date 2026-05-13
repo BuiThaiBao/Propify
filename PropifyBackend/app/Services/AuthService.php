@@ -40,12 +40,12 @@ interface AuthService
     /**
      * Invalidate the current token.
      */
-    public function logout(): void;
+    public function logout(?string $refreshToken = null): void;
 
     /**
      * Refresh the current token.
      */
-    public function refresh(): string;
+    public function refresh(string $refreshToken): AuthResultDto;
 
     /**
      * Get the authenticated user.

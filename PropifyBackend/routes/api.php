@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\GoogleController;
 use App\Http\Controllers\Api\V1\Chat\ChatController;
 use App\Http\Controllers\Api\V1\Cloudinary\CloudinaryController;
+use App\Http\Controllers\Api\V1\Listing\FavoriteController;
 use App\Http\Controllers\Api\V1\Listing\ListingController;
 use App\Http\Controllers\Api\V1\User\UserController;
 use Illuminate\Support\Facades\Route;
@@ -50,6 +51,18 @@ Route::prefix('v1/auth')->as('auth.')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])
         ->middleware('throttle:10,1')
         ->name('reset-password');
+
+    Route::get('/login', function (\Illuminate\Http\Request $request) {
+        if ($request->expectsJson()) {
+            return \App\Helpers\ApiResponse::error(
+                message: 'Endpoint đăng nhập chỉ hỗ trợ phương thức POST.',
+                statusCode: 405,
+                errorCode: \App\Enums\ErrorCode::ValidationError
+            );
+        }
+
+        return redirect(rtrim((string) config('app.frontend_url'), '/') . '/login');
+    })->name('login.redirect');
 
     Route::post('/login', [AuthController::class, 'login'])
         ->middleware('throttle:5,1')
@@ -165,11 +178,18 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
         Route::post('/', [ListingController::class, 'store'])->name('store');
         Route::get('/my', [ListingController::class, 'myListings'])->name('my');
         Route::put('/{id}', [ListingController::class, 'update'])->where('id', '[0-9]+')->name('update');
+        Route::patch('/{id}/verification', [ListingController::class, 'updateVerification'])->where('id', '[0-9]+')->name('verification.update');
         Route::post('/{id}/lock', [ListingController::class, 'lock'])->where('id', '[0-9]+')->name('lock');
         Route::post('/{id}/upgrade', [\App\Http\Controllers\Api\V1\Listing\ListingUpgradeController::class, 'upgrade'])
             ->where('id', '[0-9]+')
             ->name('upgrade');
     });
+});
+
+Route::prefix('v1/favorites')->as('favorites.')->middleware('auth:api')->group(function () {
+    Route::get('/', [FavoriteController::class, 'index'])->name('index');
+    Route::get('/ids', [FavoriteController::class, 'ids'])->name('ids');
+    Route::post('/{listingId}', [FavoriteController::class, 'toggle'])->where('listingId', '[0-9]+')->name('toggle');
 });
 
 // ==================== PACKAGES: PUBLIC ROUTES ====================
