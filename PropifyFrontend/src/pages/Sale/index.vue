@@ -54,7 +54,7 @@
               :area="item.property?.area || 0"
               :beds="item.property?.bedrooms || 0"
               :baths="item.property?.bathrooms || 0"
-              :location="item.property?.address_detail || ''"
+              :location="item.property?.full_address || item.property?.address_detail || ''"
               :author="getAuthor(item)"
               :image="getThumb(item)"
               :package="item.package"

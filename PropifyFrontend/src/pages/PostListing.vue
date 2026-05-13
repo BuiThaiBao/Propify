@@ -120,15 +120,20 @@
               </select>
               <p v-if="fieldError('propertyType')" class="field-error">{{ fieldErrorMessage('propertyType') }}</p>
             </label>
-            <label>
+            <label class="legal-field">
               <span class="field-label">Giấy tờ pháp lý</span>
               <button type="button" class="input mt-1 legal-trigger" @click="toggleLegalDropdown" ref="legalTriggerRef">
                 <span v-if="!form.legalPaperTypes.length" class="text-slate-400">Chọn giấy tờ pháp lý</span>
                 <span v-else class="legal-selected-text">{{ selectedLegalPaperLabels }}</span>
                 <span class="dropdown-arrow-icon" aria-hidden="true"></span>
               </button>
-              <div v-if="showLegalDropdown" class="legal-dropdown mt-2" ref="legalDropdownRef">
-                <label v-for="option in legalPaperOptions" :key="option.value" class="legal-option">
+              <div v-if="showLegalDropdown" class="legal-dropdown" ref="legalDropdownRef">
+                <label
+                  v-for="option in legalPaperOptions"
+                  :key="option.value"
+                  class="legal-option"
+                  :class="{ selected: form.legalPaperTypes.includes(option.value) }"
+                >
                   <span>{{ option.label }}</span>
                   <input type="checkbox" :checked="form.legalPaperTypes.includes(option.value)" @change="toggleLegalPaper(option.value)" />
                 </label>
@@ -200,7 +205,7 @@
           </header>
 
           <label class="mt-3 block">
-            <span class="field-label required">Tìm kiếm địa chỉ bất động sản</span>
+            <span class="field-label">Tìm kiếm địa chỉ bất động sản</span>
             <div class="mt-1 flex gap-2">
               <input
                 v-model="locationSearchText"
@@ -429,9 +434,14 @@
             <h2>Thông tin liên hệ</h2>
           </header>
 
-          <div class="mt-3 flex gap-2">
-            <button type="button" :class="pillClass(form.posterType === 'OWNER')" @click="form.posterType = 'OWNER'">Chủ nhà</button>
-            <button type="button" :class="pillClass(form.posterType === 'BROKER')" @click="form.posterType = 'BROKER'">Môi giới</button>
+          <div class="contact-action-row mt-3">
+            <div class="flex gap-2">
+              <button type="button" :class="pillClass(form.posterType === 'OWNER')" @click="form.posterType = 'OWNER'">Chủ nhà</button>
+              <button type="button" :class="pillClass(form.posterType === 'BROKER')" @click="form.posterType = 'BROKER'">Môi giới</button>
+            </div>
+            <button type="button" :class="pillClass(false)" @click="useAccountContactInfo">
+              Dùng thông tin tài khoản
+            </button>
           </div>
 
           <div class="mt-3 grid gap-3 md:grid-cols-2">
@@ -560,19 +570,74 @@
         </section>
 
         <div class="sticky bottom-4 z-20 rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-lg backdrop-blur">
-          <button type="submit" :disabled="loading" class="w-full rounded-xl bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60">
-            {{ loading ? submitLoadingLabel : submitButtonLabel }}
-          </button>
+          <div class="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-sky-300 hover:text-sky-600"
+              @click="openBackConfirm"
+            >
+              Quay lại
+            </button>
+            <button
+              type="button"
+              class="rounded-xl border border-sky-200 bg-sky-50 px-5 py-2.5 text-sm font-semibold text-sky-600 transition hover:bg-sky-100"
+              @click="openPreview"
+            >
+              Xem trước tin đăng
+            </button>
+            <button type="submit" :disabled="loading" class="ml-auto rounded-xl bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60">
+              {{ loading ? 'Đang đăng tin...' : (isEditMode ? 'Cập nhật tin' : 'Đăng tin') }}
+            </button>
+          </div>
         </div>
       </form>
 
-      <aside v-if="!isVerificationOnlyMode" class="hidden lg:block">
+      <div v-if="showPreviewModal" class="preview-overlay" @click.self="showPreviewModal = false">
+        <section class="preview-modal preview-modal-detail">
+          <header class="preview-header">
+            <div>
+              <h2>Trang chi tiết tin đăng</h2>
+              <p class="mt-1 text-xs text-slate-500">Xem trước bằng giao diện trang chi tiết tin đăng thật</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 transition hover:border-sky-300 hover:text-sky-600"
+                @click="showPreviewModal = false"
+              >
+                Quay lại chỉnh sửa
+              </button>
+            </div>
+          </header>
+          <div class="preview-detail-body">
+            <div class="preview-static-frame">
+              <ListingDetail preview-mode :preview-listing="previewListing" />
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div v-if="showDraftConfirm" class="preview-overlay" @click.self="showDraftConfirm = false">
+        <section class="draft-confirm-modal">
+          <h2 class="text-lg font-bold text-slate-900">Lưu tin dưới dạng nháp?</h2>
+          <p class="mt-2 text-sm leading-6 text-slate-600">Bạn có muốn lưu tin hiện tại vào database với trạng thái nháp trước khi quay lại không?</p>
+          <div class="mt-5 flex flex-wrap justify-end gap-3">
+            <button type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50" @click="discardAndGoBack">Không lưu</button>
+            <button type="button" class="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-600 disabled:opacity-60" :disabled="savingDraft" @click="saveDraftAndGoBack">
+              {{ savingDraft ? 'Đang lưu...' : 'Đồng ý lưu nháp' }}
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <aside class="hidden lg:block">
         <div class="sticky top-24 space-y-4">
 
           <div class="rounded-2xl border border-slate-200 bg-white p-4">
-            <p class="text-[28px] font-extrabold leading-none text-slate-300">{{ totalScore.toFixed(1) }}</p>
-            <p class="mt-1 text-2xl font-bold text-slate-800">Thông tin ở mức tối thiểu</p>
-            <p class="text-sm text-slate-400">Chưa tiếp cận được khách hàng</p>
+            <p class="text-[28px] font-extrabold leading-none" :class="scoreLevel.color">{{ formatScorePoint(totalScore) }}</p>
+            <p class="mt-1 text-2xl font-bold text-slate-800">{{ scoreLevel.title }}</p>
+            <p class="text-sm text-slate-400">{{ scoreLevel.description }}</p>
+            <p class="mt-2 text-xs font-semibold text-slate-400">Điểm tối thiểu: {{ minimumScore }}đ</p>
           </div>
 
           <div class="rounded-2xl border border-slate-200 bg-white p-4">
@@ -601,11 +666,11 @@
               <div v-if="!mediaCollapsed" class="mt-2 ml-3">
                 <div class="flex items-center justify-between text-sm">
                   <div :class="imageCount > 0 ? 'text-emerald-600' : ''">• Hình ảnh</div>
-                  <div v-if="imageCount > 0" class="text-emerald-600">✓</div>
+                  <div :class="imageCount > 0 ? 'text-emerald-600' : 'text-slate-400'">{{ imageCount > 0 ? '✓' : '' }} 2đ</div>
                 </div>
                 <div class="flex items-center justify-between text-sm mt-1">
                   <div :class="videoPresent ? 'text-emerald-600' : ''">• Video</div>
-                  <div v-if="videoPresent" class="text-emerald-600">✓</div>
+                  <div :class="videoPresent ? 'text-emerald-600' : 'text-slate-400'">{{ videoPresent ? '✓' : '' }} 2đ</div>
                 </div>
               </div>
 
@@ -634,7 +699,7 @@
                   class="flex items-center justify-between text-sm mt-1"
                 >
                   <div :class="item.done ? 'text-emerald-600' : ''">• {{ item.label }}</div>
-                  <div v-if="item.done" class="text-emerald-600">✓</div>
+                  <div :class="item.done ? 'text-emerald-600' : 'text-slate-400'">{{ item.done ? '✓' : '' }} {{ item.points }}đ</div>
                 </div>
               </div>
 
@@ -663,7 +728,7 @@
                   class="flex items-center justify-between text-sm mt-1"
                 >
                   <div :class="item.done ? 'text-emerald-600' : ''">• {{ item.label }}</div>
-                  <div v-if="item.done" class="text-emerald-600">✓</div>
+                  <div :class="item.done ? 'text-emerald-600' : 'text-slate-400'">{{ item.done ? '✓' : '' }} {{ item.points }}đ</div>
                 </div>
               </div>
 
@@ -692,7 +757,7 @@
                   class="flex items-center justify-between text-sm mt-1"
                 >
                   <div :class="item.done ? 'text-emerald-600' : ''">• {{ item.label }}</div>
-                  <div v-if="item.done" class="text-emerald-600">✓</div>
+                  <div :class="item.done ? 'text-emerald-600' : 'text-slate-400'">{{ item.done ? '✓' : '' }} {{ item.points }}đ</div>
                 </div>
               </div>
             </div>
@@ -711,7 +776,9 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import listingService from "@/services/listingService";
 import cloudinaryService from "@/services/cloudinaryService";
 import { useRoute, useRouter } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
 import AppointmentSlotsForm from "@/components/AppointmentSlotsForm.vue";
+import ListingDetail from "@/pages/ListingDetail.vue";
 import realEstateLightStyle from "@/assets/maps/real-estate-light.json";
 
 import uploadImageIcon from "@/assets/images/listing/postlisting/uploadImage.png";
@@ -837,6 +904,7 @@ function createInitialState() {
 const form = reactive(createInitialState());
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
 const isEditMode = computed(() => !!route.params.id);
 const editListingId = computed(() => route.params.id);
 const isVerificationOnlyMode = computed(() => isEditMode.value && route.query.mode === 'verification');
@@ -854,6 +922,9 @@ const isHydratingEdit = ref(false);
 const isSyncingAdminFromMap = ref(false);
 const editLoading = ref(false);
 const loading = ref(false);
+const savingDraft = ref(false);
+const showPreviewModal = ref(false);
+const showDraftConfirm = ref(false);
 const submitError = ref("");
 const validationErrors = ref({});
 const touchedFields = reactive({});
@@ -903,63 +974,60 @@ function pushToast(message, type = "info", duration = 2500) {
 const imageCount = computed(() => Array.isArray(form.images) ? form.images.length : 0);
 const videoPresent = computed(() => Boolean(form.video));
 
-// Image points: 0 -> 0, 1 -> 1, 2-3 -> 1, >=4 -> 2
-const imagePoints = computed(() => {
-  const c = imageCount.value || 0;
-  if (c === 0) return 0;
-  if (c === 1) return 1;
-  if (c >= 2 && c < 4) return 1;
-  return 2;
-});
-
-// Video gives 2 points if present
+const imagePoints = computed(() => (imageCount.value > 0 ? 2 : 0));
 const videoPoints = computed(() => (videoPresent.value ? 2 : 0));
-
 const mediaPoints = computed(() => Math.min(imagePoints.value + videoPoints.value, 4));
 const mediaPercent = computed(() => Math.round((mediaPoints.value / 4) * 100));
 const mediaDone = computed(() => mediaPoints.value === 4);
 
 const infoChecklist = computed(() => [
-  { label: 'Nhu cầu', done: Boolean(form.demandType) },
-  { label: 'Tiêu đề', done: Boolean(form.title?.trim()) },
-  { label: 'Mô tả', done: Boolean(form.description?.trim()) },
-  { label: 'Loại nhà đất', done: Boolean(form.propertyType?.trim()) },
-  { label: 'Giấy tờ pháp lý', done: Array.isArray(form.legalPaperTypes) && form.legalPaperTypes.length > 0 },
-  { label: 'Diện tích', done: Number(form.area) > 0 },
-  { label: form.demandType === 'RENT' ? 'Giá thuê' : 'Giá bán', done: form.isNegotiable || Number(form.price) > 0 },
-  { label: 'Dự án', done: Boolean(form.projectName?.trim()) },
-  { label: 'Tỉnh/thành phố', done: Boolean(form.provinceCode?.trim()) },
-  { label: 'Xã/phường', done: Boolean(form.wardCode?.trim()) },
-  { label: 'Đường/phố', done: Boolean(form.streetCode?.trim()) },
-  { label: 'Địa chỉ cụ thể', done: Boolean(form.addressDetail?.trim()) },
+  { label: 'Nhu cầu', done: Boolean(form.demandType), points: 0.15 },
+  { label: 'Tiêu đề', done: Boolean(form.title?.trim()), points: 0.25 },
+  { label: 'Mô tả', done: Boolean(form.description?.trim()), points: 0.25 },
+  { label: 'Loại nhà đất', done: Boolean(form.propertyType?.trim()), points: 0.2 },
+  { label: 'Giấy tờ pháp lý', done: Array.isArray(form.legalPaperTypes) && form.legalPaperTypes.length > 0, points: 0.1 },
+  { label: 'Diện tích', done: Number(form.area) > 0, points: 0.25 },
+  { label: form.demandType === 'RENT' ? 'Giá thuê' : 'Giá bán', done: form.isNegotiable || Number(form.price) > 0, points: 0.2 },
+  ...(form.demandType === 'RENT'
+    ? [
+        { label: 'Thời gian cho thuê', done: Boolean(form.rentMinTerm), points: 0.05 },
+        { label: 'Kỳ thanh toán', done: Boolean(form.rentPaymentInterval), points: 0.05 },
+        { label: 'Đặt cọc', done: Boolean(form.rentDeposit), points: 0.05 },
+      ]
+    : [
+        { label: 'Dự án', done: Boolean(form.projectName?.trim()), points: 0.15 },
+      ]),
+  { label: 'Tỉnh/thành phố', done: Boolean(form.provinceCode?.trim()), points: 0.15 },
+  { label: 'Xã/phường', done: Boolean(form.wardCode?.trim()), points: 0.1 },
+  { label: 'Đường/phố', done: Boolean(form.streetCode?.trim()), points: 0.1 },
+  { label: 'Địa chỉ cụ thể', done: Boolean(form.addressDetail?.trim()), points: 0.1 },
 ]);
 
-const infoFilledCount = computed(() => infoChecklist.value.filter((item) => item.done).length);
-const infoTotalCount = computed(() => infoChecklist.value.length || 1);
-const infoPercent = computed(() => Math.round((infoFilledCount.value / infoTotalCount.value) * 100));
-const infoDone = computed(() => infoFilledCount.value === infoTotalCount.value);
-const infoPoints = computed(() => Number(((infoFilledCount.value / infoTotalCount.value) * 2).toFixed(1)));
+const infoRawPoints = computed(() => scoreItems(infoChecklist.value));
+const infoMaxRawPoints = computed(() => maxScoreItems(infoChecklist.value));
+const infoPoints = computed(() => normalizeGroupScore(infoRawPoints.value, infoMaxRawPoints.value, 2));
+const infoPercent = computed(() => percentScore(infoRawPoints.value, infoMaxRawPoints.value));
+const infoDone = computed(() => infoRawPoints.value >= infoMaxRawPoints.value && infoMaxRawPoints.value > 0);
 
 const detailChecklist = computed(() => [
-  { label: 'Số tầng', done: String(form.floors ?? '').trim() !== '' },
-  { label: 'Tầng thứ', done: String(form.floorNumber ?? '').trim() !== '' },
-  { label: 'Mặt tiền', done: String(form.facadeWidth ?? '').trim() !== '' },
-  { label: 'Chiều sâu', done: String(form.depth ?? '').trim() !== '' },
-  { label: 'Đường rộng', done: String(form.roadWidth ?? '').trim() !== '' },
-  { label: 'Số phòng ngủ', done: String(form.bedrooms ?? '').trim() !== '' },
-  { label: 'Số phòng tắm', done: String(form.bathrooms ?? '').trim() !== '' },
-  { label: 'Hướng ban công', done: Boolean(form.balconyDirectionCode) },
-  { label: 'Số ban công', done: String(form.balconies ?? '').trim() !== '' },
-  { label: 'Hướng nhà/đất', done: Boolean(form.directionCode) },
-  { label: 'Nội thất', done: Boolean(form.furnitureStatus) },
-  { label: 'Tiện ích', done: Array.isArray(selectedAmenities.value) && selectedAmenities.value.length > 0 },
+  { label: 'Số phòng ngủ', done: String(form.bedrooms ?? '').trim() !== '', points: 0.3 },
+  { label: 'Số phòng tắm', done: String(form.bathrooms ?? '').trim() !== '', points: 0.3 },
+  { label: 'Mặt tiền', done: String(form.facadeWidth ?? '').trim() !== '', points: 0.3 },
+  { label: 'Chiều sâu', done: String(form.depth ?? '').trim() !== '', points: 0.3 },
+  { label: 'Số tầng', done: String(form.floors ?? '').trim() !== '', points: 0.3 },
+  { label: 'Tầng thứ', done: String(form.floorNumber ?? '').trim() !== '', points: 0.3 },
+  { label: 'Hướng nhà', done: Boolean(form.directionCode), points: 0.3 },
+  { label: 'Hướng ban công', done: Boolean(form.balconyDirectionCode), points: 0.2 },
+  { label: 'Số ban công', done: String(form.balconies ?? '').trim() !== '', points: 0.2 },
+  { label: 'Nội thất', done: Boolean(form.furnitureStatus), points: 0.2 },
+  { label: 'Tiện ích', done: Array.isArray(selectedAmenities.value) && selectedAmenities.value.length > 0, points: 0.3 },
 ]);
 
-const detailFilledCount = computed(() => detailChecklist.value.filter((item) => item.done).length);
-const detailTotalCount = computed(() => detailChecklist.value.length || 1);
-const detailPercent = computed(() => Math.round((detailFilledCount.value / detailTotalCount.value) * 100));
-const detailPoints = computed(() => Number(((detailFilledCount.value / detailTotalCount.value) * 3).toFixed(1)));
-const detailDone = computed(() => detailFilledCount.value === detailTotalCount.value);
+const detailRawPoints = computed(() => scoreItems(detailChecklist.value));
+const detailMaxRawPoints = computed(() => maxScoreItems(detailChecklist.value));
+const detailPoints = computed(() => normalizeGroupScore(detailRawPoints.value, detailMaxRawPoints.value, 3));
+const detailPercent = computed(() => percentScore(detailRawPoints.value, detailMaxRawPoints.value));
+const detailDone = computed(() => detailRawPoints.value >= detailMaxRawPoints.value && detailMaxRawPoints.value > 0);
 
 const isContactNameValid = computed(() => {
   if (!form.contactName || !String(form.contactName).trim()) return false;
@@ -978,24 +1046,69 @@ const isContactEmailValid = computed(() => {
 });
 
 const contactChecklist = computed(() => [
-  { label: 'Đối tượng', done: Boolean(form.posterType) },
-  { label: 'Họ và tên', done: isContactNameValid.value },
-  { label: 'Số điện thoại', done: isContactPhoneValid.value },
-  { label: 'Email', done: isContactEmailValid.value },
+  { label: 'Đối tượng', done: Boolean(form.posterType), points: 0.2 },
+  { label: 'Họ và tên', done: isContactNameValid.value, points: 0.3 },
+  { label: 'Số điện thoại', done: isContactPhoneValid.value, points: 0.4 },
+  { label: 'Email', done: isContactEmailValid.value, points: 0.1 },
 ]);
 
-const contactFilledCount = computed(() => contactChecklist.value.filter((item) => item.done).length);
-const contactTotalCount = computed(() => contactChecklist.value.length || 1);
-const contactDone = computed(() => contactFilledCount.value === contactTotalCount.value);
-const contactPoints = computed(() => Number(((contactFilledCount.value / contactTotalCount.value) * 1).toFixed(1)));
-const contactPercent = computed(() => Math.round((contactFilledCount.value / contactTotalCount.value) * 100));
+const contactRawPoints = computed(() => scoreItems(contactChecklist.value));
+const contactMaxRawPoints = computed(() => maxScoreItems(contactChecklist.value));
+const contactPoints = computed(() => normalizeGroupScore(contactRawPoints.value, contactMaxRawPoints.value, 1));
+const contactDone = computed(() => contactRawPoints.value >= contactMaxRawPoints.value && contactMaxRawPoints.value > 0);
+const contactPercent = computed(() => percentScore(contactRawPoints.value, contactMaxRawPoints.value));
+
+function scoreItems(items) {
+  return Number(items.reduce((sum, item) => sum + (item.done ? Number(item.points || 0) : 0), 0).toFixed(2));
+}
+
+function maxScoreItems(items) {
+  return Number(items.reduce((sum, item) => sum + Number(item.points || 0), 0).toFixed(2));
+}
+
+function normalizeGroupScore(value, max, target) {
+  if (!max) return 0;
+  return Number(Math.min((value / max) * target, target).toFixed(1));
+}
+
+function percentScore(value, max) {
+  if (!max) return 0;
+  return Math.round(Math.min((value / max) * 100, 100));
+}
 
 function formatScorePoint(value) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
 
 const totalScore = computed(() => {
-  return mediaPoints.value + infoPoints.value + detailPoints.value + contactPoints.value;
+  return Number((mediaPoints.value + infoPoints.value + detailPoints.value + contactPoints.value).toFixed(1));
+});
+
+const minimumScore = computed(() => (form.demandType === 'RENT' ? 5.7 : 5.8));
+const isBelowMinimumScore = computed(() => totalScore.value < minimumScore.value);
+
+const scoreLevel = computed(() => {
+  if (isBelowMinimumScore.value) {
+    return {
+      title: 'Dưới điểm tối thiểu',
+      description: 'Tin chưa đủ điều kiện đăng',
+      color: 'text-red-400',
+    };
+  }
+
+  if (totalScore.value >= 8) {
+    return {
+      title: 'Thông tin ở mức tốt',
+      description: 'Tin có khả năng tiếp cận tốt hơn',
+      color: 'text-emerald-500',
+    };
+  }
+
+  return {
+    title: 'Thông tin ở mức tối thiểu',
+    description: 'Tin đủ điều kiện đăng',
+    color: 'text-sky-500',
+  };
 });
 
 const selectedLegalPaperLabels = computed(() => {
@@ -1053,13 +1166,89 @@ const selectedProvinceName = computed(() => {
   return item?.name || "";
 });
 
-function getVerificationDocumentType(document) {
-  return String(document?.type || document?.document_type || '').toUpperCase();
-}
+const selectedWardName = computed(() => {
+  const item = wards.value.find((ward) => String(ward.code) === form.wardCode);
+  return item?.name || "";
+});
 
-function getVerificationDocumentUrl(document) {
-  return document?.url || document?.file_url || document?.image_url || '';
-}
+const previewAddress = computed(() => {
+  return [
+    form.addressDetail,
+    form.projectName,
+    form.streetCode,
+    selectedWardName.value,
+    selectedProvinceName.value,
+  ].map((part) => String(part || '').trim()).filter(Boolean).join(', ');
+});
+
+const previewImages = computed(() => {
+  if (imagePreviews.value.length > 0) {
+    return imagePreviews.value.map((item, index) => ({
+      id: `preview-${index}`,
+      url: item.url,
+      sort_order: index,
+      is_thumbnail: index === 0,
+    }));
+  }
+
+  return (Array.isArray(form.images) ? form.images : [])
+    .map((item, index) => ({
+      id: `preview-${index}`,
+      url: typeof item === 'string' ? item : '',
+      sort_order: index,
+      is_thumbnail: index === 0,
+    }))
+    .filter((item) => Boolean(item.url));
+});
+
+const previewListing = computed(() => ({
+  id: 'preview',
+  title: form.title?.trim() || 'Tin đăng chưa có tiêu đề',
+  description: form.description?.trim() || 'Chưa có mô tả',
+  demand_type: form.demandType,
+  status: 'PREVIEW',
+  submitted_at: new Date().toISOString(),
+  views: 0,
+  is_verified: false,
+  images: previewImages.value,
+  owner: authStore.user
+    ? {
+        full_name: authStore.user.full_name || authStore.user.name || '',
+        avatar_url: authStore.user.avatar_url || authStore.user.avatar || '',
+      }
+    : null,
+  property: {
+    type: form.propertyType,
+    full_address: previewAddress.value,
+    province_code: form.provinceCode,
+    ward_code: form.wardCode,
+    street_code: form.streetCode,
+    project_name: form.projectName,
+    address_detail: form.addressDetail,
+    area: Number(form.area || 0),
+    price: form.isNegotiable ? 0 : Number(form.price || 0),
+    is_negotiable: Boolean(form.isNegotiable),
+    bedrooms: Number(form.bedrooms || 0),
+    bathrooms: Number(form.bathrooms || 0),
+    floors: form.floors,
+    floor_number: form.floorNumber,
+    balconies: form.balconies,
+    facade_width: form.facadeWidth,
+    depth: form.depth,
+    road_width: form.roadWidth,
+    direction_code: form.directionCode,
+    balcony_direction_code: form.balconyDirectionCode,
+    furniture_status: form.furnitureStatus,
+    legal_paper_types: Array.isArray(form.legalPaperTypes) ? [...form.legalPaperTypes] : [],
+    amenities: [...selectedAmenities.value],
+    contact_name: form.contactName?.trim() || authStore.user?.full_name || authStore.user?.name || '',
+    contact_phone: form.contactPhone?.trim() || authStore.user?.phone || '',
+    contact_email: form.contactEmail?.trim() || authStore.user?.email || '',
+    poster_type: form.posterType,
+    lat: form.lat ? Number(form.lat) : null,
+    lng: form.lng ? Number(form.lng) : null,
+  },
+}));
 
 
 
@@ -1968,15 +2157,10 @@ function fieldErrorMessage(field) {
   }
 
   if (field === 'rentMinTerm') {
-    if (form.demandType !== 'RENT') return '';
-    // optional in UI, keep validation lenient (only error if explicitly touched)
-    if (touchedFields['rentMinTerm'] && !value) return 'Vui lòng chọn thời gian thuê tối thiểu';
     return '';
   }
 
   if (field === 'rentPaymentInterval') {
-    if (form.demandType !== 'RENT') return '';
-    if (touchedFields['rentPaymentInterval'] && !value) return 'Vui lòng chọn kỳ thanh toán';
     return '';
   }
 
@@ -2046,17 +2230,126 @@ function onPhoneInput(event) {
   event.target.value = limited;
 }
 
+function openPreview() {
+  normalizeFormTextFields();
+  showPreviewModal.value = true;
+}
+
+function openBackConfirm() {
+  showDraftConfirm.value = true;
+}
+
+function discardAndGoBack() {
+  showDraftConfirm.value = false;
+  router.back();
+}
+
+async function uploadFilesForDraft(payload) {
+  const uploadMultiple = async (files) => {
+    const urls = [];
+    for (const file of files || []) {
+      if (typeof file === 'string') {
+        urls.push(file);
+      } else {
+        const res = await cloudinaryService.uploadImage(file, 'listing');
+        urls.push(res.secure_url);
+      }
+    }
+    return urls;
+  };
+
+  const uploadSingle = async (file) => {
+    if (!file) return null;
+    if (typeof file === 'string') return file;
+    const res = await cloudinaryService.uploadImage(file, 'listing');
+    return res.secure_url;
+  };
+
+  payload.images = await uploadMultiple(payload.images);
+  payload.video = await uploadSingle(payload.video);
+  payload.identityCardFront = await uploadSingle(payload.identityCardFront);
+  payload.identityCardBack = await uploadSingle(payload.identityCardBack);
+  payload.legalDocuments = await uploadMultiple(payload.legalDocuments);
+}
+
+async function saveDraftAndGoBack() {
+  if (savingDraft.value) return;
+  savingDraft.value = true;
+  submitError.value = "";
+  validationErrors.value = {};
+
+  try {
+    normalizeFormTextFields();
+    const payload = {
+      ...form,
+      amenities: [...selectedAmenities.value],
+      publicInfoAgreed: publicInfoAgreed.value,
+      requestVerification: shouldRequestVerification.value,
+      saveAsDraft: true,
+    };
+
+    if (appointmentForm.value) {
+      payload.appointment_slots = appointmentForm.value.getFormData();
+    }
+
+    await uploadFilesForDraft(payload);
+    const response = isEditMode.value
+      ? await listingService.update(editListingId.value, payload)
+      : await listingService.create(payload);
+
+    const listingId = isEditMode.value ? editListingId.value : response.data?.data?.id;
+    if (listingId && Array.isArray(payload.appointment_slots)) {
+      await listingService.replaceAppointmentSlots(listingId, payload.appointment_slots);
+    }
+
+    clearDraft();
+    pushToast(response.data?.message || 'Đã lưu tin nháp', 'success');
+    showDraftConfirm.value = false;
+    router.push('/profile?tab=listings&status=DRAFT');
+  } catch (error) {
+    const data = error?.response?.data;
+    validationErrors.value = data?.errors || {};
+    submitError.value = data?.message || 'Không thể lưu tin nháp. Vui lòng thử lại';
+    pushToast(submitError.value, 'error');
+  } finally {
+    savingDraft.value = false;
+  }
+}
+
+async function useAccountContactInfo() {
+  if (!authStore.user && authStore.token) {
+    try {
+      await authStore.fetchUser();
+    } catch {
+      // The toast below covers the unavailable account state.
+    }
+  }
+
+  const user = authStore.user;
+  if (!user) {
+    pushToast('Bạn cần đăng nhập để dùng thông tin tài khoản', 'warning');
+    return;
+  }
+
+  const fullName = user.full_name || user.name || '';
+  const phone = String(user.phone || user.phone_number || user.contact_phone || '').replace(/[^0-9]/g, '').slice(0, 10);
+  const email = user.email || '';
+
+  if (fullName) form.contactName = fullName;
+  if (phone) form.contactPhone = phone;
+  if (email) form.contactEmail = String(email).trim().toLowerCase();
+
+  ['contactName', 'contactPhone', 'contactEmail'].forEach((field) => touchField(field));
+  pushToast('Đã điền thông tin tài khoản vào phần liên hệ', 'success');
+}
+
 function touchAllRequired() {
   const required = ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail'];
-  if (form.demandType === 'RENT') {
-    required.push('rentMinTerm', 'rentPaymentInterval');
-  }
   required.forEach((f) => touchField(f));
 }
 
 function hasRequiredErrors() {
   const base = ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail'];
-  if (form.demandType === 'RENT') base.push('rentMinTerm', 'rentPaymentInterval');
 
   const hasError = base.some((f) => {
     touchedFields[f] = true;
@@ -2274,6 +2567,12 @@ async function submitListing() {
     return;
   }
 
+  if (isBelowMinimumScore.value) {
+    submitError.value = `Tin đăng đang dưới điểm tối thiểu ${minimumScore.value}đ`;
+    pushToast(`Tin đăng dưới điểm tối thiểu ${minimumScore.value}đ. Vui lòng bổ sung thông tin trước khi đăng.`, 'error', 3500);
+    return;
+  }
+
   loading.value = true;
   submitError.value = "";
   validationErrors.value = {};
@@ -2430,6 +2729,97 @@ async function submitListing() {
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
 }
 
+.preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  padding: 24px;
+}
+
+.preview-modal {
+  width: min(1120px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.28);
+}
+
+.preview-modal-detail {
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-header,
+.preview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+}
+
+.preview-header {
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fff;
+}
+
+.preview-footer {
+  border-top: 1px solid #e2e8f0;
+}
+
+.preview-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.preview-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 28px;
+  max-height: calc(100vh - 150px);
+  overflow-y: auto;
+  padding: 22px;
+}
+
+.preview-summary {
+  align-self: start;
+  position: sticky;
+  top: 0;
+  border-radius: 18px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  padding: 18px;
+}
+
+.preview-detail-body {
+  max-height: calc(100vh - 132px);
+  overflow-y: auto;
+  background: #f4f8fc;
+  padding: 18px 22px 24px;
+}
+
+.preview-static-frame {
+  pointer-events: none;
+  user-select: none;
+}
+
+.draft-confirm-modal {
+  width: min(440px, 100%);
+  border-radius: 18px;
+  background: #fff;
+  padding: 22px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.28);
+}
+
 .toast-success {
   background: #ecfdf3;
   color: #047857;
@@ -2503,6 +2893,14 @@ async function submitListing() {
   margin-top: 6px;
   font-size: 12px;
   color: #64748b;
+}
+
+.contact-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .tip-box {
@@ -2594,6 +2992,11 @@ async function submitListing() {
   gap: 10px;
 }
 
+.legal-field {
+  position: relative;
+  z-index: 20;
+}
+
 .dropdown-arrow-icon {
   margin-left: auto;
   display: inline-block;
@@ -2613,11 +3016,17 @@ async function submitListing() {
 }
 
 .legal-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
   max-height: 240px;
   overflow-y: auto;
-  border: 1px solid #c9dbf0;
+  border: 1px solid #38bdf8;
   border-radius: 10px;
   background: #fff;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.16);
 }
 
 .legal-option {
@@ -2625,14 +3034,35 @@ async function submitListing() {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px 12px;
+  min-height: 40px;
+  padding: 9px 12px;
   font-size: 13px;
   color: #0f172a;
   border-bottom: 1px solid #e6edf5;
+  background: #fff;
+}
+
+.legal-option.selected {
+  background: #2563eb;
+  color: #fff;
+}
+
+.legal-option:hover {
+  background: #eff6ff;
+}
+
+.legal-option.selected:hover {
+  background: #1d4ed8;
 }
 
 .legal-option:last-child {
   border-bottom: none;
+}
+
+.legal-option input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: #2563eb;
 }
 
 .quick-row {

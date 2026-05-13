@@ -68,6 +68,7 @@ const listingService = {
       identity_card_front: payload.identityCardFront || null,
       identity_card_back: payload.identityCardBack || null,
       legal_documents: payload.legalDocuments || [],
+      save_as_draft: payload.saveAsDraft || false,
     };
 
     Object.keys(data).forEach(key => {
@@ -145,6 +146,7 @@ const listingService = {
       identity_card_front: payload.identityCardFront || null,
       identity_card_back: payload.identityCardBack || null,
       legal_documents: payload.legalDocuments || [],
+      save_as_draft: payload.saveAsDraft || false,
     };
 
     // Remove undefined/null/empty strings for cleaner payload

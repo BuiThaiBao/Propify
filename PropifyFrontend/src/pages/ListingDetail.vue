@@ -1,5 +1,5 @@
 ﻿<template>
-  <main class="min-h-screen bg-[#f4f8fc] pb-14 pt-24">
+  <main :class="previewMode ? 'min-h-0 bg-[#f4f8fc] pb-6 pt-0' : 'min-h-screen bg-[#f4f8fc] pb-14 pt-24'">
     <div v-if="loading" class="flex min-h-[50vh] items-center justify-center">
       <div class="h-10 w-10 animate-spin rounded-full border-4 border-sky-500 border-t-transparent"></div>
     </div>
@@ -7,7 +7,7 @@
       <p class="text-xl font-bold">{{ error }}</p>
       <button class="mt-4 rounded-xl bg-sky-500 px-6 py-2 text-white" @click="router.push('/')">Về trang chủ</button>
     </div>
-    <div v-else-if="listing" class="mx-auto w-full max-w-[1240px] px-4 lg:px-6">
+    <div v-else-if="listing" :class="previewMode ? 'mx-auto w-full max-w-[1240px] px-0' : 'mx-auto w-full max-w-[1240px] px-4 lg:px-6'">
       
       <!-- Breadcrumb & Header -->
       <div class="mb-4">
@@ -237,10 +237,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import listingService from '@/services/listingService';
 import AppointmentBookingPopup from '@/components/AppointmentBookingPopup.vue';
+import { buildPropertyAddress, hydratePropertyAddress } from '@/utils/addressFormatter';
+import * as L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import realEstateLightStyle from '@/assets/maps/real-estate-light.json';
@@ -248,9 +251,20 @@ import realEstateLightStyle from '@/assets/maps/real-estate-light.json';
 const route = useRoute();
 const router = useRouter();
 
-const loading = ref(true);
+const props = defineProps({
+  previewMode: {
+    type: Boolean,
+    default: false,
+  },
+  previewListing: {
+    type: Object,
+    default: null,
+  },
+});
+
+const loading = ref(!props.previewMode);
 const error = ref('');
-const listing = ref({});
+const listing = ref(props.previewListing || {});
 
 const activeImageIndex = ref(0);
 const mapElement = ref(null);
@@ -297,7 +311,7 @@ const hasLatLng = computed(() => {
 const fullAddress = computed(() => {
   if (!listing.value?.property) return '';
   const p = listing.value.property;
-  return p.address_detail || '';
+  return p.full_address || buildPropertyAddress(p);
 });
 
 function prevImage() {
@@ -386,7 +400,9 @@ async function loadListing() {
     error.value = '';
     const id = route.params.id;
     const response = await listingService.getById(id);
-    listing.value = response.data.data;
+    const data = response.data.data;
+    await hydratePropertyAddress(data?.property);
+    listing.value = data;
   } catch (err) {
     console.error(err);
     error.value = 'Không tìm thấy tin đăng hoặc đã bị xóa.';
@@ -405,6 +421,29 @@ async function loadListing() {
     }
   }
 }
+
+watch(
+  () => props.previewListing,
+  async (value) => {
+    if (!props.previewMode) return;
+    listing.value = value || {};
+    loading.value = false;
+    error.value = '';
+    activeImageIndex.value = 0;
+
+    if (map) {
+      map.remove();
+      map = null;
+      marker = null;
+    }
+
+    if (hasLatLng.value) {
+      await nextTick();
+      setTimeout(() => initMap(), 200);
+    }
+  },
+  { deep: true, immediate: true },
+);
 
 
 /**
@@ -627,6 +666,7 @@ function initMap() {
     }, 250);
   });
 }
+
 
 onMounted(() => {
   loadListing();
