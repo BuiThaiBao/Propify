@@ -127,11 +127,6 @@
               label="Nhãn (Badge)"
               placeholder="HOT, VIP..."
             />
-            <Input
-              v-model="form.color"
-              label="Mã màu (Color hex)"
-              placeholder="#FFD700"
-            />
           </div>
         </div>
 
@@ -253,7 +248,6 @@ const form = reactive({
   daily_quota: 100,
   decay_rate: 0.05,
   badge: '',
-  color: '',
   price: 50000,
   is_active: true,
   active_durations: [3, 7, 10, 15, 30]
@@ -315,7 +309,6 @@ onMounted(async () => {
       form.daily_quota = Number(data.daily_quota)
       form.decay_rate = Number(data.decay_rate)
       form.badge = data.badge || ''
-      form.color = data.color || ''
       form.price = Number(data.price || 0)
       form.is_active = Boolean(data.is_active)
       
@@ -389,7 +382,6 @@ const handleSubmit = async () => {
       decay_rate: Number(form.decay_rate),
       price: Number(form.price),
       badge: form.badge || null,
-      color: form.color || null,
       is_active: Boolean(form.is_active),
       active_durations: sortedDurations.value
     })

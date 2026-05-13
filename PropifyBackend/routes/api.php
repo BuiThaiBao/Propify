@@ -175,7 +175,7 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
 // ==================== PACKAGES: PUBLIC ROUTES ====================
 Route::prefix('v1/packages')->as('packages.')->group(function () {
     Route::get('/', [PackageController::class, 'index'])->name('index');
-    Route::get('/{id}', [PackageController::class, 'show'])->name('show');
+    Route::get('/{id}', [PackageController::class, 'show'])->where('id', '[0-9]+')->name('show');
 });
 
 // ==================== PACKAGES: PROTECTED ROUTES ====================

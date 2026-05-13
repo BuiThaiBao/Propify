@@ -1,18 +1,18 @@
-<template>
+﻿<template>
   <main class="min-h-screen bg-[#f4f8fc] pb-14 pt-24">
     <div v-if="loading" class="flex min-h-[50vh] items-center justify-center">
       <div class="h-10 w-10 animate-spin rounded-full border-4 border-sky-500 border-t-transparent"></div>
     </div>
     <div v-else-if="error" class="mx-auto mt-10 max-w-[1240px] px-4 text-center text-red-500">
       <p class="text-xl font-bold">{{ error }}</p>
-      <button class="mt-4 rounded-xl bg-sky-500 px-6 py-2 text-white" @click="router.push('/')">Về trang chủ</button>
+      <button class="mt-4 rounded-xl bg-sky-500 px-6 py-2 text-white" @click="router.push('/')">Vá» trang chá»§</button>
     </div>
     <div v-else-if="listing" class="mx-auto w-full max-w-[1240px] px-4 lg:px-6">
       
       <!-- Breadcrumb & Header -->
       <div class="mb-4">
         <p class="text-xs text-slate-500 hover:text-sky-600">
-          <router-link to="/">Trang chủ</router-link>
+          <router-link to="/">Trang chá»§</router-link>
           <span class="mx-1">></span>
           <span class="text-slate-400">{{ listing.title }}</span>
         </p>
@@ -21,10 +21,10 @@
             <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">{{ listing.title }}</h1>
             <p class="mt-1 text-sm text-slate-500">
               <svg xmlns="http://www.w3.org/2000/svg" class="mr-1 inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-              Ngày đăng: {{ formatDate(listing.submitted_at) }}
+              NgĂ y Ä‘Äƒng: {{ formatDate(listing.submitted_at) }}
               <span v-if="listing.views != null" class="ml-3 inline-flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                {{ listing.views }} lượt xem
+                {{ listing.views }} lÆ°á»£t xem
               </span>
             </p>
           </div>
@@ -54,7 +54,7 @@
             </button>
           </div>
           <div class="absolute bottom-4 left-4 rounded-full bg-slate-900/60 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
-            Hình ảnh {{ activeImageIndex + 1 }}/{{ displayImages.length }}
+            HĂ¬nh áº£nh {{ activeImageIndex + 1 }}/{{ displayImages.length }}
           </div>
         </div>
         <div class="flex gap-2 p-2 overflow-x-auto bg-slate-50">
@@ -80,7 +80,7 @@
           <section class="rounded-2xl border border-slate-200 bg-white p-5 lg:p-6 shadow-sm">
             <div class="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-              <h2 class="text-[17px] font-bold text-slate-800">Mô tả tin đăng</h2>
+              <h2 class="text-[17px] font-bold text-slate-800">MĂ´ táº£ tin Ä‘Äƒng</h2>
             </div>
             <div class="whitespace-pre-wrap text-[15px] leading-relaxed text-slate-600">
               {{ listing.description }}
@@ -91,48 +91,48 @@
           <section class="rounded-2xl border border-slate-200 bg-white p-5 lg:p-6 shadow-sm">
             <div class="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-              <h2 class="text-[17px] font-bold text-slate-800">Thông tin chi tiết</h2>
+              <h2 class="text-[17px] font-bold text-slate-800">ThĂ´ng tin chi tiáº¿t</h2>
             </div>
             <div class="grid grid-cols-1 gap-y-4 gap-x-6 sm:grid-cols-2 text-[14px]">
               
               <div v-if="listing.property?.type" class="flex justify-between border-b border-slate-50 pb-2">
-                <span class="text-slate-500">Loại BĐS</span>
+                <span class="text-slate-500">Loáº¡i BÄS</span>
                 <span class="font-medium text-slate-800">{{ propertyTypeLabel(listing.property.type) }}</span>
               </div>
               <div v-if="listing.property?.area" class="flex justify-between border-b border-slate-50 pb-2">
-                <span class="text-slate-500">Diện tích</span>
-                <span class="font-medium text-slate-800">{{ listing.property.area }} m²</span>
+                <span class="text-slate-500">Diá»‡n tĂ­ch</span>
+                <span class="font-medium text-slate-800">{{ listing.property.area }} mÂ²</span>
               </div>
               <div v-if="listing.property?.bedrooms" class="flex justify-between border-b border-slate-50 pb-2">
-                <span class="text-slate-500">Phòng ngủ</span>
+                <span class="text-slate-500">PhĂ²ng ngá»§</span>
                 <span class="font-medium text-slate-800">{{ listing.property.bedrooms }} PN</span>
               </div>
               <div v-if="listing.property?.bathrooms" class="flex justify-between border-b border-slate-50 pb-2">
-                <span class="text-slate-500">Phòng tắm</span>
+                <span class="text-slate-500">PhĂ²ng táº¯m</span>
                 <span class="font-medium text-slate-800">{{ listing.property.bathrooms }} WC</span>
               </div>
               <div v-if="listing.property?.direction_code" class="flex justify-between border-b border-slate-50 pb-2">
-                <span class="text-slate-500">Hướng nhà</span>
+                <span class="text-slate-500">HÆ°á»›ng nhĂ </span>
                 <span class="font-medium text-slate-800">{{ directionLabel(listing.property.direction_code) }}</span>
               </div>
               <div v-if="listing.property?.balcony_direction_code" class="flex justify-between border-b border-slate-50 pb-2">
-                <span class="text-slate-500">Hướng ban công</span>
+                <span class="text-slate-500">HÆ°á»›ng ban cĂ´ng</span>
                 <span class="font-medium text-slate-800">{{ directionLabel(listing.property.balcony_direction_code) }}</span>
               </div>
               <div v-if="listing.property?.facade_width" class="flex justify-between border-b border-slate-50 pb-2">
-                <span class="text-slate-500">Mặt tiền</span>
+                <span class="text-slate-500">Máº·t tiá»n</span>
                 <span class="font-medium text-slate-800">{{ listing.property.facade_width }} m</span>
               </div>
               <div v-if="listing.property?.road_width" class="flex justify-between border-b border-slate-50 pb-2">
-                <span class="text-slate-500">Đường vào</span>
+                <span class="text-slate-500">ÄÆ°á»ng vĂ o</span>
                 <span class="font-medium text-slate-800">{{ listing.property.road_width }} m</span>
               </div>
               <div v-if="listing.property?.furniture_status" class="flex justify-between border-b border-slate-50 pb-2">
-                <span class="text-slate-500">Nội thất</span>
+                <span class="text-slate-500">Ná»™i tháº¥t</span>
                 <span class="font-medium text-slate-800">{{ furnitureLabel(listing.property.furniture_status) }}</span>
               </div>
               <div v-if="listing.property?.legal_paper_types?.length" class="flex justify-between border-b border-slate-50 pb-2">
-                <span class="text-slate-500">Pháp lý</span>
+                <span class="text-slate-500">PhĂ¡p lĂ½</span>
                 <span class="font-medium text-slate-800 text-right">{{ listing.property.legal_paper_types.map(v => legalPaperLabel(v)).join(', ') }}</span>
               </div>
 
@@ -143,11 +143,11 @@
           <section v-if="listing.property?.amenities?.length" class="rounded-2xl border border-slate-200 bg-white p-5 lg:p-6 shadow-sm">
             <div class="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
-              <h2 class="text-[17px] font-bold text-slate-800">Tiện ích</h2>
+              <h2 class="text-[17px] font-bold text-slate-800">Tiá»‡n Ă­ch</h2>
             </div>
             <div class="flex flex-wrap gap-2">
               <span v-for="amenity in listing.property.amenities" :key="amenity" class="rounded-full bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-600 border border-sky-100">
-                ✓ {{ amenity }}
+                âœ“ {{ amenity }}
               </span>
             </div>
           </section>
@@ -156,13 +156,13 @@
           <section class="rounded-2xl border border-slate-200 bg-white p-5 lg:p-6 shadow-sm">
             <div class="mb-4 flex items-center gap-2 border-b border-slate-100 pb-3">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-sky-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-              <h2 class="text-[17px] font-bold text-slate-800">Vị trí bản đồ</h2>
+              <h2 class="text-[17px] font-bold text-slate-800">Vá»‹ trĂ­ báº£n Ä‘á»“</h2>
             </div>
             <p class="mb-3 text-sm text-slate-600">{{ fullAddress }}</p>
             <div class="h-[300px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
               <div v-show="hasLatLng" ref="mapElement" class="h-full w-full"></div>
               <div v-if="!hasLatLng" class="flex h-full w-full items-center justify-center text-slate-400">
-                Bản đồ không được hỗ trợ cho vị trí này
+                Báº£n Ä‘á»“ khĂ´ng Ä‘Æ°á»£c há»— trá»£ cho vá»‹ trĂ­ nĂ y
               </div>
             </div>
           </section>
@@ -174,12 +174,12 @@
             <!-- Price and Specs -->
             <div class="border-b border-slate-100 pb-4">
               <h3 class="text-[28px] font-extrabold text-sky-500">
-                {{ formatPrice(listing.property?.price) }} <span v-if="listing.demand_type === 'RENT'" class="text-base text-slate-500 font-normal">/tháng</span>
+                {{ formatPrice(listing.property?.price) }} <span v-if="listing.demand_type === 'RENT'" class="text-base text-slate-500 font-normal">/thĂ¡ng</span>
               </h3>
               <div class="mt-2 flex items-center justify-start gap-4 text-sm font-medium text-slate-600">
                 <span class="flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 6a1 1 0 011-1h12a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6z" clip-rule="evenodd" /></svg> {{ listing.property?.bedrooms || 0 }} PN</span>
                 <span class="flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4zM3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /></svg> {{ listing.property?.bathrooms || 0 }} WC</span>
-                <span class="flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg> {{ listing.property?.area || 0 }} m²</span>
+                <span class="flex items-center gap-1.5"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg> {{ listing.property?.area || 0 }} mÂ²</span>
               </div>
             </div>
 
@@ -192,7 +192,7 @@
                 </div>
                 <div>
                   <p class="font-semibold text-slate-800">{{ listing.property?.contact_name || listing.owner?.full_name }}</p>
-                  <p class="text-[13px] text-slate-500">{{ listing.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới' }}</p>
+                  <p class="text-[13px] text-slate-500">{{ listing.property?.poster_type === 'OWNER' ? 'Chá»§ nhĂ ' : 'MĂ´i giá»›i' }}</p>
                 </div>
               </div>
             </div>
@@ -201,15 +201,15 @@
             <div class="space-y-3 pt-2">
               <a v-if="listing.property?.contact_phone" :href="`tel:${listing.property.contact_phone}`" class="flex w-full items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 py-3 font-semibold text-white transition hover:bg-sky-600">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                GỌI {{ formatPhone(listing.property?.contact_phone) }}
+                Gá»ŒI {{ formatPhone(listing.property?.contact_phone) }}
               </a>
               <button class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 font-semibold text-slate-700 transition hover:border-sky-500 hover:text-sky-600" @click="showAppointmentPopup = true">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                Đặt lịch xem nhà
+                Äáº·t lá»‹ch xem nhĂ 
               </button>
               <button class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 font-semibold text-slate-700 transition hover:border-sky-500 hover:text-sky-600">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                Nhắn tin
+                Nháº¯n tin
               </button>
             </div>
           </div>
@@ -295,10 +295,10 @@ function formatDate(isoString) {
 }
 
 function formatPrice(value) {
-  if (!value || value <= 0) return 'Thỏa thuận';
-  if (value >= 1000000000) return (value / 1000000000).toLocaleString('vi-VN') + ' tỷ';
-  if (value >= 1000000) return (value / 1000000).toLocaleString('vi-VN') + ' triệu';
-  return value.toLocaleString('vi-VN') + ' đ';
+  if (!value || value <= 0) return 'Thá»a thuáº­n';
+  if (value >= 1000000000) return (value / 1000000000).toLocaleString('vi-VN') + ' tá»·';
+  if (value >= 1000000) return (value / 1000000).toLocaleString('vi-VN') + ' triá»‡u';
+  return value.toLocaleString('vi-VN') + ' Ä‘';
 }
 
 function formatPhone(phone) {
@@ -308,46 +308,46 @@ function formatPhone(phone) {
 
 function propertyTypeLabel(type) {
   const map = {
-    APARTMENT: 'Căn hộ chung cư',
-    PRIVATE_HOUSE: 'Nhà riêng',
-    STREET_HOUSE: 'Nhà mặt phố',
-    VILLA_TOWNHOUSE: 'Biệt thự liền kề',
+    APARTMENT: 'CÄƒn há»™ chung cÆ°',
+    PRIVATE_HOUSE: 'NhĂ  riĂªng',
+    STREET_HOUSE: 'NhĂ  máº·t phá»‘',
+    VILLA_TOWNHOUSE: 'Biá»‡t thá»± liá»n ká»',
     SHOPHOUSE: 'Shophouse',
-    RENT_ROOM: 'Phòng trọ',
-    OFFICE: 'Văn phòng',
+    RENT_ROOM: 'PhĂ²ng trá»',
+    OFFICE: 'VÄƒn phĂ²ng',
   };
   return map[type] || type;
 }
 
 function directionLabel(code) {
   const map = {
-    N: 'Bắc', NE: 'Đông Bắc', E: 'Đông', SE: 'Đông Nam',
-    S: 'Nam', SW: 'Tây Nam', W: 'Tây', NW: 'Tây Bắc'
+    N: 'Báº¯c', NE: 'ÄĂ´ng Báº¯c', E: 'ÄĂ´ng', SE: 'ÄĂ´ng Nam',
+    S: 'Nam', SW: 'TĂ¢y Nam', W: 'TĂ¢y', NW: 'TĂ¢y Báº¯c'
   };
-  return map[code] || 'Không xác định';
+  return map[code] || 'KhĂ´ng xĂ¡c Ä‘á»‹nh';
 }
 
 function furnitureLabel(status) {
-  const map = { NONE: 'Cơ bản', BASIC: 'Đầy đủ', FULL: 'Cao cấp' };
+  const map = { NONE: 'CÆ¡ báº£n', BASIC: 'Äáº§y Ä‘á»§', FULL: 'Cao cáº¥p' };
   return map[status] || status;
 }
 
 function legalPaperLabel(value) {
   const map = {
-    LAND_USE_CERTIFICATE: 'Giấy CN QSDĐ - Sổ đỏ - Sổ hồng',
-    SALE_CONTRACT: 'Hợp đồng mua bán',
-    CAPITAL_CONTRIBUTION_CONTRACT: 'Hợp đồng góp vốn',
-    ALLOTTED_OR_SUBDIVIDED_LAND: 'Đất giao - Đất phân',
-    BORROWED_LAND: 'Đất mượn',
-    LEASED_LAND: 'Đất thuê',
-    ORIGIN_PROOF_DOCUMENT: 'Giấy tờ chứng minh nguồn gốc',
-    NO_LAND_CERTIFICATE: 'Chưa làm giấy CN QSDĐ',
-    PROCESSING_LAND_CERTIFICATE: 'Đang làm giấy CN QSDĐ',
-    APPOINTMENT_FOR_CERTIFICATE: 'Đã có giấy hẹn lấy sổ',
-    BUSINESS_TRANSFER: 'Sang nhượng doanh nghiệp',
-    SHARE_TRANSFER: 'Mua bán cổ phần',
-    INVESTMENT_COOPERATION: 'Hợp tác đầu tư',
-    HANDWRITTEN: 'Viết tay',
+    LAND_USE_CERTIFICATE: 'Giáº¥y CN QSDÄ - Sá»• Ä‘á» - Sá»• há»“ng',
+    SALE_CONTRACT: 'Há»£p Ä‘á»“ng mua bĂ¡n',
+    CAPITAL_CONTRIBUTION_CONTRACT: 'Há»£p Ä‘á»“ng gĂ³p vá»‘n',
+    ALLOTTED_OR_SUBDIVIDED_LAND: 'Äáº¥t giao - Äáº¥t phĂ¢n',
+    BORROWED_LAND: 'Äáº¥t mÆ°á»£n',
+    LEASED_LAND: 'Äáº¥t thuĂª',
+    ORIGIN_PROOF_DOCUMENT: 'Giáº¥y tá» chá»©ng minh nguá»“n gá»‘c',
+    NO_LAND_CERTIFICATE: 'ChÆ°a lĂ m giáº¥y CN QSDÄ',
+    PROCESSING_LAND_CERTIFICATE: 'Äang lĂ m giáº¥y CN QSDÄ',
+    APPOINTMENT_FOR_CERTIFICATE: 'ÄĂ£ cĂ³ giáº¥y háº¹n láº¥y sá»•',
+    BUSINESS_TRANSFER: 'Sang nhÆ°á»£ng doanh nghiá»‡p',
+    SHARE_TRANSFER: 'Mua bĂ¡n cá»• pháº§n',
+    INVESTMENT_COOPERATION: 'Há»£p tĂ¡c Ä‘áº§u tÆ°',
+    HANDWRITTEN: 'Viáº¿t tay',
   };
   return map[value] || value;
 }
@@ -361,7 +361,7 @@ async function loadListing() {
     listing.value = response.data.data;
   } catch (err) {
     console.error(err);
-    error.value = 'Không tìm thấy tin đăng hoặc đã bị xóa.';
+    error.value = 'KhĂ´ng tĂ¬m tháº¥y tin Ä‘Äƒng hoáº·c Ä‘Ă£ bá»‹ xĂ³a.';
   } finally {
     loading.value = false;
     // Init map after loading is set to false so v-show renders the div
@@ -371,46 +371,42 @@ async function loadListing() {
       setTimeout(() => initMap(), 200);
     }
 
-    // ── View Tracking: 5s delay + visibility check + preload protection ──
+    // â”€â”€ View Tracking: track ngay khi listing load xong + visibility check â”€â”€
     if (listing.value?.id && listing.value?.status === 'ACTIVE') {
       scheduleViewTracking(listing.value.id);
     }
   }
 }
 
+
 /**
- * Schedule view tracking sau 5 giây.
+ * Schedule view tracking ngay khi listing đ? load xong.
  * Protection:
- *   - Chỉ track khi tab đang visible (chống preload/prefetch)
- *   - Chỉ track 1 lần per page load
- *   - Silent fail — không ảnh hưởng UX
+ *   - Ch? track khi tab đang visible (ch?ng preload/prefetch)
+ *   - Ch? track 1 l?n per page load
+ *   - Silent fail - không ?nh hư?ng UX
  */
 function scheduleViewTracking(listingId) {
-  // Chỉ track khi tab đang active (chống browser preload/prefetch)
   if (document.visibilityState !== 'visible') {
-    // Đợi tab visible rồi mới bắt đầu đếm 5s
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
         document.removeEventListener('visibilitychange', onVisible);
-        startViewTimer(listingId);
+        trackViewNow(listingId);
       }
     };
     document.addEventListener('visibilitychange', onVisible);
     return;
   }
 
-  startViewTimer(listingId);
+  trackViewNow(listingId);
 }
 
-function startViewTimer(listingId) {
-  viewTrackTimer = setTimeout(() => {
-    // Double-check visibility khi timer fire (user có thể đã chuyển tab)
-    if (document.visibilityState === 'visible') {
-      listingService.trackView(listingId).catch(() => {
-        // View tracking should never affect the listing detail UX.
-      });
-    }
-  }, 5000);
+function trackViewNow(listingId) {
+  if (document.visibilityState !== 'visible') return;
+
+  listingService.trackView(listingId).catch(() => {
+    // View tracking should never affect the listing detail UX.
+  });
 }
 
 function initMap() {
@@ -425,7 +421,7 @@ function initMap() {
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
-    attribution: "© OpenStreetMap",
+    attribution: "Â© OpenStreetMap",
   }).addTo(map);
 
   marker = L.circleMarker([lat, lng], {
@@ -437,18 +433,9 @@ function initMap() {
   }).addTo(map);
 }
 
-let viewTrackTimer = null;
 
 onMounted(() => {
   loadListing();
-});
-
-onUnmounted(() => {
-  // Cleanup timer khi rời trang
-  if (viewTrackTimer) {
-    clearTimeout(viewTrackTimer);
-    viewTrackTimer = null;
-  }
 });
 </script>
 

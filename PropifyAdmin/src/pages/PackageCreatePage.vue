@@ -127,11 +127,6 @@
               label="Nhãn (Badge)"
               placeholder="HOT, VIP..."
             />
-            <Input
-              v-model="form.color"
-              label="Mã màu (Color hex)"
-              placeholder="#FFD700"
-            />
           </div>
         </div>
 
@@ -245,17 +240,14 @@ const durationOptions = ref([])
 const form = reactive({
   name: '',
   slug: '',
-  priority: 1,
-  multiplier: 1.0,
-  daily_quota: 100,
-  decay_rate: 0.05,
+  priority: null,
+  multiplier: null,
+  daily_quota: null,
+  decay_rate: null,
   badge: '',
-  color: '',
-  price: 50000,
-  active_durations: [3, 7, 10, 15, 30]
+  price: null,
+  active_durations: []
 })
-
-// Removed is_paid watcher
 
 const errors = reactive({})
 
@@ -278,7 +270,6 @@ onMounted(async () => {
   try {
     const res = await fetchDurationOptions()
     durationOptions.value = res?.data || []
-    form.active_durations = visibleDurations.value
   } catch (err) {
     durationOptions.value = []
   }
@@ -321,28 +312,28 @@ const validate = () => {
     isValid = false
   }
 
-  if (form.priority < 1) {
+  if (form.priority == null || form.priority < 1) {
     errors.priority = 'Độ ưu tiên phải lớn hơn hoặc bằng 1'
     isValid = false
   }
 
-  if (form.multiplier < 1) {
+  if (form.multiplier == null || form.multiplier < 1) {
     errors.multiplier = 'Multiplier phải lớn hơn hoặc bằng 1'
     isValid = false
   }
 
-  if (form.daily_quota < 0) {
+  if (form.daily_quota == null || form.daily_quota < 0) {
     errors.daily_quota = 'Quota không hợp lệ'
     isValid = false
   }
 
-  if (form.decay_rate < 0 || form.decay_rate > 1) {
+  if (form.decay_rate == null || form.decay_rate < 0 || form.decay_rate > 1) {
     errors.decay_rate = 'Decay rate phải từ 0 đến 1'
     isValid = false
   }
 
-  if (form.price < 0) {
-    errors.price = 'Giá không thể âm'
+  if (form.price == null || form.price < 0) {
+    errors.price = 'Vui lòng nhập giá'
     isValid = false
   }
 
@@ -369,7 +360,6 @@ const handleSubmit = async () => {
       decay_rate: Number(form.decay_rate),
       price: Number(form.price),
       badge: form.badge || null,
-      color: form.color || null,
       active_durations: sortedDurations.value
     })
     
@@ -384,7 +374,6 @@ const handleSubmit = async () => {
     form.name = ''
     form.slug = ''
     form.badge = ''
-    form.color = ''
 
   } catch (err) {
     // Error is handled by composable and shown via apiError

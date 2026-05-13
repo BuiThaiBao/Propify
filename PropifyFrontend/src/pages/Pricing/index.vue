@@ -1,8 +1,9 @@
 <template>
-  <div class="min-h-screen bg-white text-slate-950">
-    <section class="px-4 pb-8 pt-20 text-center sm:pt-24">
+  <div class="min-h-screen bg-white text-slate-900">
+    <!-- Hero -->
+    <section class="px-4 pt-20 pb-8 text-center sm:pt-24">
       <div class="mx-auto max-w-3xl">
-        <h1 class="text-3xl font-extrabold leading-tight text-slate-950 sm:text-4xl">
+        <h1 class="text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl">
           Bảng giá đăng tin
         </h1>
         <p class="mt-3 text-sm font-medium text-slate-500 sm:text-base">
@@ -11,11 +12,13 @@
       </div>
     </section>
 
+    <!-- Loading -->
     <div v-if="loading" class="flex flex-col items-center gap-3 px-6 py-16 text-sm text-slate-500">
-      <div class="h-9 w-9 animate-spin rounded-full border-3 border-slate-200 border-t-primary"></div>
+      <div class="size-9 animate-spin rounded-full border-3 border-slate-200 border-t-primary"></div>
       <p>Đang tải bảng giá...</p>
     </div>
 
+    <!-- Error -->
     <div v-else-if="error" class="flex flex-col items-center gap-4 px-6 py-16 text-sm text-red-600">
       <p>{{ error }}</p>
       <button
@@ -27,68 +30,90 @@
       </button>
     </div>
 
+    <!-- Pricing Grid -->
     <section v-else class="px-4 pb-16">
       <div class="mx-auto max-w-7xl overflow-x-auto pb-2">
-        <div class="grid min-w-[960px] grid-cols-4 gap-4 lg:min-w-0">
+        <div
+          class="grid min-w-[900px]"
+          :style="{ 'grid-template-columns': `repeat(${displayPackages.length}, 1fr)` }"
+        >
           <article
-            v-for="pkg in displayPackages"
+            v-for="(pkg, idx) in displayPackages"
             :key="pkg.id || pkg.slug"
             :class="[
-              'flex min-h-[560px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white',
-              cardTintClass(pkg.slug),
+              'flex flex-col border border-r-0 border-slate-200 bg-white transition-shadow',
+              cardTintClass(pkg),
+              idx === 0 && 'rounded-l-xl',
+              idx === displayPackages.length - 1 && 'rounded-r-xl !border-r',
             ]"
           >
-            <header class="px-3 pb-5 pt-4">
-              <div :class="badgeClass(pkg.slug)">
-                <span
-                  v-if="slugIcon(pkg.slug)"
-                  class="flex h-6 w-8 items-center justify-center rounded-l-md bg-slate-900 text-[11px] font-black text-white"
-                >
-                  {{ slugIcon(pkg.slug) }}
+            <!-- Header -->
+            <header class="px-4 pt-5 pb-6">
+              <!-- Badge -->
+              <div class="mb-3 flex h-[5rem] items-start">
+                <span v-if="getIconSrc(pkg)" class="relative inline-block">
+                  <img :src="getIconSrc(pkg)" class="block h-[5rem] w-auto" alt="" />
+                  <span class="absolute top-[30%] right-0 flex h-[37%] items-center justify-center px-3.5 text-[0.9rem] font-extrabold tracking-wide text-white whitespace-nowrap">
+                    {{ getBadgeLabel(pkg) }}
+                  </span>
                 </span>
-                <span class="px-3 text-xs font-extrabold leading-6">
-                  {{ slugLabel(pkg) }}
+                <span
+                  v-else
+                  class="mt-[1.5rem] inline-flex h-8 items-center rounded-full bg-slate-200 px-3.5 text-[0.8rem] font-bold text-slate-600"
+                >
+                  {{ getBadgeLabel(pkg) }}
                 </span>
               </div>
 
-              <div class="mt-3 flex items-baseline gap-1 text-[22px] font-extrabold leading-tight text-black">
-                <span>{{ isFreePackage(pkg) ? 'Miễn phí' : `${formatCurrency(pkg.price)}đ` }}</span>
-                <span v-if="!isFreePackage(pkg)" class="font-bold">/ ngày</span>
+              <!-- Price -->
+              <div class="flex items-baseline gap-1">
+                <span class="text-[22px] font-extrabold leading-tight text-black">
+                  {{ isFreePackage(pkg) ? 'Miễn phí' : `${formatCurrency(pkg.price)}đ` }}
+                </span>
+                <span v-if="!isFreePackage(pkg)" class="text-base font-bold text-black">/ ngày</span>
               </div>
             </header>
 
-            <div class="px-3">
+            <!-- Pricing Table -->
+            <div class="px-4">
               <div
                 v-for="pricing in sortedPricings(pkg)"
                 :key="pricing.id || pricing.duration_days"
-                class="flex min-h-16 items-center justify-between gap-3 border-b border-dashed border-slate-200 text-[15px]"
+                class="flex min-h-14 items-center justify-between gap-3 border-b border-dashed border-slate-200 text-[15px] last:border-b-0"
               >
-                <span class="whitespace-nowrap text-slate-950">
+                <span class="whitespace-nowrap text-slate-900">
                   Gói {{ pricing.duration_days }} ngày
                 </span>
-                <div class="flex min-w-28 flex-col items-end gap-1 text-right">
-                  <span class="whitespace-nowrap font-extrabold text-black">
-                    {{ formatCurrency(pricing.price) }}đ
-                  </span>
-                  <span
-                    v-if="originalPriceLabel(pkg, pricing)"
-                    class="whitespace-nowrap text-xs font-bold text-slate-400 line-through"
-                  >
-                    {{ originalPriceLabel(pkg, pricing) }}
-                  </span>
+                <div class="flex min-w-28 flex-col items-end gap-0.5 text-right">
+                  <template v-if="isFreePackage(pkg)">
+                    <span class="font-semibold text-slate-500 whitespace-nowrap">Miễn phí</span>
+                  </template>
+                  <template v-else>
+                    <span class="font-extrabold text-black whitespace-nowrap">
+                      {{ formatCurrency(pricing.price) }}đ
+                    </span>
+                    <span
+                      v-if="originalPriceLabel(pkg, pricing)"
+                      class="text-xs font-bold text-slate-400 line-through whitespace-nowrap"
+                    >
+                      {{ originalPriceLabel(pkg, pricing) }}
+                    </span>
+                  </template>
                 </div>
               </div>
 
+              <!-- Empty state -->
               <div
                 v-if="sortedPricings(pkg).length === 0"
-                class="flex min-h-16 items-center justify-between gap-3 border-b border-dashed border-slate-200 text-[15px]"
+                class="flex min-h-14 items-center justify-between gap-3 border-b border-dashed border-slate-200 text-[15px]"
               >
-                <span class="text-slate-950">{{ isFreePackage(pkg) ? 'Gói tin thường' : 'Chưa có bảng giá' }}</span>
-                <span class="font-extrabold text-black">{{ isFreePackage(pkg) ? 'Miễn phí' : '-' }}</span>
+                <span class="text-slate-900">{{ isFreePackage(pkg) ? 'Gói tin thường' : 'Chưa có bảng giá' }}</span>
+                <span class="font-semibold text-slate-500">{{ isFreePackage(pkg) ? 'Miễn phí' : '-' }}</span>
               </div>
             </div>
 
-            <ul class="flex flex-1 flex-col gap-3 px-3 py-5">
+            <!-- Features -->
+            <ul class="flex flex-1 flex-col gap-2.5 px-4 py-5 list-none m-0">
               <li
                 v-for="feature in getFeatures(pkg)"
                 :key="feature.text"
@@ -96,13 +121,13 @@
               >
                 <span
                   :class="[
-                    'mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[10px] font-black text-white',
+                    'mt-0.5 flex size-3.5 shrink-0 items-center justify-center rounded-full text-[10px] font-black text-white',
                     feature.enabled ? 'bg-emerald-500' : 'bg-slate-400',
                   ]"
                 >
-                  {{ feature.enabled ? '✓' : '!' }}
+                  {{ feature.enabled ? '✓' : '✕' }}
                 </span>
-                <span>
+                <span :class="{ 'text-slate-400': !feature.enabled }">
                   {{ feature.text }}
                 </span>
               </li>
@@ -123,17 +148,21 @@ import { usePackages } from '@/composables/usePackages';
 
 const { packages, loading, error, fetchPackages } = usePackages();
 
-const displayPackages = computed(() => {
-  const allowedSlugs = ['electron', 'ruby', 'gold', 'free', 'basic'];
-  const slugOrder = { electron: 0, ruby: 1, gold: 2, free: 3, basic: 3 };
+// Priority → icon mapping: 2=vip, 3=premium, 4=diamond
+const priorityIconMap = {
+  2: '/vip.svg',
+  3: '/premium.svg',
+  4: '/dimond.svg',
+};
 
+const displayPackages = computed(() => {
   return [...packages.value]
-    .filter((pkg) => allowedSlugs.includes(pkg.slug))
-    .sort((a, b) => (slugOrder[a.slug] ?? 99) - (slugOrder[b.slug] ?? 99));
+    .filter((pkg) => pkg.is_active !== false)
+    .sort((a, b) => (b.priority || 0) - (a.priority || 0));
 });
 
 onMounted(() => {
-  fetchPackages();
+  fetchPackages({ force: true });
 });
 
 function formatCurrency(value) {
@@ -141,11 +170,13 @@ function formatCurrency(value) {
 }
 
 function isFreePackage(pkg) {
-  return ['free', 'basic'].includes(pkg.slug) || Number(pkg.price || 0) === 0;
+  return Number(pkg.price || 0) === 0;
 }
 
 function sortedPricings(pkg) {
-  return [...(pkg.pricings || [])].sort((a, b) => Number(a.duration_days) - Number(b.duration_days));
+  return [...(pkg.pricings || [])].sort(
+    (a, b) => Number(a.duration_days) - Number(b.duration_days)
+  );
 }
 
 function originalPriceLabel(pkg, pricing) {
@@ -154,81 +185,59 @@ function originalPriceLabel(pkg, pricing) {
   if (!original || !current || current >= original) return '';
 
   const discount = Math.round(((original - current) / original) * 100);
-  return `${formatCurrency(original)}đ (- ${discount}%)`;
+  return `${formatCurrency(original)}đ (-${discount}%)`;
 }
 
-function slugLabel(pkg) {
-  const map = {
-    electron: 'Electron',
-    ruby: 'Ruby',
-    gold: 'Vàng',
-    free: 'Tin thường',
-    basic: 'Tin thường',
-  };
-  return pkg.badge || map[pkg.slug] || pkg.name || pkg.slug;
+function getBadgeLabel(pkg) {
+  return pkg.badge || pkg.name || pkg.slug;
 }
 
-function slugIcon(slug) {
-  const map = { electron: '◆', ruby: '◆', gold: '◆' };
-  return map[slug] || '';
+function getIconSrc(pkg) {
+  const priority = Number(pkg.priority || 0);
+  return priorityIconMap[priority] || null;
 }
 
-function badgeClass(slug) {
-  const classes = {
-    electron: 'inline-flex h-6 overflow-hidden rounded-md bg-[#0b315f] text-white',
-    ruby: 'inline-flex h-6 overflow-hidden rounded-md bg-rose-700 text-white',
-    gold: 'inline-flex h-6 overflow-hidden rounded-md bg-yellow-300 text-yellow-950',
-    free: 'inline-flex h-6 overflow-hidden rounded-full bg-slate-200 text-slate-600',
-    basic: 'inline-flex h-6 overflow-hidden rounded-full bg-slate-200 text-slate-600',
-  };
-  return classes[slug] || 'inline-flex h-6 overflow-hidden rounded-full bg-slate-200 text-slate-600';
-}
-
-function cardTintClass(slug) {
-  const classes = {
-    electron: 'bg-gradient-to-b from-slate-50 to-white',
-    ruby: 'bg-gradient-to-b from-rose-50 to-white',
-    gold: 'bg-gradient-to-b from-yellow-50 to-white',
-    free: 'bg-white',
-    basic: 'bg-white',
-  };
-  return classes[slug] || 'bg-white';
+function cardTintClass(pkg) {
+  const priority = Number(pkg.priority || 0);
+  if (priority >= 4) return 'bg-gradient-to-b from-slate-50 to-white';
+  if (priority === 3) return 'bg-gradient-to-b from-rose-50 to-white';
+  if (priority === 2) return 'bg-gradient-to-b from-yellow-50 to-white';
+  return 'bg-white';
 }
 
 function getFeatures(pkg) {
-  const featMap = {
-    electron: [
+  const priority = Number(pkg.priority || 0);
+  const multiplier = Number(pkg.multiplier || 1);
+
+  if (priority >= 4) {
+    return [
       { text: 'Gói DUY NHẤT tích hợp 3D', enabled: true },
       { text: 'TOP 1 phủ sóng trên hệ sinh thái', enabled: true },
       { text: 'Giao diện hiển thị chuyên biệt', enabled: true },
-      { text: 'Tự động đẩy tin miễn phí', enabled: true },
-    ],
-    ruby: [
+      { text: 'Tự động đẩy tin MIỄN PHÍ', enabled: true },
+    ];
+  }
+  if (priority === 3) {
+    return [
       { text: 'Không tích hợp 3D', enabled: false },
-      { text: 'Nhận tag Ruby', enabled: true },
-      { text: 'Người xem ước tính X10', enabled: true },
+      { text: `Nhận tag ${getBadgeLabel(pkg)}`, enabled: true },
+      { text: `Người xem ước tính X${Math.round(multiplier)}`, enabled: true },
       { text: 'Kích thước lớn, tăng lượt xem', enabled: true },
       { text: 'TOP 2 hiển thị trong danh sách', enabled: true },
-    ],
-    gold: [
+    ];
+  }
+  if (priority === 2) {
+    return [
       { text: 'Không tích hợp 3D', enabled: false },
-      { text: 'Nhận tag Vàng', enabled: true },
-      { text: 'Người xem ước tính X6', enabled: true },
+      { text: `Nhận tag ${getBadgeLabel(pkg)}`, enabled: true },
+      { text: `Người xem ước tính X${Math.round(multiplier)}`, enabled: true },
       { text: 'TOP 3 hiển thị trong danh sách', enabled: true },
-    ],
-    free: [
-      { text: 'Không tích hợp 3D', enabled: false },
-      { text: 'Miễn phí hiển thị trong danh sách', enabled: true },
-      { text: 'Lượt tiếp cận tự nhiên', enabled: true },
-    ],
-    basic: [
-      { text: 'Không tích hợp 3D', enabled: false },
-      { text: 'Miễn phí hiển thị trong danh sách', enabled: true },
-      { text: 'Lượt tiếp cận tự nhiên', enabled: true },
-    ],
-  };
-
-  return featMap[pkg.slug] || [];
+    ];
+  }
+  return [
+    { text: 'Không tích hợp 3D', enabled: false },
+    { text: 'Miễn phí hiển thị trong danh sách', enabled: true },
+    { text: 'Lượt tiếp cận tự nhiên', enabled: true },
+  ];
 }
 </script>
-
