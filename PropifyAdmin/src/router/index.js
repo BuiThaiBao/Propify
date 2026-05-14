@@ -35,7 +35,7 @@ const routes = [
       {
         path: 'posts',
         name: 'Posts',
-        component: () => import('@/pages/PostsPage.vue'),
+        component: () => import('@/pages/Posts/index.vue'),
       },
       {
         path: 'packages',
