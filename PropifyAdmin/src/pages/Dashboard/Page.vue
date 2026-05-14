@@ -59,7 +59,7 @@ const yTicks = [0, 10000000, 20000000, 30000000, 40000000, 45000000]
     <PageHeader title="Dashboard" description="Tổng quan hệ thống Propify" />
 
     <!-- Stats grid -->
-    <div class="stats-grid">
+    <div class="mb-8 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
         title="Tổng số tin đăng"
         value="1,247"
@@ -94,21 +94,21 @@ const yTicks = [0, 10000000, 20000000, 30000000, 40000000, 45000000]
     </div>
 
     <!-- Bottom section -->
-    <div class="dashboard-bottom">
+    <div class="grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1fr]">
       <!-- Revenue chart -->
-      <div class="chart-card">
-        <div class="chart-header">
+      <div class="rounded-xl border border-border/50 bg-card p-6 shadow-card">
+        <div class="mb-6 flex items-start justify-between">
           <div>
-            <h2 class="chart-title">Doanh thu theo thời gian</h2>
-            <p class="chart-sub">Năm 2024</p>
+            <h2 class="m-0 mb-0.5 text-lg font-semibold text-foreground">Doanh thu theo thời gian</h2>
+            <p class="m-0 text-sm text-muted-foreground">Năm 2024</p>
           </div>
-          <div class="chart-badge">
+          <div class="flex items-center gap-1 text-sm font-medium text-success">
             <TrendingUp :size="16" />
             +18%
           </div>
         </div>
-        <div class="chart-wrap">
-          <svg :viewBox="`0 0 ${chartW} ${chartH}`" class="chart-svg" preserveAspectRatio="none">
+        <div class="w-full">
+          <svg :viewBox="`0 0 ${chartW} ${chartH}`" class="block h-[280px] w-full" preserveAspectRatio="none">
             <defs>
               <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stop-color="hsl(217,91%,60%)" stop-opacity="0.2" />
@@ -154,16 +154,16 @@ const yTicks = [0, 10000000, 20000000, 30000000, 40000000, 45000000]
       </div>
 
       <!-- Recent activities -->
-      <div class="activity-card">
-        <h2 class="activity-title">Hoạt động gần đây</h2>
-        <div class="activity-list">
-          <div v-for="a in recentActivities" :key="a.id" class="activity-item">
-            <div class="activity-icon">
+      <div class="rounded-xl border border-border/50 bg-card p-6 shadow-card">
+        <h2 class="m-0 mb-4 text-lg font-semibold text-foreground">Hoạt động gần đây</h2>
+        <div class="flex flex-col gap-4">
+          <div v-for="a in recentActivities" :key="a.id" class="flex items-start gap-3">
+            <div class="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-muted">
               <Clock :size="14" color="hsl(215,16%,47%)" />
             </div>
-            <div class="activity-content">
-              <p class="activity-name">{{ a.title }}</p>
-              <p class="activity-meta">{{ a.user }} · {{ a.time }}</p>
+            <div class="min-w-0 flex-1">
+              <p class="m-0 mb-0.5 truncate text-sm font-medium text-foreground">{{ a.title }}</p>
+              <p class="m-0 text-xs text-muted-foreground">{{ a.user }} · {{ a.time }}</p>
             </div>
             <StatusBadge :status="a.status" />
           </div>
@@ -172,136 +172,3 @@ const yTicks = [0, 10000000, 20000000, 30000000, 40000000, 45000000]
     </div>
   </div>
 </template>
-
-<style scoped>
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 32px;
-}
-
-.dashboard-bottom {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 24px;
-}
-
-/* Chart card */
-.chart-card {
-  background-color: hsl(var(--card));
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: var(--shadow-card);
-  border: 1px solid hsl(var(--border) / 0.5);
-}
-
-.chart-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.chart-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: hsl(var(--foreground));
-  margin: 0 0 2px 0;
-}
-
-.chart-sub {
-  font-size: 14px;
-  color: hsl(var(--muted-foreground));
-  margin: 0;
-}
-
-.chart-badge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  color: hsl(var(--success));
-}
-
-.chart-wrap {
-  width: 100%;
-}
-
-.chart-svg {
-  width: 100%;
-  height: 280px;
-  display: block;
-}
-
-/* Activity card */
-.activity-card {
-  background-color: hsl(var(--card));
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: var(--shadow-card);
-  border: 1px solid hsl(var(--border) / 0.5);
-}
-
-.activity-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: hsl(var(--foreground));
-  margin: 0 0 16px 0;
-}
-
-.activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.activity-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.activity-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-color: hsl(var(--muted));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-.activity-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.activity-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: hsl(var(--foreground));
-  margin: 0 0 2px 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.activity-meta {
-  font-size: 12px;
-  color: hsl(var(--muted-foreground));
-  margin: 0;
-}
-
-@media (max-width: 1200px) {
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .dashboard-bottom { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 640px) {
-  .stats-grid { grid-template-columns: 1fr; }
-}
-</style>

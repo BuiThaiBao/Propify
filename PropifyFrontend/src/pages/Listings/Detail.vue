@@ -249,7 +249,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import listingService from '@/services/listingService';
-import AppointmentBookingPopup from '@/components/AppointmentBookingPopup.vue';
+import AppointmentBookingPopup from '@/components/appointments/AppointmentBookingPopup.vue';
 import { buildPropertyAddress, hydratePropertyAddress } from '@/utils/addressFormatter';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';

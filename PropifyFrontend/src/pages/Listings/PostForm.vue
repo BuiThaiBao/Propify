@@ -816,8 +816,8 @@ import listingService from "@/services/listingService";
 import cloudinaryService from "@/services/cloudinaryService";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-import AppointmentSlotsForm from "@/components/AppointmentSlotsForm.vue";
-import ListingDetail from "@/pages/ListingDetail.vue";
+import AppointmentSlotsForm from "@/components/appointments/AppointmentSlotsForm.vue";
+import ListingDetail from "@/pages/Listings/Detail.vue";
 import realEstateLightStyle from "@/assets/maps/real-estate-light.json";
 
 import uploadImageIcon from "@/assets/images/listing/postlisting/uploadImage.png";

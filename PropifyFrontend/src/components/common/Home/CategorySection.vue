@@ -22,7 +22,7 @@
       <div
         :class="[
           'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4',
-          isVisible ? 'scroll-reveal stagger-1' : 'opacity-0',
+          isVisible ? '' : 'opacity-0',
         ]"
       >
         <router-link
@@ -30,6 +30,7 @@
           :key="cat.label"
           to="/listings"
           class="group bg-card rounded-2xl p-6 text-center shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1 active:scale-[0.97]"
+          :class="isVisible ? 'scroll-reveal' : 'opacity-0'"
           :style="{ animationDelay: `${i * 60}ms` }"
         >
           <!-- Icon -->
@@ -134,25 +135,3 @@ const formatNumber = (num) => {
   return new Intl.NumberFormat("vi-VN").format(num);
 };
 </script>
-
-<style scoped>
-.scroll-reveal {
-  animation: fadeUp 0.6s ease forwards;
-}
-
-.stagger-1 > * {
-  opacity: 0;
-  animation: fadeUp 0.6s ease forwards;
-}
-
-@keyframes fadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

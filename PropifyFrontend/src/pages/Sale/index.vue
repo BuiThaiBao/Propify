@@ -72,7 +72,7 @@
             <!-- Prev -->
             <button
               :disabled="currentPage <= 1 || saleLoading"
-              class="pagination-btn"
+              class="inline-flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-[10px] border border-slate-200 bg-white px-2 text-sm font-medium text-slate-600 transition-all hover:not-disabled:border-slate-300 hover:not-disabled:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
               @click="goToPage(currentPage - 1)"
             >
               <ChevronLeft class="w-4 h-4" />
@@ -84,7 +84,8 @@
               <button
                 v-else
                 :disabled="saleLoading"
-                :class="['pagination-btn', page === currentPage ? 'pagination-btn--active' : '']"
+                class="inline-flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-[10px] border border-slate-200 bg-white px-2 text-sm font-medium text-slate-600 transition-all hover:not-disabled:border-slate-300 hover:not-disabled:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                :class="page === currentPage ? '!border-blue-500 !bg-blue-500 !text-white shadow-lg shadow-blue-500/30' : ''"
                 @click="goToPage(page)"
               >
                 {{ page }}
@@ -94,7 +95,7 @@
             <!-- Next -->
             <button
               :disabled="currentPage >= lastPage || saleLoading"
-              class="pagination-btn"
+              class="inline-flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-[10px] border border-slate-200 bg-white px-2 text-sm font-medium text-slate-600 transition-all hover:not-disabled:border-slate-300 hover:not-disabled:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
               @click="goToPage(currentPage + 1)"
             >
               <ChevronRight class="w-4 h-4" />
@@ -247,7 +248,7 @@ function prefetchSiblingPages() {
     prefetchPackages();
     import('@/pages/Rent/index.vue');
     import('@/pages/Pricing/index.vue');
-    import('@/pages/Home.vue');
+    import('@/pages/Home/index.vue');
   };
 
   if ('requestIdleCallback' in window) {
@@ -315,39 +316,3 @@ function isVerified(item) {
   return value === true || Number(value) === 1;
 }
 </script>
-
-<style scoped>
-.pagination-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  height: 36px;
-  padding: 0 8px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #475569;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.pagination-btn:hover:not(:disabled):not(.pagination-btn--active) {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-}
-
-.pagination-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.pagination-btn--active {
-  background: #3b82f6;
-  color: #fff;
-  border-color: #3b82f6;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-}
-</style>
