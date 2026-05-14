@@ -2,7 +2,7 @@
 
 namespace App\DTOs\Chat;
 
-use App\Http\Resources\Requests\Chat\GetOrCreateConversationRequest;
+use App\Http\Requests\Chat\GetOrCreateConversationRequest;
 
 /**
  * DTO để lấy hoặc tạo conversation giữa 2 user.

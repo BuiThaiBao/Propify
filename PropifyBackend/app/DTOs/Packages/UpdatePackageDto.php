@@ -2,7 +2,7 @@
 
 namespace App\DTOs\Packages;
 
-use App\Http\Resources\Requests\Package\UpdatePackageRequest;
+use App\Http\Requests\Package\UpdatePackageRequest;
 
 final readonly class UpdatePackageDto
 {

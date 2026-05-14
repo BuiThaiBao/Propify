@@ -3,7 +3,7 @@
 namespace App\DTOs\Packages;
 
 use App\Enums\PackageType;
-use App\Http\Resources\Requests\Package\CreatePackageRequest;
+use App\Http\Requests\Package\CreatePackageRequest;
 
 final readonly class CreatePackageDto
 {

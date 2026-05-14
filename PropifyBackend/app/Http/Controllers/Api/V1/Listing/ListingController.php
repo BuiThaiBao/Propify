@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\V1\Listing;
 
 use App\Helpers\ApiResponse;
-use App\Http\Resources\Requests\Listing\CreateListingRequest;
-use App\Http\Resources\Requests\Listing\GetMyListingsRequest;
+use App\Http\Requests\Listing\CreateListingRequest;
+use App\Http\Requests\Listing\GetMyListingsRequest;
 use App\Http\Resources\ListingResource;
 use App\Services\Listing\ListingService;
 use Illuminate\Http\JsonResponse;

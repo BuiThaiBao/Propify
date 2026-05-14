@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Api\V1\Appointment;
 
 use App\Helpers\ApiResponse;
 use App\Http\Resources\AppointmentSlotResource;
-use App\Http\Resources\Requests\Appointment\CreateSlotsRequest;
-use App\Http\Resources\Requests\Appointment\GetAppointmentSlotsRequest;
-use App\Http\Resources\Requests\Appointment\UpdateSlotRequest;
+use App\Http\Requests\Appointment\CreateSlotsRequest;
+use App\Http\Requests\Appointment\GetAppointmentSlotsRequest;
+use App\Http\Requests\Appointment\UpdateSlotRequest;
 use App\Services\Appointment\AppointmentSlotService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
