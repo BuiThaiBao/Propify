@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
-use App\Services\AuthGoogleService;
+use App\Services\Auth\AuthGoogleService;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 final class GoogleController

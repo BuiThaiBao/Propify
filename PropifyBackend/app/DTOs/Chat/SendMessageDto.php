@@ -3,7 +3,7 @@
 namespace App\DTOs\Chat;
 
 use App\Enums\MessageType;
-use App\Http\Resources\Requests\Chat\SendMessageRequest;
+use App\Http\Requests\Chat\SendMessageRequest;
 
 /**
  * DTO cho việc gửi message.

@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Appointment;
 
 use App\Helpers\ApiResponse;
-use App\Http\Resources\Requests\Appointment\CreateBookingRequest;
-use App\Http\Resources\Requests\Appointment\UpdateBookingStatusRequest;
-use App\Http\Resources\Requests\Appointment\CancelBookingRequest;
+use App\Http\Requests\Appointment\CreateBookingRequest;
+use App\Http\Requests\Appointment\UpdateBookingStatusRequest;
+use App\Http\Requests\Appointment\CancelBookingRequest;
 use App\Http\Resources\AppointmentBookingResource;
 use App\Http\Resources\ViewerBookingResource;
 use App\Services\Appointment\AppointmentBookingService;
