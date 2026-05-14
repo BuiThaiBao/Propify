@@ -37,6 +37,13 @@
               placeholder="Ví dụ: Gói Cơ bản"
               :error="errors.name"
             />
+            <Input
+              v-model="form.slug"
+              label="Định danh (Slug)"
+              required
+              placeholder="Ví dụ: basic"
+              :error="errors.slug"
+            />
             <label class="mt-7 flex items-center rounded-lg border border-gray-100 bg-gray-50 p-3">
               <input
                 v-model="form.is_active"
@@ -175,6 +182,7 @@ const durationOptions = ref([])
 
 const form = reactive({
   name: '',
+  slug: '',
   priority: 1,
   multiplier: 1,
   daily_quota: 100,
@@ -236,6 +244,10 @@ function validate() {
     errors.name = 'Vui lòng nhập tên gói'
     isValid = false
   }
+  if (!form.slug) {
+    errors.slug = 'Vui lòng nhập định danh gói'
+    isValid = false
+  }
   if (form.priority < 1) {
     errors.priority = 'Độ ưu tiên phải lớn hơn hoặc bằng 1'
     isValid = false
@@ -272,6 +284,7 @@ async function handleSubmit() {
   try {
     await updatePackage(packageId, {
       name: form.name,
+      slug: form.slug,
       priority: Number(form.priority),
       multiplier: Number(form.multiplier),
       daily_quota: Number(form.daily_quota),
@@ -301,6 +314,7 @@ onMounted(async () => {
     if (response?.data) {
       const data = response.data
       form.name = data.name
+      form.slug = data.slug || ''
       form.priority = Number(data.priority)
       form.multiplier = Number(data.multiplier)
       form.daily_quota = Number(data.daily_quota)

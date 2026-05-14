@@ -91,6 +91,7 @@ class PackageServiceImpl implements PackageService
             
             $this->packageRepository->update($id, [
                 'name' => $dto->name,
+                'slug' => $dto->slug,
                 'price' => $dto->price,
                 'priority' => $dto->priority,
                 'multiplier' => $dto->multiplier,

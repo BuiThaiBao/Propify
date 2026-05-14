@@ -160,8 +160,8 @@ const selectedPricing = ref(null);
 
 // Only show: electron, ruby, gold, free (exclude silver/bac)
 const displayPackages = computed(() => {
-  const allowedSlugs = ['dimond', 'electron', 'ruby', 'gold', 'free'];
-  const slugOrder = { dimond: 0, electron: 1, ruby: 2, gold: 3, free: 4 };
+  const allowedSlugs = ['diamond', 'electron', 'ruby', 'gold', 'free'];
+  const slugOrder = { diamond: 0, electron: 1, ruby: 2, gold: 3, free: 4 };
   return [...packages.value]
     .filter(p => allowedSlugs.includes(p.slug))
     .sort((a, b) => (slugOrder[a.slug] ?? 99) - (slugOrder[b.slug] ?? 99));
@@ -248,14 +248,14 @@ function formatPrice(value) {
 }
 
 function slugLabel(slug) {
-  const map = { dimond: 'Diamond', electron: 'Electron', ruby: 'Ruby', gold: 'Vàng', free: 'Tin thường' };
+  const map = { diamond: 'Diamond', electron: 'Electron', ruby: 'Ruby', gold: 'Vàng', free: 'Tin thường' };
   return map[slug] || slug;
 }
 
 const priorityIconMap = {
   2: '/vip.svg',
   3: '/premium.svg',
-  4: '/dimond.svg',
+  4: '/diamond.svg',
 };
 
 function getIconSrc(pkg) {
@@ -264,13 +264,13 @@ function getIconSrc(pkg) {
 }
 
 function getPushPrice(pkg) {
-  const map = { dimond: 'Miễn phí', electron: 'Miễn phí', ruby: '8.000đ', gold: '5.000đ', free: '1.000đ' };
+  const map = { diamond: 'Miễn phí', electron: 'Miễn phí', ruby: '8.000đ', gold: '5.000đ', free: '1.000đ' };
   return map[pkg.slug] || 'N/A';
 }
 
 function getFeatures(pkg) {
   const featMap = {
-    dimond: [
+    diamond: [
       { text: 'Gói <strong>DUY NHẤT</strong> tích hợp 3D', enabled: true },
       { text: '<strong>TOP 1</strong> phủ sóng trên hệ sinh thái', enabled: true },
       { text: 'Giao diện hiển thị chuyên biệt', enabled: true },
@@ -464,7 +464,7 @@ function getFeatures(pkg) {
 }
 
 /* Ruby - red gradient */
-.pkg-badge-label--dimond {
+.pkg-badge-label--diamond {
   background: linear-gradient(135deg, #0f172a, #334155);
   color: #fff;
 }
@@ -643,7 +643,7 @@ function getFeatures(pkg) {
   color: #fff !important;
 }
 
-.pkg-action-btn--ready.pkg-action-btn--dimond {
+.pkg-action-btn--ready.pkg-action-btn--diamond {
   background: linear-gradient(135deg, #0f172a, #334155) !important;
 }
 
@@ -695,7 +695,7 @@ function getFeatures(pkg) {
 }
 
 /* ─── Card Slug Borders ─── */
-.package-card--dimond {
+.package-card--diamond {
   border-top: 3px solid #0f172a;
 }
 

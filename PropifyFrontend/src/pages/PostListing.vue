@@ -242,7 +242,22 @@
           </label>
 
           <p class="mt-3 text-[14px] font-semibold text-slate-700">Vị trí trên bản đồ</p>
-          <div class="mt-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+          <div class="relative mt-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+            <button
+              type="button"
+              class="absolute left-3 top-3 z-10 rounded-lg border border-white/70 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white hover:text-sky-700"
+              @click.stop="toggleMapMode"
+            >
+              {{ mapMode === 'satellite' ? 'Bản đồ' : 'Vệ tinh' }}
+            </button>
+            <button
+              type="button"
+              class="absolute left-3 top-[52px] z-10 rounded-lg border border-white/70 px-3 py-2 text-xs font-semibold shadow-sm backdrop-blur transition hover:bg-white"
+              :class="isMap3dEnabled ? 'bg-sky-500/95 text-white hover:text-white' : 'bg-white/95 text-slate-700 hover:text-sky-700'"
+              @click.stop="toggleMap3d"
+            >
+              {{ isMap3dEnabled ? '2D' : '3D' }}
+            </button>
             <div ref="mapElement" class="location-map"></div>
           </div>
 
@@ -954,9 +969,32 @@ const validationErrors = ref({});
 const touchedFields = reactive({});
 const locationSearchText = ref("");
 const mapElement = ref(null);
+const mapMode = ref("standard");
+const isMap3dEnabled = ref(false);
 let map = null;
 const POSTING_LOCATION_SOURCE_ID = "property";
 const POSTING_LOCATION_FEATURE_ID = "posting-location";
+const SATELLITE_LAYER_ID = "satellite-base";
+const SATELLITE_SOURCE_ID = "satellite";
+const STANDARD_MAP_PITCH = 38;
+const TOP_DOWN_MAP_PITCH = 0;
+const SATELLITE_HIDDEN_BASE_LAYERS = [
+  "landcover-park",
+  "landuse-public",
+  "water",
+  "waterway",
+  "aeroway",
+  "building-footprints",
+  "building-3d",
+  "road-minor-casing",
+  "road-minor",
+  "road-major-casing",
+  "road-major",
+  "rail-transit",
+  "place-label-city",
+  "road-label",
+];
+let lastStandardCamera = null;
 const provinces = ref([]);
 const wards = ref([]);
 const wardsLoading = ref(false);
@@ -1473,9 +1511,9 @@ function initializeMap() {
     center: [106.7009, 10.7769],
     zoom: 11,
     minZoom: 5,
-    maxZoom: 19,
-    pitch: 0,
-    maxPitch: 45,
+    maxZoom: 20,
+    pitch: TOP_DOWN_MAP_PITCH,
+    maxPitch: 55,
     antialias: true,
     cooperativeGestures: false,
   });
@@ -1495,6 +1533,11 @@ function initializeMap() {
     const { lat, lng } = event.lngLat;
     setMarkerPosition(lat, lng, 16);
     await reverseGeocodeFromLatLng(lat, lng);
+  });
+
+  map.on("load", () => {
+    setMapMode(mapMode.value);
+    bindNavigationPitchToggle();
   });
 }
 
@@ -1520,11 +1563,12 @@ function replaceMapTilerKey(value, key) {
 }
 
 function buildPostingMapStyle() {
-  const style = replaceMapTilerKey(realEstateLightStyle, import.meta.env.VITE_MAPTILER_KEY);
+  const mapTilerKey = import.meta.env.VITE_MAPTILER_KEY;
+  const style = replaceMapTilerKey(realEstateLightStyle, mapTilerKey);
 
   style.center = [106.7009, 10.7769];
   style.zoom = 11;
-  style.pitch = 0;
+  style.pitch = TOP_DOWN_MAP_PITCH;
   style.sources[POSTING_LOCATION_SOURCE_ID].data = {
     type: "FeatureCollection",
     features: [],
@@ -1533,8 +1577,165 @@ function buildPostingMapStyle() {
     type: "FeatureCollection",
     features: [],
   };
+  style.sources[SATELLITE_SOURCE_ID] = {
+    type: "raster",
+    tiles: [
+      `https://api.maptiler.com/maps/hybrid/256/{z}/{x}/{y}@2x.jpg?key=${mapTilerKey}`,
+    ],
+    tileSize: 256,
+    maxzoom: 20,
+  };
+  style.layers.splice(1, 0, {
+    id: SATELLITE_LAYER_ID,
+    type: "raster",
+    source: SATELLITE_SOURCE_ID,
+    layout: {
+      visibility: "none",
+    },
+    paint: {
+      "raster-opacity": 0.92,
+      "raster-saturation": -0.18,
+      "raster-contrast": 0.08,
+      "raster-brightness-min": 0.08,
+      "raster-brightness-max": 0.96,
+      "raster-resampling": "linear",
+      "raster-fade-duration": 0,
+    },
+  });
 
   return style;
+}
+
+function setMapMode(mode) {
+  mapMode.value = mode;
+
+  if (!map?.getLayer(SATELLITE_LAYER_ID)) return;
+
+  const isSatellite = mode === "satellite";
+  const pitch = isSatellite || !isMap3dEnabled.value ? TOP_DOWN_MAP_PITCH : STANDARD_MAP_PITCH;
+
+  map.setLayoutProperty(
+    SATELLITE_LAYER_ID,
+    "visibility",
+    isSatellite ? "visible" : "none",
+  );
+
+  SATELLITE_HIDDEN_BASE_LAYERS.forEach((layerId) => {
+    if (!map.getLayer(layerId)) return;
+    map.setLayoutProperty(layerId, "visibility", isSatellite ? "none" : "visible");
+  });
+
+  map.easeTo({
+    pitch,
+    duration: 450,
+    essential: true,
+  });
+}
+
+function toggleMapMode() {
+  setMapMode(mapMode.value === "satellite" ? "standard" : "satellite");
+}
+
+function toggleMap3d() {
+  if (!map) return;
+
+  isMap3dEnabled.value = !isMap3dEnabled.value;
+
+  if (isMap3dEnabled.value && mapMode.value === "satellite") {
+    setMapMode("standard");
+    return;
+  }
+
+  const camera = isMap3dEnabled.value
+    ? {
+        center: map.getCenter(),
+        zoom: Math.max(map.getZoom(), 15.5),
+        bearing: map.getBearing(),
+        pitch: STANDARD_MAP_PITCH,
+      }
+    : {
+        center: map.getCenter(),
+        zoom: map.getZoom(),
+        bearing: 0,
+        pitch: TOP_DOWN_MAP_PITCH,
+      };
+
+  if (isMap3dEnabled.value) {
+    lastStandardCamera = camera;
+  }
+
+  map.easeTo({
+    ...camera,
+    duration: 500,
+    essential: true,
+  });
+}
+
+function getCurrentCamera() {
+  if (!map) return null;
+
+  return {
+    center: map.getCenter(),
+    zoom: map.getZoom(),
+    bearing: map.getBearing(),
+    pitch: map.getPitch(),
+  };
+}
+
+function toggleStandardMapPitch() {
+  if (!map || mapMode.value === "satellite") return false;
+
+  const currentPitch = map.getPitch();
+  const isTopDown = currentPitch <= 1;
+
+  if (isTopDown) {
+    isMap3dEnabled.value = true;
+
+    const camera = lastStandardCamera || {
+      center: map.getCenter(),
+      zoom: map.getZoom(),
+      bearing: map.getBearing(),
+      pitch: STANDARD_MAP_PITCH,
+    };
+
+    map.easeTo({
+      center: camera.center,
+      zoom: camera.zoom,
+      bearing: camera.bearing,
+      pitch: camera.pitch > 1 ? camera.pitch : STANDARD_MAP_PITCH,
+      duration: 450,
+      essential: true,
+    });
+  } else {
+    isMap3dEnabled.value = false;
+    lastStandardCamera = getCurrentCamera();
+
+    map.easeTo({
+      pitch: TOP_DOWN_MAP_PITCH,
+      bearing: 0,
+      duration: 450,
+      essential: true,
+    });
+  }
+
+  return true;
+}
+
+function bindNavigationPitchToggle() {
+  if (!mapElement.value) return;
+
+  const compassButton = mapElement.value.querySelector(".maplibregl-ctrl-compass");
+  if (!compassButton) return;
+
+  compassButton.addEventListener(
+    "click",
+    (event) => {
+      if (!toggleStandardMapPitch()) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    },
+    true,
+  );
 }
 
 function createPostingLocationFeature(lat, lng) {
@@ -1581,7 +1782,7 @@ function setMarkerPosition(lat, lng, zoom = 16) {
     map.easeTo({
       center: [numericLng, numericLat],
       zoom,
-      pitch: 0,
+      pitch: isMap3dEnabled.value ? STANDARD_MAP_PITCH : TOP_DOWN_MAP_PITCH,
       duration: 550,
       essential: true,
     });
