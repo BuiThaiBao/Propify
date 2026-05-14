@@ -19,7 +19,7 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('@/pages/LoginPage.vue'),
+    component: () => import('@/pages/Auth/Login.vue'),
     meta: { requiresGuest: true },
   },
   {
@@ -30,7 +30,7 @@ const routes = [
       {
         path: '',
         name: 'Dashboard',
-        component: () => import('@/pages/DashboardPage.vue'),
+        component: () => import('@/pages/Dashboard/Page.vue'),
       },
       {
         path: 'posts',
@@ -40,37 +40,37 @@ const routes = [
       {
         path: 'packages',
         name: 'Packages',
-        component: () => import('@/pages/PackagesPage.vue'),
+        component: () => import('@/pages/Packages/ListPage.vue'),
       },
       {
         path: 'packages/create',
         name: 'PackageCreate',
-        component: () => import('@/pages/PackageCreatePage.vue'),
+        component: () => import('@/pages/Packages/CreatePage.vue'),
       },
       {
         path: 'packages/:id',
         name: 'PackageDetail',
-        component: () => import('@/pages/PackageDetailPage.vue'),
+        component: () => import('@/pages/Packages/DetailPage.vue'),
       },
       {
         path: 'packages/:id/edit',
         name: 'PackageEdit',
-        component: () => import('@/pages/PackageEditPage.vue'),
+        component: () => import('@/pages/Packages/EditPage.vue'),
       },
       {
         path: 'users',
         name: 'Users',
-        component: () => import('@/pages/UsersPage.vue'),
+        component: () => import('@/pages/Users/Page.vue'),
       },
       {
         path: 'utilities',
         name: 'Utilities',
-        component: () => import('@/pages/UtilitiesPage.vue'),
+        component: () => import('@/pages/Utilities/Page.vue'),
       },
       {
         path: 'revenue',
         name: 'Revenue',
-        component: () => import('@/pages/RevenuePage.vue'),
+        component: () => import('@/pages/Revenue/Page.vue'),
       },
     ],
   },

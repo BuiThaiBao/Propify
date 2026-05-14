@@ -16,14 +16,14 @@
       <div class="max-w-2xl">
         <!-- Subtitle -->
         <p
-          class="text-primary-foreground/70 text-sm font-medium tracking-wider uppercase mb-4 animate-fade-in"
+          class="mb-4 animate-[fadeIn_0.6s_ease_forwards] text-sm font-medium uppercase tracking-wider text-primary-foreground/70"
         >
           Nền tảng cho thuê bất động sản hàng đầu
         </p>
 
         <!-- Title -->
         <h1
-          class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-primary-foreground leading-[1.1] mb-6 animate-slide-up"
+          class="mb-6 animate-[slideUp_0.6s_ease_forwards] text-4xl font-extrabold leading-[1.1] text-primary-foreground sm:text-5xl lg:text-6xl"
         >
           Tìm ngôi nhà <br />
           <span class="text-accent">mơ ước</span> của bạn
@@ -31,7 +31,7 @@
 
         <!-- Description -->
         <p
-          class="text-primary-foreground/70 text-lg max-w-lg mb-10 animate-slide-up"
+          class="mb-10 max-w-lg animate-[slideUp_0.6s_ease_forwards] text-lg text-primary-foreground/70"
           :style="{ animationDelay: '100ms' }"
         >
           Khám phá hàng ngàn tin đăng cho thuê được xác thực. Từ căn hộ cao cấp
@@ -40,7 +40,7 @@
 
         <!-- Search bar -->
         <div
-          class="bg-card rounded-2xl p-2 shadow-elevated max-w-xl animate-slide-up"
+          class="max-w-xl animate-[slideUp_0.6s_ease_forwards] rounded-2xl bg-card p-2 shadow-elevated"
           :style="{ animationDelay: '200ms' }"
         >
           <div class="flex flex-col sm:flex-row gap-2">
@@ -77,7 +77,7 @@
 
         <!-- Stats -->
         <div
-          class="flex gap-8 mt-10 animate-slide-up"
+          class="mt-10 flex animate-[slideUp_0.6s_ease_forwards] gap-8"
           :style="{ animationDelay: '350ms' }"
         >
           <div v-for="stat in stats" :key="stat.label">
@@ -123,33 +123,3 @@ const stats = [
   { value: "98.5%", label: "Hài lòng" },
 ];
 </script>
-
-<style scoped>
-/* nếu bạn chưa có animation thì thêm tạm */
-.animate-fade-in {
-  animation: fadeIn 0.6s ease forwards;
-}
-.animate-slide-up {
-  animation: slideUp 0.6s ease forwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

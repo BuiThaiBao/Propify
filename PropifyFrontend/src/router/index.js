@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-import Home from "../pages/Home.vue";
+import Home from "@/pages/Home/index.vue";
 
 const routes = [
   {
@@ -50,18 +50,18 @@ const routes = [
   {
     path: "/post-listing",
     name: "PostListing",
-    component: () => import("@/pages/PostListing.vue"),
+    component: () => import("@/pages/Listings/PostForm.vue"),
     meta: { requiresAuth: true },
   },
   {
     path: "/listings/:id",
     name: "ListingDetail",
-    component: () => import("@/pages/ListingDetail.vue"),
+    component: () => import("@/pages/Listings/Detail.vue"),
   },
   {
     path: "/listings/:id/edit",
     name: "ListingEdit",
-    component: () => import("@/pages/PostListing.vue"),
+    component: () => import("@/pages/Listings/PostForm.vue"),
     meta: { requiresAuth: true },
   },
   {

@@ -6,4 +6,3 @@
 import MainLayout from "@/layouts/MainLayout.vue";
 </script>
 
-<style lang="scss" scoped></style>
