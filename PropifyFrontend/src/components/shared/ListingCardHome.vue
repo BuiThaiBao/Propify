@@ -16,7 +16,7 @@
 				>
 					<span v-if="packageIcon" class="relative inline-block">
 						<img :src="packageIcon" class="block h-[3.5rem] w-auto" alt="" />
-						<span class="absolute top-[30%] right-1 flex h-[37%] items-center justify-center px-2.5 text-[9px] font-extrabold tracking-wide text-white whitespace-nowrap">
+						<span class="absolute top-[30%] right-0 flex h-[37%] items-center justify-center px-2.5 text-[9px] font-extrabold tracking-wide text-white whitespace-nowrap">
 							{{ packageLabel }}
 						</span>
 					</span>
@@ -85,7 +85,7 @@
 import { computed } from 'vue';
 import { Bath, Bed, CheckCircle2, Heart, MapPin, Maximize } from 'lucide-vue-next';
 
-const priorityIconMap = { 2: '/vip.svg', 3: '/premium.svg', 4: '/dimond.svg' };
+const priorityIconMap = { 2: '/vip.svg', 3: '/premium.svg', 4: '/diamond.svg' };
 
 const props = defineProps({
 	listingId: { type: [Number, String], default: null },
@@ -121,7 +121,7 @@ const packageBorderClass = computed(() => {
 	const priority = Number(props.package?.priority || 0);
 	if (slug === 'ruby') return 'border-package border-package-ruby';
 	if (slug === 'gold' || priority === 3) return 'border-package border-package-gold';
-	if (slug === 'dimond' || slug === 'diamond' || priority === 4) return 'border-package border-package-diamond';
+	if (slug === 'diamond' || priority === 4) return 'border-package border-package-diamond';
 	return '';
 });
 </script>

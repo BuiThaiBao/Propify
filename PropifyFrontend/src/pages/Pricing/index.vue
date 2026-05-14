@@ -152,7 +152,7 @@ const { packages, loading, error, fetchPackages } = usePackages();
 const priorityIconMap = {
   2: '/vip.svg',
   3: '/premium.svg',
-  4: '/dimond.svg',
+  4: '/diamond.svg',
 };
 
 const displayPackages = computed(() => {

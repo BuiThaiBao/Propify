@@ -4,6 +4,7 @@ namespace App\Http\Resources\Requests\Package;
 
 use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class UpdatePackageRequest extends FormRequest
 {
@@ -16,6 +17,12 @@ final class UpdatePackageRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'slug' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('packages', 'slug')->ignore($this->route('id')),
+            ],
             'price' => ['nullable', 'numeric', 'min:0'],
             'priority' => ['required', 'integer', 'min:1'],
             'multiplier' => ['required', 'numeric', 'min:1'],

@@ -168,6 +168,15 @@
               >
                 {{ mapMode === 'satellite' ? 'Bản đồ' : 'Vệ tinh' }}
               </button>
+              <button
+                v-if="hasLatLng"
+                type="button"
+                class="absolute left-3 top-[52px] z-10 rounded-lg border border-white/70 px-3 py-2 text-xs font-semibold shadow-sm backdrop-blur transition hover:bg-white"
+                :class="isMap3dEnabled ? 'bg-sky-500/95 text-white hover:text-white' : 'bg-white/95 text-slate-700 hover:text-sky-700'"
+                @click.stop="toggleMap3d"
+              >
+                {{ isMap3dEnabled ? '2D' : '3D' }}
+              </button>
               <div v-show="hasLatLng" ref="mapElement" class="h-full w-full"></div>
               <div v-if="!hasLatLng" class="flex h-full w-full items-center justify-center text-slate-400">
                 Bản đồ không được hỗ trợ cho vị trí này
@@ -270,10 +279,13 @@ const activeImageIndex = ref(0);
 const mapElement = ref(null);
 const showAppointmentPopup = ref(false);
 const mapMode = ref('standard');
+const isMap3dEnabled = ref(false);
 let map = null;
 
 const SATELLITE_LAYER_ID = 'satellite-base';
 const SATELLITE_SOURCE_ID = 'satellite';
+const STANDARD_MAP_PITCH = 38;
+const TOP_DOWN_MAP_PITCH = 0;
 const SATELLITE_HIDDEN_BASE_LAYERS = [
   'landcover-park',
   'landuse-public',
@@ -290,6 +302,7 @@ const SATELLITE_HIDDEN_BASE_LAYERS = [
   'place-label-city',
   'road-label',
 ];
+let lastStandardCamera = null;
 
 const displayImages = computed(() => {
   if (!listing.value?.images?.length) return [];
@@ -559,8 +572,11 @@ function buildRealEstateMapStyle(lat, lng) {
   };
   style.sources[SATELLITE_SOURCE_ID] = {
     type: 'raster',
-    url: `https://api.maptiler.com/maps/hybrid/tiles.json?key=${mapTilerKey}`,
-    tileSize: 512,
+    tiles: [
+      `https://api.maptiler.com/maps/hybrid/256/{z}/{x}/{y}@2x.jpg?key=${mapTilerKey}`,
+    ],
+    tileSize: 256,
+    maxzoom: 20,
   };
   style.layers.splice(1, 0, {
     id: SATELLITE_LAYER_ID,
@@ -575,6 +591,8 @@ function buildRealEstateMapStyle(lat, lng) {
       'raster-contrast': 0.08,
       'raster-brightness-min': 0.08,
       'raster-brightness-max': 0.96,
+      'raster-resampling': 'linear',
+      'raster-fade-duration': 0,
     },
   });
 
@@ -587,6 +605,7 @@ function setMapMode(mode) {
   if (!map?.getLayer(SATELLITE_LAYER_ID)) return;
 
   const isSatellite = mode === 'satellite';
+  const pitch = isSatellite || !isMap3dEnabled.value ? TOP_DOWN_MAP_PITCH : STANDARD_MAP_PITCH;
 
   map.setLayoutProperty(
     SATELLITE_LAYER_ID,
@@ -600,7 +619,7 @@ function setMapMode(mode) {
   });
 
   map.easeTo({
-    pitch: isSatellite ? 0 : 38,
+    pitch,
     duration: 450,
     essential: true,
   });
@@ -608,6 +627,108 @@ function setMapMode(mode) {
 
 function toggleMapMode() {
   setMapMode(mapMode.value === 'satellite' ? 'standard' : 'satellite');
+}
+
+function toggleMap3d() {
+  if (!map) return;
+
+  isMap3dEnabled.value = !isMap3dEnabled.value;
+
+  if (isMap3dEnabled.value && mapMode.value === 'satellite') {
+    setMapMode('standard');
+    return;
+  }
+
+  const camera = isMap3dEnabled.value
+    ? {
+        center: map.getCenter(),
+        zoom: Math.max(map.getZoom(), 15.5),
+        bearing: map.getBearing(),
+        pitch: STANDARD_MAP_PITCH,
+      }
+    : {
+        center: map.getCenter(),
+        zoom: map.getZoom(),
+        bearing: 0,
+        pitch: TOP_DOWN_MAP_PITCH,
+      };
+
+  if (isMap3dEnabled.value) {
+    lastStandardCamera = camera;
+  }
+
+  map.easeTo({
+    ...camera,
+    duration: 500,
+    essential: true,
+  });
+}
+
+function getCurrentCamera() {
+  if (!map) return null;
+
+  return {
+    center: map.getCenter(),
+    zoom: map.getZoom(),
+    bearing: map.getBearing(),
+    pitch: map.getPitch(),
+  };
+}
+
+function toggleStandardMapPitch() {
+  if (!map || mapMode.value === 'satellite') return false;
+
+  const currentPitch = map.getPitch();
+  const isTopDown = currentPitch <= 1;
+
+  if (isTopDown) {
+    isMap3dEnabled.value = true;
+
+    const camera = lastStandardCamera || {
+      center: map.getCenter(),
+      zoom: map.getZoom(),
+      bearing: map.getBearing(),
+      pitch: STANDARD_MAP_PITCH,
+    };
+
+    map.easeTo({
+      center: camera.center,
+      zoom: camera.zoom,
+      bearing: camera.bearing,
+      pitch: camera.pitch > 1 ? camera.pitch : STANDARD_MAP_PITCH,
+      duration: 450,
+      essential: true,
+    });
+  } else {
+    isMap3dEnabled.value = false;
+    lastStandardCamera = getCurrentCamera();
+
+    map.easeTo({
+      pitch: TOP_DOWN_MAP_PITCH,
+      bearing: 0,
+      duration: 450,
+      essential: true,
+    });
+  }
+
+  return true;
+}
+
+function bindNavigationPitchToggle() {
+  if (!mapElement.value) return;
+
+  const compassButton = mapElement.value.querySelector('.maplibregl-ctrl-compass');
+  if (!compassButton) return;
+
+  compassButton.addEventListener(
+    'click',
+    (event) => {
+      if (!toggleStandardMapPitch()) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    },
+    true,
+  );
 }
 
 function initMap() {
@@ -623,7 +744,7 @@ function initMap() {
     center: [lng, lat],
     zoom: 15,
     minZoom: 5,
-    maxZoom: 19,
+    maxZoom: 20,
     pitch: 0,
     maxPitch: 55,
     antialias: true,
@@ -659,11 +780,13 @@ function initMap() {
       map.easeTo({
         center: [lng, lat],
         zoom: 15.5,
-        pitch: 38,
+        pitch: isMap3dEnabled.value ? STANDARD_MAP_PITCH : TOP_DOWN_MAP_PITCH,
         duration: 900,
         essential: true,
       });
     }, 250);
+
+    bindNavigationPitchToggle();
   });
 }
 
