@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import PostsFilter from './PostsFilter.vue'
@@ -7,6 +8,7 @@ import PostsTable from './PostsTable.vue'
 import { listingService } from '@/services/listingService'
 
 const PER_PAGE = 8
+const router = useRouter()
 
 const searchQuery = ref('')
 const filterStatus = ref('all')
@@ -93,6 +95,11 @@ async function updateListingStatus({ id, status, rejectionReason = null }) {
   }
 }
 
+function openListingDetail(post) {
+  if (post.demand_type !== 'SALE') return
+  router.push({ name: 'PostDetail', params: { id: post.id } })
+}
+
 function goToPage(page) {
   if (page < 1 || page > pagination.last_page || page === pagination.current_page) return
   pagination.current_page = page
@@ -135,6 +142,7 @@ onMounted(fetchListings)
       :action-error="actionError"
       :updating-post-id="updatingPostId"
       @change-status="updateListingStatus"
+      @open-detail="openListingDetail"
     />
 
     <div v-if="pagination.total > 0" class="posts-pagination">

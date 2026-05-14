@@ -26,7 +26,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['change-status'])
+const emit = defineEmits(['change-status', 'open-detail'])
 
 const selectedIds = ref(new Set())
 const activeMenuId = ref(null)
@@ -45,6 +45,7 @@ const normalizedPosts = computed(() => props.posts.map((post) => ({
   packageName: post.package?.name || 'Free',
   ownerName: post.owner?.full_name || '--',
   approverName: post.approver?.full_name || (post.approved_by ? `ID ${post.approved_by}` : '--'),
+  demandTypeText: formatDemandType(post.demand_type),
   propertyType: formatPropertyType(post.property?.type),
   address: post.property?.address_detail || post.property?.project_name || '--',
   statusKey: mapStatusKey(post.status),
@@ -109,6 +110,15 @@ function formatPropertyType(type) {
     .toLowerCase()
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function formatDemandType(type) {
+  const labels = {
+    RENT: 'Cho thuê',
+    SALE: 'Mua bán',
+  }
+
+  return labels[type] || type || '--'
 }
 
 function mapStatusKey(status) {
@@ -293,6 +303,7 @@ onBeforeUnmount(() => {
             </th>
             <th class="col-package">Gói tin</th>
             <th class="col-owner">Chủ nhà</th>
+            <th class="col-demand">Nhu cầu</th>
             <th class="col-type">Loại hình</th>
             <th class="col-date">Ngày tạo</th>
             <th class="col-date">
@@ -336,13 +347,20 @@ onBeforeUnmount(() => {
             <td class="sticky-right sticky-status col-status"></td>
             <td class="sticky-right sticky-action action-cell"></td>
           </tr>
-          <tr v-for="post in normalizedPosts" v-else :key="post.id">
+          <tr
+            v-for="post in normalizedPosts"
+            v-else
+            :key="post.id"
+            :class="{ 'clickable-row': post.demand_type === 'SALE' }"
+            @click="emit('open-detail', post)"
+          >
             <td class="sticky-left select-cell">
               <input
                 type="checkbox"
                 class="row-checkbox"
                 :checked="selectedIds.has(post.id)"
                 :aria-label="`Chọn tin đăng ${post.id}`"
+                @click.stop
                 @change="toggleSelected(post.id)"
               />
             </td>
@@ -355,6 +373,7 @@ onBeforeUnmount(() => {
             <td class="col-price price-text">{{ post.priceText }}</td>
             <td class="col-package">{{ post.packageName }}</td>
             <td class="col-owner truncate-text">{{ post.ownerName }}</td>
+            <td class="col-demand">{{ post.demandTypeText }}</td>
             <td class="col-type">{{ post.propertyType }}</td>
             <td class="col-date">{{ post.createdAtText }}</td>
             <td class="col-date">{{ post.submittedAtText }}</td>
@@ -488,6 +507,10 @@ onBeforeUnmount(() => {
   background: #f1f6ff;
 }
 
+.clickable-row {
+  cursor: pointer;
+}
+
 .sticky-left {
   position: sticky;
   left: 0;
@@ -548,6 +571,7 @@ thead .sticky-right {
 .col-price { width: 132px; min-width: 132px; }
 .col-package { width: 104px; min-width: 104px; }
 .col-owner { width: 196px; max-width: 196px; }
+.col-demand { width: 110px; min-width: 110px; }
 .col-approver { width: 160px; max-width: 160px; }
 .col-type { width: 110px; min-width: 110px; }
 .col-date { width: 150px; min-width: 150px; }

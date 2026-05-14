@@ -71,4 +71,18 @@ final class AdminListingController extends Controller
             message: 'Cập nhật trạng thái tin đăng thành công.'
         );
     }
+
+    public function show(Request $request, int $id): JsonResponse
+    {
+        if ($request->user()->role !== UserRole::Admin) {
+            throw new BusinessException(ErrorCode::AuthForbidden);
+        }
+
+        $listing = $this->listingService->getListingDetails($id);
+
+        return ApiResponse::success(
+            data: new ListingResource($listing),
+            message: 'Lấy chi tiết tin đăng thành công.'
+        );
+    }
 }

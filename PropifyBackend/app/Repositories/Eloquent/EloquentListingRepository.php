@@ -89,6 +89,9 @@ final class EloquentListingRepository implements ListingRepository
                 'appointmentSlots',
                 'appointments',
                 'owner',
+                'approver',
+                'package',
+                'statusHistories.user',
             ])
             ->findOrFail($id);
     }

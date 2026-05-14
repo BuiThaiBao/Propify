@@ -8,6 +8,10 @@ export const listingService = {
   getAllListings(params = {}) {
     return api.get('/v1/admin/listings', { params })
   },
+
+  getListingDetail(id) {
+    return api.get(`/v1/admin/listings/${id}`)
+  },
   
   /**
    * Thay đổi trạng thái tin đăng (Dành cho admin)
