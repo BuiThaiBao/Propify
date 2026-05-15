@@ -7,22 +7,43 @@ use App\Events\Listing\ListingPackageUpgraded;
 use App\Listeners\Auth\SendWelcomeNotification;
 use App\Listeners\Listing\ClearPublicListingCache;
 use App\Listeners\Listing\LogListingPackageUpgrade;
+use App\Repositories\AmenityRepository;
 use App\Repositories\AppointmentBookingRepository;
 use App\Repositories\AppointmentSlotRepository;
+use App\Repositories\ChatRepository;
+use App\Repositories\Eloquent\EloquentAmenityRepository;
 use App\Repositories\Eloquent\EloquentAppointmentBookingRepository;
 use App\Repositories\Eloquent\EloquentAppointmentSlotRepository;
+use App\Repositories\Eloquent\EloquentChatRepository;
+use App\Repositories\Eloquent\EloquentListingAmenityRepository;
 use App\Repositories\Eloquent\EloquentListingRepository;
+use App\Repositories\Eloquent\EloquentPackageRepository;
 use App\Repositories\Eloquent\EloquentUserRepository;
+use App\Repositories\ListingAmenityRepository;
 use App\Repositories\ListingRepository;
+use App\Repositories\PackageRepository;
 use App\Repositories\UserRepository;
-use App\Services\Auth\Impl\UserUpsertServiceImpl;
-use App\Services\Auth\UserUpsertService;
+use App\Services\Amenity\AmenityService;
+use App\Services\Amenity\Impl\AmenityServiceImpl;
+use App\Services\Amenity\Impl\ListingAmenityServiceImpl;
+use App\Services\Amenity\ListingAmenityService;
+use App\Services\Appointment\AppointmentBookingService;
+use App\Services\Appointment\AppointmentSlotService;
+use App\Services\Appointment\Impl\AppointmentBookingServiceImpl;
+use App\Services\Appointment\Impl\AppointmentSlotServiceImpl;
 use App\Services\Auth\AuthGoogleService;
 use App\Services\Auth\AuthService;
 use App\Services\Auth\Impl\AuthGoogleServiceImpl;
 use App\Services\Auth\Impl\AuthServiceImpl;
-use App\Services\Listing\impl\ListingServiceImpl;
 use App\Services\Auth\Impl\TokenProcessServiceImpl;
+use App\Services\Auth\Impl\UserUpsertServiceImpl;
+use App\Services\Auth\TokenProcessService;
+use App\Services\Auth\UserUpsertService;
+use App\Services\Chat\ChatService;
+use App\Services\Chat\Impl\ChatServiceImpl;
+use App\Services\Cloudinary\CloudinaryService;
+use App\Services\Cloudinary\Impl\CloudinaryServiceImpl;
+use App\Services\Listing\impl\ListingServiceImpl;
 use App\Services\Listing\ListingService;
 use App\Services\Notification\Channel\EmailChannel;
 use App\Services\Notification\Impl\NotificationServiceImpl;
@@ -31,23 +52,12 @@ use App\Services\Otp\Adapters\RedisOtpStorageAdapter;
 use App\Services\Otp\Impl\OtpServiceImpl;
 use App\Services\Otp\OtpService;
 use App\Services\Otp\OtpStoragePort;
-use App\Services\Appointment\AppointmentBookingService;
-use App\Services\Appointment\AppointmentSlotService;
-use App\Services\Appointment\Impl\AppointmentBookingServiceImpl;
-use App\Services\Appointment\Impl\AppointmentSlotServiceImpl;
-use App\Services\Auth\TokenProcessService;
-use App\Services\Cloudinary\CloudinaryService;
-use App\Services\Cloudinary\Impl\CloudinaryServiceImpl;
+use App\Services\Packages\Impl\PackageServiceImpl;
+use App\Services\Packages\PackageService;
 use App\Services\User\Impl\UserServiceImpl;
 use App\Services\User\UserService;
-use App\Repositories\ChatRepository;
-use App\Repositories\Eloquent\EloquentChatRepository;
-use App\Services\Chat\ChatService;
-use App\Services\Chat\Impl\ChatServiceImpl;
-use App\Repositories\PackageRepository;
-use App\Repositories\Eloquent\EloquentPackageRepository;
-use App\Services\Packages\PackageService;
-use App\Services\Packages\Impl\PackageServiceImpl;
+use App\Services\ViewTracking\Impl\ViewTrackingServiceImpl;
+use App\Services\ViewTracking\ViewTrackingService;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -63,6 +73,8 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(AppointmentSlotRepository::class, EloquentAppointmentSlotRepository::class);
         $this->app->bind(AppointmentBookingRepository::class, EloquentAppointmentBookingRepository::class);
         $this->app->bind(ListingRepository::class, EloquentListingRepository::class);
+        $this->app->bind(AmenityRepository::class, EloquentAmenityRepository::class);
+        $this->app->bind(ListingAmenityRepository::class, EloquentListingAmenityRepository::class);
 
         // ── Auth bindings ─────────────────────────────────────────────────
         $this->app->bind(AuthService::class, AuthServiceImpl::class);
@@ -74,6 +86,8 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(AppointmentSlotService::class, AppointmentSlotServiceImpl::class);
         $this->app->bind(AppointmentBookingService::class, AppointmentBookingServiceImpl::class);
         $this->app->bind(ListingService::class, ListingServiceImpl::class);
+        $this->app->bind(AmenityService::class, AmenityServiceImpl::class);
+        $this->app->bind(ListingAmenityService::class, ListingAmenityServiceImpl::class);
 
         // ── Notification bindings ─────────────────────────────────────────
         // NotificationServiceImpl nhận array $channels qua constructor
@@ -107,8 +121,8 @@ final class AppServiceProvider extends ServiceProvider
 
         // ── View Tracking bindings ────────────────────────────────────────
         $this->app->bind(
-            \App\Services\ViewTracking\ViewTrackingService::class,
-            \App\Services\ViewTracking\Impl\ViewTrackingServiceImpl::class,
+            ViewTrackingService::class,
+            ViewTrackingServiceImpl::class,
         );
     }
 
