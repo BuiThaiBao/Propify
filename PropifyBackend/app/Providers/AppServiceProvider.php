@@ -3,7 +3,10 @@
 namespace App\Providers;
 
 use App\Events\Auth\UserRegistered;
+use App\Events\Listing\ListingPackageUpgraded;
 use App\Listeners\Auth\SendWelcomeNotification;
+use App\Listeners\Listing\ClearPublicListingCache;
+use App\Listeners\Listing\LogListingPackageUpgrade;
 use App\Repositories\AppointmentBookingRepository;
 use App\Repositories\AppointmentSlotRepository;
 use App\Repositories\Eloquent\EloquentAppointmentBookingRepository;
@@ -116,5 +119,7 @@ final class AppServiceProvider extends ServiceProvider
     {
         // ── Event → Listener mapping (Laravel 11 style) ───────────────────
         Event::listen(UserRegistered::class, SendWelcomeNotification::class);
+        Event::listen(ListingPackageUpgraded::class, ClearPublicListingCache::class);
+        Event::listen(ListingPackageUpgraded::class, LogListingPackageUpgrade::class);
     }
 }
