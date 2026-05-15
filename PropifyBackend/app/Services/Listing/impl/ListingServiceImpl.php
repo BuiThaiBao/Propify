@@ -210,6 +210,17 @@ final class ListingServiceImpl implements ListingService
         return $this->listingRepository->findById($id);
     }
 
+    public function getOwnedListingDetails(User $user, int $id): Listing
+    {
+        $listing = $this->listingRepository->findById($id);
+
+        if ((int) $listing->owner_id !== (int) $user->id) {
+            throw new BusinessException(ErrorCode::AuthForbidden);
+        }
+
+        return $listing;
+    }
+
     public function update(User $user, int $id, CreateListingDto $dto): Listing
     {
         $listing = $this->listingRepository->findById($id);

@@ -70,17 +70,25 @@
               <label class="appointment-label">Khung giờ</label>
               <div class="mt-[10px] flex flex-wrap items-center gap-2.5">
                 <input
-                  v-model="row.start_time"
-                  type="time"
+                  :value="row.start_time"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="8"
+                  placeholder="00:00:00"
                   class="h-11 w-36 rounded-[10px] border border-[#dbe7f4] bg-[#f3f7fc] px-[14px] text-sm text-[#0f172a] outline-none transition focus:border-[#38bdf8] focus:bg-white focus:shadow-[0_0_0_3px_rgba(56,189,248,0.14)]"
-                  @change="syncTimeFields(rowIndex); validateAll()"
+                  @input="onTimeInput($event, rowIndex, 'start_time')"
+                  @blur="syncTimeFields(rowIndex); validateAll()"
                 />
                 <span class="text-sm text-[#64748b]">-</span>
                 <input
-                  v-model="row.end_time"
-                  type="time"
+                  :value="row.end_time"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="8"
+                  placeholder="00:00:00"
                   class="h-11 w-36 rounded-[10px] border border-[#dbe7f4] bg-[#f3f7fc] px-[14px] text-sm text-[#0f172a] outline-none transition focus:border-[#38bdf8] focus:bg-white focus:shadow-[0_0_0_3px_rgba(56,189,248,0.14)]"
-                  @change="syncTimeFields(rowIndex); validateAll()"
+                  @input="onTimeInput($event, rowIndex, 'end_time')"
+                  @blur="syncTimeFields(rowIndex); validateAll()"
                 />
               </div>
             </div>
@@ -120,11 +128,9 @@ import { ref, computed } from 'vue';
 
 const isOpen = ref(true);
 const dropdownOpenIndex = ref(-1);
-const appointmentRows = ref([
-  { start_time: '08:00', end_time: '09:00', selected_days: [] },
-]);
+const appointmentRows = ref([]);
 
-const touchedRows = ref([false]);
+const touchedRows = ref([]);
 const duplicateError = ref('');
 
 const dayOfWeekOptions = [
@@ -139,27 +145,46 @@ const dayOfWeekOptions = [
 
 const getDayLabel = (dayOfWeek) => dayOfWeekOptions.find((d) => d.value === dayOfWeek)?.label || 'N/A';
 
-const formatTimeForDisplay = (value) => {
-  if (!value) return '';
+const clampNumber = (value, min, max) => Math.min(Math.max(Number(value || 0), min), max);
 
-  const match = String(value).trim().match(/^(\d{1,2}):(\d{2})/);
-  if (!match) return String(value).trim();
+const formatTimeUnit = (value, max) => String(clampNumber(value, 0, max)).padStart(2, '0');
 
-  const hours24 = Number(match[1]);
-  const minutes = match[2];
-  const suffix = hours24 >= 12 ? 'PM' : 'AM';
-  const hours12 = hours24 % 12 || 12;
-
-  return `${String(hours12).padStart(2, '0')}:${minutes} ${suffix}`;
+const maskTimeValue = (value) => {
+  const digits = String(value || '').replace(/\D/g, '').slice(0, 6);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}:${digits.slice(2, 4)}:${digits.slice(4, 6)}`;
 };
 
 const normalizeTimeValue = (value) => {
   if (!value) return '';
   const text = String(value).trim();
-  const match = text.match(/^(\d{1,2}):(\d{2})/);
-  if (!match) return text;
-  const hours = String(Number(match[1])).padStart(2, '0');
-  return `${hours}:${match[2]}`;
+  const match = text.match(/^(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?$/);
+
+  if (match) {
+    return `${formatTimeUnit(match[1], 23)}:${formatTimeUnit(match[2], 59)}:${formatTimeUnit(match[3] || 0, 59)}`;
+  }
+
+  const digits = text.replace(/\D/g, '').slice(0, 6);
+  if (!digits) return '';
+
+  const hours = digits.slice(0, 2);
+  const minutes = digits.slice(2, 4) || '00';
+  const seconds = digits.slice(4, 6) || '00';
+  return `${formatTimeUnit(hours, 23)}:${formatTimeUnit(minutes, 59)}:${formatTimeUnit(seconds, 59)}`;
+};
+
+const formatTimeForDisplay = (value) => normalizeTimeValue(value);
+
+const toBackendTime = (value) => normalizeTimeValue(value).slice(0, 5);
+
+const onTimeInput = (event, rowIndex, field) => {
+  const row = appointmentRows.value[rowIndex];
+  if (!row) return;
+  const masked = maskTimeValue(event.target.value);
+  row[field] = masked;
+  event.target.value = masked;
+  duplicateError.value = '';
 };
 
 const syncTimeFields = (rowIndex) => {
@@ -176,17 +201,13 @@ const getSelectedDaysLabel = (selectedDays) => {
 };
 
 const addRow = () => {
-  appointmentRows.value.push({ start_time: '08:00', end_time: '09:00', selected_days: [] });
+  appointmentRows.value.push({ start_time: '08:00:00', end_time: '09:00:00', selected_days: [] });
   touchedRows.value.push(false);
 };
 
 const removeRow = (index) => {
   appointmentRows.value.splice(index, 1);
   touchedRows.value.splice(index, 1);
-  if (appointmentRows.value.length === 0) {
-    appointmentRows.value.push({ start_time: '08:00', end_time: '09:00', selected_days: [] });
-    touchedRows.value.push(false);
-  }
   validateAll();
 };
 
@@ -218,7 +239,7 @@ const validateAll = () => {
     .map((row, index) => ({ row, index }))
     .filter(({ row }) => {
       const hasSelectedDays = (row.selected_days || []).length > 0;
-      const hasCustomTime = normalizeTimeValue(row.start_time) !== '08:00' || normalizeTimeValue(row.end_time) !== '09:00';
+      const hasCustomTime = normalizeTimeValue(row.start_time) !== '08:00:00' || normalizeTimeValue(row.end_time) !== '09:00:00';
       return hasSelectedDays || hasCustomTime;
     });
 
@@ -279,15 +300,15 @@ const getFormData = () => {
     const startTime = normalizeTimeValue(row.start_time);
     const endTime = normalizeTimeValue(row.end_time);
     const hasSelectedDays = (row.selected_days || []).length > 0;
-    const hasCustomTime = startTime !== '08:00' || endTime !== '09:00';
+    const hasCustomTime = startTime !== '08:00:00' || endTime !== '09:00:00';
     if (!hasSelectedDays && !hasCustomTime) return;
     if (!startTime || !endTime || !hasSelectedDays || startTime >= endTime) return;
 
     (row.selected_days || []).forEach((day) => {
       out.push({
         day_of_week: day,
-        start_time: startTime,
-        end_time: endTime,
+        start_time: toBackendTime(startTime),
+        end_time: toBackendTime(endTime),
       });
     });
   });
@@ -297,10 +318,8 @@ const getFormData = () => {
 const isValid = computed(() => !duplicateError.value && getFormData().length > 0);
 
 const resetForm = () => {
-  appointmentRows.value = [
-    { start_time: '08:00', end_time: '09:00', selected_days: [] },
-  ];
-  touchedRows.value = [false];
+  appointmentRows.value = [];
+  touchedRows.value = [];
   duplicateError.value = '';
 };
 

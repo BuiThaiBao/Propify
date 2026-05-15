@@ -58,6 +58,16 @@ final class ListingController
         );
     }
 
+    public function showMine(Request $request, int $id): JsonResponse
+    {
+        $listing = $this->listingService->getOwnedListingDetails($request->user(), $id);
+
+        return ApiResponse::success(
+            data: new ListingResource($listing),
+            message: 'Lay chi tiet tin dang cua ban thanh cong.'
+        );
+    }
+
     public function update(CreateListingRequest $request, int $id): JsonResponse
     {
         $listing = $this->listingService->update($request->user(), $id, $request->toDto());

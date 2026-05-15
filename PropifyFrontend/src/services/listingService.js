@@ -22,6 +22,10 @@ const listingService = {
     return api.get(`/v1/listings/${id}`);
   },
 
+  getMineById(id) {
+    return api.get(`/v1/listings/my/${id}`);
+  },
+
   update(id, payload) {
     const data = {
       demand_type: payload.demandType,

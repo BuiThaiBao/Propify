@@ -177,6 +177,7 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
     Route::middleware('auth:api')->group(function () {
         Route::post('/', [ListingController::class, 'store'])->name('store');
         Route::get('/my', [ListingController::class, 'myListings'])->name('my');
+        Route::get('/my/{id}', [ListingController::class, 'showMine'])->where('id', '[0-9]+')->name('my.show');
         Route::put('/{id}', [ListingController::class, 'update'])->where('id', '[0-9]+')->name('update');
         Route::patch('/{id}/verification', [ListingController::class, 'updateVerification'])->where('id', '[0-9]+')->name('verification.update');
         Route::post('/{id}/lock', [ListingController::class, 'lock'])->where('id', '[0-9]+')->name('lock');

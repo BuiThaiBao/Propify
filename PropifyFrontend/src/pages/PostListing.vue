@@ -507,7 +507,7 @@
             </div>
 
             <p class="verify-label-row">
-              <span>👥 CCCD/CMND chủ sở hữu</span>
+              <span>CCCD/CMND chủ sở hữu</span>
               <img :src="infoDotIcon" alt="info" class="h-4 w-4 opacity-70" />
             </p>
 
@@ -539,7 +539,7 @@
             <div>
               <p class="field-label mb-2 text-[18px] font-semibold text-slate-800">Giấy tờ cần thiết</p>
               <p class="verify-label-row mb-2">
-                <span>👥 Giấy tờ pháp lý</span>
+                <span>Giấy tờ pháp lý</span>
                 <img :src="infoDotIcon" alt="info" class="h-4 w-4 opacity-70" />
               </p>
 
@@ -690,7 +690,7 @@
               <div v-if="!mediaCollapsed" class="mt-2 ml-3">
                 <div class="flex items-center justify-between text-sm">
                   <div :class="imageCount > 0 ? 'text-emerald-600' : ''">• Hình ảnh</div>
-                  <div :class="imageCount > 0 ? 'text-emerald-600' : 'text-slate-400'">{{ imageCount > 0 ? '✓' : '' }} 2đ</div>
+                  <div :class="imageCount > 0 ? 'text-emerald-600' : 'text-slate-400'">{{ imageCount > 0 ? '✓' : '' }} {{ formatScorePoint(imagePoints) }}đ</div>
                 </div>
                 <div class="flex items-center justify-between text-sm mt-1">
                   <div :class="videoPresent ? 'text-emerald-600' : ''">• Video</div>
@@ -987,6 +987,8 @@ const priceFocused = ref(false);
 
 const toasts = ref([]);
 let toastIdCounter = 1;
+const MAX_VIDEO_SIZE_BYTES = 100 * 1024 * 1024;
+const MAX_VIDEO_SIZE_LABEL = "100MB";
 
 function pushToast(message, type = "info", duration = 2500) {
   const id = toastIdCounter++;
@@ -999,7 +1001,7 @@ function pushToast(message, type = "info", duration = 2500) {
 const imageCount = computed(() => Array.isArray(form.images) ? form.images.length : 0);
 const videoPresent = computed(() => Boolean(form.video));
 
-const imagePoints = computed(() => (imageCount.value > 0 ? 2 : 0));
+const imagePoints = computed(() => Math.min(imageCount.value * 0.5, 2));
 const videoPoints = computed(() => (videoPresent.value ? 2 : 0));
 const mediaPoints = computed(() => Math.min(imagePoints.value + videoPoints.value, 4));
 const mediaPercent = computed(() => Math.round((mediaPoints.value / 4) * 100));
@@ -1091,7 +1093,7 @@ function maxScoreItems(items) {
 
 function normalizeGroupScore(value, max, target) {
   if (!max) return 0;
-  return Number(Math.min((value / max) * target, target).toFixed(1));
+  return Number(Math.min((value / max) * target, target).toFixed(2));
 }
 
 function percentScore(value, max) {
@@ -1100,11 +1102,14 @@ function percentScore(value, max) {
 }
 
 function formatScorePoint(value) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return Number(value).toLocaleString('vi-VN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
 }
 
 const totalScore = computed(() => {
-  return Number((mediaPoints.value + infoPoints.value + detailPoints.value + contactPoints.value).toFixed(1));
+  return Number((mediaPoints.value + infoPoints.value + detailPoints.value + contactPoints.value).toFixed(2));
 });
 
 const minimumScore = computed(() => (form.demandType === 'RENT' ? 5.7 : 5.8));
@@ -1163,7 +1168,7 @@ onMounted(() => {
 // assign pending rows once the ref becomes available.
 watch(appointmentForm, (v) => {
   if (v && pendingAppointmentRows.value) {
-    appointmentForm.value.appointmentRows = pendingAppointmentRows.value;
+    setAppointmentRows(pendingAppointmentRows.value);
     pendingAppointmentRows.value = null;
   }
 });
@@ -1183,9 +1188,7 @@ const priceSuggestions = computed(() => {
   const base = Number(String(form.price || '').replace(/[^0-9]/g, ''));
   if (!base || form.isNegotiable) return [];
 
-  const multipliers = form.demandType === 'RENT'
-    ? [1000000, 10000000, 100000000, 1000000000]
-    : [10000000, 100000000, 1000000000, 10000000000];
+  const multipliers = [100, 1000, 10000];
 
   return multipliers
     .map((multiplier) => base * multiplier)
@@ -1335,13 +1338,56 @@ onMounted(async () => {
   }
 });
 
+function getVerificationDocumentType(document) {
+  return document?.type || document?.document_type || document?.documentType || '';
+}
+
+function getVerificationDocumentUrl(document) {
+  return document?.url || document?.file_url || document?.fileUrl || '';
+}
+
 async function loadListingForEdit() {
   editLoading.value = true;
   isHydratingEdit.value = true;
   try {
-    const response = await listingService.getById(editListingId.value);
-    const data = response.data.data;
+    let response;
+    try {
+      response = await listingService.getMineById(editListingId.value);
+    } catch (ownedError) {
+      console.warn('Failed to load owned listing details, fallback to public details:', ownedError);
+      response = await listingService.getById(editListingId.value);
+    }
+
+    const data = response.data?.data || response.data;
+    if (!data || typeof data !== 'object') {
+      throw new Error('Dữ liệu tin đăng không hợp lệ');
+    }
+    submitError.value = "";
+
     const p = data.property || {};
+    const inputValue = (value) => (value === null || value === undefined ? '' : String(value));
+    const arrayValue = (value) => {
+      if (Array.isArray(value)) return value;
+      if (typeof value === 'string' && value.trim()) {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+      return [];
+    };
+    const mediaUrl = (item, ...keys) => {
+      for (const key of keys) {
+        if (item?.[key]) return item[key];
+      }
+      return '';
+    };
+    const normalizeTimeForInput = (value) => {
+      const match = String(value || '').match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+      return match ? `${String(Number(match[1])).padStart(2, '0')}:${match[2]}:${match[3] || '00'}` : '';
+    };
 
     form.demandType = data.demand_type || 'SALE';
     form.title = data.title || '';
@@ -1353,33 +1399,36 @@ async function loadListingForEdit() {
     form.streetCode = p.street_code || '';
     form.projectName = p.project_name || '';
     form.addressDetail = p.address_detail || '';
-    form.area = p.area ?? '';
-    form.price = p.price ?? '';
+    form.area = inputValue(p.area);
+    form.price = inputValue(p.price);
     form.isNegotiable = p.is_negotiable || false;
-    form.bedrooms = p.bedrooms ?? '';
-    form.bathrooms = p.bathrooms ?? '';
-    form.floors = p.floors ?? '';
-    form.floorNumber = p.floor_number ?? '';
-    form.balconies = p.balconies ?? '';
-    form.facadeWidth = p.facade_width ?? '';
-    form.depth = p.depth ?? '';
-    form.roadWidth = p.road_width ?? '';
+    form.bedrooms = inputValue(p.bedrooms);
+    form.bathrooms = inputValue(p.bathrooms);
+    form.floors = inputValue(p.floors);
+    form.floorNumber = inputValue(p.floor_number);
+    form.balconies = inputValue(p.balconies);
+    form.facadeWidth = inputValue(p.facade_width);
+    form.depth = inputValue(p.depth);
+    form.roadWidth = inputValue(p.road_width);
     form.directionCode = p.direction_code || '';
     form.balconyDirectionCode = p.balcony_direction_code || '';
     form.furnitureStatus = p.furniture_status || '';
-    form.legalPaperTypes = p.legal_paper_types || [];
+    form.legalPaperTypes = arrayValue(p.legal_paper_types);
     form.contactName = p.contact_name || '';
     form.contactPhone = p.contact_phone || '';
     form.contactEmail = p.contact_email || '';
     form.posterType = p.poster_type || 'OWNER';
     form.lat = p.lat ?? '';
     form.lng = p.lng ?? '';
-    form.amenities = p.amenities || [];
+    form.amenities = arrayValue(p.amenities);
     form.publicInfoAgreed = Boolean(p.public_info_agreed);
     form.rentMinTerm = data.rent_min_term || '';
     form.rentPaymentInterval = data.rent_payment_interval || '';
     form.rentDeposit = data.rent_deposit || '';
-    selectedAmenities.value = [...(p.amenities || [])];
+    form.packageId = data.package?.id ? String(data.package.id) : inputValue(data.package_id);
+    form.requestVerification = Boolean(data.request_verification);
+    form.attributeIds = Array.isArray(p.attributes) ? p.attributes.map((attribute) => attribute.id).filter(Boolean) : [];
+    selectedAmenities.value = [...arrayValue(p.amenities)];
     publicInfoAgreed.value = Boolean(p.public_info_agreed);
 
     const verificationDocuments = Array.isArray(data.verification_documents) ? data.verification_documents : [];
@@ -1413,12 +1462,12 @@ async function loadListingForEdit() {
         groupedByTime[key].selected_days.push(slot.day_of_week);
       });
       const rows = Object.values(groupedByTime).map((row) => ({
-        start_time: row.start_time,
-        end_time: row.end_time,
+        start_time: normalizeTimeForInput(row.start_time),
+        end_time: normalizeTimeForInput(row.end_time),
         selected_days: row.selected_days.sort((a, b) => a - b),
       }));
       if (appointmentForm.value) {
-        appointmentForm.value.appointmentRows = rows;
+        setAppointmentRows(rows);
       } else {
         pendingAppointmentRows.value = rows;
       }
@@ -1428,31 +1477,60 @@ async function loadListingForEdit() {
 
 
 
+    const verificationImageUrls = verificationDocuments
+      .map((doc) => getVerificationDocumentUrl(doc))
+      .filter(Boolean);
+
     // Load existing images as URLs (not File objects)
     if (data.images && data.images.length > 0) {
       const sorted = [...data.images].sort((a, b) => a.sort_order - b.sort_order);
-      form.images = sorted.map(img => img.url);
-      imagePreviews.value = sorted.map((img, index) => ({
+      const existingImages = sorted
+        .map((img) => mediaUrl(img, 'url', 'image_url', 'imageUrl'))
+        .filter(Boolean);
+      form.images = existingImages;
+      imagePreviews.value = existingImages.map((url, index) => ({
         name: `Ảnh ${index + 1}`,
-        url: img.url,
+        url,
       }));
+    } else if (verificationImageUrls.length > 0) {
+      form.images = verificationImageUrls;
+      imagePreviews.value = verificationImageUrls.map((url, index) => ({
+        name: `Ảnh ${index + 1}`,
+        url,
+      }));
+    } else {
+      form.images = [];
+      imagePreviews.value = [];
     }
 
     if (Array.isArray(data.videos) && data.videos.length > 0) {
       const firstVideo = data.videos[0];
-      form.video = firstVideo?.url || null;
-      videoPreviewName.value = firstVideo?.url ? 'Video hiện tại' : '';
+      const videoUrl = mediaUrl(firstVideo, 'url', 'video_url', 'videoUrl');
+      form.video = videoUrl || null;
+      videoPreviewName.value = videoUrl ? 'Video hiện tại' : '';
+    } else {
+      form.video = null;
+      videoPreviewName.value = '';
     }
 
-    // Load wards list for the selected province
-    if (form.provinceCode) {
-      await fetchWardsByProvince(form.provinceCode);
+    try {
+      if (form.provinceCode) {
+        await fetchWardsByProvince(form.provinceCode);
+      }
+    } catch (wardError) {
+      console.warn('Failed to load wards while editing listing:', wardError);
     }
+
+    locationSearchText.value = composeAddressQuery({ includeDetail: true });
 
     // Set map marker if lat/lng exists
     if (form.lat && form.lng) {
       setTimeout(() => {
-        setMarkerPosition(form.lat, form.lng, 15);
+        try {
+          setMarkerPosition(form.lat, form.lng, 15);
+        } catch (mapError) {
+          console.warn('Failed to set edit map marker:', mapError);
+        }
       }, 500);
     }
   } catch (err) {
@@ -1930,10 +2008,9 @@ function onVideoChange(event) {
     return;
   }
 
-  const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
-  if (file.size > MAX_VIDEO_SIZE) {
-    videoUploadError.value = "Dung lượng video vượt quá 100MB";
-    pushToast("File không hợp lệ đã bị loại bỏ", "warning");
+  if (file.size > MAX_VIDEO_SIZE_BYTES) {
+    videoUploadError.value = `Dung lượng video vượt quá ${MAX_VIDEO_SIZE_LABEL}. Vui lòng chọn video nhỏ hơn.`;
+    pushToast(`Video vượt quá ${MAX_VIDEO_SIZE_LABEL}, vui lòng chọn file nhỏ hơn`, "error", 3500);
     event.target.value = '';
     return;
   }
@@ -2298,6 +2375,20 @@ function discardAndGoBack() {
   router.back();
 }
 
+function setAppointmentRows(rows) {
+  if (!appointmentForm.value) {
+    pendingAppointmentRows.value = rows;
+    return;
+  }
+
+  const exposedRows = appointmentForm.value.appointmentRows;
+  if (exposedRows && typeof exposedRows === 'object' && 'value' in exposedRows) {
+    exposedRows.value = rows;
+  } else {
+    appointmentForm.value.appointmentRows = rows;
+  }
+}
+
 async function uploadFilesForDraft(payload) {
   const uploadMultiple = async (files) => {
     const urls = [];
@@ -2315,6 +2406,9 @@ async function uploadFilesForDraft(payload) {
   const uploadSingle = async (file) => {
     if (!file) return null;
     if (typeof file === 'string') return file;
+    if (file.type === 'video/mp4' && file.size > MAX_VIDEO_SIZE_BYTES) {
+      throw new Error(`Dung lượng video vượt quá ${MAX_VIDEO_SIZE_LABEL}. Vui lòng chọn video nhỏ hơn.`);
+    }
     const res = await cloudinaryService.uploadImage(file, 'listing');
     return res.secure_url;
   };
@@ -2334,6 +2428,21 @@ async function saveDraftAndGoBack() {
 
   try {
     normalizeFormTextFields();
+    touchAllRequired();
+    if (hasRequiredErrors()) {
+      submitError.value = 'Vui lòng điền đầy đủ thông tin bắt buộc trước khi lưu nháp.';
+      pushToast('Cần điền đầy đủ thông tin bắt buộc trước khi lưu tin nháp.', 'error', 3500);
+      showDraftConfirm.value = false;
+      return;
+    }
+
+    if (form.video && typeof form.video !== 'string' && form.video.size > MAX_VIDEO_SIZE_BYTES) {
+      videoUploadError.value = `Dung lượng video vượt quá ${MAX_VIDEO_SIZE_LABEL}. Vui lòng chọn video nhỏ hơn.`;
+      pushToast(`Video vượt quá ${MAX_VIDEO_SIZE_LABEL}, vui lòng chọn file nhỏ hơn`, 'error', 3500);
+      showDraftConfirm.value = false;
+      return;
+    }
+
     const payload = {
       ...form,
       amenities: [...selectedAmenities.value],
@@ -2363,7 +2472,7 @@ async function saveDraftAndGoBack() {
   } catch (error) {
     const data = error?.response?.data;
     validationErrors.value = data?.errors || {};
-    submitError.value = data?.message || 'Không thể lưu tin nháp. Vui lòng thử lại';
+    submitError.value = data?.message || error?.message || 'Không thể lưu tin nháp. Vui lòng thử lại';
     pushToast(submitError.value, 'error');
   } finally {
     savingDraft.value = false;
@@ -2676,6 +2785,9 @@ async function submitListing() {
       if (!file) return null;
       if (typeof file === 'string') return file;
       if (mode === 'video') {
+        if (file.size > MAX_VIDEO_SIZE_BYTES) {
+          throw new Error(`Dung lượng video vượt quá ${MAX_VIDEO_SIZE_LABEL}. Vui lòng chọn video nhỏ hơn.`);
+        }
         pushToast('Đang tải lên video...', 'info', 1200);
       }
       const res = await cloudinaryService.uploadImage(file, 'listing');
@@ -2753,7 +2865,7 @@ async function submitListing() {
       pushToast(submitError.value, 'error');
     } else {
       submitError.value = error.message || 'Upload thất bại. Vui lòng thử lại';
-      pushToast('Kết nối mạng không ổn định', 'error');
+      pushToast(submitError.value, 'error');
     }
   } finally {
     loading.value = false;
