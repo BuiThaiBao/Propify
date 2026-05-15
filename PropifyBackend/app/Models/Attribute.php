@@ -32,6 +32,7 @@ final class Attribute extends Model
     /** Danh sách bất động sản có thuộc tính này (many-to-many) */
     public function properties(): BelongsToMany
     {
-        return $this->belongsToMany(Property::class, 'property_attributes', 'attribute_id', 'property_id');
+        return $this->belongsToMany(Property::class, 'property_attributes', 'attribute_id', 'property_id')
+            ->withPivot(['is_visible', 'display_order', 'is_featured']);
     }
 }

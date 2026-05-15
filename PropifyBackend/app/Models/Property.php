@@ -76,4 +76,12 @@ final class Property extends Model
     {
         return $this->belongsToMany(Attribute::class, 'property_attributes', 'property_id', 'attribute_id');
     }
+
+    /** Danh sach tien ich cua bat dong san */
+    public function amenities(): BelongsToMany
+    {
+        return $this->belongsToMany(Attribute::class, 'property_attributes', 'property_id', 'attribute_id')
+            ->withPivot(['is_visible', 'display_order', 'is_featured'])
+            ->whereHas('group', fn ($query) => $query->where('code', 'amenities'));
+    }
 }

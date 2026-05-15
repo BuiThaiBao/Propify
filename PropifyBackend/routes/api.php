@@ -1,15 +1,27 @@
 <?php
 
+use App\Enums\ErrorCode;
+use App\Helpers\ApiResponse;
+use App\Http\Controllers\Api\V1\Admin\AdminListingController;
+use App\Http\Controllers\Api\V1\Amenity\AmenityController;
+use App\Http\Controllers\Api\V1\Amenity\ListingAmenityController;
+use App\Http\Controllers\Api\V1\Appointment\AppointmentBookingController;
+use App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\GoogleController;
 use App\Http\Controllers\Api\V1\Chat\ChatController;
 use App\Http\Controllers\Api\V1\Cloudinary\CloudinaryController;
+use App\Http\Controllers\Api\V1\Geocoding\GeocodingController;
 use App\Http\Controllers\Api\V1\Listing\FavoriteController;
 use App\Http\Controllers\Api\V1\Listing\ListingController;
-use App\Http\Controllers\Api\V1\User\UserController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\Listing\ListingUpgradeController;
+use App\Http\Controllers\Api\V1\Listing\ViewTrackingController;
 use App\Http\Controllers\Api\V1\Package\PackageController;
-use App\Http\Controllers\Api\V1\Geocoding\GeocodingController;
+use App\Http\Controllers\Api\V1\Package\PackageDurationOptionController;
+use App\Http\Controllers\Api\V1\Package\PackagePricingController;
+use App\Http\Controllers\Api\V1\User\UserController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,16 +64,16 @@ Route::prefix('v1/auth')->as('auth.')->group(function () {
         ->middleware('throttle:10,1')
         ->name('reset-password');
 
-    Route::get('/login', function (\Illuminate\Http\Request $request) {
+    Route::get('/login', function (Request $request) {
         if ($request->expectsJson()) {
-            return \App\Helpers\ApiResponse::error(
+            return ApiResponse::error(
                 message: 'Endpoint đăng nhập chỉ hỗ trợ phương thức POST.',
                 statusCode: 405,
-                errorCode: \App\Enums\ErrorCode::ValidationError
+                errorCode: ErrorCode::ValidationError
             );
         }
 
-        return redirect(rtrim((string) config('app.frontend_url'), '/') . '/login');
+        return redirect(rtrim((string) config('app.frontend_url'), '/').'/login');
     })->name('login.redirect');
 
     Route::post('/login', [AuthController::class, 'login'])
@@ -102,35 +114,34 @@ Route::prefix('v1/cloudinary')->as('cloudinary.')->middleware('auth:api')->group
     Route::post('/sign', [CloudinaryController::class, 'sign'])->name('sign');
 });
 
-
 // ==================== APPOINTMENT ROUTES ====================
 // Public: Khách xem danh sách khung giờ hẹn (không cần đăng nhập)
 Route::prefix('v1/appointment-slots')->as('appointment-slots.')->group(function () {
-    Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'index'])
+    Route::post('/', [AppointmentSlotController::class, 'index'])
         ->name('index');
 });
 // Protected: Quản lý khung giờ hẹn (cần đăng nhập)
 Route::prefix('v1/appointment-slots')->as('appointment-slots.')->middleware('auth:api')->group(function () {
-    Route::post('/create', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'create'])
+    Route::post('/create', [AppointmentSlotController::class, 'create'])
         ->name('create');
-    Route::post('/replace', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'replace'])
+    Route::post('/replace', [AppointmentSlotController::class, 'replace'])
         ->name('replace');
-    Route::put('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'update'])
+    Route::put('/', [AppointmentSlotController::class, 'update'])
         ->name('update');
-    Route::post('/disable', [\App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController::class, 'disable'])
+    Route::post('/disable', [AppointmentSlotController::class, 'disable'])
         ->name('disable');
 });
 
 Route::prefix('v1/appointment-bookings')->as('appointment-bookings.')->middleware('auth:api')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentBookingController::class, 'index'])
+    Route::get('/', [AppointmentBookingController::class, 'index'])
         ->name('index');
-    Route::get('/received', [\App\Http\Controllers\Api\V1\Appointment\AppointmentBookingController::class, 'received'])
+    Route::get('/received', [AppointmentBookingController::class, 'received'])
         ->name('received');
-    Route::post('/', [\App\Http\Controllers\Api\V1\Appointment\AppointmentBookingController::class, 'store'])
+    Route::post('/', [AppointmentBookingController::class, 'store'])
         ->name('store');
-    Route::post('/update-status', [\App\Http\Controllers\Api\V1\Appointment\AppointmentBookingController::class, 'updateStatus'])
+    Route::post('/update-status', [AppointmentBookingController::class, 'updateStatus'])
         ->name('update-status');
-    Route::post('/cancel', [\App\Http\Controllers\Api\V1\Appointment\AppointmentBookingController::class, 'cancel'])
+    Route::post('/cancel', [AppointmentBookingController::class, 'cancel'])
         ->name('cancel');
 });
 
@@ -168,7 +179,7 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
     Route::get('/{id}', [ListingController::class, 'show'])->where('id', '[0-9]+')->name('show');
 
     // View tracking — public, throttle 60/min/IP
-    Route::post('/{id}/view', [\App\Http\Controllers\Api\V1\Listing\ViewTrackingController::class, 'track'])
+    Route::post('/{id}/view', [ViewTrackingController::class, 'track'])
         ->where('id', '[0-9]+')
         ->middleware('throttle:60,1')
         ->name('view');
@@ -178,11 +189,22 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
         Route::post('/', [ListingController::class, 'store'])->name('store');
         Route::get('/my', [ListingController::class, 'myListings'])->name('my');
         Route::put('/{id}', [ListingController::class, 'update'])->where('id', '[0-9]+')->name('update');
+        Route::get('/{listingId}/amenities', [ListingAmenityController::class, 'index'])->where('listingId', '[0-9]+')->name('amenities.index');
+        Route::put('/{listingId}/amenities', [ListingAmenityController::class, 'update'])->where('listingId', '[0-9]+')->name('amenities.update');
         Route::patch('/{id}/verification', [ListingController::class, 'updateVerification'])->where('id', '[0-9]+')->name('verification.update');
         Route::post('/{id}/lock', [ListingController::class, 'lock'])->where('id', '[0-9]+')->name('lock');
-        Route::post('/{id}/upgrade', [\App\Http\Controllers\Api\V1\Listing\ListingUpgradeController::class, 'upgrade'])
+        Route::post('/{id}/upgrade', [ListingUpgradeController::class, 'upgrade'])
             ->where('id', '[0-9]+')
             ->name('upgrade');
+    });
+});
+
+Route::prefix('v1/amenities')->as('amenities.')->group(function () {
+    Route::get('/', [AmenityController::class, 'index'])->name('index');
+
+    Route::middleware('auth:api')->group(function () {
+        Route::post('/', [AmenityController::class, 'store'])->name('store');
+        Route::put('/{id}', [AmenityController::class, 'update'])->where('id', '[0-9]+')->name('update');
     });
 });
 
@@ -200,9 +222,9 @@ Route::prefix('v1/packages')->as('packages.')->group(function () {
 
 // ==================== PACKAGES: PROTECTED ROUTES ====================
 Route::prefix('v1/packages')->as('packages.admin.')->middleware('auth:api')->group(function () {
-    Route::get('/duration-options', [\App\Http\Controllers\Api\V1\Package\PackageDurationOptionController::class, 'index'])
+    Route::get('/duration-options', [PackageDurationOptionController::class, 'index'])
         ->name('duration-options.index');
-    Route::post('/duration-options', [\App\Http\Controllers\Api\V1\Package\PackageDurationOptionController::class, 'store'])
+    Route::post('/duration-options', [PackageDurationOptionController::class, 'store'])
         ->name('duration-options.store');
 
     Route::post('/', [PackageController::class, 'create'])->name('create');
@@ -210,18 +232,18 @@ Route::prefix('v1/packages')->as('packages.admin.')->middleware('auth:api')->gro
     Route::delete('/{id}', [PackageController::class, 'destroy'])->name('destroy');
 
     // Package Pricings CRUD (admin)
-    Route::get('/{packageId}/pricings', [\App\Http\Controllers\Api\V1\Package\PackagePricingController::class, 'index'])
+    Route::get('/{packageId}/pricings', [PackagePricingController::class, 'index'])
         ->name('pricings.index');
-    Route::post('/{packageId}/pricings', [\App\Http\Controllers\Api\V1\Package\PackagePricingController::class, 'store'])
+    Route::post('/{packageId}/pricings', [PackagePricingController::class, 'store'])
         ->name('pricings.store');
-    Route::put('/{packageId}/pricings/{pricingId}', [\App\Http\Controllers\Api\V1\Package\PackagePricingController::class, 'update'])
+    Route::put('/{packageId}/pricings/{pricingId}', [PackagePricingController::class, 'update'])
         ->name('pricings.update');
-    Route::delete('/{packageId}/pricings/{pricingId}', [\App\Http\Controllers\Api\V1\Package\PackagePricingController::class, 'destroy'])
+    Route::delete('/{packageId}/pricings/{pricingId}', [PackagePricingController::class, 'destroy'])
         ->name('pricings.destroy');
 });
 
 // ==================== ADMIN ROUTES ====================
 Route::prefix('v1/admin')->as('admin.')->middleware('auth:api')->group(function () {
-    Route::get('/listings', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'index'])->name('listings.index');
-    Route::patch('/listings/{id}/status', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'changeStatus'])->name('listings.change-status');
+    Route::get('/listings', [AdminListingController::class, 'index'])->name('listings.index');
+    Route::patch('/listings/{id}/status', [AdminListingController::class, 'changeStatus'])->name('listings.change-status');
 });
