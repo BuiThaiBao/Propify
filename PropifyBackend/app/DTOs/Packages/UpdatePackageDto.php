@@ -2,12 +2,13 @@
 
 namespace App\DTOs\Packages;
 
-use App\Http\Resources\Requests\Package\UpdatePackageRequest;
+use App\Http\Requests\Package\UpdatePackageRequest;
 
 final readonly class UpdatePackageDto
 {
     public function __construct(
         public string $name,
+        public string $slug,
         public float $price,
         public int $priority,
         public float $multiplier,
@@ -24,6 +25,7 @@ final readonly class UpdatePackageDto
     {
         return new self(
             name: $request->input('name'),
+            slug: $request->input('slug'),
             price: (float) $request->input('price'),
             priority: (int) $request->input('priority'),
             multiplier: (float) $request->input('multiplier'),

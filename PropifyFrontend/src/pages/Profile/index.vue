@@ -647,7 +647,7 @@ import listingService from '@/services/listingService';
 import favoriteService from '@/services/favoriteService';
 import PackageUpgradeModal from '@/components/shared/PackageUpgradeModal.vue';
 import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
-import AppointmentManagement from '@/components/AppointmentManagement.vue';
+import AppointmentManagement from '@/components/appointments/AppointmentManagement.vue';
 import { buildPropertyAddress, hydrateListingAddresses } from '@/utils/addressFormatter';
 
 const authStore = useAuthStore();

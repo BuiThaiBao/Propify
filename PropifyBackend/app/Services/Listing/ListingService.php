@@ -27,7 +27,7 @@ interface ListingService
 
     public function getAllForAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 
-    public function changeStatusForAdmin(int $listingId, string $status, ?string $rejectionReason = null): Listing;
+    public function changeStatusForAdmin(int $listingId, string $status, ?string $rejectionReason = null, ?int $adminUserId = null): Listing;
 
     public function upgradeListing(User $user, int $listingId, int $packageId, int $durationDays): Listing;
 

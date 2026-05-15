@@ -152,8 +152,10 @@ final class EloquentListingRepository implements ListingRepository
                 'appointmentSlots',
                 'appointments',
                 'owner',
+                'approver',
                 'package',
             ])
+            ->where('status', '!=', 'DRAFT')
             ->when($status && $status !== 'all', function ($query) use ($status) {
                 // If filtering by specific status, do exact match except for 'all'
                 $query->where('status', strtoupper($status));

@@ -41,6 +41,8 @@ final class ListingResource extends JsonResource
             'appointment_note' => $this->appointment_note,
             'created_at' => $this->created_at?->toIso8601String(),
             'submitted_at' => $this->submitted_at?->toIso8601String(),
+            'published_at' => $this->published_at?->toIso8601String(),
+            'approved_by' => $this->approved_by,
             'property' => [
                 'id' => $this->property?->id,
                 'type' => $this->property?->type,
@@ -85,6 +87,12 @@ final class ListingResource extends JsonResource
                 'avatar_url' => $this->owner?->avatar_url,
                 'email' => $this->owner?->email,
             ],
+            'approver' => $this->approver ? [
+                'id' => $this->approver->id,
+                'full_name' => $this->approver->full_name,
+                'avatar_url' => $this->approver->avatar_url,
+                'email' => $this->approver->email,
+            ] : null,
             'images' => $this->images->map(fn ($image) => [
                 'id' => $image->id,
                 'url' => $image->image_url,

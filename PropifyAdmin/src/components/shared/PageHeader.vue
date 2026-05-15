@@ -6,42 +6,13 @@ defineProps({
 </script>
 
 <template>
-  <div class="page-header">
+  <div class="mb-6 flex items-center justify-between">
     <div>
-      <h1 class="page-title">{{ title }}</h1>
-      <p v-if="description" class="page-desc">{{ description }}</p>
+      <h1 class="m-0 text-2xl font-bold leading-[1.3] text-foreground">{{ title }}</h1>
+      <p v-if="description" class="mt-1 text-sm text-muted-foreground">{{ description }}</p>
     </div>
-    <div v-if="$slots.actions" class="page-actions">
+    <div v-if="$slots.actions" class="flex items-center gap-3">
       <slot name="actions" />
     </div>
   </div>
 </template>
-
-<style scoped>
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: hsl(var(--foreground));
-  margin: 0;
-  line-height: 1.3;
-}
-
-.page-desc {
-  font-size: 14px;
-  color: hsl(var(--muted-foreground));
-  margin: 4px 0 0 0;
-}
-
-.page-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-</style>

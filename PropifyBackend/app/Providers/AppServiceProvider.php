@@ -3,7 +3,10 @@
 namespace App\Providers;
 
 use App\Events\Auth\UserRegistered;
+use App\Events\Listing\ListingPackageUpgraded;
 use App\Listeners\Auth\SendWelcomeNotification;
+use App\Listeners\Listing\ClearPublicListingCache;
+use App\Listeners\Listing\LogListingPackageUpgrade;
 use App\Repositories\AppointmentBookingRepository;
 use App\Repositories\AppointmentSlotRepository;
 use App\Repositories\Eloquent\EloquentAppointmentBookingRepository;
@@ -14,12 +17,12 @@ use App\Repositories\ListingRepository;
 use App\Repositories\UserRepository;
 use App\Services\Auth\Impl\UserUpsertServiceImpl;
 use App\Services\Auth\UserUpsertService;
-use App\Services\AuthGoogleService;
-use App\Services\AuthService;
-use App\Services\Impl\AuthGoogleServiceImpl;
-use App\Services\Impl\AuthServiceImpl;
+use App\Services\Auth\AuthGoogleService;
+use App\Services\Auth\AuthService;
+use App\Services\Auth\Impl\AuthGoogleServiceImpl;
+use App\Services\Auth\Impl\AuthServiceImpl;
 use App\Services\Listing\impl\ListingServiceImpl;
-use App\Services\Impl\TokenProcessServiceImpl;
+use App\Services\Auth\Impl\TokenProcessServiceImpl;
 use App\Services\Listing\ListingService;
 use App\Services\Notification\Channel\EmailChannel;
 use App\Services\Notification\Impl\NotificationServiceImpl;
@@ -32,7 +35,7 @@ use App\Services\Appointment\AppointmentBookingService;
 use App\Services\Appointment\AppointmentSlotService;
 use App\Services\Appointment\Impl\AppointmentBookingServiceImpl;
 use App\Services\Appointment\Impl\AppointmentSlotServiceImpl;
-use App\Services\TokenProcessService;
+use App\Services\Auth\TokenProcessService;
 use App\Services\Cloudinary\CloudinaryService;
 use App\Services\Cloudinary\Impl\CloudinaryServiceImpl;
 use App\Services\User\Impl\UserServiceImpl;
@@ -116,5 +119,7 @@ final class AppServiceProvider extends ServiceProvider
     {
         // ── Event → Listener mapping (Laravel 11 style) ───────────────────
         Event::listen(UserRegistered::class, SendWelcomeNotification::class);
+        Event::listen(ListingPackageUpgraded::class, ClearPublicListingCache::class);
+        Event::listen(ListingPackageUpgraded::class, LogListingPackageUpgrade::class);
     }
 }
