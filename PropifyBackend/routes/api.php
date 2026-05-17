@@ -73,7 +73,7 @@ Route::prefix('v1/auth')->as('auth.')->group(function () {
             );
         }
 
-        return redirect(rtrim((string) config('app.frontend_url'), '/').'/login');
+        return redirect(rtrim((string) config('app.frontend_url'), '/') . '/login');
     })->name('login.redirect');
 
     Route::post('/login', [AuthController::class, 'login'])
@@ -244,6 +244,7 @@ Route::prefix('v1/packages')->as('packages.admin.')->middleware('auth:api')->gro
 
 // ==================== ADMIN ROUTES ====================
 Route::prefix('v1/admin')->as('admin.')->middleware('auth:api')->group(function () {
-    Route::get('/listings', [AdminListingController::class, 'index'])->name('listings.index');
-    Route::patch('/listings/{id}/status', [AdminListingController::class, 'changeStatus'])->name('listings.change-status');
+    Route::get('/listings', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'index'])->name('listings.index');
+    Route::patch('/listings/{id}/status', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'changeStatus'])->name('listings.change-status');
+    Route::get('/audit-logs', [\App\Http\Controllers\Api\V1\Admin\AdminAuditLogController::class, 'index'])->name('audit-logs.index');
 });

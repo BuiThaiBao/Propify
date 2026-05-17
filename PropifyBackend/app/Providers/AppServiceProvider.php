@@ -33,6 +33,13 @@ use App\Services\Appointment\Impl\AppointmentBookingServiceImpl;
 use App\Services\Appointment\Impl\AppointmentSlotServiceImpl;
 use App\Services\Auth\AuthGoogleService;
 use App\Services\Auth\AuthService;
+use App\Services\Auth\ForgotPassword\ForgotPasswordChain;
+use App\Services\Auth\ForgotPassword\Handlers\FindResetUserHandler;
+use App\Services\Auth\ForgotPassword\Handlers\LogResetAttemptHandler;
+use App\Services\Auth\ForgotPassword\Handlers\SendResetOtpHandler;
+use App\Services\Auth\AuthStrategyResolver;
+use App\Services\Auth\Strategies\EmailPasswordAuthStrategy;
+use App\Services\Auth\Strategies\GoogleOAuthAuthStrategy;
 use App\Services\Auth\Impl\AuthGoogleServiceImpl;
 use App\Services\Auth\Impl\AuthServiceImpl;
 use App\Services\Auth\Impl\TokenProcessServiceImpl;
@@ -79,8 +86,23 @@ final class AppServiceProvider extends ServiceProvider
         // ── Auth bindings ─────────────────────────────────────────────────
         $this->app->bind(AuthService::class, AuthServiceImpl::class);
         $this->app->bind(AuthGoogleService::class, AuthGoogleServiceImpl::class);
+        $this->app->bind(AuthStrategyResolver::class, function () {
+            return new AuthStrategyResolver([
+                app(EmailPasswordAuthStrategy::class),
+                app(GoogleOAuthAuthStrategy::class),
+            ]);
+        });
         $this->app->bind(TokenProcessService::class, TokenProcessServiceImpl::class);
         $this->app->bind(UserUpsertService::class, UserUpsertServiceImpl::class);
+        $this->app->bind(ForgotPasswordChain::class, function () {
+            $findUser = app(FindResetUserHandler::class);
+            $sendOtp = app(SendResetOtpHandler::class);
+            $logAttempt = app(LogResetAttemptHandler::class);
+
+            $findUser->setNext($sendOtp)->setNext($logAttempt);
+
+            return new ForgotPasswordChain($findUser);
+        });
 
         // ── Appointment bindings ──────────────────────────────────────────
         $this->app->bind(AppointmentSlotService::class, AppointmentSlotServiceImpl::class);

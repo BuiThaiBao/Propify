@@ -5,6 +5,7 @@ namespace Tests\Feature\Auth;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\User;
+use App\Support\AuthCookieFactory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -23,6 +24,20 @@ class AuthControllerTest extends TestCase
             'role' => UserRole::User->value,
             'status' => UserStatus::Active->value,
         ], $overrides));
+    }
+
+    private function makeRefreshToken(User $user): string
+    {
+        $factory = JWTAuth::factory();
+        $originalTtl = $factory->getTTL();
+
+        try {
+            $factory->setTTL((int) config('jwt.refresh_ttl', 20160));
+
+            return JWTAuth::claims(['typ' => 'refresh'])->fromUser($user);
+        } finally {
+            $factory->setTTL($originalTtl);
+        }
     }
 
     public function test_register_returns_202_and_creates_pending_user()
@@ -82,8 +97,10 @@ class AuthControllerTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonPath('status', true)
             ->assertJsonStructure([
-                'data' => ['access_token']
-            ]);
+                'data' => ['user', 'token_type', 'expires_in']
+            ])
+            ->assertCookie(AuthCookieFactory::accessCookieName())
+            ->assertCookie(AuthCookieFactory::refreshCookieName());
     }
 
     public function test_login_with_wrong_password_returns_401()
@@ -142,41 +159,49 @@ class AuthControllerTest extends TestCase
 
     public function test_refresh_returns_new_token_for_valid_token()
     {
-        $user = $this->createUser();
-        $token = JWTAuth::fromUser($user);
+        $this->withoutMiddleware();
 
-        $response = $this->withHeaders([
-            'Authorization' => "Bearer $token",
-        ])->postJson('/api/v1/auth/refresh');
+        $user = $this->createUser();
+        $refreshToken = $this->makeRefreshToken($user);
+
+        $response = $this->call(
+            method: 'POST',
+            uri: '/api/v1/auth/refresh',
+            cookies: [AuthCookieFactory::refreshCookieName() => $refreshToken],
+            server: ['HTTP_ACCEPT' => 'application/json'],
+        );
 
         $response->assertStatus(200)
             ->assertJsonPath('status', true)
             ->assertJsonStructure([
-                'data' => ['access_token', 'token_type'],
+                'data' => ['token_type', 'expires_in'],
             ]);
 
-        $this->assertNotSame($token, $response->json('data.access_token'));
     }
 
     public function test_refresh_returns_new_token_for_expired_token_inside_refresh_window()
     {
+        $this->withoutMiddleware();
+
         $user = $this->createUser();
-        $expiredToken = JWTAuth::fromUser($user);
+        $refreshToken = $this->makeRefreshToken($user);
 
         $this->travel(config('jwt.ttl') + 1)->minutes();
 
-        $response = $this->withHeaders([
-            'Authorization' => "Bearer $expiredToken",
-        ])->postJson('/api/v1/auth/refresh');
+        $response = $this->call(
+            method: 'POST',
+            uri: '/api/v1/auth/refresh',
+            cookies: [AuthCookieFactory::refreshCookieName() => $refreshToken],
+            server: ['HTTP_ACCEPT' => 'application/json'],
+        );
 
         $this->travelBack();
 
         $response->assertStatus(200)
             ->assertJsonPath('status', true)
             ->assertJsonStructure([
-                'data' => ['access_token', 'token_type'],
+                'data' => ['token_type', 'expires_in'],
             ]);
 
-        $this->assertNotSame($expiredToken, $response->json('data.access_token'));
     }
 }
