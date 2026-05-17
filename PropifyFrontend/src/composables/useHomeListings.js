@@ -1,60 +1,45 @@
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useQuery } from '@tanstack/vue-query';
 import listingService from '@/services/listingService';
 import { hydrateListingAddresses } from '@/utils/addressFormatter';
+import { listingKeys } from '@/composables/queryKeys';
 
-const saleListings = ref([]);
-const rentListings = ref([]);
-const saleLoading = ref(true);
-const rentLoading = ref(true);
-
-let saleInitialized = false;
-let rentInitialized = false;
-
-async function fetchSale() {
-  if (saleInitialized && saleListings.value.length > 0) return;
-
-  saleLoading.value = true;
-  try {
-    const res = await listingService.getPublicListings({ demand_type: 'SALE', per_page: 6 });
-    const listings = res.data.data || [];
-    await hydrateListingAddresses(listings);
-    saleListings.value = listings;
-    saleInitialized = true;
-  } catch (e) {
-    console.error('Failed to fetch sale listings', e);
-  } finally {
-    saleLoading.value = false;
-  }
-}
-
-async function fetchRent() {
-  if (rentInitialized && rentListings.value.length > 0) return;
-
-  rentLoading.value = true;
-  try {
-    const res = await listingService.getPublicListings({ demand_type: 'RENT', per_page: 6 });
-    const listings = res.data.data || [];
-    await hydrateListingAddresses(listings);
-    rentListings.value = listings;
-    rentInitialized = true;
-  } catch (e) {
-    console.error('Failed to fetch rent listings', e);
-  } finally {
-    rentLoading.value = false;
-  }
+async function fetchHomeListings(demandType) {
+  const res = await listingService.getPublicListings({
+    demand_type: demandType,
+    per_page: 6,
+  });
+  const listings = res.data.data || [];
+  await hydrateListingAddresses(listings);
+  return listings;
 }
 
 export function useHomeListings() {
+  const enabled = ref(false);
+
+  const saleQuery = useQuery({
+    queryKey: listingKeys.publicList({ demand_type: 'SALE', per_page: 6, page: 1 }),
+    queryFn: () => fetchHomeListings('SALE'),
+    enabled,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const rentQuery = useQuery({
+    queryKey: listingKeys.publicList({ demand_type: 'RENT', per_page: 6, page: 1 }),
+    queryFn: () => fetchHomeListings('RENT'),
+    enabled,
+    staleTime: 2 * 60 * 1000,
+  });
+
   function init() {
-    fetchSale();
-    fetchRent();
+    enabled.value = true;
   }
 
   return {
-    saleListings,
-    rentListings,
-    saleLoading,
-    rentLoading,
+    saleListings: computed(() => saleQuery.data.value || []),
+    rentListings: computed(() => rentQuery.data.value || []),
+    saleLoading: computed(() => saleQuery.isLoading.value || saleQuery.isFetching.value),
+    rentLoading: computed(() => rentQuery.isLoading.value || rentQuery.isFetching.value),
     init,
   };
 }

@@ -178,19 +178,21 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { onMounted, watch } from 'vue';
 import ListingCardHome from '@/components/shared/ListingCardHome.vue';
 import { useHomeListings } from '@/composables/useHomeListings';
-import favoriteService from '@/services/favoriteService';
+import { useFavoriteListings } from '@/composables/useFavoriteListings';
 import { useAuthStore } from '@/stores/auth';
 
 const { saleListings, rentListings, saleLoading, rentLoading, init } = useHomeListings();
-const router = useRouter();
 const authStore = useAuthStore();
-const favoriteIds = ref(new Set());
-const favoriteListings = ref([]);
-const favoriteLoading = ref(false);
+const {
+  favoriteListings,
+  favoriteLoading,
+  isFavorite,
+  toggleFavorite,
+  loadFavorites,
+} = useFavoriteListings();
 
 onMounted(() => {
   init();
@@ -203,87 +205,6 @@ watch(
     loadFavorites();
   },
 );
-
-async function loadFavorites() {
-  if (!authStore.isAuthenticated) {
-    favoriteIds.value = new Set();
-    favoriteListings.value = [];
-    return;
-  }
-
-  favoriteLoading.value = true;
-  try {
-    const [idsResponse, listingsResponse] = await Promise.all([
-      favoriteService.getFavoriteIds(),
-      favoriteService.getFavorites(),
-    ]);
-    favoriteIds.value = new Set(idsResponse.data?.data || []);
-    favoriteListings.value = (listingsResponse.data?.data || []).map((item) => ({
-      ...item,
-      is_favorited: true,
-    }));
-  } catch (e) {
-    console.error('Failed to fetch favorite listings', e);
-    favoriteIds.value = new Set();
-    favoriteListings.value = [];
-  } finally {
-    favoriteLoading.value = false;
-  }
-}
-
-function isFavorite(item) {
-  return Boolean(item?.is_favorited) || favoriteIds.value.has(Number(item.id));
-}
-
-async function toggleFavorite(item) {
-  if (!authStore.isAuthenticated) {
-    router.push({ name: 'Login', query: { redirect: `/listings/${item.id}` } });
-    return;
-  }
-
-  const id = Number(item.id);
-  const wasFavorite = isFavorite(item);
-  const next = new Set(favoriteIds.value);
-  if (wasFavorite) next.delete(id);
-  else next.add(id);
-  favoriteIds.value = next;
-  item.is_favorited = !wasFavorite;
-  syncFavoriteListings(item, !wasFavorite);
-
-  try {
-    const response = await favoriteService.toggle(id);
-    const isFavorited = Boolean(response.data?.data?.is_favorited);
-    item.is_favorited = isFavorited;
-
-    const synced = new Set(favoriteIds.value);
-    if (isFavorited) synced.add(id);
-    else synced.delete(id);
-    favoriteIds.value = synced;
-    syncFavoriteListings(item, isFavorited);
-  } catch (e) {
-    console.error('Failed to toggle favorite listing', e);
-    item.is_favorited = wasFavorite;
-
-    const rollback = new Set(favoriteIds.value);
-    if (wasFavorite) rollback.add(id);
-    else rollback.delete(id);
-    favoriteIds.value = rollback;
-    syncFavoriteListings(item, wasFavorite);
-  }
-}
-
-function syncFavoriteListings(item, isFavorited) {
-  const id = Number(item.id);
-  if (!isFavorited) {
-    favoriteListings.value = favoriteListings.value.filter((favorite) => Number(favorite.id) !== id);
-    return;
-  }
-
-  const exists = favoriteListings.value.some((favorite) => Number(favorite.id) === id);
-  if (!exists) {
-    favoriteListings.value = [{ ...item, is_favorited: true }, ...favoriteListings.value];
-  }
-}
 
 function getThumb(item) {
   if (item.images && item.images.length > 0) {

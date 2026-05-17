@@ -1,56 +1,49 @@
 import { computed, ref } from 'vue';
+import { keepPreviousData, useQuery } from '@tanstack/vue-query';
 import listingService from '@/services/listingService';
 import { hydrateListingAddresses } from '@/utils/addressFormatter';
+import { listingKeys } from '@/composables/queryKeys';
 
-const rentListings = ref([]);
-const rentLoading = ref(true);
-const rentTotal = ref(0);
-const searchKeyword = ref('');
-const cache = new Map();
-let initialized = false;
-
-function cacheKey(keyword) {
-  return (keyword || '').trim();
-}
-
-function applyData(response) {
-  rentListings.value = response?.data?.data || [];
-  rentTotal.value = Number(response?.data?.meta?.total || rentListings.value.length || 0);
-  rentLoading.value = false;
-}
-
-async function fetchRentListings() {
-  const keyword = searchKeyword.value;
-  const key = cacheKey(keyword);
-
-  if (cache.has(key)) {
-    applyData(cache.get(key));
-    return;
-  }
-
-  rentLoading.value = true;
-  try {
-    const response = await listingService.getPublicListings({
-      demand_type: 'RENT',
-      keyword: keyword?.trim() || undefined,
-      per_page: 20,
-    });
-    await hydrateListingAddresses(response?.data?.data || []);
-    cache.set(key, response);
-    applyData(response);
-  } catch (error) {
-    console.error('Failed to fetch rent listings', error);
-    rentListings.value = [];
-    rentTotal.value = 0;
-  } finally {
-    rentLoading.value = false;
-  }
+async function fetchRentListings(keyword) {
+  const response = await listingService.getPublicListings({
+    demand_type: 'RENT',
+    keyword: keyword?.trim() || undefined,
+    per_page: 20,
+  });
+  const listings = response?.data?.data || [];
+  await hydrateListingAddresses(listings);
+  return {
+    data: listings,
+    meta: response?.data?.meta || {},
+  };
 }
 
 export function useRentListings() {
+  const enabled = ref(false);
+  const searchKeyword = ref('');
+
+  const queryKey = computed(() => listingKeys.publicList({
+    demand_type: 'RENT',
+    keyword: searchKeyword.value.trim(),
+    per_page: 20,
+    page: 1,
+  }));
+
+  const query = useQuery({
+    queryKey,
+    queryFn: () => fetchRentListings(searchKeyword.value),
+    enabled,
+    placeholderData: keepPreviousData,
+    staleTime: 60 * 1000,
+  });
+
+  const rentListings = computed(() => query.data.value?.data || []);
+  const rentTotal = computed(() => Number(query.data.value?.meta?.total || rentListings.value.length || 0));
+  const rentLoading = computed(() => query.isLoading.value || query.isFetching.value);
+
   const rentSuggestions = computed(() => {
-    const query = normalizeText(searchKeyword.value);
-    if (!query) return [];
+    const queryText = normalizeText(searchKeyword.value);
+    if (!queryText) return [];
 
     const candidates = rentListings.value.flatMap((item) => [
       item.title,
@@ -60,19 +53,17 @@ export function useRentListings() {
     ]).filter(Boolean);
 
     return [...new Set(candidates)]
-      .filter((text) => normalizeText(text).includes(query))
+      .filter((text) => normalizeText(text).includes(queryText))
       .slice(0, 8);
   });
 
-  async function init() {
-    if (initialized && rentListings.value.length > 0) return;
-    initialized = true;
-    await fetchRentListings();
+  function init() {
+    enabled.value = true;
   }
 
   async function onSearch(value) {
     searchKeyword.value = value || '';
-    await fetchRentListings();
+    enabled.value = true;
   }
 
   return {
