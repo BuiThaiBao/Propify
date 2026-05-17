@@ -19,6 +19,10 @@ use App\Services\Auth\Impl\UserUpsertServiceImpl;
 use App\Services\Auth\UserUpsertService;
 use App\Services\Auth\AuthGoogleService;
 use App\Services\Auth\AuthService;
+use App\Services\Auth\ForgotPassword\ForgotPasswordChain;
+use App\Services\Auth\ForgotPassword\Handlers\FindResetUserHandler;
+use App\Services\Auth\ForgotPassword\Handlers\LogResetAttemptHandler;
+use App\Services\Auth\ForgotPassword\Handlers\SendResetOtpHandler;
 use App\Services\Auth\AuthStrategyResolver;
 use App\Services\Auth\Strategies\EmailPasswordAuthStrategy;
 use App\Services\Auth\Strategies\GoogleOAuthAuthStrategy;
@@ -78,6 +82,15 @@ final class AppServiceProvider extends ServiceProvider
         });
         $this->app->bind(TokenProcessService::class, TokenProcessServiceImpl::class);
         $this->app->bind(UserUpsertService::class, UserUpsertServiceImpl::class);
+        $this->app->bind(ForgotPasswordChain::class, function () {
+            $findUser = app(FindResetUserHandler::class);
+            $sendOtp = app(SendResetOtpHandler::class);
+            $logAttempt = app(LogResetAttemptHandler::class);
+
+            $findUser->setNext($sendOtp)->setNext($logAttempt);
+
+            return new ForgotPasswordChain($findUser);
+        });
 
         // ── Appointment bindings ──────────────────────────────────────────
         $this->app->bind(AppointmentSlotService::class, AppointmentSlotServiceImpl::class);

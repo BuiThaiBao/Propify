@@ -18,6 +18,7 @@ use App\Repositories\UserRepository;
 use App\Services\Auth\AuthService;
 use App\Services\Auth\AuthStrategyResolver;
 use App\Services\Auth\AuthTokenIssuer;
+use App\Services\Auth\ForgotPassword\ForgotPasswordChain;
 use App\Services\Otp\OtpService;
 use App\Services\Auth\TokenProcessService;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
@@ -36,6 +37,7 @@ final class AuthServiceImpl implements AuthService
         private readonly OtpService         $otpService,
         private readonly AuthStrategyResolver $authStrategyResolver,
         private readonly AuthTokenIssuer $tokenIssuer,
+        private readonly ForgotPasswordChain $forgotPasswordChain,
     ) {}
 
     /** @throws BusinessException */
@@ -124,15 +126,7 @@ final class AuthServiceImpl implements AuthService
      */
     public function forgotPassword(string $email): void
     {
-        $user = $this->userRepository->findByEmail($email);
-
-        if (!$user) {
-            Log::warning('Forgot password for unknown email', ['email' => $email]);
-            return;
-        }
-
-        $this->otpService->generate($user, OtpContext::RESET_PASSWORD);
-        Log::info('Password reset OTP sent', ['user_id' => $user->id]);
+        $this->forgotPasswordChain->execute($email);
     }
 
     /**
