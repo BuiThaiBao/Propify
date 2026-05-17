@@ -1,11 +1,14 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowLeft,
   Ban,
+  ChevronLeft,
+  ChevronRight,
   Calendar,
   CheckCircle,
+  X,
   Clock,
   FileCheck,
   Image as ImageIcon,
@@ -28,6 +31,19 @@ const error = ref('')
 const activeTab = ref('info')
 const actionLoading = ref(false)
 const reasonModal = ref({ open: false, status: '', title: '', reason: '' })
+const lightbox = ref({ open: false, items: [], index: 0 })
+const lightboxZoomed = ref(false)
+const panState = ref({
+  dragging: false,
+  moved: false,
+  startX: 0,
+  startY: 0,
+  originX: 0,
+  originY: 0,
+  x: 0,
+  y: 0,
+})
+let previousBodyOverflow = ''
 
 const post = computed(() => listing.value)
 const property = computed(() => post.value?.property ?? {})
@@ -35,6 +51,12 @@ const images = computed(() => post.value?.images ?? [])
 const videos = computed(() => post.value?.videos ?? [])
 const docs = computed(() => post.value?.verification_documents ?? [])
 const histories = computed(() => post.value?.status_histories ?? [])
+const mediaItems = computed(() => [
+  ...images.value.map((image) => ({ type: 'image', url: image.url, title: post.value?.title || 'Hình ảnh' })),
+  ...videos.value.map((video) => ({ type: 'video', url: video.url, title: 'Video đính kèm' })),
+])
+const docItems = computed(() => docs.value.map((doc) => ({ type: 'image', url: doc.url, title: doc.type })))
+const activeLightboxItem = computed(() => lightbox.value.items[lightbox.value.index])
 
 const statusKey = computed(() => mapStatusKey(post.value?.status))
 const statusLabel = computed(() => mapStatusLabel(post.value?.status))
@@ -126,6 +148,30 @@ function propertyTypeLabel(value) {
   }[value] || value || '--'
 }
 
+function posterTypeLabel(value) {
+  return {
+    OWNER: 'Chủ sở hữu',
+    BROKER: 'Môi giới',
+  }[value] || value || '--'
+}
+
+function directionLabel(value) {
+  return {
+    EAST: 'Đông',
+    WEST: 'Tây',
+    SOUTH: 'Nam',
+    NORTH: 'Bắc',
+    NORTHEAST: 'Đông Bắc',
+    NORTH_EAST: 'Đông Bắc',
+    NORTHWEST: 'Tây Bắc',
+    NORTH_WEST: 'Tây Bắc',
+    SOUTHEAST: 'Đông Nam',
+    SOUTH_EAST: 'Đông Nam',
+    SOUTHWEST: 'Tây Nam',
+    SOUTH_WEST: 'Tây Nam',
+  }[value] || value || '--'
+}
+
 function historyActionLabel(value) {
   return {
     ACTIVE: 'Duyệt tin',
@@ -176,7 +222,83 @@ function submitReason() {
   changeStatus(status, reason.trim() || null)
 }
 
+function openLightbox(items, index = 0) {
+  if (!items.length) return
+  resetLightboxZoom()
+  lightbox.value = { open: true, items, index }
+}
+
+function closeLightbox() {
+  resetLightboxZoom()
+  lightbox.value = { open: false, items: [], index: 0 }
+}
+
+function moveLightbox(step) {
+  const total = lightbox.value.items.length
+  if (!total) return
+  resetLightboxZoom()
+  lightbox.value.index = (lightbox.value.index + step + total) % total
+}
+
+function resetLightboxZoom() {
+  lightboxZoomed.value = false
+  panState.value = { dragging: false, moved: false, startX: 0, startY: 0, originX: 0, originY: 0, x: 0, y: 0 }
+}
+
+function toggleLightboxZoom() {
+  lightboxZoomed.value = !lightboxZoomed.value
+  panState.value = { dragging: false, moved: false, startX: 0, startY: 0, originX: 0, originY: 0, x: 0, y: 0 }
+}
+
+function handleLightboxImageClick() {
+  if (panState.value.moved) {
+    panState.value.moved = false
+    return
+  }
+
+  toggleLightboxZoom()
+}
+
+function startPan(event) {
+  if (!lightboxZoomed.value || activeLightboxItem.value?.type !== 'image') return
+  panState.value = {
+    ...panState.value,
+    dragging: true,
+    moved: false,
+    startX: event.clientX - panState.value.x,
+    startY: event.clientY - panState.value.y,
+    originX: event.clientX,
+    originY: event.clientY,
+  }
+}
+
+function movePan(event) {
+  if (!panState.value.dragging) return
+  if (Math.abs(event.clientX - panState.value.originX) > 3 || Math.abs(event.clientY - panState.value.originY) > 3) {
+    panState.value.moved = true
+  }
+  panState.value.x = event.clientX - panState.value.startX
+  panState.value.y = event.clientY - panState.value.startY
+}
+
+function stopPan() {
+  panState.value.dragging = false
+}
+
+watch(() => lightbox.value.open, (isOpen) => {
+  if (isOpen) {
+    previousBodyOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+  } else {
+    document.body.style.overflow = previousBodyOverflow
+  }
+})
+
 onMounted(fetchDetail)
+
+onBeforeUnmount(() => {
+  document.body.style.overflow = previousBodyOverflow
+})
 </script>
 
 <template>
@@ -225,10 +347,29 @@ onMounted(fetchDetail)
         <article class="detail-card">
           <h2><ImageIcon :size="16" /> Hình ảnh & Video</h2>
           <div v-if="images.length" class="media-grid">
-            <img v-for="image in images" :key="image.id" :src="image.url" :alt="post.title" />
+            <button
+              v-for="(image, index) in images"
+              :key="image.id"
+              class="media-thumb"
+              type="button"
+              @click="openLightbox(mediaItems, index)"
+            >
+              <img :src="image.url" :alt="post.title" />
+            </button>
           </div>
           <p v-else class="muted">Không có hình ảnh đính kèm</p>
-          <p class="video-note"><Video :size="14" /> {{ videos.length ? `${videos.length} video đính kèm` : 'Không có video đính kèm' }}</p>
+          <div v-if="videos.length" class="video-list">
+            <button
+              v-for="(video, index) in videos"
+              :key="video.id"
+              class="video-chip"
+              type="button"
+              @click="openLightbox(mediaItems, images.length + index)"
+            >
+              <Video :size="14" /> Video {{ index + 1 }}
+            </button>
+          </div>
+          <p v-else class="video-note"><Video :size="14" /> Không có video đính kèm</p>
         </article>
 
         <article class="detail-card">
@@ -272,8 +413,8 @@ onMounted(fetchDetail)
             <div class="info-item"><span>Mặt tiền</span><strong>{{ property.facade_width ? `${property.facade_width} m` : '--' }}</strong></div>
             <div class="info-item"><span>Chiều sâu</span><strong>{{ property.depth ? `${property.depth} m` : '--' }}</strong></div>
             <div class="info-item"><span>Đường rộng</span><strong>{{ property.road_width ? `${property.road_width} m` : '--' }}</strong></div>
-            <div class="info-item"><span>Hướng nhà</span><strong>{{ property.direction_code || '--' }}</strong></div>
-            <div class="info-item"><span>Hướng ban công</span><strong>{{ property.balcony_direction_code || '--' }}</strong></div>
+            <div class="info-item"><span>Hướng nhà</span><strong>{{ directionLabel(property.direction_code) }}</strong></div>
+            <div class="info-item"><span>Hướng ban công</span><strong>{{ directionLabel(property.balcony_direction_code) }}</strong></div>
             <div class="info-item"><span>Nội thất</span><strong>{{ property.furniture_status || '--' }}</strong></div>
             <div class="info-item"><span>Ban công</span><strong>{{ property.balconies ?? '--' }}</strong></div>
             <div class="info-item"><span>Thỏa thuận</span><strong>{{ property.is_negotiable ? 'Có' : 'Không' }}</strong></div>
@@ -298,7 +439,7 @@ onMounted(fetchDetail)
         <article class="detail-card">
           <h2><User :size="16" /> Người đăng</h2>
           <div class="info-grid">
-            <div class="info-item"><span>Loại</span><strong>{{ property.poster_type || '--' }}</strong></div>
+            <div class="info-item"><span>Loại</span><strong>{{ posterTypeLabel(property.poster_type) }}</strong></div>
             <div class="info-item"><span>Họ tên</span><strong>{{ property.contact_name || post.owner?.full_name || '--' }}</strong></div>
             <div class="info-item"><span>Số điện thoại</span><strong>{{ property.contact_phone || '--' }}</strong></div>
             <div class="info-item"><span>Email</span><strong>{{ property.contact_email || post.owner?.email || '--' }}</strong></div>
@@ -312,13 +453,19 @@ onMounted(fetchDetail)
             <h2><ShieldCheck :size="16" /> Giấy tờ pháp lý</h2>
           </div>
           <div v-if="docs.length" class="docs-grid">
-            <div v-for="doc in docs" :key="doc.id" class="doc-card">
+            <button
+              v-for="(doc, index) in docs"
+              :key="doc.id"
+              class="doc-card"
+              type="button"
+              @click="openLightbox(docItems, index)"
+            >
               <img :src="doc.url" :alt="doc.type" />
               <div>
                 <strong>{{ doc.type }}</strong>
                 <span>Đã tải lên</span>
               </div>
-            </div>
+            </button>
           </div>
           <p v-else class="muted">Không có giấy tờ xác thực.</p>
         </article>
@@ -347,6 +494,49 @@ onMounted(fetchDetail)
         </div>
       </div>
     </div>
+
+    <div v-if="lightbox.open" class="lightbox-backdrop" @click.self="closeLightbox" @wheel.prevent @touchmove.prevent>
+      <button class="lightbox-close" type="button" aria-label="Đóng" @click="closeLightbox">
+        <X :size="22" />
+      </button>
+      <button
+        v-if="lightbox.items.length > 1"
+        class="lightbox-nav left"
+        type="button"
+        aria-label="Ảnh trước"
+        @click.stop="moveLightbox(-1)"
+      >
+        <ChevronLeft :size="28" />
+      </button>
+      <div class="lightbox-content" :class="{ zoomed: lightboxZoomed }">
+        <img
+          v-if="activeLightboxItem?.type === 'image'"
+          :src="activeLightboxItem.url"
+          :alt="activeLightboxItem.title"
+          :style="lightboxZoomed ? { transform: `translate(${panState.x}px, ${panState.y}px)` } : null"
+          @click.stop="handleLightboxImageClick"
+          @mousedown.stop.prevent="startPan"
+          @mousemove.stop.prevent="movePan"
+          @mouseup.stop="stopPan"
+          @mouseleave.stop="stopPan"
+        />
+        <video
+          v-else-if="activeLightboxItem?.type === 'video'"
+          :src="activeLightboxItem.url"
+          controls
+          autoplay
+        ></video>
+      </div>
+      <button
+        v-if="lightbox.items.length > 1"
+        class="lightbox-nav right"
+        type="button"
+        aria-label="Ảnh sau"
+        @click.stop="moveLightbox(1)"
+      >
+        <ChevronRight :size="28" />
+      </button>
+    </div>
   </div>
 </template>
 
@@ -367,7 +557,11 @@ onMounted(fetchDetail)
 .detail-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
 .detail-card h2, .card-head h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; font-size: 17px; }
 .media-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
-.media-grid img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; border: 1px solid #e2e8f0; }
+.media-thumb { display: block; padding: 0; border: 0; background: transparent; cursor: zoom-in; }
+.media-thumb img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; border: 1px solid #e2e8f0; display: block; }
+.media-thumb:hover img, .doc-card:hover img { filter: brightness(0.94); }
+.video-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.video-chip { display: inline-flex; align-items: center; gap: 6px; height: 32px; border: 1px solid #dbeafe; border-radius: 999px; background: #eff6ff; color: #2563eb; padding: 0 12px; font-weight: 700; cursor: pointer; }
 .video-note, .muted { display: flex; align-items: center; gap: 6px; color: #64748b; font-size: 13px; margin: 14px 0 0; }
 .info-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .info-item { display: grid; gap: 5px; min-width: 0; }
@@ -384,7 +578,7 @@ onMounted(fetchDetail)
 .map-frame { width: 100%; height: 430px; border: 0; border-radius: 12px; margin-top: 16px; }
 .map-empty { margin-top: 16px; height: 180px; display: grid; place-items: center; border-radius: 12px; background: #f8fafc; color: #64748b; }
 .docs-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
-.doc-card { border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; }
+.doc-card { display: block; padding: 0; text-align: left; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #fff; cursor: zoom-in; }
 .doc-card img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; display: block; }
 .doc-card div { display: flex; justify-content: space-between; gap: 10px; padding: 12px; }
 .doc-card span { color: #16a34a; font-size: 12px; font-weight: 700; }
@@ -392,7 +586,7 @@ onMounted(fetchDetail)
 .history-item { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; }
 .history-item span { display: block; color: #64748b; font-size: 12px; margin-top: 4px; }
 .history-item p { margin: 8px 0 0; color: #334155; }
-.primary-action, .outline-danger, .outline-neutral { height: 40px; display: inline-flex; align-items: center; gap: 7px; border-radius: 9px; padding: 0 14px; font-weight: 800; cursor: pointer; }
+.primary-action, .outline-danger, .outline-neutral { height: 40px; display: inline-flex; align-items: center; gap: 7px; border-radius: 9px; padding: 0 14px; font-size: 14px; font-weight: 500; cursor: pointer; }
 .primary-action { border: 1px solid #0ea5e9; background: #0ea5e9; color: #fff; }
 .outline-danger { border: 1px solid #ef4444; background: #fff; color: #ef4444; }
 .outline-neutral { border: 1px solid #cbd5e1; background: #fff; color: #475569; }
@@ -403,6 +597,19 @@ onMounted(fetchDetail)
 .modal-card h3 { margin: 0 0 12px; }
 .modal-card textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 9px; padding: 10px; resize: vertical; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+.lightbox-backdrop { position: fixed; inset: 0; z-index: 1300; display: flex; align-items: center; justify-content: center; background: rgba(2, 6, 23, 0.86); padding: 56px 88px; }
+.lightbox-content { max-width: min(980px, calc(100vw - 176px)); max-height: 100%; display: grid; justify-items: center; gap: 12px; overflow: hidden; }
+.lightbox-content img, .lightbox-content video { width: auto; height: auto; max-width: 100%; max-height: calc(100vh - 150px); object-fit: contain; border-radius: 12px; background: transparent; box-shadow: 0 24px 80px rgba(0,0,0,0.35); user-select: none; }
+.lightbox-content img { cursor: zoom-in; }
+.lightbox-content.zoomed { width: min(1400px, calc(100vw - 176px)); justify-items: start; align-items: start; }
+.lightbox-content.zoomed img { max-width: none; max-height: none; width: min(1400px, 160vw); cursor: grab; }
+.lightbox-content.zoomed img:active { cursor: grabbing; }
+.lightbox-close, .lightbox-nav { position: fixed; border: 0; border-radius: 999px; background: rgba(255,255,255,0.95); color: #0f172a; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.lightbox-close { top: 22px; right: 24px; width: 42px; height: 42px; }
+.lightbox-nav { top: 50%; width: 48px; height: 48px; transform: translateY(-50%); }
+.lightbox-nav.left { left: 28px; }
+.lightbox-nav.right { right: 28px; }
+.lightbox-close:hover, .lightbox-nav:hover { background: #ffffff; }
 @media (max-width: 900px) {
   .detail-header { flex-direction: column; }
   .media-grid, .docs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
