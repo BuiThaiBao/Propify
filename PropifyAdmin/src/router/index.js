@@ -68,6 +68,11 @@ const routes = [
         component: () => import('@/pages/Utilities/Page.vue'),
       },
       {
+        path: 'audit-logs',
+        name: 'AuditLogs',
+        component: () => import('@/pages/AuditLogs/Page.vue'),
+      },
+      {
         path: 'revenue',
         name: 'Revenue',
         component: () => import('@/pages/Revenue/Page.vue'),

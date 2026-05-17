@@ -3,6 +3,7 @@
 namespace App\Commands\User;
 
 use App\DTOs\User\UpdateProfileDto;
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use Illuminate\Support\Facades\Log;
@@ -28,6 +29,17 @@ final class UpdateUserProfileCommand
 
         $changes = $this->changedFields($user, $data);
         $updated = $this->userRepository->update($user->id, $data);
+
+        AuditLog::create([
+            'actor_id' => $user->id,
+            'auditable_type' => User::class,
+            'auditable_id' => $user->id,
+            'action' => 'user.profile.updated',
+            'changes' => $changes,
+            'metadata' => [
+                'changed_fields' => array_keys($changes),
+            ],
+        ]);
 
         Log::info('User profile updated', [
             'user_id' => $user->id,
