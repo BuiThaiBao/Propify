@@ -491,6 +491,10 @@ final class ListingServiceImpl implements ListingService
             throw new BusinessException(ErrorCode::AuthForbidden);
         }
 
+        if ($status === 'REJECTED' && trim((string) $rejectionReason) === '') {
+            throw new BusinessException(ErrorCode::BadRequest, 'Vui lòng nhập lý do từ chối.');
+        }
+
         $listing = DB::transaction(function () use ($listingId, $status, $rejectionReason, $adminUserId) {
             $listing = Listing::query()->lockForUpdate()->find($listingId);
             if (!$listing) {
@@ -544,6 +548,51 @@ final class ListingServiceImpl implements ListingService
             'owner',
             'approver',
             'package',
+        ]);
+    }
+
+    public function updateVerificationForAdmin(int $listingId, bool $isVerified, ?string $reason = null, ?int $adminUserId = null): Listing
+    {
+        if ($adminUserId === null) {
+            throw new BusinessException(ErrorCode::AuthForbidden);
+        }
+
+        if (!$isVerified && trim((string) $reason) === '') {
+            throw new BusinessException(ErrorCode::BadRequest, 'Vui lòng nhập lý do từ chối xác thực.');
+        }
+
+        $listing = DB::transaction(function () use ($listingId, $isVerified, $reason, $adminUserId) {
+            $listing = Listing::query()->lockForUpdate()->find($listingId);
+            if (!$listing) {
+                throw new BusinessException(ErrorCode::ListingNotFound);
+            }
+
+            $listing->is_verified = $isVerified;
+            $listing->save();
+
+            ListingStatusHistory::create([
+                'user_id' => $adminUserId,
+                'listing_id' => $listing->id,
+                'action' => $isVerified ? 'VERIFY_APPROVED' : 'VERIFY_REJECTED',
+                'reason' => $isVerified ? null : $reason,
+            ]);
+
+            return $listing;
+        });
+
+        Cache::tags(['listings:public'])->flush();
+
+        return $listing->load([
+            'property.attributes.group',
+            'images',
+            'videos',
+            'verificationDocuments',
+            'appointmentSlots',
+            'appointments',
+            'owner',
+            'approver',
+            'package',
+            'statusHistories.user',
         ]);
     }
 

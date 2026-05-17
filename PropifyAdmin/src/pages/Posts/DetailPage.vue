@@ -30,7 +30,8 @@ const loading = ref(false)
 const error = ref('')
 const activeTab = ref('info')
 const actionLoading = ref(false)
-const reasonModal = ref({ open: false, status: '', title: '', reason: '' })
+const reasonModal = ref({ open: false, type: 'status', status: '', title: '', reason: '', error: '' })
+const confirmModal = ref({ open: false, title: '', message: '', confirmText: 'Xác nhận', tone: 'primary', action: null })
 const lightbox = ref({ open: false, items: [], index: 0 })
 const lightboxZoomed = ref(false)
 const panState = ref({
@@ -57,6 +58,8 @@ const mediaItems = computed(() => [
 ])
 const docItems = computed(() => docs.value.map((doc) => ({ type: 'image', url: doc.url, title: doc.type })))
 const activeLightboxItem = computed(() => lightbox.value.items[lightbox.value.index])
+const isSaleListing = computed(() => post.value?.demand_type === 'SALE')
+const isRentListing = computed(() => post.value?.demand_type === 'RENT')
 
 const statusKey = computed(() => mapStatusKey(post.value?.status))
 const statusLabel = computed(() => mapStatusLabel(post.value?.status))
@@ -76,14 +79,27 @@ const unitPrice = computed(() => {
   return `${formatMoney(Math.round(price / area))} đ/m²`
 })
 
+const priceLabel = computed(() => isRentListing.value ? 'Giá thuê' : 'Giá bán')
+const priceValue = computed(() => {
+  const price = formatMoney(property.value?.price)
+  if (price === '--') return '--'
+  return isRentListing.value ? `${price} đ/tháng` : `${price} đ`
+})
+const rentMinTermText = computed(() => formatRentTerm(post.value?.rent_min_term))
+const rentPaymentText = computed(() => formatRentPaymentInterval(post.value?.rent_payment_interval))
+const rentDepositText = computed(() => formatRentDeposit(post.value?.rent_deposit))
+
 async function fetchDetail() {
   loading.value = true
   error.value = ''
   try {
     const res = await listingService.getListingDetail(route.params.id)
     listing.value = res.data?.data ?? null
-    if (listing.value?.demand_type !== 'SALE') {
-      error.value = 'Trang chi tiết này hiện chỉ hỗ trợ tin mua bán.'
+    if (!['SALE', 'RENT'].includes(listing.value?.demand_type)) {
+      error.value = 'Trang chi tiết này hiện chỉ hỗ trợ tin mua bán và cho thuê.'
+    }
+    if (listing.value?.demand_type === 'RENT') {
+      activeTab.value = 'info'
     }
   } catch (err) {
     console.error('Failed to fetch listing detail:', err)
@@ -136,6 +152,35 @@ function demandLabel(value) {
   return value === 'SALE' ? 'Mua bán' : value === 'RENT' ? 'Cho thuê' : '--'
 }
 
+function formatRentTerm(value) {
+  if (!value) return '--'
+  const text = String(value)
+  const monthMatch = text.match(/\d+/)
+  if (monthMatch) return `${monthMatch[0]} tháng`
+  return text
+}
+
+function formatRentPaymentInterval(value) {
+  if (!value) return '--'
+  const normalized = String(value).toUpperCase()
+  const monthMatch = normalized.match(/\d+/)
+  if (monthMatch) return `${monthMatch[0]} tháng/lần`
+  return {
+    MONTHLY: '1 tháng/lần',
+    QUARTERLY: '3 tháng/lần',
+    HALF_YEARLY: '6 tháng/lần',
+    YEARLY: '12 tháng/lần',
+  }[normalized] || value
+}
+
+function formatRentDeposit(value) {
+  if (!value) return '--'
+  const text = String(value)
+  const monthMatch = text.match(/\d+/)
+  if (monthMatch) return `${monthMatch[0]} tháng`
+  return text
+}
+
 function propertyTypeLabel(value) {
   return {
     APARTMENT: 'Căn hộ chung cư',
@@ -177,6 +222,8 @@ function historyActionLabel(value) {
     ACTIVE: 'Duyệt tin',
     REJECTED: 'Từ chối',
     LOCKED: 'Khóa tin',
+    VERIFY_APPROVED: 'Đã xác thực',
+    VERIFY_REJECTED: 'Từ chối xác thực',
   }[value] || value
 }
 
@@ -207,19 +254,105 @@ async function changeStatus(status, reason = null) {
   }
 }
 
+async function updateVerification(isVerified, reason = null) {
+  if (!post.value) return
+  actionLoading.value = true
+  try {
+    await listingService.updateVerificationForAdmin(post.value.id, {
+      is_verified: isVerified,
+      reason,
+    })
+    await fetchDetail()
+  } finally {
+    actionLoading.value = false
+  }
+}
+
+function openConfirm({ title, message, confirmText = 'Xác nhận', tone = 'primary', action }) {
+  confirmModal.value = { open: true, title, message, confirmText, tone, action }
+}
+
+function closeConfirm() {
+  confirmModal.value = { open: false, title: '', message: '', confirmText: 'Xác nhận', tone: 'primary', action: null }
+}
+
+function runConfirmedAction() {
+  const action = confirmModal.value.action
+  closeConfirm()
+  if (typeof action === 'function') {
+    action()
+  }
+}
+
+function confirmStatusChange(status, reason = null) {
+  const isReject = status === 'REJECTED'
+  const isLock = status === 'LOCKED'
+  openConfirm({
+    title: isReject ? 'Xác nhận từ chối tin' : isLock ? 'Xác nhận khóa tin' : 'Xác nhận duyệt tin',
+    message: isReject
+      ? 'Bạn chắc chắn muốn từ chối tin đăng này?'
+      : isLock
+        ? 'Bạn chắc chắn muốn khóa tin đăng này?'
+        : 'Bạn chắc chắn muốn duyệt tin đăng này?',
+    confirmText: isReject ? 'Từ chối' : isLock ? 'Khóa tin' : 'Duyệt tin',
+    tone: isReject ? 'danger' : 'primary',
+    action: () => changeStatus(status, reason),
+  })
+}
+
+function confirmVerificationChange(isVerified, reason = null) {
+  openConfirm({
+    title: isVerified ? 'Xác nhận phê duyệt xác thực' : 'Xác nhận từ chối xác thực',
+    message: isVerified
+      ? 'Bạn chắc chắn muốn phê duyệt giấy tờ xác thực này?'
+      : 'Bạn chắc chắn muốn từ chối giấy tờ xác thực này?',
+    confirmText: isVerified ? 'Phê duyệt' : 'Từ chối',
+    tone: isVerified ? 'primary' : 'danger',
+    action: () => updateVerification(isVerified, reason),
+  })
+}
+
 function openReason(status) {
   reasonModal.value = {
     open: true,
+    type: 'status',
     status,
     title: status === 'LOCKED' ? 'Khóa tin' : 'Từ chối tin',
     reason: '',
+    error: '',
+  }
+}
+
+function openVerificationReject() {
+  reasonModal.value = {
+    open: true,
+    type: 'verification',
+    status: '',
+    title: 'Từ chối xác thực',
+    reason: '',
+    error: '',
   }
 }
 
 function submitReason() {
-  const { status, reason } = reasonModal.value
+  const { type, status, reason } = reasonModal.value
+  if (type === 'verification') {
+    if (!reason.trim()) {
+      reasonModal.value.error = 'Vui lòng nhập lý do từ chối xác thực.'
+      return
+    }
+    reasonModal.value.open = false
+    confirmVerificationChange(false, reason.trim())
+    return
+  }
+
+  if (status === 'REJECTED' && !reason.trim()) {
+    reasonModal.value.error = 'Vui lòng nhập lý do từ chối.'
+    return
+  }
+
   reasonModal.value.open = false
-  changeStatus(status, reason.trim() || null)
+  confirmStatusChange(status, reason.trim() || null)
 }
 
 function openLightbox(items, index = 0) {
@@ -318,7 +451,7 @@ onBeforeUnmount(() => {
             <h1>Chi tiết tin đăng</h1>
             <span class="listing-code">LH-{{ String(post.id).padStart(8, '0') }}</span>
             <StatusBadge :status="statusKey" :label="statusLabel" />
-            <StatusBadge :status="verificationKey" :label="verificationLabel" />
+            <StatusBadge v-if="isSaleListing" :status="verificationKey" :label="verificationLabel" />
           </div>
           <div class="meta-row">
             <span><Calendar :size="14" /> Tạo: {{ formatDateTime(post.created_at) }}</span>
@@ -332,7 +465,7 @@ onBeforeUnmount(() => {
           <button v-if="canLock()" class="outline-neutral" :disabled="actionLoading" @click="openReason('LOCKED')">
             <Lock :size="15" /> Khóa tin
           </button>
-          <button v-if="canApprove()" class="primary-action" :disabled="actionLoading" @click="changeStatus('ACTIVE')">
+          <button v-if="canApprove()" class="primary-action" :disabled="actionLoading" @click="confirmStatusChange('ACTIVE')">
             <CheckCircle :size="15" /> Duyệt tin
           </button>
         </div>
@@ -340,7 +473,7 @@ onBeforeUnmount(() => {
 
       <div class="tabs">
         <button :class="{ active: activeTab === 'info' }" @click="activeTab = 'info'">Thông tin</button>
-        <button :class="{ active: activeTab === 'verify' }" @click="activeTab = 'verify'">Xác thực</button>
+        <button v-if="isSaleListing" :class="{ active: activeTab === 'verify' }" @click="activeTab = 'verify'">Xác thực</button>
       </div>
 
       <section v-if="activeTab === 'info'" class="section-stack">
@@ -388,8 +521,8 @@ onBeforeUnmount(() => {
               <strong>{{ propertyTypeLabel(property.type) }}</strong>
             </div>
             <div class="info-item">
-              <span>Giá bán</span>
-              <strong>{{ formatMoney(property.price) }} đ</strong>
+              <span>{{ priceLabel }}</span>
+              <strong>{{ priceValue }}</strong>
             </div>
             <div class="info-item">
               <span>Diện tích</span>
@@ -400,7 +533,12 @@ onBeforeUnmount(() => {
             <span>Mô tả</span>
             <p>{{ post.description || '--' }}</p>
           </div>
-          <div class="unit-price">Đơn giá: <strong>{{ unitPrice }}</strong></div>
+          <div v-if="isSaleListing" class="unit-price">Đơn giá: <strong>{{ unitPrice }}</strong></div>
+          <div v-else-if="isRentListing" class="rent-terms">
+            <span>Thời gian tối thiểu: <strong>{{ rentMinTermText }}</strong></span>
+            <span>Kỳ thanh toán: <strong>{{ rentPaymentText }}</strong></span>
+            <span>Đặt cọc: <strong>{{ rentDepositText }}</strong></span>
+          </div>
         </article>
 
         <article class="detail-card">
@@ -451,6 +589,14 @@ onBeforeUnmount(() => {
         <article class="detail-card">
           <div class="card-head">
             <h2><ShieldCheck :size="16" /> Giấy tờ pháp lý</h2>
+            <div class="verification-actions">
+              <button class="outline-danger" :disabled="actionLoading" @click="openVerificationReject">
+                <Ban :size="15" /> Từ chối
+              </button>
+              <button class="primary-action" :disabled="actionLoading || post.is_verified" @click="confirmVerificationChange(true)">
+                <CheckCircle :size="15" /> Phê duyệt
+              </button>
+            </div>
           </div>
           <div v-if="docs.length" class="docs-grid">
             <button
@@ -488,9 +634,27 @@ onBeforeUnmount(() => {
       <div class="modal-card">
         <h3>{{ reasonModal.title }}</h3>
         <textarea v-model="reasonModal.reason" rows="4" placeholder="Nhập lý do..."></textarea>
+        <p v-if="reasonModal.error" class="modal-error">{{ reasonModal.error }}</p>
         <div class="modal-actions">
           <button class="outline-neutral" @click="reasonModal.open = false">Hủy</button>
           <button class="primary-action" @click="submitReason">Xác nhận</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="confirmModal.open" class="modal-backdrop" @click.self="closeConfirm">
+      <div class="modal-card confirm-card">
+        <h3>{{ confirmModal.title }}</h3>
+        <p>{{ confirmModal.message }}</p>
+        <div class="modal-actions">
+          <button class="outline-neutral" @click="closeConfirm">Hủy</button>
+          <button
+            :class="confirmModal.tone === 'danger' ? 'outline-danger' : 'primary-action'"
+            :disabled="actionLoading"
+            @click="runConfirmedAction"
+          >
+            {{ confirmModal.confirmText }}
+          </button>
         </div>
       </div>
     </div>
@@ -555,7 +719,10 @@ onBeforeUnmount(() => {
 .tabs button.active { background: #fff; color: #0f172a; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08); }
 .section-stack { display: grid; gap: 18px; }
 .detail-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
+.card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .detail-card h2, .card-head h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; font-size: 17px; }
+.card-head h2 { margin-bottom: 0; }
+.verification-actions { display: inline-flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .media-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
 .media-thumb { display: block; padding: 0; border: 0; background: transparent; cursor: zoom-in; }
 .media-thumb img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; border: 1px solid #e2e8f0; display: block; }
@@ -572,6 +739,8 @@ onBeforeUnmount(() => {
 .description span { color: #64748b; font-size: 12px; }
 .description p { margin: 6px 0 0; line-height: 1.7; }
 .unit-price { margin-top: 16px; padding: 12px 14px; border: 1px solid #dbeafe; border-radius: 10px; background: #eff6ff; color: #3b82f6; font-size: 13px; }
+.rent-terms { display: flex; flex-wrap: wrap; gap: 26px; margin-top: 16px; padding: 12px 14px; border: 1px solid #dbeafe; border-radius: 10px; background: #eff6ff; color: #64748b; font-size: 13px; }
+.rent-terms strong { color: #2563eb; font-weight: 700; }
 .detail-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .chips span { border-radius: 999px; background: #eff6ff; color: #2563eb; padding: 7px 12px; font-size: 12px; font-weight: 700; }
@@ -595,7 +764,9 @@ onBeforeUnmount(() => {
 .modal-backdrop { position: fixed; inset: 0; z-index: 1200; display: grid; place-items: center; background: rgba(15, 23, 42, 0.45); }
 .modal-card { width: min(440px, calc(100vw - 32px)); background: #fff; border-radius: 12px; padding: 20px; }
 .modal-card h3 { margin: 0 0 12px; }
+.confirm-card p { margin: 0; color: #475569; line-height: 1.6; }
 .modal-card textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 9px; padding: 10px; resize: vertical; }
+.modal-error { margin: 8px 0 0; color: #dc2626; font-size: 13px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
 .lightbox-backdrop { position: fixed; inset: 0; z-index: 1300; display: flex; align-items: center; justify-content: center; background: rgba(2, 6, 23, 0.86); padding: 56px 88px; }
 .lightbox-content { max-width: min(980px, calc(100vw - 176px)); max-height: 100%; display: grid; justify-items: center; gap: 12px; overflow: hidden; }

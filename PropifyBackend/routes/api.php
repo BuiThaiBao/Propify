@@ -247,5 +247,6 @@ Route::prefix('v1/admin')->as('admin.')->middleware('auth:api')->group(function 
     Route::get('/listings', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'index'])->name('listings.index');
     Route::get('/listings/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'show'])->where('id', '[0-9]+')->name('listings.show');
     Route::patch('/listings/{id}/status', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'changeStatus'])->name('listings.change-status');
+    Route::patch('/listings/{id}/verification', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'updateVerification'])->where('id', '[0-9]+')->name('listings.verification');
     Route::get('/audit-logs', [\App\Http\Controllers\Api\V1\Admin\AdminAuditLogController::class, 'index'])->name('audit-logs.index');
 });

@@ -351,7 +351,7 @@ onBeforeUnmount(() => {
             v-for="post in normalizedPosts"
             v-else
             :key="post.id"
-            :class="{ 'clickable-row': post.demand_type === 'SALE' }"
+            :class="{ 'clickable-row': ['SALE', 'RENT'].includes(post.demand_type) }"
             @click="emit('open-detail', post)"
           >
             <td class="sticky-left select-cell">

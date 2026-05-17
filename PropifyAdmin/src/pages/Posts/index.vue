@@ -96,7 +96,7 @@ async function updateListingStatus({ id, status, rejectionReason = null }) {
 }
 
 function openListingDetail(post) {
-  if (post.demand_type !== 'SALE') return
+  if (!['SALE', 'RENT'].includes(post.demand_type)) return
   router.push({ name: 'PostDetail', params: { id: post.id } })
 }
 

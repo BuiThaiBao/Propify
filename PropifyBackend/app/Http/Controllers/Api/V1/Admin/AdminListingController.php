@@ -11,6 +11,7 @@ use App\Services\Listing\ListingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Validation\ValidationException;
 
 final class AdminListingController extends Controller
 {
@@ -58,6 +59,11 @@ final class AdminListingController extends Controller
 
         $status = $request->input('status');
         $rejectionReason = $request->input('reason', $request->input('rejection_reason'));
+        if ($status === 'REJECTED' && trim((string) $rejectionReason) === '') {
+            throw ValidationException::withMessages([
+                'reason' => 'Vui lòng nhập lý do từ chối.',
+            ]);
+        }
 
         $listing = $this->listingService->changeStatusForAdmin(
             listingId: $id,
@@ -83,6 +89,30 @@ final class AdminListingController extends Controller
         return ApiResponse::success(
             data: new ListingResource($listing),
             message: 'Lấy chi tiết tin đăng thành công.'
+        );
+    }
+
+    public function updateVerification(Request $request, int $id): JsonResponse
+    {
+        if ($request->user()->role !== UserRole::Admin) {
+            throw new BusinessException(ErrorCode::AuthForbidden);
+        }
+
+        $validated = $request->validate([
+            'is_verified' => ['required', 'boolean'],
+            'reason' => ['required_if:is_verified,false', 'nullable', 'string'],
+        ]);
+
+        $listing = $this->listingService->updateVerificationForAdmin(
+            listingId: $id,
+            isVerified: (bool) $validated['is_verified'],
+            reason: $validated['reason'] ?? null,
+            adminUserId: (int) $request->user()->id,
+        );
+
+        return ApiResponse::success(
+            data: new ListingResource($listing),
+            message: 'Cap nhat trang thai xac thuc thanh cong.'
         );
     }
 }

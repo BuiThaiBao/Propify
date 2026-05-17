@@ -20,5 +20,9 @@ export const listingService = {
    */
   changeStatusForAdmin(id, data) {
     return api.patch(`/v1/admin/listings/${id}/status`, data)
+  },
+
+  updateVerificationForAdmin(id, data) {
+    return api.patch(`/v1/admin/listings/${id}/verification`, data)
   }
 }
