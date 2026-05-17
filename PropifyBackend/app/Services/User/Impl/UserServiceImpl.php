@@ -2,6 +2,7 @@
 
 namespace App\Services\User\Impl;
 
+use App\Commands\User\UpdateUserProfileCommand;
 use App\DTOs\User\ChangePasswordDto;
 use App\DTOs\User\UpdateProfileDto;
 use App\Enums\ErrorCode;
@@ -17,7 +18,8 @@ final class UserServiceImpl implements UserService
 {
     public function __construct(
         private readonly UserRepository $userRepository,
-        private readonly AuthFactory $authFactory
+        private readonly AuthFactory $authFactory,
+        private readonly UpdateUserProfileCommand $updateUserProfileCommand,
     ) {
     }
     public function getProfile(): User
@@ -29,23 +31,7 @@ final class UserServiceImpl implements UserService
         /** @var User $user */
         $user = $this->authFactory->guard('api')->user();
 
-        $data = ['full_name' => $dto->fullName];
-
-        // Chỉ cho phép cập nhật SĐT nếu user chưa có SĐT
-        if ($dto->phone !== null && empty($user->phone)) {
-            $data['phone'] = $dto->phone;
-        }
-
-        // Cập nhật avatar_url nếu có
-        if ($dto->avatarUrl !== null) {
-            $data['avatar_url'] = $dto->avatarUrl;
-        }
-
-        $updated = $this->userRepository->update($user->id, $data);
-
-        Log::info('User profile updated', ['user_id' => $user->id]);
-
-        return $updated;
+        return $this->updateUserProfileCommand->execute($user, $dto);
     }
     public function changePassword(ChangePasswordDto $dto): void
     {

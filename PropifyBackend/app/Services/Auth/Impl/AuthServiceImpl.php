@@ -3,8 +3,10 @@
 namespace App\Services\Auth\Impl;
 
 use App\DTOs\Auth\AuthResultDto;
+use App\DTOs\Auth\EmailPasswordAuthPayload;
 use App\DTOs\Auth\LoginCredentialsDto;
 use App\DTOs\Auth\RegisterUserDto;
+use App\Enums\AuthMethod;
 use App\Enums\OtpContext;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
@@ -14,6 +16,8 @@ use App\Exceptions\BusinessException;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use App\Services\Auth\AuthService;
+use App\Services\Auth\AuthStrategyResolver;
+use App\Services\Auth\AuthTokenIssuer;
 use App\Services\Otp\OtpService;
 use App\Services\Auth\TokenProcessService;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
@@ -30,32 +34,16 @@ final class AuthServiceImpl implements AuthService
         private readonly AuthFactory        $authFactory,
         private readonly TokenProcessService $tokenProcessService,
         private readonly OtpService         $otpService,
+        private readonly AuthStrategyResolver $authStrategyResolver,
+        private readonly AuthTokenIssuer $tokenIssuer,
     ) {}
 
     /** @throws BusinessException */
     public function login(LoginCredentialsDto $dto): AuthResultDto
     {
-        /** @var \Tymon\JWTAuth\JWTGuard $guard */
-        $guard = $this->authFactory->guard('api');
-        $token = $guard->attempt(['email' => $dto->email, 'password' => $dto->password]);
-
-        if (!$token) {
-            Log::warning('Failed login attempt', ['email' => $dto->email]);
-            throw new BusinessException(ErrorCode::AuthLoginFailed);
-        }
-
-        /** @var User $user */
-        $user = $guard->user();
-
-        if ($user->status !== UserStatus::Active) {
-            $guard->logout();
-            Log::warning('Login attempt by non-active user', ['user_id' => $user->id, 'status' => $user->status?->value]);
-            throw new BusinessException(ErrorCode::AuthNotVerified);
-        }
-
-        Log::info('User logged in', ['user_id' => $user->id]);
-
-        return AuthResultDto::fromUserAndToken($user, $token, $this->makeRefreshToken($user), $guard->factory()->getTTL());
+        return $this->authStrategyResolver
+            ->resolve(AuthMethod::EmailPassword)
+            ->authenticate(new EmailPasswordAuthPayload($dto));
     }
 
     /**
@@ -128,11 +116,7 @@ final class AuthServiceImpl implements AuthService
             throw new BusinessException(ErrorCode::AuthAdminNotAllowed);
         }
 
-        /** @var \Tymon\JWTAuth\JWTGuard $guard */
-        $guard = $this->authFactory->guard('api');
-        $token = $guard->login($user);
-
-        return AuthResultDto::fromUserAndToken($user, $token, $this->makeRefreshToken($user), $guard->factory()->getTTL());
+        return $this->tokenIssuer->issueFor($user);
     }
 
     /**
@@ -214,11 +198,7 @@ final class AuthServiceImpl implements AuthService
 
             $this->invalidateToken($refreshToken);
 
-            /** @var \Tymon\JWTAuth\JWTGuard $guard */
-            $guard = $this->authFactory->guard('api');
-            $accessToken = $guard->login($user);
-
-            return AuthResultDto::fromUserAndToken($user, $accessToken, $this->makeRefreshToken($user), $guard->factory()->getTTL());
+            return $this->tokenIssuer->issueFor($user);
         } catch (JWTException $e) {
             Log::warning('Refresh token failed', ['message' => $e->getMessage()]);
             throw new BusinessException(ErrorCode::AuthUnauthorized);
@@ -240,19 +220,6 @@ final class AuthServiceImpl implements AuthService
             if ($ttl > 0) {
                 $this->tokenProcessService->addTokenToBlacklist((string) $token, $ttl);
             }
-        }
-    }
-
-    private function makeRefreshToken(User $user): string
-    {
-        $factory = JWTAuth::factory();
-        $originalTtl = $factory->getTTL();
-
-        try {
-            $factory->setTTL((int) config('jwt.refresh_ttl', 20160));
-            return JWTAuth::claims(['typ' => 'refresh'])->fromUser($user);
-        } finally {
-            $factory->setTTL($originalTtl);
         }
     }
 

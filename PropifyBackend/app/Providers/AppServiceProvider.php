@@ -19,6 +19,9 @@ use App\Services\Auth\Impl\UserUpsertServiceImpl;
 use App\Services\Auth\UserUpsertService;
 use App\Services\Auth\AuthGoogleService;
 use App\Services\Auth\AuthService;
+use App\Services\Auth\AuthStrategyResolver;
+use App\Services\Auth\Strategies\EmailPasswordAuthStrategy;
+use App\Services\Auth\Strategies\GoogleOAuthAuthStrategy;
 use App\Services\Auth\Impl\AuthGoogleServiceImpl;
 use App\Services\Auth\Impl\AuthServiceImpl;
 use App\Services\Listing\impl\ListingServiceImpl;
@@ -67,6 +70,12 @@ final class AppServiceProvider extends ServiceProvider
         // ── Auth bindings ─────────────────────────────────────────────────
         $this->app->bind(AuthService::class, AuthServiceImpl::class);
         $this->app->bind(AuthGoogleService::class, AuthGoogleServiceImpl::class);
+        $this->app->bind(AuthStrategyResolver::class, function () {
+            return new AuthStrategyResolver([
+                app(EmailPasswordAuthStrategy::class),
+                app(GoogleOAuthAuthStrategy::class),
+            ]);
+        });
         $this->app->bind(TokenProcessService::class, TokenProcessServiceImpl::class);
         $this->app->bind(UserUpsertService::class, UserUpsertServiceImpl::class);
 
