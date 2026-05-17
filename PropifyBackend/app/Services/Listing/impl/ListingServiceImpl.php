@@ -3,7 +3,9 @@
 namespace App\Services\Listing\impl;
 
 use App\DTOs\Listing\CreateListingDto;
+use App\DTOs\Listing\UpgradeContext;
 use App\Enums\ErrorCode;
+use App\Events\Listing\ListingPackageUpgraded;
 use App\Exceptions\BusinessException;
 use App\Models\Listing;
 use App\Models\ListingStatusHistory;
@@ -12,6 +14,9 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Repositories\ListingRepository;
 use App\Services\Listing\ListingService;
+use App\Services\Listing\Upgrade\Benefits\PackageBenefitStrategyFactory;
+use App\Services\Listing\Upgrade\Expiry\ExpiryCalculationStrategyFactory;
+use App\Services\Listing\Upgrade\UpgradeEligibilityPolicy;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +26,9 @@ final class ListingServiceImpl implements ListingService
 {
     public function __construct(
         private readonly ListingRepository $listingRepository,
+        private readonly UpgradeEligibilityPolicy $upgradeEligibilityPolicy,
+        private readonly ExpiryCalculationStrategyFactory $expiryStrategyFactory,
+        private readonly PackageBenefitStrategyFactory $benefitStrategyFactory,
     ) {
     }
 
@@ -551,33 +559,19 @@ final class ListingServiceImpl implements ListingService
      */
     public function upgradeListing(User $user, int $listingId, int $packageId, int $durationDays): Listing
     {
-        // 1. Lấy listing + verify ownership
+        // 1. Load entities required for the upgrade flow.
         $listing = Listing::find($listingId);
 
         if (!$listing) {
             throw new BusinessException(ErrorCode::ListingNotFound);
         }
 
-        if ($listing->owner_id !== $user->id) {
-            throw new BusinessException(ErrorCode::ListingNotOwned);
-        }
-
-        if ($listing->status !== 'ACTIVE') {
-            throw new BusinessException(ErrorCode::ListingUpgradeNotAllowed);
-        }
-
-        // 2. Verify package tồn tại và đang active
         $newPackage = Package::find($packageId);
 
         if (!$newPackage) {
             throw new BusinessException(ErrorCode::PackageNotFound);
         }
 
-        if (!$newPackage->is_active) {
-            throw new BusinessException(ErrorCode::PackageInactive);
-        }
-
-        // 3. Lookup pricing — BẮT BUỘC phải có pricing
         $pricing = $newPackage->pricings()
             ->where('duration_days', $durationDays)
             ->where('is_active', true)
@@ -587,35 +581,27 @@ final class ListingServiceImpl implements ListingService
             throw new BusinessException(ErrorCode::PackagePricingNotFound);
         }
 
-        // 4. Verify upgrade direction (chỉ cho nâng cấp hoặc gia hạn cùng gói)
-        $currentPriority = 0;
-        $isRenewal = false;
+        $currentPackage = $listing->package_id
+            ? Package::find($listing->package_id)
+            : null;
 
-        if ($listing->package_id) {
-            $currentPackage = Package::find($listing->package_id);
-            $currentPriority = $currentPackage?->priority ?? 0;
+        $context = new UpgradeContext(
+            user: $user,
+            listing: $listing,
+            newPackage: $newPackage,
+            pricing: $pricing,
+            durationDays: $durationDays,
+            currentPackage: $currentPackage,
+            now: now(),
+        );
 
-            // Cho phép gia hạn cùng gói
-            if ($listing->package_id === $packageId) {
-                $isRenewal = true;
-            }
-        }
+        // 2. Apply business policy and strategy selection.
+        $this->upgradeEligibilityPolicy->assertEligible($context);
+        $expiresAt = $this->expiryStrategyFactory->make($context)->calculate($context);
+        $benefitStrategy = $this->benefitStrategyFactory->make($newPackage);
 
-        if (!$isRenewal && $newPackage->priority <= $currentPriority) {
-            throw new BusinessException(ErrorCode::ListingUpgradeNotAllowed);
-        }
-
-        // 5. Tính package_expires_at
-        //    - Gia hạn: cộng thêm ngày vào thời hạn còn lại
-        //    - Mua mới: tính từ bây giờ
-        $baseTime = now();
-        if ($isRenewal && $listing->package_expires_at && $listing->package_expires_at->isFuture()) {
-            $baseTime = $listing->package_expires_at;
-        }
-        $expiresAt = $baseTime->copy()->addDays($durationDays);
-
-        // 6. DB Transaction: Tạo transaction + update listing
-        $updated = DB::transaction(function () use ($user, $listing, $newPackage, $pricing, $expiresAt) {
+        // 3. Commit core upgrade state atomically.
+        $updated = DB::transaction(function () use ($user, $listing, $newPackage, $pricing, $expiresAt, $benefitStrategy, $context) {
             // Tạo transaction (giả lập thanh toán — auto SUCCESS)
             Transaction::create([
                 'user_id'          => $user->id,
@@ -633,6 +619,8 @@ final class ListingServiceImpl implements ListingService
                 'package_expires_at' => $expiresAt,
             ]);
 
+            $benefitStrategy->apply($context);
+
             return $listing->fresh([
                 'property',
                 'property.attributes.group',
@@ -644,17 +632,16 @@ final class ListingServiceImpl implements ListingService
             ]);
         });
 
-        $this->clearPublicListingsCache();
-
-        Log::info('[ListingService] Listing upgraded', [
-            'listing_id'   => $listingId,
-            'user_id'      => $user->id,
-            'package'      => $newPackage->slug,
-            'duration'     => $durationDays . ' days',
-            'amount'       => $pricing->price,
-            'expires_at'   => $expiresAt->toIso8601String(),
-            'is_renewal'   => $isRenewal,
-        ]);
+        ListingPackageUpgraded::dispatch(
+            listing: $updated,
+            user: $user,
+            oldPackage: $currentPackage,
+            newPackage: $newPackage,
+            durationDays: $durationDays,
+            amount: (string) $pricing->price,
+            expiresAt: $expiresAt,
+            isRenewal: $context->isRenewal(),
+        );
 
         return $updated;
     }

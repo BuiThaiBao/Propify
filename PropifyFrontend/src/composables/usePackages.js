@@ -1,33 +1,41 @@
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import { useQuery, useQueryClient } from '@tanstack/vue-query';
 import packageService from '@/services/packageService';
+import { packageKeys } from '@/composables/queryKeys';
 
-const packages = ref([]);
-const loading = ref(true);
-const error = ref('');
-let initialized = false;
-
-async function fetchPackages({ force = false } = {}) {
-  if (!force && initialized && packages.value.length > 0) return;
-
-  loading.value = true;
-  error.value = '';
-  try {
-    const res = await packageService.getPackages();
-    packages.value = res?.data?.data || [];
-    initialized = true;
-  } catch (err) {
-    error.value = 'Không thể tải bảng giá. Vui lòng thử lại.';
-    packages.value = [];
-  } finally {
-    loading.value = false;
-  }
+async function fetchPackagesQuery() {
+  const res = await packageService.getPackages();
+  return res?.data?.data || [];
 }
 
 export function usePackages() {
+  const queryClient = useQueryClient();
+  const enabled = ref(false);
+  const query = useQuery({
+    queryKey: packageKeys.list(),
+    queryFn: fetchPackagesQuery,
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  async function fetchPackages({ force = false } = {}) {
+    enabled.value = true;
+
+    if (force) {
+      return query.refetch();
+    }
+
+    return queryClient.ensureQueryData({
+      queryKey: packageKeys.list(),
+      queryFn: fetchPackagesQuery,
+      staleTime: 5 * 60 * 1000,
+    });
+  }
+
   return {
-    packages,
-    loading,
-    error,
+    packages: computed(() => query.data.value || []),
+    loading: computed(() => query.isLoading.value || query.isFetching.value),
+    error: computed(() => query.error.value ? 'Không thể tải bảng giá. Vui lòng thử lại.' : ''),
     fetchPackages,
   };
 }

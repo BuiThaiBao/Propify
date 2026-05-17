@@ -23,6 +23,7 @@ enum ErrorCode: int
 
     // ==================== Validation (2xxx) ====================
     case ValidationError = 2001;
+    case BadRequest = 2002;
 
     // ==================== User (3xxx) ====================
     case UserNotFound = 3001;
@@ -88,6 +89,7 @@ enum ErrorCode: int
             self::AuthNotVerified => 'Tài khoản chưa được xác thực',
             self::AuthPasswordIncorrect => 'Mật khẩu hiện tại không đúng',
             self::ValidationError => 'Dữ liệu không hợp lệ',
+            self::BadRequest => 'Yêu cầu không hợp lệ',
             self::AuthPhoneNotVerified => 'Bạn cần cập nhật số điện thoại trước khi đăng tin',
             self::AuthAdminNotAllowed => 'Tài khoản quản trị không được phép đăng nhập tại đây',
             self::UserNotFound => 'Không tìm thấy người dùng',
@@ -146,6 +148,7 @@ enum ErrorCode: int
             self::AuthAdminNotAllowed => Response::HTTP_FORBIDDEN,
 
             self::ValidationError => Response::HTTP_UNPROCESSABLE_ENTITY,
+            self::BadRequest => Response::HTTP_BAD_REQUEST,
 
             self::UserNotFound,
             self::ResourceNotFound,

@@ -18,6 +18,7 @@ final class Package extends Model
         'multiplier',
         'daily_quota',
         'decay_rate',
+        'benefit_strategy_key',
         'badge',
         'color',
         'is_active',

@@ -1,8 +1,10 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
+import { VueQueryPlugin } from "@tanstack/vue-query";
 import { watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { initEcho, destroyEcho, getEcho } from "@/plugins/echo";
+import { queryClient } from "@/plugins/queryClient";
 import App from "./App.vue";
 import router from "./router";
 import "./style.css";
@@ -12,6 +14,7 @@ const app = createApp(App);
 const pinia = createPinia();
 
 app.use(pinia);
+app.use(VueQueryPlugin, { queryClient });
 app.use(router);
 
 const authStore = useAuthStore();
