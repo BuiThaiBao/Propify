@@ -45,6 +45,7 @@ final class ListingResource extends JsonResource
             'approved_by' => $this->approved_by,
             'property' => [
                 'id' => $this->property?->id,
+                'owner_id' => $this->property?->owner_id,
                 'type' => $this->property?->type,
                 'province_code' => $this->property?->province_code,
                 'ward_code' => $this->property?->ward_code,
@@ -72,8 +73,11 @@ final class ListingResource extends JsonResource
                 'amenities' => $this->property?->amenities ?? [],
                 'legal_paper_types' => $this->property?->legal_paper_types ?? [],
                 'public_info_agreed' => (bool) ($this->property?->public_info_agreed ?? false),
+                'meta' => $this->property?->meta,
                 'lat' => $this->property?->lat,
                 'lng' => $this->property?->lng,
+                'created_at' => $this->property?->created_at?->toIso8601String(),
+                'updated_at' => $this->property?->updated_at?->toIso8601String(),
                 'attributes' => $this->property?->attributes?->map(fn ($attribute) => [
                     'id' => $attribute->id,
                     'name' => $attribute->name,
@@ -125,6 +129,19 @@ final class ListingResource extends JsonResource
                 'note' => $appointment->note,
                 'status' => $appointment->status,
             ])->values(),
+            'status_histories' => $this->whenLoaded('statusHistories', fn () => $this->statusHistories->map(fn ($history) => [
+                'id' => $history->id,
+                'user_id' => $history->user_id,
+                'listing_id' => $history->listing_id,
+                'action' => $history->action,
+                'reason' => $history->reason,
+                'created_at' => $history->created_at?->toIso8601String(),
+                'user' => $history->user ? [
+                    'id' => $history->user->id,
+                    'full_name' => $history->user->full_name,
+                    'email' => $history->user->email,
+                ] : null,
+            ])->values()),
         ];
     }
 }

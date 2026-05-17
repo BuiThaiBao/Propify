@@ -38,6 +38,11 @@ const routes = [
         component: () => import('@/pages/Posts/index.vue'),
       },
       {
+        path: 'posts/:id',
+        name: 'PostDetail',
+        component: () => import('@/pages/Posts/DetailPage.vue'),
+      },
+      {
         path: 'packages',
         name: 'Packages',
         component: () => import('@/pages/Packages/ListPage.vue'),

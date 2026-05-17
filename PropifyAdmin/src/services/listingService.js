@@ -8,6 +8,10 @@ export const listingService = {
   getAllListings(params = {}) {
     return api.get('/v1/admin/listings', { params })
   },
+
+  getListingDetail(id) {
+    return api.get(`/v1/admin/listings/${id}`)
+  },
   
   /**
    * Thay đổi trạng thái tin đăng (Dành cho admin)
@@ -16,5 +20,9 @@ export const listingService = {
    */
   changeStatusForAdmin(id, data) {
     return api.patch(`/v1/admin/listings/${id}/status`, data)
+  },
+
+  updateVerificationForAdmin(id, data) {
+    return api.patch(`/v1/admin/listings/${id}/verification`, data)
   }
 }
