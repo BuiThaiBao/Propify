@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Events\Auth\UserRegistered;
 use App\Events\Listing\ListingPackageUpgraded;
+use App\Events\Listing\ListingSaved;
 use App\Listeners\Auth\SendWelcomeNotification;
 use App\Listeners\Listing\ClearPublicListingCache;
+use App\Listeners\Listing\LogListingSaved;
 use App\Listeners\Listing\LogListingPackageUpgrade;
 use App\Repositories\AppointmentBookingRepository;
 use App\Repositories\AppointmentSlotRepository;
@@ -38,6 +40,8 @@ use App\Services\Appointment\Impl\AppointmentSlotServiceImpl;
 use App\Services\Auth\TokenProcessService;
 use App\Services\Cloudinary\CloudinaryService;
 use App\Services\Cloudinary\Impl\CloudinaryServiceImpl;
+use App\Services\Media\CloudinaryUploadSignatureAdapter;
+use App\Services\Media\UploadSignatureAdapter;
 use App\Services\User\Impl\UserServiceImpl;
 use App\Services\User\UserService;
 use App\Repositories\ChatRepository;
@@ -96,6 +100,7 @@ final class AppServiceProvider extends ServiceProvider
 
         // ── Cloudinary bindings ───────────────────────────────────────────
         $this->app->bind(CloudinaryService::class, CloudinaryServiceImpl::class);
+        $this->app->bind(UploadSignatureAdapter::class, CloudinaryUploadSignatureAdapter::class);
 
         // ── Chat bindings ─────────────────────────────────────────────────
         $this->app->bind(ChatRepository::class, EloquentChatRepository::class);
@@ -119,6 +124,8 @@ final class AppServiceProvider extends ServiceProvider
     {
         // ── Event → Listener mapping (Laravel 11 style) ───────────────────
         Event::listen(UserRegistered::class, SendWelcomeNotification::class);
+        Event::listen(ListingSaved::class, ClearPublicListingCache::class);
+        Event::listen(ListingSaved::class, LogListingSaved::class);
         Event::listen(ListingPackageUpgraded::class, ClearPublicListingCache::class);
         Event::listen(ListingPackageUpgraded::class, LogListingPackageUpgrade::class);
     }

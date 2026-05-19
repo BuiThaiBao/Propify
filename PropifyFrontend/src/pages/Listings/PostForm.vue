@@ -813,7 +813,11 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import listingService from "@/services/listingService";
-import cloudinaryService from "@/services/cloudinaryService";
+import {
+  MAX_LISTING_VIDEO_SIZE_BYTES,
+  MAX_LISTING_VIDEO_SIZE_LABEL,
+  useListingMediaUpload,
+} from "@/composables/useListingMediaUpload";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import AppointmentSlotsForm from "@/components/appointments/AppointmentSlotsForm.vue";
@@ -1025,8 +1029,8 @@ const priceFocused = ref(false);
 
 const toasts = ref([]);
 let toastIdCounter = 1;
-const MAX_VIDEO_SIZE_BYTES = 100 * 1024 * 1024;
-const MAX_VIDEO_SIZE_LABEL = "100MB";
+const MAX_VIDEO_SIZE_BYTES = MAX_LISTING_VIDEO_SIZE_BYTES;
+const MAX_VIDEO_SIZE_LABEL = MAX_LISTING_VIDEO_SIZE_LABEL;
 
 function pushToast(message, type = "info", duration = 2500) {
   const id = toastIdCounter++;
@@ -1035,6 +1039,10 @@ function pushToast(message, type = "info", duration = 2500) {
     toasts.value = toasts.value.filter((item) => item.id !== id);
   }, duration);
 }
+
+const listingMediaUpload = useListingMediaUpload({
+  onStatus: (message) => pushToast(message, "info", 1200),
+});
 
 const imageCount = computed(() => Array.isArray(form.images) ? form.images.length : 0);
 const videoPresent = computed(() => Boolean(form.video));
@@ -2253,10 +2261,7 @@ function toggleLegalPaper(value) {
 }
 
 async function uploadVerificationImage(file) {
-  if (!file) return null;
-  if (typeof file === 'string') return file;
-  const res = await cloudinaryService.uploadImage(file, 'listing');
-  return res.secure_url;
+  return listingMediaUpload.uploadSingle(file, 'image');
 }
 
 async function onFrontCardChange(event) {
@@ -2590,37 +2595,6 @@ function setAppointmentRows(rows) {
   }
 }
 
-async function uploadFilesForDraft(payload) {
-  const uploadMultiple = async (files) => {
-    const urls = [];
-    for (const file of files || []) {
-      if (typeof file === 'string') {
-        urls.push(file);
-      } else {
-        const res = await cloudinaryService.uploadImage(file, 'listing');
-        urls.push(res.secure_url);
-      }
-    }
-    return urls;
-  };
-
-  const uploadSingle = async (file) => {
-    if (!file) return null;
-    if (typeof file === 'string') return file;
-    if (file.type === 'video/mp4' && file.size > MAX_VIDEO_SIZE_BYTES) {
-      throw new Error(`Dung lượng video vượt quá ${MAX_VIDEO_SIZE_LABEL}. Vui lòng chọn video nhỏ hơn.`);
-    }
-    const res = await cloudinaryService.uploadImage(file, 'listing');
-    return res.secure_url;
-  };
-
-  payload.images = await uploadMultiple(payload.images);
-  payload.video = await uploadSingle(payload.video);
-  payload.identityCardFront = await uploadSingle(payload.identityCardFront);
-  payload.identityCardBack = await uploadSingle(payload.identityCardBack);
-  payload.legalDocuments = await uploadMultiple(payload.legalDocuments);
-}
-
 async function saveDraftAndGoBack() {
   if (savingDraft.value) return;
   savingDraft.value = true;
@@ -2656,7 +2630,7 @@ async function saveDraftAndGoBack() {
       payload.appointment_slots = appointmentForm.value.getFormData();
     }
 
-    await uploadFilesForDraft(payload);
+    await listingMediaUpload.uploadDraftMediaPayload(payload);
     const response = isEditMode.value
       ? await listingService.update(editListingId.value, payload)
       : await listingService.create(payload);
@@ -2877,28 +2851,12 @@ async function submitVerificationOnly() {
   validationErrors.value = {};
 
   try {
-    const uploadSingle = async (file) => {
-      if (!file) return null;
-      if (typeof file === 'string') return file;
-      pushToast('Đang tải lên hình ảnh...', 'info', 1200);
-      const res = await cloudinaryService.uploadImage(file, 'listing');
-      return res.secure_url;
-    };
-
-    const uploadMultiple = async (files) => {
-      const urls = [];
-      for (const file of files) {
-        urls.push(await uploadSingle(file));
-      }
-      return urls.filter(Boolean);
-    };
-
-    const payload = {
-      identityCardFront: await uploadSingle(form.identityCardFront),
-      identityCardBack: await uploadSingle(form.identityCardBack),
-      legalDocuments: await uploadMultiple(form.legalDocuments || []),
+    const payload = await listingMediaUpload.uploadVerificationPayload({
+      identityCardFront: form.identityCardFront,
+      identityCardBack: form.identityCardBack,
+      legalDocuments: form.legalDocuments || [],
       publicInfoAgreed: publicInfoAgreed.value,
-    };
+    });
 
     const response = await listingService.updateVerification(editListingId.value, payload);
     pushToast(response.data?.message || 'Cập nhật thông tin xác thực thành công', 'success');
@@ -2964,59 +2922,7 @@ async function submitListing() {
   }
 
   try {
-    // Helper function to upload an array of files
-    const uploadMultiple = async (files, mode = 'image') => {
-      const urls = [];
-      for (const file of files) {
-        if (typeof file === 'string') {
-          urls.push(file); // Already a URL
-        } else {
-          if (mode === 'image') {
-            pushToast('Đang tải lên hình ảnh...', 'info', 1200);
-          }
-          const res = await cloudinaryService.uploadImage(file, 'listing');
-          urls.push(res.secure_url);
-        }
-      }
-      return urls;
-    };
-
-    // Helper function to upload a single file
-    const uploadSingle = async (file, mode = 'image') => {
-      if (!file) return null;
-      if (typeof file === 'string') return file;
-      if (mode === 'video') {
-        if (file.size > MAX_VIDEO_SIZE_BYTES) {
-          throw new Error(`Dung lượng video vượt quá ${MAX_VIDEO_SIZE_LABEL}. Vui lòng chọn video nhỏ hơn.`);
-        }
-        pushToast('Đang tải lên video...', 'info', 1200);
-      }
-      const res = await cloudinaryService.uploadImage(file, 'listing');
-      return res.secure_url;
-    };
-
-    // 1. Upload Images
-    if (form.images && form.images.length > 0) {
-      form.images = await uploadMultiple(form.images, 'image');
-    }
-
-    // 2. Upload Video
-    if (form.video) {
-      form.video = await uploadSingle(form.video, 'video');
-    }
-
-    // 3. Upload Verification Documents
-    if (form.requestVerification) {
-      if (form.identityCardFront) {
-        form.identityCardFront = await uploadSingle(form.identityCardFront, 'image');
-      }
-      if (form.identityCardBack) {
-        form.identityCardBack = await uploadSingle(form.identityCardBack, 'image');
-      }
-      if (form.legalDocuments && form.legalDocuments.length > 0) {
-        form.legalDocuments = await uploadMultiple(form.legalDocuments, 'image');
-      }
-    }
+    await listingMediaUpload.uploadListingMediaPayload(form);
 
     // 4. Submit to Backend
     console.log('Submitting listing payload', JSON.parse(JSON.stringify(form)));
