@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\Listing\ViewTrackingController;
 use App\Http\Controllers\Api\V1\Package\PackageController;
 use App\Http\Controllers\Api\V1\Package\PackageDurationOptionController;
 use App\Http\Controllers\Api\V1\Package\PackagePricingController;
+use App\Http\Controllers\Api\V1\Payment\VnpayReturnController;
 use App\Http\Controllers\Api\V1\User\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -173,6 +174,9 @@ Route::prefix('v1/geocoding')->as('geocoding.')->group(function () {
     Route::get('/reverse', [GeocodingController::class, 'reverse'])->name('reverse');
     Route::get('/search', [GeocodingController::class, 'search'])->name('search');
 });
+
+Route::get('v1/payments/vnpay/return', VnpayReturnController::class)
+    ->name('payments.vnpay.return');
 
 Route::prefix('v1/listings')->as('listings.')->group(function () {
     Route::get('/', [ListingController::class, 'index'])->name('index');
