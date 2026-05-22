@@ -93,7 +93,7 @@
               <!-- Features -->
               <ul class="pkg-features">
                 <li v-for="(feat, idx) in getFeatures(pkg)" :key="idx" :class="feat.enabled ? 'feat-enabled' : 'feat-disabled'">
-                  <span class="feat-icon">{{ feat.enabled ? '✓' : '×' }}</span>
+                  <span class="feat-icon" aria-hidden="true"></span>
                   <span v-html="feat.text"></span>
                 </li>
               </ul>
@@ -636,34 +636,54 @@ function getFeatures(pkg) {
 /* Features */
 .pkg-features {
   list-style: none;
-  padding: 12px 16px;
+  padding: 18px 20px;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   flex: 1;
 }
 
 .pkg-features li {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
-  font-size: 12px;
-  line-height: 1.5;
+  gap: 9px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .feat-icon {
+  display: flex;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
-  font-size: 11px;
-  margin-top: 1px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  margin-top: 2px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 9px 9px;
 }
 
 .feat-enabled {
   color: #334155;
 }
 
+.feat-enabled .feat-icon {
+  background-color: #10b981;
+  background-image: url("data:image/svg+xml,%3Csvg width='9' height='9' viewBox='0 0 9 9' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.6 4.65L3.45 6.5L7.4 2.5' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
 .feat-disabled {
   color: #94a3b8;
+}
+
+.feat-disabled .feat-icon {
+  background-color: #94a3b8;
+  background-image: url("data:image/svg+xml,%3Csvg width='9' height='9' viewBox='0 0 9 9' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.2 2.2L6.8 6.8M6.8 2.2L2.2 6.8' stroke='white' stroke-width='1.7' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 /* Action button */
