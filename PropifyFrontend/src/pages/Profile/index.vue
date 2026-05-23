@@ -1172,6 +1172,16 @@ onMounted(async () => {
   } else if (tab === 'password') {
     activeTab.value = 'password';
   }
+
+  if (route.query.payment === 'success') {
+    listingActionSuccess.value = true;
+    listingActionMessage.value = 'Nâng cấp gói tin thành công.';
+    router.replace({ query: { tab: 'listings' } }).catch(() => {});
+  } else if (route.query.payment === 'failed') {
+    listingActionSuccess.value = false;
+    listingActionMessage.value = 'Thanh toán chưa thành công. Gói tin chưa được nâng cấp.';
+    router.replace({ query: { tab: 'listings' } }).catch(() => {});
+  }
 });
 
 onUnmounted(() => {

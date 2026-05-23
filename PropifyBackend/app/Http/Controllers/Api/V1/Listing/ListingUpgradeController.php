@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1\Listing;
 
 use App\Helpers\ApiResponse;
-use App\Http\Resources\ListingResource;
 use App\Http\Requests\Listing\UpgradeListingRequest;
 use App\Services\Listing\ListingService;
 use Illuminate\Http\JsonResponse;
@@ -16,21 +15,21 @@ final class ListingUpgradeController
     }
 
     /**
-     * Nâng cấp gói tin cho listing.
-     * POST /api/v1/listings/{id}/upgrade
+     * Create a VNPAY payment URL for a listing package upgrade.
      */
     public function upgrade(UpgradeListingRequest $request, int $id): JsonResponse
     {
-        $listing = $this->listingService->upgradeListing(
+        $paymentUrl = $this->listingService->createUpgradePayment(
             user: $request->user(),
             listingId: $id,
             packageId: (int) $request->validated('package_id'),
             durationDays: (int) $request->validated('duration_days'),
+            clientIp: $request->ip() ?? '127.0.0.1',
         );
 
         return ApiResponse::success(
-            data: new ListingResource($listing),
-            message: 'Nâng cấp gói tin thành công!'
+            data: ['payment_url' => $paymentUrl],
+            message: 'Tao lien ket thanh toan VNPAY thanh cong.'
         );
     }
 }

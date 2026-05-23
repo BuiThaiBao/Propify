@@ -7,6 +7,7 @@ use App\DTOs\Listing\UpgradeContext;
 use App\Enums\ErrorCode;
 use App\Events\Listing\ListingPackageUpgraded;
 use App\Exceptions\BusinessException;
+use App\Jobs\ExpirePendingTransactionJob;
 use App\Models\Listing;
 use App\Models\ListingStatusHistory;
 use App\Models\Package;
@@ -17,6 +18,7 @@ use App\Services\Listing\ListingService;
 use App\Services\Listing\Upgrade\Benefits\PackageBenefitStrategyFactory;
 use App\Services\Listing\Upgrade\Expiry\ExpiryCalculationStrategyFactory;
 use App\Services\Listing\Upgrade\UpgradeEligibilityPolicy;
+use App\Services\Payment\VnpayService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -29,6 +31,7 @@ final class ListingServiceImpl implements ListingService
         private readonly UpgradeEligibilityPolicy $upgradeEligibilityPolicy,
         private readonly ExpiryCalculationStrategyFactory $expiryStrategyFactory,
         private readonly PackageBenefitStrategyFactory $benefitStrategyFactory,
+        private readonly VnpayService $vnpayService,
     ) {
     }
 
@@ -596,19 +599,88 @@ final class ListingServiceImpl implements ListingService
         ]);
     }
 
-    /**
-     * Nâng cấp gói tin cho listing.
-     *
-     * Flow: Verify ownership → Verify listing ACTIVE → Verify package → Lookup pricing
-     *       → Check upgrade direction → DB Transaction: Create Transaction + Update listing
-     *       → Clear cache → Return updated listing
-     *
-     * Gia hạn: Nếu listing đang có gói chưa hết hạn và user mua lại cùng gói,
-     *          thời hạn mới sẽ CỘNG THÊM vào thời hạn còn lại.
-     */
-    public function upgradeListing(User $user, int $listingId, int $packageId, int $durationDays): Listing
+    public function createUpgradePayment(User $user, int $listingId, int $packageId, int $durationDays, string $clientIp): string
     {
-        // 1. Load entities required for the upgrade flow.
+        [$listing, $newPackage, $pricing, $context] = $this->prepareUpgrade($user, $listingId, $packageId, $durationDays);
+        $paymentExpiresAt = now()->addMinutes(15);
+
+        $transaction = Transaction::create([
+            'user_id' => $user->id,
+            'listing_id' => $listing->id,
+            'package_id' => $newPackage->id,
+            'amount' => $pricing->price,
+            'duration_days' => $durationDays,
+            'payment_method' => 'VNPAY',
+            'status' => 'PENDING',
+            'transaction_date' => now(),
+            'expires_at' => $paymentExpiresAt,
+        ]);
+
+        $transaction->update(['vnp_txn_ref' => 'PFY' . $transaction->id]);
+        ExpirePendingTransactionJob::dispatch($transaction->id)->delay($paymentExpiresAt);
+
+        return $this->vnpayService->createPaymentUrl($transaction->fresh(), $clientIp);
+    }
+
+    public function completePaidUpgrade(Transaction $transaction): Listing
+    {
+        $transaction->loadMissing('user');
+
+        [$listing, $newPackage, $_pricing, $context] = $this->prepareUpgrade(
+            $transaction->user,
+            (int) $transaction->listing_id,
+            (int) $transaction->package_id,
+            (int) $transaction->duration_days,
+        );
+
+        return $this->applyCompletedUpgrade($transaction, $listing, $newPackage, $context);
+    }
+
+    private function applyCompletedUpgrade(Transaction $transaction, Listing $listing, Package $newPackage, UpgradeContext $context): Listing
+    {
+        $expiresAt = $this->expiryStrategyFactory->make($context)->calculate($context);
+        $benefitStrategy = $this->benefitStrategyFactory->make($newPackage);
+
+        $updated = DB::transaction(function () use ($transaction, $listing, $newPackage, $expiresAt, $benefitStrategy, $context) {
+            $transaction->update([
+                'status' => 'SUCCESS',
+                'transaction_date' => now(),
+            ]);
+
+            $listing->update([
+                'package_id' => $newPackage->id,
+                'package_expires_at' => $expiresAt,
+            ]);
+
+            $benefitStrategy->apply($context);
+
+            return $listing->fresh([
+                'property',
+                'property.attributes.group',
+                'images',
+                'videos',
+                'verificationDocuments',
+                'appointments',
+                'package',
+            ]);
+        });
+
+        ListingPackageUpgraded::dispatch(
+            listing: $updated,
+            user: $transaction->user,
+            oldPackage: $context->currentPackage,
+            newPackage: $newPackage,
+            durationDays: (int) $transaction->duration_days,
+            amount: (string) $transaction->amount,
+            expiresAt: $expiresAt,
+            isRenewal: $context->isRenewal(),
+        );
+
+        return $updated;
+    }
+
+    private function prepareUpgrade(User $user, int $listingId, int $packageId, int $durationDays): array
+    {
         $listing = Listing::find($listingId);
 
         if (!$listing) {
@@ -644,58 +716,38 @@ final class ListingServiceImpl implements ListingService
             now: now(),
         );
 
-        // 2. Apply business policy and strategy selection.
         $this->upgradeEligibilityPolicy->assertEligible($context);
-        $expiresAt = $this->expiryStrategyFactory->make($context)->calculate($context);
-        $benefitStrategy = $this->benefitStrategyFactory->make($newPackage);
 
-        // 3. Commit core upgrade state atomically.
-        $updated = DB::transaction(function () use ($user, $listing, $newPackage, $pricing, $expiresAt, $benefitStrategy, $context) {
-            // Tạo transaction (giả lập thanh toán — auto SUCCESS)
-            Transaction::create([
-                'user_id'          => $user->id,
-                'listing_id'       => $listing->id,
-                'package_id'       => $newPackage->id,
-                'amount'           => $pricing->price,
-                'payment_method'   => 'SIMULATED',
-                'status'           => 'SUCCESS',
-                'transaction_date' => now(),
-            ]);
-
-            // Gắn gói mới + set ngày hết hạn
-            $listing->update([
-                'package_id'         => $newPackage->id,
-                'package_expires_at' => $expiresAt,
-            ]);
-
-            $benefitStrategy->apply($context);
-
-            return $listing->fresh([
-                'property',
-                'property.attributes.group',
-                'images',
-                'videos',
-                'verificationDocuments',
-                'appointments',
-                'package',
-            ]);
-        });
-
-        ListingPackageUpgraded::dispatch(
-            listing: $updated,
-            user: $user,
-            oldPackage: $currentPackage,
-            newPackage: $newPackage,
-            durationDays: $durationDays,
-            amount: (string) $pricing->price,
-            expiresAt: $expiresAt,
-            isRenewal: $context->isRenewal(),
-        );
-
-        return $updated;
+        return [$listing, $newPackage, $pricing, $context];
     }
 
+    /**
+     * Nâng cấp gói tin cho listing.
+     *
+     * Flow: Verify ownership → Verify listing ACTIVE → Verify package → Lookup pricing
+     *       → Check upgrade direction → DB Transaction: Create Transaction + Update listing
+     *       → Clear cache → Return updated listing
+     *
+     * Gia hạn: Nếu listing đang có gói chưa hết hạn và user mua lại cùng gói,
+     *          thời hạn mới sẽ CỘNG THÊM vào thời hạn còn lại.
+     */
+    public function upgradeListing(User $user, int $listingId, int $packageId, int $durationDays): Listing
+    {
+        [$listing, $newPackage, $pricing, $context] = $this->prepareUpgrade($user, $listingId, $packageId, $durationDays);
 
+        $transaction = Transaction::create([
+            'user_id' => $user->id,
+            'listing_id' => $listing->id,
+            'package_id' => $newPackage->id,
+            'amount' => $pricing->price,
+            'duration_days' => $durationDays,
+            'payment_method' => 'SIMULATED',
+            'status' => 'SUCCESS',
+            'transaction_date' => now(),
+        ]);
+
+        return $this->applyCompletedUpgrade($transaction, $listing, $newPackage, $context);
+    }
 
     /**
      * Tính content_score dựa trên chất lượng nội dung listing.
