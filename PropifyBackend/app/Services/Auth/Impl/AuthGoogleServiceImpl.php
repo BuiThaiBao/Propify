@@ -2,15 +2,17 @@
 
 namespace App\Services\Auth\Impl;
 
-use App\DTOs\Auth\AuthResultDto;
+use App\DTOs\Auth\SocialAuthPayload;
+use App\Enums\AuthMethod;
+use App\Enums\ErrorCode;
+use App\Exceptions\BusinessException;
 use App\Services\Auth\Adapters\GoogleSocialiteAdapter;
-use App\Services\Auth\UserUpsertService;
 use App\Services\Auth\AuthGoogleService;
+use App\Services\Auth\AuthStrategyResolver;
 use App\Support\AuthCookieFactory;
 use Illuminate\Support\Facades\Log;
 use Laravel\Socialite\Facades\Socialite;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use Tymon\JWTAuth\Facades\JWTAuth;
 
 /**
  * Chỉ xử lý OAuth flow (redirect + callback).
@@ -19,7 +21,7 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 final class AuthGoogleServiceImpl implements AuthGoogleService
 {
     public function __construct(
-        private readonly UserUpsertService $userUpsertService,
+        private readonly AuthStrategyResolver $authStrategyResolver,
     ) {}
 
     public function redirectToGoogle(): RedirectResponse
@@ -40,17 +42,9 @@ final class AuthGoogleServiceImpl implements AuthGoogleService
             $googleUser = Socialite::driver('google')->stateless()->user();
             $adapted = new GoogleSocialiteAdapter($googleUser);
 
-            // Delegate logic tìm/tạo/liên kết user cho UserUpsertService
-            $user = $this->userUpsertService->upsertFromSocial($adapted);
-
-            if ($user->role === \App\Enums\UserRole::Admin) {
-                Log::warning('Admin user attempted Google login on client site', ['user_id' => $user->id]);
-                return redirect(config('app.frontend_url') . "/?error=admin_not_allowed");
-            }
-
-            $token = JWTAuth::fromUser($user);
-            $refreshToken = $this->makeRefreshToken($user);
-            $result = AuthResultDto::fromUserAndToken($user, $token, $refreshToken, JWTAuth::factory()->getTTL());
+            $result = $this->authStrategyResolver
+                ->resolve(AuthMethod::GoogleOAuth)
+                ->authenticate(new SocialAuthPayload($adapted));
 
             $response = redirect(config('app.frontend_url') . "/login-success");
             foreach (AuthCookieFactory::makeAuthCookies($result, AuthCookieFactory::CLIENT_USER) as $cookie) {
@@ -58,6 +52,18 @@ final class AuthGoogleServiceImpl implements AuthGoogleService
             }
 
             return $response;
+        } catch (BusinessException $e) {
+            if ($e->getErrorCode() === ErrorCode::AuthAdminNotAllowed) {
+                Log::warning('Admin user attempted Google login on client site');
+
+                return redirect(config('app.frontend_url') . "/?error=admin_not_allowed");
+            }
+
+            Log::error('Google Auth Error', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return redirect(config('app.frontend_url') . "/?error=google_auth_failed");
         } catch (\Exception $e) {
             Log::error('Google Auth Error', [
                 'message' => $e->getMessage(),
@@ -65,19 +71,6 @@ final class AuthGoogleServiceImpl implements AuthGoogleService
             ]);
 
             return redirect(config('app.frontend_url') . "/?error=google_auth_failed");
-        }
-    }
-
-    private function makeRefreshToken($user): string
-    {
-        $factory = JWTAuth::factory();
-        $originalTtl = $factory->getTTL();
-
-        try {
-            $factory->setTTL((int) config('jwt.refresh_ttl', 20160));
-            return JWTAuth::claims(['typ' => 'refresh'])->fromUser($user);
-        } finally {
-            $factory->setTTL($originalTtl);
         }
     }
 }

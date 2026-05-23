@@ -38,6 +38,11 @@ const routes = [
         component: () => import('@/pages/Posts/index.vue'),
       },
       {
+        path: 'posts/:id',
+        name: 'PostDetail',
+        component: () => import('@/pages/Posts/DetailPage.vue'),
+      },
+      {
         path: 'packages',
         name: 'Packages',
         component: () => import('@/pages/Packages/ListPage.vue'),
@@ -66,6 +71,11 @@ const routes = [
         path: 'utilities',
         name: 'Utilities',
         component: () => import('@/pages/Utilities/Page.vue'),
+      },
+      {
+        path: 'audit-logs',
+        name: 'AuditLogs',
+        component: () => import('@/pages/AuditLogs/Page.vue'),
       },
       {
         path: 'revenue',

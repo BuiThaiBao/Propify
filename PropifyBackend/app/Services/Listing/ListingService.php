@@ -29,6 +29,8 @@ interface ListingService
 
     public function changeStatusForAdmin(int $listingId, string $status, ?string $rejectionReason = null, ?int $adminUserId = null): Listing;
 
+    public function updateVerificationForAdmin(int $listingId, bool $isVerified, ?string $reason = null, ?int $adminUserId = null): Listing;
+
     public function upgradeListing(User $user, int $listingId, int $packageId, int $durationDays): Listing;
 
 }
