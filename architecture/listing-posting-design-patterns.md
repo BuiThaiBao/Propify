@@ -22,6 +22,7 @@ Adapter Pattern
 
 ```text
 PropifyFrontend/src/services/listingPayloadBuilder.js
+PropifyFrontend/src/services/listingPreviewBuilder.js
 PropifyFrontend/src/services/listingService.js
 ```
 
@@ -73,6 +74,52 @@ create(payload) {
 - API payload được quản lý ở một nơi.
 - Dễ thêm/sửa field đăng tin.
 - `listingService.js` chỉ còn nhiệm vụ gọi API.
+
+### Builder cho xem trước tin đăng
+
+Ngoài payload gửi API, chức năng xem trước cũng được tách Builder riêng:
+
+```text
+PropifyFrontend/src/services/listingPreviewBuilder.js
+```
+
+Hàm chính:
+
+```js
+buildListingPreview({
+  form,
+  imagePreviews,
+  selectedAmenities,
+  authUser,
+  provinceName,
+  wardName,
+})
+```
+
+Mục đích:
+
+- Chuyển dữ liệu đang nhập trong form thành object giống dữ liệu chi tiết tin đăng.
+- Adapter dữ liệu form để dùng lại component `ListingDetail`.
+- Gom logic build ảnh preview, địa chỉ, owner, property vào một nơi.
+
+Trong `PostForm.vue`, preview hiện được tạo bằng:
+
+```js
+const previewListing = computed(() => buildListingPreview({
+  form,
+  imagePreviews: imagePreviews.value,
+  selectedAmenities: selectedAmenities.value,
+  authUser: authStore.user,
+  provinceName: selectedProvinceName.value,
+  wardName: selectedWardName.value,
+}));
+```
+
+Ý nghĩa pattern:
+
+- `PostForm.vue` không còn phải tự dựng object preview dài.
+- `ListingDetail.vue` nhận dữ liệu đã đúng shape để render.
+- Đây vừa là Builder, vừa có vai trò Adapter nhẹ vì chuyển form state sang view model của trang chi tiết.
 
 ## 2. Facade Pattern
 
@@ -542,4 +589,3 @@ Kết quả:
 ```text
 Build frontend thành công.
 ```
-

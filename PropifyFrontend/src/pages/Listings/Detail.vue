@@ -40,15 +40,15 @@
       </div>
 
       <!-- Gallery -->
-      <div v-if="listing.images" class="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
+      <div v-if="displayImages.length" class="mb-6 overflow-hidden rounded-2xl bg-white shadow-sm">
         <div class="relative h-[300px] w-full bg-slate-900 md:h-[450px]">
           <img v-if="activeImage" :src="activeImage" class="h-full w-full object-cover opacity-95" alt="Listing image" />
-          <div class="absolute left-4 top-1/2 -translate-y-1/2">
+          <div v-if="displayImages.length > 1" class="absolute left-4 top-1/2 -translate-y-1/2">
             <button class="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow backdrop-blur transition hover:bg-white" @click="prevImage">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
             </button>
           </div>
-          <div class="absolute right-4 top-1/2 -translate-y-1/2">
+          <div v-if="displayImages.length > 1" class="absolute right-4 top-1/2 -translate-y-1/2">
             <button class="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-slate-800 shadow backdrop-blur transition hover:bg-white" @click="nextImage">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 pl-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             </button>
@@ -220,7 +220,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
                 GỌI {{ formatPhone(listing.property?.contact_phone) }}
               </a>
-              <button class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 font-semibold text-slate-700 transition hover:border-sky-500 hover:text-sky-600" @click="showAppointmentPopup = true">
+              <button v-if="!previewMode" class="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-4 py-2.5 font-semibold text-slate-700 transition hover:border-sky-500 hover:text-sky-600" @click="showAppointmentPopup = true">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 Đặt lịch xem nhà
               </button>
@@ -237,6 +237,7 @@
 
     <!-- Appointment Booking Popup -->
     <AppointmentBookingPopup
+      v-if="!previewMode"
       :visible="showAppointmentPopup"
       :listing-id="listing?.id"
       @close="showAppointmentPopup = false"
@@ -447,7 +448,6 @@ watch(
     if (map) {
       map.remove();
       map = null;
-      marker = null;
     }
 
     if (hasLatLng.value) {
@@ -792,6 +792,14 @@ function initMap() {
 
 
 onMounted(() => {
+  if (props.previewMode) {
+    loading.value = false;
+    if (hasLatLng.value) {
+      nextTick(() => setTimeout(() => initMap(), 200));
+    }
+    return;
+  }
+
   loadListing();
 });
 

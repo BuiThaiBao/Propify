@@ -813,6 +813,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import listingService from "@/services/listingService";
+import { buildListingPreview } from "@/services/listingPreviewBuilder";
 import {
   MAX_LISTING_VIDEO_SIZE_BYTES,
   MAX_LISTING_VIDEO_SIZE_LABEL,
@@ -1261,86 +1262,14 @@ const selectedWardName = computed(() => {
   return item?.name || "";
 });
 
-const previewAddress = computed(() => {
-  return [
-    form.addressDetail,
-    form.projectName,
-    form.streetCode,
-    selectedWardName.value,
-    selectedProvinceName.value,
-  ].map((part) => String(part || '').trim()).filter(Boolean).join(', ');
-});
-
-const previewImages = computed(() => {
-  if (imagePreviews.value.length > 0) {
-    return imagePreviews.value.map((item, index) => ({
-      id: `preview-${index}`,
-      url: item.url,
-      sort_order: index,
-      is_thumbnail: index === 0,
-    }));
-  }
-
-  return (Array.isArray(form.images) ? form.images : [])
-    .map((item, index) => ({
-      id: `preview-${index}`,
-      url: typeof item === 'string' ? item : '',
-      sort_order: index,
-      is_thumbnail: index === 0,
-    }))
-    .filter((item) => Boolean(item.url));
-});
-
-const previewListing = computed(() => ({
-  id: 'preview',
-  title: form.title?.trim() || 'Tin đăng chưa có tiêu đề',
-  description: form.description?.trim() || 'Chưa có mô tả',
-  demand_type: form.demandType,
-  status: 'PREVIEW',
-  submitted_at: new Date().toISOString(),
-  views: 0,
-  is_verified: false,
-  images: previewImages.value,
-  owner: authStore.user
-    ? {
-        full_name: authStore.user.full_name || authStore.user.name || '',
-        avatar_url: authStore.user.avatar_url || authStore.user.avatar || '',
-      }
-    : null,
-  property: {
-    type: form.propertyType,
-    full_address: previewAddress.value,
-    province_code: form.provinceCode,
-    ward_code: form.wardCode,
-    street_code: form.streetCode,
-    project_name: form.projectName,
-    address_detail: form.addressDetail,
-    area: Number(form.area || 0),
-    price: form.isNegotiable ? 0 : Number(form.price || 0),
-    is_negotiable: Boolean(form.isNegotiable),
-    bedrooms: Number(form.bedrooms || 0),
-    bathrooms: Number(form.bathrooms || 0),
-    floors: form.floors,
-    floor_number: form.floorNumber,
-    balconies: form.balconies,
-    facade_width: form.facadeWidth,
-    depth: form.depth,
-    road_width: form.roadWidth,
-    direction_code: form.directionCode,
-    balcony_direction_code: form.balconyDirectionCode,
-    furniture_status: form.furnitureStatus,
-    legal_paper_types: Array.isArray(form.legalPaperTypes) ? [...form.legalPaperTypes] : [],
-    amenities: [...selectedAmenities.value],
-    contact_name: form.contactName?.trim() || authStore.user?.full_name || authStore.user?.name || '',
-    contact_phone: form.contactPhone?.trim() || authStore.user?.phone || '',
-    contact_email: form.contactEmail?.trim() || authStore.user?.email || '',
-    poster_type: form.posterType,
-    lat: form.lat ? Number(form.lat) : null,
-    lng: form.lng ? Number(form.lng) : null,
-  },
+const previewListing = computed(() => buildListingPreview({
+  form,
+  imagePreviews: imagePreviews.value,
+  selectedAmenities: selectedAmenities.value,
+  authUser: authStore.user,
+  provinceName: selectedProvinceName.value,
+  wardName: selectedWardName.value,
 }));
-
-
 
 watch(
   () => form.demandType,
