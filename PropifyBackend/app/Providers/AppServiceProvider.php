@@ -3,9 +3,11 @@
 namespace App\Providers;
 
 use App\Events\Auth\UserRegistered;
+use App\Events\Auth\PasswordChanged;
 use App\Events\Listing\FavoriteToggled;
 use App\Events\Listing\ListingVerificationRequested;
 use App\Events\Listing\ListingPackageUpgraded;
+use App\Events\User\ProfileUpdated;
 use App\Listeners\Auth\SendWelcomeNotification;
 use App\Listeners\Listing\ClearPublicListingCache;
 use App\Listeners\Listing\LogListingPackageUpgrade;
@@ -170,5 +172,7 @@ final class AppServiceProvider extends ServiceProvider
         Event::listen(ListingPackageUpgraded::class, LogListingPackageUpgrade::class);
         Event::listen(FavoriteToggled::class, static function () {});
         Event::listen(ListingVerificationRequested::class, static function () {});
+        Event::listen(ProfileUpdated::class, static function () {});
+        Event::listen(PasswordChanged::class, static function () {});
     }
 }
