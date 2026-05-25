@@ -19,11 +19,12 @@ use App\Services\Auth\AuthService;
 use App\Services\Auth\AuthStrategyResolver;
 use App\Services\Auth\AuthTokenIssuer;
 use App\Services\Auth\ForgotPassword\ForgotPasswordChain;
+use App\Services\Auth\ForgotPassword\RequestPasswordResetCommand;
+use App\Services\Auth\ForgotPassword\ResetPasswordCommand;
+use App\Services\Auth\Registration\RegisterUserCommand;
 use App\Services\Otp\OtpService;
 use App\Services\Auth\TokenProcessService;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
@@ -38,6 +39,9 @@ final class AuthServiceImpl implements AuthService
         private readonly AuthStrategyResolver $authStrategyResolver,
         private readonly AuthTokenIssuer $tokenIssuer,
         private readonly ForgotPasswordChain $forgotPasswordChain,
+        private readonly RegisterUserCommand $registerUserCommand,
+        private readonly RequestPasswordResetCommand $requestPasswordResetCommand,
+        private readonly ResetPasswordCommand $resetPasswordCommand,
     ) {}
 
     /** @throws BusinessException */
@@ -53,30 +57,7 @@ final class AuthServiceImpl implements AuthService
      */
     public function register(RegisterUserDto $dto): void
     {
-        DB::transaction(function () use ($dto) {
-            $user = $this->userRepository->findByEmail($dto->email);
-
-            if ($user) {
-                // User đang Pending (validate đã lọc), cập nhật lại thông tin mới nhất
-                $this->userRepository->update($user->id, [
-                    'full_name' => $dto->fullName,
-                    'password'  => Hash::make($dto->password),
-                ]);
-                $user->refresh(); // Lấy data mới
-                Log::info('Existing pending user re-registered', ['user_id' => $user->id]);
-            } else {
-                $user = $this->userRepository->create([
-                    'full_name' => $dto->fullName,
-                    'email'     => $dto->email,
-                    'password'  => Hash::make($dto->password),
-                    'role'      => UserRole::User->value,
-                    'status'    => UserStatus::Pending->value,
-                ]);
-                Log::info('New user registered (pending OTP)', ['user_id' => $user->id]);
-            }
-
-            $this->otpService->generate($user, OtpContext::REGISTER);
-        });
+        $this->registerUserCommand->execute($dto);
     }
 
     public function resendRegisterOtp(string $email): void
@@ -126,7 +107,7 @@ final class AuthServiceImpl implements AuthService
      */
     public function forgotPassword(string $email): void
     {
-        $this->forgotPasswordChain->execute($email);
+        $this->requestPasswordResetCommand->execute($email);
     }
 
     /**
@@ -151,17 +132,7 @@ final class AuthServiceImpl implements AuthService
      */
     public function resetPassword(string $email, string $otp, string $password): void
     {
-        $user = $this->userRepository->findByEmail($email);
-
-        if (!$user || !$this->otpService->verify($user, $otp, OtpContext::RESET_PASSWORD)) {
-            throw new BusinessException(ErrorCode::AuthOtpInvalid);
-        }
-
-        $this->userRepository->update($user->id, [
-            'password' => Hash::make($password),
-        ]);
-
-        Log::info('Password reset successfully', ['user_id' => $user->id]);
+        $this->resetPasswordCommand->execute($email, $otp, $password);
     }
 
     public function logout(?string $refreshToken = null): void

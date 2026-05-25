@@ -11,5 +11,6 @@ interface PackageService
     public function getById(int $id): Package;
     public function create(CreatePackageDto $dto): Package;
     public function update(int $id, \App\DTOs\Packages\UpdatePackageDto $dto): Package;
-    public function delete(int $id): void;
+    public function lock(int $id): Package;
+    public function activate(int $id): Package;
 }

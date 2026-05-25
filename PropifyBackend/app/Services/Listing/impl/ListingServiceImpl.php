@@ -5,9 +5,7 @@ namespace App\Services\Listing\impl;
 use App\DTOs\Listing\CreateListingDto;
 use App\DTOs\Listing\UpgradeContext;
 use App\Enums\ErrorCode;
-use App\Events\Listing\ListingPackageUpgraded;
 use App\Exceptions\BusinessException;
-use App\Jobs\ExpirePendingTransactionJob;
 use App\Models\Listing;
 use App\Models\ListingStatusHistory;
 use App\Models\Package;
@@ -15,10 +13,10 @@ use App\Models\Transaction;
 use App\Models\User;
 use App\Repositories\ListingRepository;
 use App\Services\Listing\ListingService;
-use App\Services\Listing\Upgrade\Benefits\PackageBenefitStrategyFactory;
-use App\Services\Listing\Upgrade\Expiry\ExpiryCalculationStrategyFactory;
+use App\Services\Listing\Upgrade\CreateUpgradePaymentCommand;
+use App\Services\Listing\Upgrade\UpgradeListingCommand;
 use App\Services\Listing\Upgrade\UpgradeEligibilityPolicy;
-use App\Services\Payment\VnpayService;
+use App\Services\Listing\Verification\ListingVerificationService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -29,9 +27,9 @@ final class ListingServiceImpl implements ListingService
     public function __construct(
         private readonly ListingRepository $listingRepository,
         private readonly UpgradeEligibilityPolicy $upgradeEligibilityPolicy,
-        private readonly ExpiryCalculationStrategyFactory $expiryStrategyFactory,
-        private readonly PackageBenefitStrategyFactory $benefitStrategyFactory,
-        private readonly VnpayService $vnpayService,
+        private readonly UpgradeListingCommand $upgradeListingCommand,
+        private readonly CreateUpgradePaymentCommand $createUpgradePaymentCommand,
+        private readonly ListingVerificationService $listingVerificationService,
     ) {
     }
 
@@ -396,72 +394,7 @@ final class ListingServiceImpl implements ListingService
 
     public function updateVerification(User $user, int $id, array $payload): Listing
     {
-        $updated = DB::transaction(function () use ($user, $id, $payload) {
-            $listing = Listing::query()->lockForUpdate()->findOrFail($id);
-
-            if ((int) $listing->owner_id !== (int) $user->id) {
-                throw new BusinessException(ErrorCode::AuthForbidden);
-            }
-
-            $identityCardFront = $payload['identity_card_front'] ?? null;
-            $identityCardBack = $payload['identity_card_back'] ?? null;
-            $legalDocuments = $payload['legal_documents'] ?? [];
-            $requestVerification = (bool) ($identityCardFront || $identityCardBack || count($legalDocuments) > 0);
-
-            $this->listingRepository->updateListing($listing->id, [
-                'request_verification' => $requestVerification,
-            ]);
-
-            if ($listing->property_id) {
-                $this->listingRepository->updateProperty($listing->property_id, [
-                    'public_info_agreed' => (bool) ($payload['public_info_agreed'] ?? false),
-                ]);
-            }
-
-            $this->listingRepository->deleteVerificationDocuments($listing->id);
-            $sortOrder = 0;
-
-            if ($identityCardFront) {
-                $this->listingRepository->createVerificationDocument([
-                    'listing_id' => $listing->id,
-                    'document_type' => 'ID_FRONT',
-                    'file_url' => $identityCardFront,
-                    'mime_type' => 'image/jpeg',
-                    'file_size' => 0,
-                    'sort_order' => $sortOrder++,
-                ]);
-            }
-
-            if ($identityCardBack) {
-                $this->listingRepository->createVerificationDocument([
-                    'listing_id' => $listing->id,
-                    'document_type' => 'ID_BACK',
-                    'file_url' => $identityCardBack,
-                    'mime_type' => 'image/jpeg',
-                    'file_size' => 0,
-                    'sort_order' => $sortOrder++,
-                ]);
-            }
-
-            foreach ($legalDocuments as $documentUrl) {
-                $this->listingRepository->createVerificationDocument([
-                    'listing_id' => $listing->id,
-                    'document_type' => 'LEGAL_DOCUMENT',
-                    'file_url' => $documentUrl,
-                    'mime_type' => 'image/jpeg',
-                    'file_size' => 0,
-                    'sort_order' => $sortOrder++,
-                ]);
-            }
-
-            return $listing->fresh()->load([
-                'property.attributes.group',
-                'images',
-                'videos',
-                'verificationDocuments',
-                'appointments',
-            ]);
-        });
+        $updated = $this->listingVerificationService->requestVerification($user, $id, $payload);
 
         $this->clearPublicListingsCache();
 
@@ -560,66 +493,26 @@ final class ListingServiceImpl implements ListingService
             throw new BusinessException(ErrorCode::AuthForbidden);
         }
 
-        if (!$isVerified && trim((string) $reason) === '') {
-            throw new BusinessException(ErrorCode::BadRequest, 'Vui lòng nhập lý do từ chối xác thực.');
-        }
-
-        $listing = DB::transaction(function () use ($listingId, $isVerified, $reason, $adminUserId) {
-            $listing = Listing::query()->lockForUpdate()->find($listingId);
-            if (!$listing) {
-                throw new BusinessException(ErrorCode::ListingNotFound);
-            }
-
-            $listing->is_verified = $isVerified;
-            $listing->save();
-
-            ListingStatusHistory::create([
-                'user_id' => $adminUserId,
-                'listing_id' => $listing->id,
-                'action' => $isVerified ? 'VERIFY_APPROVED' : 'VERIFY_REJECTED',
-                'reason' => $isVerified ? null : $reason,
-            ]);
-
-            return $listing;
-        });
+        $listing = $isVerified
+            ? $this->listingVerificationService->approveVerification($listingId, $adminUserId)
+            : $this->listingVerificationService->rejectVerification($listingId, $adminUserId, (string) $reason);
 
         Cache::tags(['listings:public'])->flush();
-
-        return $listing->load([
-            'property.attributes.group',
-            'images',
-            'videos',
-            'verificationDocuments',
-            'appointmentSlots',
-            'appointments',
-            'owner',
-            'approver',
-            'package',
-            'statusHistories.user',
-        ]);
+        return $listing;
     }
 
     public function createUpgradePayment(User $user, int $listingId, int $packageId, int $durationDays, string $clientIp): string
     {
         [$listing, $newPackage, $pricing, $context] = $this->prepareUpgrade($user, $listingId, $packageId, $durationDays);
-        $paymentExpiresAt = now()->addMinutes(15);
 
-        $transaction = Transaction::create([
-            'user_id' => $user->id,
-            'listing_id' => $listing->id,
-            'package_id' => $newPackage->id,
-            'amount' => $pricing->price,
-            'duration_days' => $durationDays,
-            'payment_method' => 'VNPAY',
-            'status' => 'PENDING',
-            'transaction_date' => now(),
-            'expires_at' => $paymentExpiresAt,
-        ]);
-
-        $transaction->update(['vnp_txn_ref' => 'PFY' . $transaction->id]);
-        ExpirePendingTransactionJob::dispatch($transaction->id)->delay($paymentExpiresAt);
-
-        return $this->vnpayService->createPaymentUrl($transaction->fresh(), $clientIp);
+        return $this->createUpgradePaymentCommand->execute(
+            user: $user,
+            listing: $listing,
+            newPackage: $newPackage,
+            durationDays: $durationDays,
+            amount: (float) $pricing->price,
+            clientIp: $clientIp,
+        );
     }
 
     public function completePaidUpgrade(Transaction $transaction): Listing
@@ -633,50 +526,12 @@ final class ListingServiceImpl implements ListingService
             (int) $transaction->duration_days,
         );
 
-        return $this->applyCompletedUpgrade($transaction, $listing, $newPackage, $context);
-    }
-
-    private function applyCompletedUpgrade(Transaction $transaction, Listing $listing, Package $newPackage, UpgradeContext $context): Listing
-    {
-        $expiresAt = $this->expiryStrategyFactory->make($context)->calculate($context);
-        $benefitStrategy = $this->benefitStrategyFactory->make($newPackage);
-
-        $updated = DB::transaction(function () use ($transaction, $listing, $newPackage, $expiresAt, $benefitStrategy, $context) {
-            $transaction->update([
-                'status' => 'SUCCESS',
-                'transaction_date' => now(),
-            ]);
-
-            $listing->update([
-                'package_id' => $newPackage->id,
-                'package_expires_at' => $expiresAt,
-            ]);
-
-            $benefitStrategy->apply($context);
-
-            return $listing->fresh([
-                'property',
-                'property.attributes.group',
-                'images',
-                'videos',
-                'verificationDocuments',
-                'appointments',
-                'package',
-            ]);
-        });
-
-        ListingPackageUpgraded::dispatch(
-            listing: $updated,
-            user: $transaction->user,
-            oldPackage: $context->currentPackage,
+        return $this->upgradeListingCommand->execute(
+            transaction: $transaction,
+            listing: $listing,
             newPackage: $newPackage,
-            durationDays: (int) $transaction->duration_days,
-            amount: (string) $transaction->amount,
-            expiresAt: $expiresAt,
-            isRenewal: $context->isRenewal(),
+            context: $context,
         );
-
-        return $updated;
     }
 
     private function prepareUpgrade(User $user, int $listingId, int $packageId, int $durationDays): array
@@ -746,7 +601,12 @@ final class ListingServiceImpl implements ListingService
             'transaction_date' => now(),
         ]);
 
-        return $this->applyCompletedUpgrade($transaction, $listing, $newPackage, $context);
+        return $this->upgradeListingCommand->execute(
+            transaction: $transaction,
+            listing: $listing,
+            newPackage: $newPackage,
+            context: $context,
+        );
     }
 
     /**

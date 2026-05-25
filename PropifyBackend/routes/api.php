@@ -234,6 +234,7 @@ Route::prefix('v1/packages')->as('packages.admin.')->middleware('auth:api')->gro
     Route::post('/', [PackageController::class, 'create'])->name('create');
     Route::put('/{id}', [PackageController::class, 'update'])->name('update');
     Route::delete('/{id}', [PackageController::class, 'destroy'])->name('destroy');
+    Route::post('/{id}/activate', [PackageController::class, 'activate'])->name('activate');
 
     // Package Pricings CRUD (admin)
     Route::get('/{packageId}/pricings', [PackagePricingController::class, 'index'])

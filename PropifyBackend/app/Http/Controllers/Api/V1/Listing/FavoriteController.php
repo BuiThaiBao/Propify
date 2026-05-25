@@ -4,36 +4,19 @@ namespace App\Http\Controllers\Api\V1\Listing;
 
 use App\Helpers\ApiResponse;
 use App\Http\Resources\ListingResource;
-use App\Models\Listing;
-use App\Models\UserFavorite;
+use App\Services\Listing\Favorite\FavoriteService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 final class FavoriteController
 {
+    public function __construct(
+        private readonly FavoriteService $favoriteService
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
-        $favorites = UserFavorite::query()
-            ->with([
-                'listing.property.attributes.group',
-                'listing.images',
-                'listing.videos',
-                'listing.verificationDocuments',
-                'listing.appointmentSlots',
-                'listing.appointments',
-                'listing.owner',
-                'listing.package',
-            ])
-            ->where('user_id', $request->user()->id)
-            ->where('type', 'FAVORITE')
-            ->latest()
-            ->get();
-
-        $listings = $favorites
-            ->pluck('listing')
-            ->filter()
-            ->values()
-            ->each(fn (Listing $listing) => $listing->setAttribute('is_favorited', true));
+        $listings = $this->favoriteService->getUserFavorites($request->user()->id);
 
         return ApiResponse::success(
             data: ListingResource::collection($listings),
@@ -43,44 +26,20 @@ final class FavoriteController
 
     public function ids(Request $request): JsonResponse
     {
-        $ids = UserFavorite::query()
-            ->where('user_id', $request->user()->id)
-            ->where('type', 'FAVORITE')
-            ->pluck('listing_id')
-            ->map(fn ($id) => (int) $id)
-            ->values();
+        $ids = $this->favoriteService->getUserFavoriteIds($request->user()->id);
 
         return ApiResponse::success(data: $ids);
     }
 
     public function toggle(Request $request, int $listingId): JsonResponse
     {
-        Listing::query()->findOrFail($listingId);
-
-        $favorite = UserFavorite::query()
-            ->where('user_id', $request->user()->id)
-            ->where('listing_id', $listingId)
-            ->where('type', 'FAVORITE')
-            ->first();
-
-        if ($favorite) {
-            $favorite->delete();
-
-            return ApiResponse::success(
-                data: ['is_favorited' => false],
-                message: 'Da bo yeu thich tin dang.'
-            );
-        }
-
-        UserFavorite::query()->create([
-            'user_id' => $request->user()->id,
-            'listing_id' => $listingId,
-            'type' => 'FAVORITE',
-        ]);
+        $isFavorited = $this->favoriteService->toggle($request->user()->id, $listingId);
 
         return ApiResponse::success(
-            data: ['is_favorited' => true],
-            message: 'Da them tin dang vao danh sach yeu thich.'
+            data: ['is_favorited' => $isFavorited],
+            message: $isFavorited
+                ? 'Da them tin dang vao danh sach yeu thich.'
+                : 'Da bo yeu thich tin dang.'
         );
     }
 }

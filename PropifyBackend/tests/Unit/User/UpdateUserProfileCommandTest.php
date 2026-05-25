@@ -9,6 +9,7 @@ use App\Enums\UserStatus;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Repositories\UserRepository;
+use App\Services\User\Validation\ProfileValidationChain;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Mockery;
@@ -46,7 +47,7 @@ final class UpdateUserProfileCommandTest extends TestCase
             ])
             ->andReturn($updatedUser);
 
-        $command = new UpdateUserProfileCommand($repository);
+        $command = new UpdateUserProfileCommand($repository, new ProfileValidationChain());
 
         $result = $command->execute(
             $user,
