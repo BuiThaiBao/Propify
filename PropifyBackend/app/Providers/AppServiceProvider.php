@@ -7,6 +7,8 @@ use App\Events\Auth\PasswordChanged;
 use App\Events\Listing\FavoriteToggled;
 use App\Events\Listing\ListingVerificationRequested;
 use App\Events\Listing\ListingPackageUpgraded;
+use App\Events\Package\PackageCreated;
+use App\Events\Package\PackageStatusChanged;
 use App\Events\User\ProfileUpdated;
 use App\Listeners\Auth\SendWelcomeNotification;
 use App\Listeners\Listing\ClearPublicListingCache;
@@ -174,5 +176,7 @@ final class AppServiceProvider extends ServiceProvider
         Event::listen(ListingVerificationRequested::class, static function () {});
         Event::listen(ProfileUpdated::class, static function () {});
         Event::listen(PasswordChanged::class, static function () {});
+        Event::listen(PackageCreated::class, static function () {});
+        Event::listen(PackageStatusChanged::class, static function () {});
     }
 }
