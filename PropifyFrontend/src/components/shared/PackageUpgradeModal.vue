@@ -6,7 +6,7 @@
           <!-- Header -->
           <div class="modal-header">
             <div>
-              <h2 class="modal-title">🚀 Nâng cấp gói tin</h2>
+              <h2 class="modal-title">Nâng cấp gói tin</h2>
               <p class="modal-subtitle">Chọn gói tin phù hợp để tăng hiệu quả hiển thị</p>
             </div>
             <button class="modal-close" @click="close" aria-label="Đóng">
@@ -93,7 +93,7 @@
               <!-- Features -->
               <ul class="pkg-features">
                 <li v-for="(feat, idx) in getFeatures(pkg)" :key="idx" :class="feat.enabled ? 'feat-enabled' : 'feat-disabled'">
-                  <span class="feat-icon">{{ feat.enabled ? '✅' : '❌' }}</span>
+                  <span class="feat-icon" aria-hidden="true"></span>
                   <span v-html="feat.text"></span>
                 </li>
               </ul>
@@ -109,7 +109,7 @@
                   <div class="btn-spinner"></div> Đang xử lý...
                 </template>
                 <template v-else-if="isCurrent(pkg)">
-                  🔄 Gia hạn {{ slugLabel(pkg.slug) }}
+                  Gia hạn {{ slugLabel(pkg.slug) }}
                 </template>
                 <template v-else>
                   Nâng cấp lên {{ slugLabel(pkg.slug) }}
@@ -131,6 +131,32 @@
             <span v-if="selectedPricing" class="selected-summary">
               → {{ selectedPkg?.name }} · {{ selectedPricing.label }} · <strong>{{ formatPrice(selectedPricing.price) }}đ</strong>
             </span>
+          </div>
+        </div>
+      </div>
+    </Transition>
+    <Transition name="modal-fade">
+      <div v-if="confirmVisible" class="confirm-overlay" @click.self="closeConfirm">
+        <div class="confirm-card">
+          <div class="confirm-icon">V</div>
+          <h3 class="confirm-title">Xác nhận thanh toán</h3>
+          <p class="confirm-message">
+            Bạn có chắc muốn {{ confirmActionLabel }} gói
+            <strong>{{ pendingPkg?.name }}</strong>
+            <span class="confirm-price-line">
+              <strong>{{ selectedPricing?.label }}</strong> với giá
+              <strong>{{ formatPrice(selectedPricing?.price) }}đ</strong>?
+            </span>
+          </p>
+          <p v-if="paymentError" class="confirm-error">{{ paymentError }}</p>
+          <div class="confirm-actions">
+            <button type="button" class="confirm-btn confirm-btn--secondary" :disabled="upgrading" @click="closeConfirm">
+              Hủy
+            </button>
+            <button type="button" class="confirm-btn confirm-btn--primary" :disabled="upgrading" @click="confirmUpgrade">
+              <span v-if="upgrading" class="btn-spinner"></span>
+              {{ upgrading ? 'Đang tạo thanh toán...' : 'Thanh toán' }}
+            </button>
           </div>
         </div>
       </div>
@@ -157,6 +183,9 @@ const upgrading = ref(false);
 const upgradingPkgId = ref(null);
 const selectedPkg = ref(null);
 const selectedPricing = ref(null);
+const confirmVisible = ref(false);
+const pendingPkg = ref(null);
+const paymentError = ref('');
 
 // Only show: electron, ruby, gold, free (exclude silver/bac)
 const displayPackages = computed(() => {
@@ -213,26 +242,45 @@ function selectPricing(pkg, pricing) {
   selectedPricing.value = pricing;
 }
 
-async function doUpgrade(pkg) {
+function doUpgrade(pkg) {
   if (!props.listingId || upgrading.value || !selectedPricing.value) return;
 
-  const action = isCurrent(pkg) ? 'gia hạn' : 'nâng cấp lên';
-  const confirmed = window.confirm(
-    `Bạn có chắc muốn ${action} gói "${pkg.name}" - ${selectedPricing.value.label} với giá ${formatPrice(selectedPricing.value.price)}đ?`
-  );
-  if (!confirmed) return;
+  pendingPkg.value = pkg;
+  paymentError.value = '';
+  confirmVisible.value = true;
+}
+
+const confirmActionLabel = computed(() => {
+  if (!pendingPkg.value) return 'nâng cấp lên';
+  return isCurrent(pendingPkg.value) ? 'gia hạn' : 'nâng cấp lên';
+});
+
+function closeConfirm() {
+  if (upgrading.value) return;
+
+  confirmVisible.value = false;
+  pendingPkg.value = null;
+  paymentError.value = '';
+}
+
+async function confirmUpgrade() {
+  if (!props.listingId || upgrading.value || !selectedPricing.value || !pendingPkg.value) return;
 
   upgrading.value = true;
-  upgradingPkgId.value = pkg.id;
+  upgradingPkgId.value = pendingPkg.value.id;
+  paymentError.value = '';
 
   try {
-    await listingService.upgradeListing(props.listingId, pkg.id, selectedPricing.value.duration_days);
-    alert('🎉 ' + (isCurrent(pkg) ? 'Gia hạn' : 'Nâng cấp') + ' gói tin thành công!');
-    emit('upgraded', pkg);
-    close();
+    const response = await listingService.upgradeListing(props.listingId, pendingPkg.value.id, selectedPricing.value.duration_days);
+    const paymentUrl = response?.data?.data?.payment_url;
+
+    if (!paymentUrl) {
+      throw new Error('Không nhận được liên kết thanh toán VNPAY.');
+    }
+
+    window.location.href = paymentUrl;
   } catch (err) {
-    const msg = err?.response?.data?.message || 'Thao tác thất bại. Vui lòng thử lại.';
-    alert('❌ ' + msg);
+    paymentError.value = err?.response?.data?.message || err?.message || 'Thao tác thất bại. Vui lòng thử lại.';
   } finally {
     upgrading.value = false;
     upgradingPkgId.value = null;
@@ -240,6 +288,8 @@ async function doUpgrade(pkg) {
 }
 
 function close() {
+  if (upgrading.value) return;
+  closeConfirm();
   emit('close');
 }
 
@@ -390,7 +440,7 @@ function getFeatures(pkg) {
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ─── PACKAGES GRID ─── */
+/* Packages grid */
 .packages-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -406,7 +456,7 @@ function getFeatures(pkg) {
   .packages-grid { grid-template-columns: 1fr; }
 }
 
-/* ─── PACKAGE CARD ─── */
+/* Package card */
 .package-card {
   position: relative;
   border: 1px solid #e8ecf0;
@@ -437,7 +487,7 @@ function getFeatures(pkg) {
   background: #fafcff;
 }
 
-/* ─── Package Header ─── */
+/* Package header */
 .pkg-header-badge {
   display: flex;
   align-items: center;
@@ -487,7 +537,7 @@ function getFeatures(pkg) {
   border: 1px solid #e2e8f0;
 }
 
-/* ─── Daily Price ─── */
+/* Daily price */
 .pkg-daily-price {
   padding: 4px 16px 12px;
   border-bottom: 1px solid #f1f5f9;
@@ -506,7 +556,7 @@ function getFeatures(pkg) {
   margin-left: 4px;
 }
 
-/* ─── Push Price Row ─── */
+/* Push price row */
 .pkg-push-row {
   display: flex;
   justify-content: space-between;
@@ -525,7 +575,7 @@ function getFeatures(pkg) {
   color: #334155;
 }
 
-/* ─── Duration Pricings ─── */
+/* Duration pricings */
 .pkg-durations {
   padding: 8px 16px 12px;
   border-bottom: 1px solid #f1f5f9;
@@ -583,40 +633,60 @@ function getFeatures(pkg) {
   gap: 4px;
 }
 
-/* ─── Features ─── */
+/* Features */
 .pkg-features {
   list-style: none;
-  padding: 12px 16px;
+  padding: 18px 20px;
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
   flex: 1;
 }
 
 .pkg-features li {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
-  font-size: 12px;
-  line-height: 1.5;
+  gap: 9px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .feat-icon {
+  display: flex;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
-  font-size: 11px;
-  margin-top: 1px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  margin-top: 2px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 9px 9px;
 }
 
 .feat-enabled {
   color: #334155;
 }
 
+.feat-enabled .feat-icon {
+  background-color: #10b981;
+  background-image: url("data:image/svg+xml,%3Csvg width='9' height='9' viewBox='0 0 9 9' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.6 4.65L3.45 6.5L7.4 2.5' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
 .feat-disabled {
   color: #94a3b8;
 }
 
-/* ─── Action Button ─── */
+.feat-disabled .feat-icon {
+  background-color: #94a3b8;
+  background-image: url("data:image/svg+xml,%3Csvg width='9' height='9' viewBox='0 0 9 9' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.2 2.2L6.8 6.8M6.8 2.2L2.2 6.8' stroke='white' stroke-width='1.7' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* Action button */
 .pkg-action-btn {
   margin: 0 16px 16px;
   padding: 10px 16px;
@@ -679,7 +749,110 @@ function getFeatures(pkg) {
   animation: spin 0.6s linear infinite;
 }
 
-/* ─── Current Info ─── */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(5px);
+}
+
+.confirm-card {
+  width: min(440px, 100%);
+  border-radius: 16px;
+  background: #fff;
+  padding: 26px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.22);
+  text-align: center;
+}
+
+.confirm-icon {
+  width: 54px;
+  height: 54px;
+  margin: 0 auto 14px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.confirm-title {
+  margin: 0 0 8px;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.confirm-message {
+  margin: 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.confirm-price-line {
+  display: block;
+  margin-top: 4px;
+}
+
+.confirm-error {
+  margin: 14px 0 0;
+  border-radius: 10px;
+  background: #fef2f2;
+  padding: 10px 12px;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.confirm-btn {
+  flex: 1;
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.confirm-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.confirm-btn--secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.confirm-btn--primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #0ea5e9;
+  color: #fff;
+}
+
+.confirm-btn--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(14, 165, 233, 0.24);
+}
+
+/* Current info */
 .current-info {
   padding: 12px 28px 20px;
   text-align: center;
@@ -694,7 +867,7 @@ function getFeatures(pkg) {
   color: #1e40af;
 }
 
-/* ─── Card Slug Borders ─── */
+/* Card slug borders */
 .package-card--diamond {
   border-top: 3px solid #0f172a;
 }

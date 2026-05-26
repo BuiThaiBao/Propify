@@ -69,6 +69,12 @@ const routes = [
     name: "Pricing",
     component: () => import("@/pages/Pricing/index.vue"),
   },
+  {
+    path: "/payment/vnpay-result",
+    name: "VnpayResult",
+    component: () => import("@/pages/Payment/VnpayResult.vue"),
+    meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({

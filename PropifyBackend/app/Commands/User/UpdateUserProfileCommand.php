@@ -3,20 +3,25 @@
 namespace App\Commands\User;
 
 use App\DTOs\User\UpdateProfileDto;
+use App\Events\User\ProfileUpdated;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Repositories\UserRepository;
+use App\Services\User\Validation\ProfileValidationChain;
 use Illuminate\Support\Facades\Log;
 
 final class UpdateUserProfileCommand
 {
     public function __construct(
         private readonly UserRepository $userRepository,
+        private readonly ProfileValidationChain $profileValidationChain,
     ) {
     }
 
     public function execute(User $user, UpdateProfileDto $dto): User
     {
+        $this->profileValidationChain->validate($dto);
+
         $data = ['full_name' => $dto->fullName];
 
         if ($dto->phone !== null && empty($user->phone)) {
@@ -46,6 +51,7 @@ final class UpdateUserProfileCommand
             'changed_fields' => array_keys($changes),
             'changes' => $changes,
         ]);
+        event(new ProfileUpdated($user->id));
 
         return $updated;
     }

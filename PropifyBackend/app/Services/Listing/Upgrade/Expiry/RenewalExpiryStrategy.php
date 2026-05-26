@@ -11,7 +11,7 @@ final class RenewalExpiryStrategy implements ExpiryCalculationStrategy
     {
         $baseTime = $context->listing->package_expires_at;
 
-        if (!$baseTime || !$baseTime->isFuture()) {
+        if (!$baseTime || $baseTime->lessThanOrEqualTo($context->now)) {
             $baseTime = $context->now;
         }
 

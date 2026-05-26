@@ -14,14 +14,23 @@ final class Transaction extends Model
         'listing_id',
         'package_id',
         'amount',
+        'duration_days',
         'payment_method',
         'status',
         'transaction_date',
+        'expires_at',
+        'vnp_txn_ref',
+        'vnp_transaction_no',
+        'vnp_bank_code',
+        'vnp_response_code',
+        'vnp_pay_date',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'duration_days' => 'integer',
         'transaction_date' => 'datetime',
+        'expires_at' => 'datetime',
         'status' => 'string',
     ];
 

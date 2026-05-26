@@ -4,6 +4,7 @@ namespace App\Services\Listing;
 
 use App\DTOs\Listing\CreateListingDto;
 use App\Models\Listing;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
@@ -32,5 +33,9 @@ interface ListingService
     public function updateVerificationForAdmin(int $listingId, bool $isVerified, ?string $reason = null, ?int $adminUserId = null): Listing;
 
     public function upgradeListing(User $user, int $listingId, int $packageId, int $durationDays): Listing;
+
+    public function createUpgradePayment(User $user, int $listingId, int $packageId, int $durationDays, string $clientIp): string;
+
+    public function completePaidUpgrade(Transaction $transaction): Listing;
 
 }

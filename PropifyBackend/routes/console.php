@@ -17,6 +17,9 @@ Schedule::command('views:flush')->everyThirtySeconds();
 // ── Package Expiration: Gỡ cờ gói tin hết hạn ───────────────────────
 Schedule::command('packages:expire')->everyMinute();
 
+// ── Payment Expiration: Hết hạn giao dịch thanh toán chưa hoàn tất ──
+Schedule::command('transactions:expire-pending --minutes=15')->everyMinute();
+
 // ── Package Notification: Email nhắc gia hạn (7 ngày cuối) ──────────
 // Gửi 1 email/ngày lúc 9h sáng cho các listing sắp hết hạn
 Schedule::command('packages:notify-expiring')->dailyAt('09:00');

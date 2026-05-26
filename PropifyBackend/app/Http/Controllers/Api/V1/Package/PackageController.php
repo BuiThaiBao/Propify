@@ -66,11 +66,21 @@ final class PackageController
 
     public function destroy(int $id): JsonResponse
     {
-        $this->packageService->delete($id);
+        $this->packageService->lock($id);
 
         return ApiResponse::success(
             data: null,
-            message: 'Đã xóa (ẩn) gói tin thành công.'
+            message: 'Đã khóa gói tin thành công.'
+        );
+    }
+
+    public function activate(int $id): JsonResponse
+    {
+        $package = $this->packageService->activate($id);
+
+        return ApiResponse::success(
+            data: $package,
+            message: 'Đã kích hoạt gói tin thành công.'
         );
     }
 }

@@ -19,10 +19,13 @@ use App\Services\Listing\Commands\SaveDraftListingCommand;
 use App\Services\Listing\Commands\SubmitListingVerificationCommand;
 use App\Services\Listing\Commands\UpdateListingCommand;
 use App\Services\Listing\ListingService;
+use App\Services\Listing\Upgrade\CreateUpgradePaymentCommand;
+use App\Services\Listing\Upgrade\UpgradeListingCommand;
 use App\Services\Listing\State\ListingStatusStateFactory;
 use App\Services\Listing\Upgrade\Benefits\PackageBenefitStrategyFactory;
 use App\Services\Listing\Upgrade\Expiry\ExpiryCalculationStrategyFactory;
 use App\Services\Listing\Upgrade\UpgradeEligibilityPolicy;
+use App\Services\Listing\Verification\ListingVerificationService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -37,8 +40,9 @@ final class ListingServiceImpl implements ListingService
         private readonly SubmitListingVerificationCommand $submitListingVerificationCommand,
         private readonly ListingStatusStateFactory $statusStateFactory,
         private readonly UpgradeEligibilityPolicy $upgradeEligibilityPolicy,
-        private readonly ExpiryCalculationStrategyFactory $expiryStrategyFactory,
-        private readonly PackageBenefitStrategyFactory $benefitStrategyFactory,
+        private readonly UpgradeListingCommand $upgradeListingCommand,
+        private readonly CreateUpgradePaymentCommand $createUpgradePaymentCommand,
+        private readonly ListingVerificationService $listingVerificationService,
     ) {
     }
 
@@ -124,7 +128,11 @@ final class ListingServiceImpl implements ListingService
 
     public function updateVerification(User $user, int $id, array $payload): Listing
     {
-        return $this->submitListingVerificationCommand->handle($user, $id, $payload);
+        $updated = $this->listingVerificationService->requestVerification($user, $id, $payload);
+
+        $this->clearPublicListingsCache();
+
+        return $updated;
     }
 
     public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
@@ -208,58 +216,49 @@ final class ListingServiceImpl implements ListingService
             throw new BusinessException(ErrorCode::AuthForbidden);
         }
 
-        if (!$isVerified && trim((string) $reason) === '') {
-            throw new BusinessException(ErrorCode::BadRequest, 'Vui lòng nhập lý do từ chối xác thực.');
-        }
-
-        $listing = DB::transaction(function () use ($listingId, $isVerified, $reason, $adminUserId) {
-            $listing = Listing::query()->lockForUpdate()->find($listingId);
-            if (!$listing) {
-                throw new BusinessException(ErrorCode::ListingNotFound);
-            }
-
-            $listing->is_verified = $isVerified;
-            $listing->save();
-
-            ListingStatusHistory::create([
-                'user_id' => $adminUserId,
-                'listing_id' => $listing->id,
-                'action' => $isVerified ? 'VERIFY_APPROVED' : 'VERIFY_REJECTED',
-                'reason' => $isVerified ? null : $reason,
-            ]);
-
-            return $listing;
-        });
+        $listing = $isVerified
+            ? $this->listingVerificationService->approveVerification($listingId, $adminUserId)
+            : $this->listingVerificationService->rejectVerification($listingId, $adminUserId, (string) $reason);
 
         Cache::tags(['listings:public'])->flush();
-
-        return $listing->load([
-            'property.attributes.group',
-            'images',
-            'videos',
-            'verificationDocuments',
-            'appointmentSlots',
-            'appointments',
-            'owner',
-            'approver',
-            'package',
-            'statusHistories.user',
-        ]);
+        return $listing;
     }
 
-    /**
-     * Nâng cấp gói tin cho listing.
-     *
-     * Flow: Verify ownership → Verify listing ACTIVE → Verify package → Lookup pricing
-     *       → Check upgrade direction → DB Transaction: Create Transaction + Update listing
-     *       → Clear cache → Return updated listing
-     *
-     * Gia hạn: Nếu listing đang có gói chưa hết hạn và user mua lại cùng gói,
-     *          thời hạn mới sẽ CỘNG THÊM vào thời hạn còn lại.
-     */
-    public function upgradeListing(User $user, int $listingId, int $packageId, int $durationDays): Listing
+    public function createUpgradePayment(User $user, int $listingId, int $packageId, int $durationDays, string $clientIp): string
     {
-        // 1. Load entities required for the upgrade flow.
+        [$listing, $newPackage, $pricing, $context] = $this->prepareUpgrade($user, $listingId, $packageId, $durationDays);
+
+        return $this->createUpgradePaymentCommand->execute(
+            user: $user,
+            listing: $listing,
+            newPackage: $newPackage,
+            durationDays: $durationDays,
+            amount: (float) $pricing->price,
+            clientIp: $clientIp,
+        );
+    }
+
+    public function completePaidUpgrade(Transaction $transaction): Listing
+    {
+        $transaction->loadMissing('user');
+
+        [$listing, $newPackage, $_pricing, $context] = $this->prepareUpgrade(
+            $transaction->user,
+            (int) $transaction->listing_id,
+            (int) $transaction->package_id,
+            (int) $transaction->duration_days,
+        );
+
+        return $this->upgradeListingCommand->execute(
+            transaction: $transaction,
+            listing: $listing,
+            newPackage: $newPackage,
+            context: $context,
+        );
+    }
+
+    private function prepareUpgrade(User $user, int $listingId, int $packageId, int $durationDays): array
+    {
         $listing = Listing::find($listingId);
 
         if (!$listing) {
@@ -295,56 +294,103 @@ final class ListingServiceImpl implements ListingService
             now: now(),
         );
 
-        // 2. Apply business policy and strategy selection.
         $this->upgradeEligibilityPolicy->assertEligible($context);
-        $expiresAt = $this->expiryStrategyFactory->make($context)->calculate($context);
-        $benefitStrategy = $this->benefitStrategyFactory->make($newPackage);
 
-        // 3. Commit core upgrade state atomically.
-        $updated = DB::transaction(function () use ($user, $listing, $newPackage, $pricing, $expiresAt, $benefitStrategy, $context) {
-            // Tạo transaction (giả lập thanh toán — auto SUCCESS)
-            Transaction::create([
-                'user_id'          => $user->id,
-                'listing_id'       => $listing->id,
-                'package_id'       => $newPackage->id,
-                'amount'           => $pricing->price,
-                'payment_method'   => 'SIMULATED',
-                'status'           => 'SUCCESS',
-                'transaction_date' => now(),
-            ]);
-
-            // Gắn gói mới + set ngày hết hạn
-            $listing->update([
-                'package_id'         => $newPackage->id,
-                'package_expires_at' => $expiresAt,
-            ]);
-
-            $benefitStrategy->apply($context);
-
-            return $listing->fresh([
-                'property',
-                'property.attributes.group',
-                'images',
-                'videos',
-                'verificationDocuments',
-                'appointments',
-                'package',
-            ]);
-        });
-
-        ListingPackageUpgraded::dispatch(
-            listing: $updated,
-            user: $user,
-            oldPackage: $currentPackage,
-            newPackage: $newPackage,
-            durationDays: $durationDays,
-            amount: (string) $pricing->price,
-            expiresAt: $expiresAt,
-            isRenewal: $context->isRenewal(),
-        );
-
-        return $updated;
+        return [$listing, $newPackage, $pricing, $context];
     }
 
+    /**
+     * Nâng cấp gói tin cho listing.
+     *
+     * Flow: Verify ownership → Verify listing ACTIVE → Verify package → Lookup pricing
+     *       → Check upgrade direction → DB Transaction: Create Transaction + Update listing
+     *       → Clear cache → Return updated listing
+     *
+     * Gia hạn: Nếu listing đang có gói chưa hết hạn và user mua lại cùng gói,
+     *          thời hạn mới sẽ CỘNG THÊM vào thời hạn còn lại.
+     */
+    public function upgradeListing(User $user, int $listingId, int $packageId, int $durationDays): Listing
+    {
+        [$listing, $newPackage, $pricing, $context] = $this->prepareUpgrade($user, $listingId, $packageId, $durationDays);
 
+        $transaction = Transaction::create([
+            'user_id' => $user->id,
+            'listing_id' => $listing->id,
+            'package_id' => $newPackage->id,
+            'amount' => $pricing->price,
+            'duration_days' => $durationDays,
+            'payment_method' => 'SIMULATED',
+            'status' => 'SUCCESS',
+            'transaction_date' => now(),
+        ]);
+
+        return $this->upgradeListingCommand->execute(
+            transaction: $transaction,
+            listing: $listing,
+            newPackage: $newPackage,
+            context: $context,
+        );
+    }
+
+    /**
+     * Tính content_score dựa trên chất lượng nội dung listing.
+     *
+     * | Yếu tố                        | Điểm |
+     * |-------------------------------|------|
+     * | Có title rõ ràng              | +10  |
+     * | Có description                | +10  |
+     * | Có ảnh (images)               | +20  |
+     * | Có video                      | +10  |
+     * | Thông tin đầy đủ (giá, diện tích, địa chỉ) | +20 |
+     * | Đã xác minh (is_verified)     | +25  |
+     * | Có AI description             | +5   |
+     * | → Max ~100 điểm               |      |
+     */
+    private function calculateContentScore(CreateListingDto $dto): int
+    {
+        $score = 0;
+
+        // Title rõ ràng (>= 10 ký tự)
+        if (!empty($dto->title) && mb_strlen($dto->title) >= 10) {
+            $score += 10;
+        }
+
+        // Có description (>= 20 ký tự)
+        if (!empty($dto->description) && mb_strlen($dto->description) >= 20) {
+            $score += 10;
+        }
+
+        // Có ảnh
+        if (!empty($dto->images) && count($dto->images) > 0) {
+            $score += 20;
+        }
+
+        // Có video
+        if ($dto->video !== null) {
+            $score += 10;
+        }
+
+        // Thông tin đầy đủ: giá > 0, diện tích > 0, có địa chỉ
+        $hasFullInfo = ($dto->price > 0)
+            && ($dto->area > 0)
+            && (!empty($dto->addressDetail) || !empty($dto->projectName));
+        if ($hasFullInfo) {
+            $score += 20;
+        }
+
+        // Xác minh (khi tạo mới thì chưa verified, nhưng nếu request verification thì +5 bonus)
+        if ($dto->requestVerification) {
+            $score += 5;
+        }
+
+        return min($score, 100);
+    }
+
+    /**
+     * Xóa cache public listings khi dữ liệu thay đổi.
+     */
+    private function clearPublicListingsCache(): void
+    {
+        Cache::tags(['listings:public'])->flush();
+    }
 }

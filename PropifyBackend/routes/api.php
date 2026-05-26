@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\Listing\ViewTrackingController;
 use App\Http\Controllers\Api\V1\Package\PackageController;
 use App\Http\Controllers\Api\V1\Package\PackageDurationOptionController;
 use App\Http\Controllers\Api\V1\Package\PackagePricingController;
+use App\Http\Controllers\Api\V1\Payment\VnpayReturnController;
 use App\Http\Controllers\Api\V1\User\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -174,6 +175,9 @@ Route::prefix('v1/geocoding')->as('geocoding.')->group(function () {
     Route::get('/search', [GeocodingController::class, 'search'])->name('search');
 });
 
+Route::get('v1/payments/vnpay/return', VnpayReturnController::class)
+    ->name('payments.vnpay.return');
+
 Route::prefix('v1/listings')->as('listings.')->group(function () {
     Route::get('/', [ListingController::class, 'index'])->name('index');
     Route::get('/{id}', [ListingController::class, 'show'])->where('id', '[0-9]+')->name('show');
@@ -231,6 +235,7 @@ Route::prefix('v1/packages')->as('packages.admin.')->middleware('auth:api')->gro
     Route::post('/', [PackageController::class, 'create'])->name('create');
     Route::put('/{id}', [PackageController::class, 'update'])->name('update');
     Route::delete('/{id}', [PackageController::class, 'destroy'])->name('destroy');
+    Route::post('/{id}/activate', [PackageController::class, 'activate'])->name('activate');
 
     // Package Pricings CRUD (admin)
     Route::get('/{packageId}/pricings', [PackagePricingController::class, 'index'])
