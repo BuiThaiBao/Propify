@@ -2502,6 +2502,11 @@ function openPreview() {
 }
 
 function openBackConfirm() {
+  if (isEditMode.value) {
+    router.back();
+    return;
+  }
+
   showDraftConfirm.value = true;
 }
 
@@ -2525,6 +2530,11 @@ function setAppointmentRows(rows) {
 }
 
 async function saveDraftAndGoBack() {
+  if (isEditMode.value) {
+    router.back();
+    return;
+  }
+
   if (savingDraft.value) return;
   savingDraft.value = true;
   submitError.value = "";
@@ -2565,7 +2575,7 @@ async function saveDraftAndGoBack() {
       : await listingService.create(payload);
 
     const listingId = isEditMode.value ? editListingId.value : response.data?.data?.id;
-    if (listingId && Array.isArray(payload.appointment_slots)) {
+    if (listingId && Array.isArray(payload.appointment_slots) && payload.appointment_slots.length > 0) {
       await listingService.replaceAppointmentSlots(listingId, payload.appointment_slots);
     }
 
@@ -2867,7 +2877,7 @@ async function submitListing() {
       const listingId = isEditMode.value ? editListingId.value : response.data?.data?.id;
       const slotsPayload = form.appointment_slots || [];
       console.log('Appointment slots payload for listing', listingId, slotsPayload);
-      if (listingId !== undefined && listingId !== null) {
+      if (listingId !== undefined && listingId !== null && slotsPayload.length > 0) {
         await listingService.replaceAppointmentSlots(listingId, slotsPayload);
       }
     } catch (slotErr) {
