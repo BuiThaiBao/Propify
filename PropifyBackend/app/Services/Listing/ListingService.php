@@ -16,6 +16,8 @@ interface ListingService
 
     public function getListingDetails(int $id): Listing;
 
+    public function getOwnedListingDetails(User $user, int $id): Listing;
+
     public function update(User $user, int $id, CreateListingDto $dto): Listing;
 
     public function updateVerification(User $user, int $id, array $payload): Listing;

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Cloudinary;
 
 use App\Helpers\ApiResponse;
-use App\Services\Cloudinary\CloudinaryService;
+use App\Services\Media\UploadSignatureAdapter;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -22,7 +22,7 @@ use Illuminate\Http\Request;
 final class CloudinaryController
 {
     public function __construct(
-        private readonly CloudinaryService $cloudinaryService,
+        private readonly UploadSignatureAdapter $uploadSignatureAdapter,
         private readonly AuthFactory $authFactory
     ) {
     }
@@ -48,7 +48,7 @@ final class CloudinaryController
             default   => 'propify/avatars',
         };
 
-        $signatureData = $this->cloudinaryService->generateSignature($folder, $uploadType);
+        $signatureData = $this->uploadSignatureAdapter->generateSignature($folder, $uploadType);
 
         return ApiResponse::success(
             data: $signatureData,

@@ -6,6 +6,9 @@ use App\DTOs\Packages\CreatePackageDto;
 use App\Enums\ErrorCode;
 use App\Models\Package;
 use App\Repositories\PackageRepository;
+use App\Services\Packages\Commands\ActivatePackageCommand;
+use App\Services\Packages\Commands\LockPackageCommand;
+use App\Services\Packages\CreatePackageCommand;
 use App\Services\Packages\PackageService;
 use Illuminate\Support\Facades\DB;
 use App\Exceptions\BusinessException;
@@ -14,6 +17,9 @@ class PackageServiceImpl implements PackageService
 {
     public function __construct(
         private readonly PackageRepository $packageRepository,
+        private readonly CreatePackageCommand $createPackageCommand,
+        private readonly LockPackageCommand $lockPackageCommand,
+        private readonly ActivatePackageCommand $activatePackageCommand,
     ){
 
     }
@@ -60,28 +66,7 @@ class PackageServiceImpl implements PackageService
 
     public function create(CreatePackageDto $dto): Package
     {
-        return DB::transaction(function () use ($dto) {
-            $package = $this->packageRepository->findByName($dto->name);
-            if ($package) {
-                throw new BusinessException(ErrorCode::PackageAlreadyExists);
-            }
-
-            $package = $this->packageRepository->create([
-                'name' => $dto->name,
-                'slug' => $dto->slug,
-                'price' => $dto->price,
-                'priority' => $dto->priority,
-                'multiplier' => $dto->multiplier,
-                'daily_quota' => $dto->dailyQuota,
-                'decay_rate' => $dto->decayRate,
-                'badge' => $dto->badge,
-                'color' => $dto->color,
-                'is_active' => true,
-            ]);
-
-            $this->syncPricings($package, $dto->activeDurations);
-            return $package;
-        });
+        return $this->createPackageCommand->execute($dto);
     }
 
     public function update(int $id, \App\DTOs\Packages\UpdatePackageDto $dto): Package
@@ -136,10 +121,13 @@ class PackageServiceImpl implements PackageService
 
 
 
-    public function delete(int $id): void
+    public function lock(int $id): Package
     {
-        // Xóa mềm bằng cách set is_active = false
-        $package = $this->getById($id);
-        $this->packageRepository->update($id, ['is_active' => false]);
+        return $this->lockPackageCommand->execute($id);
+    }
+
+    public function activate(int $id): Package
+    {
+        return $this->activatePackageCommand->execute($id);
     }
 }

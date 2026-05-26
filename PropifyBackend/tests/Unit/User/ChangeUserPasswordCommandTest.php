@@ -11,6 +11,7 @@ use App\Exceptions\BusinessException;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Repositories\UserRepository;
+use App\Services\User\Validation\PasswordValidationChain;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -43,7 +44,7 @@ final class ChangeUserPasswordCommandTest extends TestCase
             }))
             ->andReturn($user);
 
-        $command = new ChangeUserPasswordCommand($repository);
+        $command = new ChangeUserPasswordCommand($repository, new PasswordValidationChain());
         $command->execute($user, new ChangePasswordDto('OldPassword123', 'NewPassword123'));
 
         $auditLog = AuditLog::query()->firstOrFail();
@@ -73,7 +74,7 @@ final class ChangeUserPasswordCommandTest extends TestCase
         $repository = Mockery::mock(UserRepository::class);
         $repository->shouldNotReceive('update');
 
-        $command = new ChangeUserPasswordCommand($repository);
+        $command = new ChangeUserPasswordCommand($repository, new PasswordValidationChain());
 
         try {
             $command->execute($user, new ChangePasswordDto('WrongPassword123', 'NewPassword123'));
