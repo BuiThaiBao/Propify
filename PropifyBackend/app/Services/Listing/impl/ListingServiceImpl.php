@@ -19,6 +19,7 @@ use App\Services\Listing\Commands\SaveDraftListingCommand;
 use App\Services\Listing\Commands\SubmitListingVerificationCommand;
 use App\Services\Listing\Commands\UpdateListingCommand;
 use App\Services\Listing\ListingService;
+use App\Services\Listing\Sorting\ListingSortingStrategyFactory;
 use App\Services\Listing\Upgrade\CreateUpgradePaymentCommand;
 use App\Services\Listing\Upgrade\UpgradeListingCommand;
 use App\Services\Listing\State\ListingStatusStateFactory;
@@ -135,18 +136,20 @@ final class ListingServiceImpl implements ListingService
         return $updated;
     }
 
-    public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
+    public function getPublicListings(?string $sortBy, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
     {
+        $strategy = ListingSortingStrategyFactory::make($sortBy);
         $page = request()->input('page', 1);
         $cacheKey = 'listings:public:' . md5(serialize([
+            'sort' => $sortBy,
             'demand_type' => $demandType,
             'keyword'     => $keyword,
             'per_page'    => $perPage,
             'page'        => $page,
         ]));
 
-        return Cache::tags(['listings:public'])->remember($cacheKey, 300, function () use ($demandType, $keyword, $perPage) {
-            return $this->listingRepository->paginatePublic($demandType, $keyword, $perPage);
+        return Cache::tags(['listings:public'])->remember($cacheKey, 300, function () use ($strategy, $demandType, $keyword, $perPage) {
+            return $this->listingRepository->paginatePublic($strategy, $demandType, $keyword, $perPage);
         });
     }
 

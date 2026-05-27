@@ -32,9 +32,10 @@ final class ListingController
     public function index(Request $request): JsonResponse
     {
         $perPage = (int) $request->input('per_page', 12);
+        $sortBy = $request->input('sort');
         $demandType = $request->input('demand_type');
         $keyword = $request->input('keyword');
-        $paginator = $this->listingService->getPublicListings($demandType, $keyword, $perPage);
+        $paginator = $this->listingService->getPublicListings($sortBy, $demandType, $keyword, $perPage);
 
         return ApiResponse::success(
             data: ListingResource::collection($paginator->items()),
