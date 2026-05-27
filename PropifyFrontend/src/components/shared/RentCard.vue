@@ -114,9 +114,9 @@
 						<Eye class="w-3.5 h-3.5" />
 						{{ views }}
 					</div>
-					<button class="bg-blue-500 hover:bg-blue-600 text-white text-[13px] font-semibold px-4 py-1.5 rounded-xl flex items-center gap-1.5 transition-colors shadow-sm shadow-blue-500/20">
+					<button @click.prevent="showPhone = !showPhone" class="bg-blue-500 hover:bg-blue-600 text-white text-[13px] font-semibold px-4 py-1.5 rounded-xl flex items-center gap-1.5 transition-colors shadow-sm shadow-blue-500/20">
 						<Phone class="w-3.5 h-3.5" />
-						Hiện số
+						{{ showPhone ? (author.phone || '0901234567') : 'Liên hệ' }}
 					</button>
 				</div>
 			</div>
@@ -126,8 +126,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { MapPin, Maximize, Bed, Bath, Heart, Eye, Phone, CheckCircle, CalendarDays } from 'lucide-vue-next';
+
+const showPhone = ref(false);
 
 const priorityIconMap = { 2: '/vip.svg', 3: '/premium.svg', 4: '/diamond.svg' };
 

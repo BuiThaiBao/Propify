@@ -107,9 +107,9 @@ final class EloquentListingRepository implements ListingRepository
                 'listings.views', 'listings.submitted_at', 'listings.published_at',
             ])
             ->with([
-                'property:id,type,province_code,ward_code,street_code,project_name,address_detail,area,price,bedrooms,bathrooms,contact_name,poster_type',
+                'property:id,type,province_code,ward_code,street_code,project_name,address_detail,area,price,bedrooms,bathrooms,contact_name,contact_phone,contact_email,poster_type',
                 'images:id,listing_id,image_url,is_thumbnail,sort_order',
-                'owner:id,full_name,avatar_url',
+                'owner:id,full_name,avatar_url,phone',
                 'package:id,name,slug,badge,color,priority',
             ])
             ->where('listings.status', 'ACTIVE')
