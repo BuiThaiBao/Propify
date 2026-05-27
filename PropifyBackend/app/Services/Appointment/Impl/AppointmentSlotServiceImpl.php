@@ -215,7 +215,7 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
             $createdSlots[] = $createdSlot;
         }
 
-        return collect($createdSlots);
+        return new Collection($createdSlots);
     }
 
     public function replaceSlots(CreateSlotsDto $dto): Collection
@@ -308,4 +308,3 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
     }
 
 }
-

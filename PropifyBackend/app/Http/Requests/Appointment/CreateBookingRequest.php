@@ -21,7 +21,7 @@ final class CreateBookingRequest extends FormRequest
             'slot_id'   => ['required', 'integer'],
             'date'      => ['required', 'date_format:Y-m-d'],
             'full_name' => ['required', 'string', 'max:100'],
-            'phone'     => ['required', 'string', 'regex:/^(0|\+84)(3[2-9]|5[2689]|7[06-9]|8[1-9]|9[0-9])\d{7}$/'],
+            'phone'     => ['required', 'string', 'regex:/^0[235789]\d{8}$/'],
             'email'     => ['required', 'email', 'max:100'],
             'note'      => ['nullable', 'string', 'max:500'],
         ];

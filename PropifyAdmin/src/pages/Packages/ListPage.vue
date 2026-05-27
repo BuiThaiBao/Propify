@@ -1,8 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Check, Edit, Eye, Lock, Plus, Search, Star, Unlock } from 'lucide-vue-next'
-import PageHeader from '@/components/shared/PageHeader.vue'
+import { Check, Edit, Eye, Lock, Plus, Star, Unlock } from 'lucide-vue-next'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 import { usePackageApi } from '@/composables/usePackageApi'
 
@@ -17,8 +16,8 @@ const filters = reactive({
 })
 const statusOptions = [
   { value: 'all', label: 'Tất cả', count: () => totalPackages.value },
-  { value: 'active', label: 'Đang hoạt động', count: () => activeCount.value },
-  { value: 'locked', label: 'Đã khóa', count: () => lockedCount.value },
+  { value: 'active', label: 'Kích hoạt', count: () => activeCount.value, dot: 'green' },
+  { value: 'locked', label: 'Đã khóa', count: () => lockedCount.value, dot: 'slate' },
 ]
 
 let searchTimer = null
@@ -120,27 +119,19 @@ function handleToggleActive(pkg) {
 </script>
 
 <template>
-  <div>
-    <PageHeader title="Quản lý gói tin" description="Tìm kiếm, lọc, xem chi tiết và chỉnh sửa các gói dịch vụ">
-      <template #actions>
-        <button class="btn-add gradient-primary" id="btn-add-package" @click="router.push({ name: 'PackageCreate' })">
-          <Plus :size="16" /> Thêm gói mới
-        </button>
-      </template>
-    </PageHeader>
-
-    <section class="filter-panel">
-      <div class="pkg-search">
-        <Search :size="18" class="search-icon" />
-        <input
-          v-model.trim="filters.keyword"
-          type="text"
-          placeholder="Tìm kiếm theo tên, slug, badge..."
-          class="search-input"
-          id="pkg-search"
-        />
+  <div class="packages-page">
+    <section class="packages-hero">
+      <div>
+        <h1>Quản lý gói tin</h1>
+        <p>Quản lý các gói dịch vụ hiển thị cho người dùng</p>
       </div>
 
+      <button class="btn-add" id="btn-add-package" @click="router.push({ name: 'PackageCreate' })">
+        <Plus :size="16" /> Thêm gói mới
+      </button>
+    </section>
+
+    <section class="package-toolbar">
       <div class="status-tabs" aria-label="Lọc trạng thái gói tin">
         <button
           v-for="option in statusOptions"
@@ -149,6 +140,7 @@ function handleToggleActive(pkg) {
           :class="['status-tab', filters.status === option.value && 'status-tab-active']"
           @click="filters.status = option.value"
         >
+          <span v-if="option.dot" :class="['status-dot', `status-dot--${option.dot}`]"></span>
           <span>{{ option.label }}</span>
           <strong>{{ option.count() }}</strong>
         </button>
@@ -221,109 +213,106 @@ function handleToggleActive(pkg) {
 
 <style scoped>
 .btn-add {
-  display: flex;
+  display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
+  min-height: 40px;
   padding: 10px 16px;
   border: none;
   border-radius: 8px;
+  background: #18a8e6;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: white;
   cursor: pointer;
+  box-shadow: 0 10px 22px rgba(24, 168, 230, 0.18);
 }
 
-.filter-panel {
+.packages-page {
+  min-height: calc(100vh - 96px);
+}
+
+.packages-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.packages-hero h1 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.packages-hero p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.package-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 18px;
+  gap: 16px;
   margin-bottom: 24px;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  background: #fff;
-  padding: 14px;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
-}
-
-.pkg-search {
-  position: relative;
-  width: min(420px, 100%);
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #64748b;
-}
-
-.search-input {
-  width: 100%;
-  height: 46px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #f8fafc;
-  color: #0f172a;
-  font-size: 14px;
-  outline: none;
-  padding: 0 14px 0 44px;
-}
-
-.search-input:focus {
-  background: #fff;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 
 .status-tabs {
   display: flex;
   align-items: center;
-  gap: 8px;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  background: #f8fafc;
-  padding: 5px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .status-tab {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 38px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: #64748b;
+  min-height: 34px;
+  border: 1px solid #e5edf6;
+  border-radius: 17px;
+  background: #fff;
+  color: #718096;
   cursor: pointer;
   font-size: 13px;
   font-weight: 700;
-  padding: 0 12px;
-  white-space: nowrap;
+  padding: 0 14px;
 }
 
 .status-tab strong {
-  display: inline-flex;
-  min-width: 24px;
-  height: 24px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #e2e8f0;
-  color: #334155;
-  font-size: 12px;
+  color: #64748b;
+  font-size: 13px;
 }
 
 .status-tab-active {
-  background: #2563eb;
-  color: #fff;
-  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+  border-color: #b8dcff;
+  background: #eef7ff;
+  color: #18a8e6;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+
+.status-dot--green {
+  background: #10b981;
+}
+
+.status-dot--slate {
+  background: #64748b;
 }
 
 .status-tab-active strong {
-  background: rgba(255, 255, 255, 0.22);
-  color: #fff;
+  color: #18a8e6;
 }
 
 .state-text {
@@ -464,13 +453,14 @@ function handleToggleActive(pkg) {
 }
 
 @media (max-width: 700px) {
-  .filter-panel {
+  .packages-hero,
+  .package-toolbar {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .status-tabs,
-  .pkg-search {
+  .btn-add,
+  .status-tabs {
     width: 100%;
   }
 

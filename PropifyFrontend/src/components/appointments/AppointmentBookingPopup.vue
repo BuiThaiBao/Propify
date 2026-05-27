@@ -193,6 +193,8 @@ const phoneTouched = ref(false);
 const emailTouched = ref(false);
 let phoneValidateTimer = null;
 let emailValidateTimer = null;
+const VIETNAM_PHONE_PREFIX_PATTERN = /^0[235789]/;
+const VIETNAM_PHONE_PATTERN = /^0[235789]\d{8}$/;
 
 const form = ref({
   full_name: '',
@@ -236,7 +238,21 @@ function validateName() {
 function validatePhone(force = false) {
   if (!phoneTouched.value && !force) return;
   const digits = form.value.phone.replace(/\D/g, '');
-  phoneError.value = digits.length === 10 ? '' : 'Số điện thoại phải đủ 10 chữ số.';
+  if (!digits) {
+    phoneError.value = 'Vui lòng nhập số điện thoại.';
+    return;
+  }
+  if ((digits.length === 1 && digits[0] !== '0') || (digits.length >= 2 && !VIETNAM_PHONE_PREFIX_PATTERN.test(digits))) {
+    phoneError.value = 'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam (VD: 0901234567).';
+    return;
+  }
+  if (digits.length !== 10) {
+    phoneError.value = 'Số điện thoại phải đủ 10 chữ số.';
+    return;
+  }
+  phoneError.value = VIETNAM_PHONE_PATTERN.test(digits)
+    ? ''
+    : 'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại Việt Nam (VD: 0901234567).';
 }
 
 function validateEmail(force = false) {
@@ -267,7 +283,13 @@ function formatTime(time) {
 }
 
 const canSubmit = computed(() => {
-  return selectedSlotId.value && form.value.full_name.trim() && form.value.phone.trim();
+  const phoneDigits = form.value.phone.replace(/\D/g, '');
+  return selectedSlotId.value
+    && form.value.full_name.trim()
+    && VIETNAM_PHONE_PATTERN.test(phoneDigits)
+    && !nameError.value
+    && !phoneError.value
+    && !emailError.value;
 });
 
 async function fetchSlots() {
@@ -292,6 +314,9 @@ async function fetchSlots() {
 }
 
 function showConfirm() {
+  validateName();
+  validatePhone(true);
+  validateEmail(true);
   if (!canSubmit.value) return;
   confirmVisible.value = true;
 }
@@ -304,9 +329,9 @@ async function doSubmit() {
     const res = await appointmentService.createBooking({
       slot_id: selectedSlotId.value,
       date: selectedDate,
-      full_name: form.value.full_name,
-      phone: form.value.phone,
-      email: form.value.email || undefined,
+      full_name: form.value.full_name.trim(),
+      phone: form.value.phone.replace(/\D/g, ''),
+      email: form.value.email.trim() || undefined,
       note: form.value.note || undefined,
     });
     confirmVisible.value = false;

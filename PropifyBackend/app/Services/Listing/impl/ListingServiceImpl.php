@@ -5,6 +5,8 @@ namespace App\Services\Listing\impl;
 use App\DTOs\Listing\CreateListingDto;
 use App\DTOs\Listing\UpgradeContext;
 use App\Enums\ErrorCode;
+use App\Events\Listing\ListingSaved;
+use App\Events\Listing\ListingPackageUpgraded;
 use App\Exceptions\BusinessException;
 use App\Models\Listing;
 use App\Models\ListingStatusHistory;
@@ -12,21 +14,32 @@ use App\Models\Package;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Repositories\ListingRepository;
+use App\Services\Listing\Commands\CreateListingCommand;
+use App\Services\Listing\Commands\SaveDraftListingCommand;
+use App\Services\Listing\Commands\SubmitListingVerificationCommand;
+use App\Services\Listing\Commands\UpdateListingCommand;
 use App\Services\Listing\ListingService;
 use App\Services\Listing\Sorting\ListingSortingStrategyFactory;
 use App\Services\Listing\Upgrade\CreateUpgradePaymentCommand;
 use App\Services\Listing\Upgrade\UpgradeListingCommand;
+use App\Services\Listing\State\ListingStatusStateFactory;
+use App\Services\Listing\Upgrade\Benefits\PackageBenefitStrategyFactory;
+use App\Services\Listing\Upgrade\Expiry\ExpiryCalculationStrategyFactory;
 use App\Services\Listing\Upgrade\UpgradeEligibilityPolicy;
 use App\Services\Listing\Verification\ListingVerificationService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 final class ListingServiceImpl implements ListingService
 {
     public function __construct(
         private readonly ListingRepository $listingRepository,
+        private readonly CreateListingCommand $createListingCommand,
+        private readonly UpdateListingCommand $updateListingCommand,
+        private readonly SaveDraftListingCommand $saveDraftListingCommand,
+        private readonly SubmitListingVerificationCommand $submitListingVerificationCommand,
+        private readonly ListingStatusStateFactory $statusStateFactory,
         private readonly UpgradeEligibilityPolicy $upgradeEligibilityPolicy,
         private readonly UpgradeListingCommand $upgradeListingCommand,
         private readonly CreateUpgradePaymentCommand $createUpgradePaymentCommand,
@@ -36,173 +49,11 @@ final class ListingServiceImpl implements ListingService
 
     public function create(User $user, CreateListingDto $dto): Listing
     {
-        Log::debug('[ListingService] create() called', [
-            'user_id' => $user->id,
-            'user_phone' => $user->phone,
-            'demand_type' => $dto->demandType,
-            'title' => $dto->title,
-            'images_count' => count($dto->images),
-            'images' => $dto->images,
-            'has_video' => $dto->video !== null,
-            'request_verification' => $dto->requestVerification,
-        ]);
-
-        if (!$user->phone || trim((string) $user->phone) === '') {
-            Log::warning('[ListingService] Blocked: user has no phone', ['user_id' => $user->id]);
-            throw new BusinessException(ErrorCode::AuthPhoneNotVerified);
+        if ($dto->saveAsDraft) {
+            return $this->saveDraftListingCommand->create($user, $dto);
         }
 
-        $listing = DB::transaction(function () use ($user, $dto) {
-            Log::debug('[ListingService] DB transaction started');
-            $property = $this->listingRepository->createProperty([
-                'type' => $dto->propertyType,
-                'province_code' => $dto->provinceCode,
-                'ward_code' => $dto->wardCode,
-                'street_code' => $dto->streetCode,
-                'project_name' => $dto->projectName,
-                'address_detail' => $dto->addressDetail,
-                'area' => $dto->area,
-                'price' => $dto->price,
-                'is_negotiable' => $dto->isNegotiable,
-                'bedrooms' => $dto->bedrooms,
-                'bathrooms' => $dto->bathrooms,
-                'floors' => $dto->floors,
-                'floor_number' => $dto->floorNumber,
-                'balconies' => $dto->balconies,
-                'facade_width' => $dto->facadeWidth,
-                'depth' => $dto->depth,
-                'road_width' => $dto->roadWidth,
-                'direction_code' => $dto->directionCode,
-                'balcony_direction_code' => $dto->balconyDirectionCode,
-                'furniture_status' => $dto->furnitureStatus,
-                'contact_name' => $dto->contactName,
-                'contact_phone' => $dto->contactPhone,
-                'contact_email' => $dto->contactEmail,
-                'poster_type' => $dto->posterType,
-                'amenities' => $dto->amenities,
-                'legal_paper_types' => $dto->legalPaperTypes,
-                'public_info_agreed' => $dto->publicInfoAgreed,
-                'lat' => $dto->lat,
-                'lng' => $dto->lng,
-                'meta' => [
-                    'source' => 'create-listing-form',
-                ],
-            ]);
-
-            Log::debug('[ListingService] Property created', ['property_id' => $property->id]);
-
-            if ($dto->attributeIds !== []) {
-                $property->attributes()->sync($dto->attributeIds);
-                Log::debug('[ListingService] Attributes synced', ['attribute_ids' => $dto->attributeIds]);
-            }
-
-            $listingStatus = $dto->saveAsDraft ? 'DRAFT' : 'PENDING';
-
-            $listing = $this->listingRepository->createListing([
-                'property_id' => $property->id,
-                'owner_id' => $user->id,
-                'demand_type' => $dto->demandType,
-                'title' => $dto->title,
-                'description' => $dto->description,
-                'status' => $listingStatus,
-                'package_id' => $dto->packageId,
-                'score' => $this->calculateContentScore($dto),
-                'is_verified' => false,
-                'has_video' => $dto->video !== null,
-                'request_verification' => $dto->requestVerification,
-                'rent_min_term' => $dto->rentMinTerm,
-                'rent_payment_interval' => $dto->rentPaymentInterval,
-                'rent_deposit' => $dto->rentDeposit,
-                'appointment_at' => $dto->appointmentAt,
-                'appointment_days' => $dto->appointmentDays,
-                'appointment_time_slot' => $dto->appointmentTimeSlot,
-                'appointment_contact_name' => $dto->appointmentContactName,
-                'appointment_contact_phone' => $dto->appointmentContactPhone,
-                'appointment_contact_email' => $dto->appointmentContactEmail,
-                'appointment_note' => $dto->appointmentNote,
-                'submitted_at' => $dto->saveAsDraft ? null : now(),
-            ]);
-
-            Log::debug('[ListingService] Listing created', ['listing_id' => $listing->id, 'status' => $listingStatus]);
-
-            Log::debug('[ListingService] Saving images', ['count' => count($dto->images)]);
-            foreach ($dto->images as $index => $imageUrl) {
-                $this->listingRepository->createListingImage([
-                    'listing_id' => $listing->id,
-                    'image_url' => $imageUrl,
-                    'is_thumbnail' => $index === 0,
-                    'sort_order' => $index,
-                ]);
-                Log::debug('[ListingService] Image saved', ['index' => $index, 'url' => $imageUrl]);
-            }
-
-            if ($dto->video !== null) {
-                Log::debug('[ListingService] Saving video', ['url' => $dto->video]);
-                $this->listingRepository->createListingVideo([
-                    'listing_id' => $listing->id,
-                    'video_url' => $dto->video,
-                    'provider' => 'CLOUDINARY',
-                    'mime_type' => 'video/mp4', // Defaulting as mime_type is no longer easily extracted
-                    'file_size' => 0, // Cannot get file size easily, so 0 or nullable if DB allows
-                ]);
-            }
-
-            if ($dto->requestVerification) {
-                Log::debug('[ListingService] Saving verification documents', [
-                    'has_id_front' => $dto->identityCardFront !== null,
-                    'has_id_back' => $dto->identityCardBack !== null,
-                    'legal_doc_count' => count($dto->legalDocuments),
-                ]);
-                $sortOrder = 0;
-
-                if ($dto->identityCardFront !== null) {
-                    $this->listingRepository->createVerificationDocument([
-                        'listing_id' => $listing->id,
-                        'document_type' => 'ID_FRONT',
-                        'file_url' => $dto->identityCardFront,
-                        'mime_type' => 'image/jpeg',
-                        'file_size' => 0,
-                        'sort_order' => $sortOrder++,
-                    ]);
-                }
-
-                if ($dto->identityCardBack !== null) {
-                    $this->listingRepository->createVerificationDocument([
-                        'listing_id' => $listing->id,
-                        'document_type' => 'ID_BACK',
-                        'file_url' => $dto->identityCardBack,
-                        'mime_type' => 'image/jpeg',
-                        'file_size' => 0,
-                        'sort_order' => $sortOrder++,
-                    ]);
-                }
-
-                foreach ($dto->legalDocuments as $documentUrl) {
-                    $this->listingRepository->createVerificationDocument([
-                        'listing_id' => $listing->id,
-                        'document_type' => 'LEGAL_DOCUMENT',
-                        'file_url' => $documentUrl,
-                        'mime_type' => 'image/jpeg',
-                        'file_size' => 0,
-                        'sort_order' => $sortOrder++,
-                    ]);
-                }
-            }
-
-            Log::debug('[ListingService] Transaction complete, loading relations', ['listing_id' => $listing->id]);
-
-            return $listing->load([
-                'property.attributes.group',
-                'images',
-                'videos',
-                'verificationDocuments',
-                'appointments',
-            ]);
-        });
-
-        $this->clearPublicListingsCache();
-
-        return $listing;
+        return $this->createListingCommand->handle($user, $dto);
     }
 
     public function getMyListings(User $user, ?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
@@ -221,7 +72,7 @@ final class ListingServiceImpl implements ListingService
         return $this->listingRepository->findById($id);
     }
 
-    public function update(User $user, int $id, CreateListingDto $dto): Listing
+    public function getOwnedListingDetails(User $user, int $id): Listing
     {
         $listing = $this->listingRepository->findById($id);
 
@@ -229,137 +80,16 @@ final class ListingServiceImpl implements ListingService
             throw new BusinessException(ErrorCode::AuthForbidden);
         }
 
-        $updated = DB::transaction(function () use ($listing, $dto) {
-            // Update property
-            $this->listingRepository->updateProperty($listing->property_id, [
-                'type' => $dto->propertyType,
-                'province_code' => $dto->provinceCode,
-                'ward_code' => $dto->wardCode,
-                'street_code' => $dto->streetCode,
-                'project_name' => $dto->projectName,
-                'address_detail' => $dto->addressDetail,
-                'area' => $dto->area,
-                'price' => $dto->price,
-                'is_negotiable' => $dto->isNegotiable,
-                'bedrooms' => $dto->bedrooms,
-                'bathrooms' => $dto->bathrooms,
-                'floors' => $dto->floors,
-                'floor_number' => $dto->floorNumber,
-                'balconies' => $dto->balconies,
-                'facade_width' => $dto->facadeWidth,
-                'depth' => $dto->depth,
-                'road_width' => $dto->roadWidth,
-                'direction_code' => $dto->directionCode,
-                'balcony_direction_code' => $dto->balconyDirectionCode,
-                'furniture_status' => $dto->furnitureStatus,
-                'contact_name' => $dto->contactName,
-                'contact_phone' => $dto->contactPhone,
-                'contact_email' => $dto->contactEmail,
-                'poster_type' => $dto->posterType,
-                'amenities' => $dto->amenities,
-                'legal_paper_types' => $dto->legalPaperTypes,
-                'public_info_agreed' => $dto->publicInfoAgreed,
-                'lat' => $dto->lat,
-                'lng' => $dto->lng,
-            ]);
+        return $listing;
+    }
 
-            if ($dto->attributeIds !== []) {
-                $listing->property->attributes()->sync($dto->attributeIds);
-            }
+    public function update(User $user, int $id, CreateListingDto $dto): Listing
+    {
+        if ($dto->saveAsDraft) {
+            return $this->saveDraftListingCommand->update($user, $id, $dto);
+        }
 
-            // Update listing — reset status to PENDING
-            $listingStatus = $dto->saveAsDraft ? 'DRAFT' : 'PENDING';
-
-            $this->listingRepository->updateListing($listing->id, [
-                'demand_type' => $dto->demandType,
-                'title' => $dto->title,
-                'description' => $dto->description,
-                'status' => $listingStatus,
-                'has_video' => $dto->video !== null,
-                'request_verification' => $dto->requestVerification,
-                'rent_min_term' => $dto->rentMinTerm,
-                'rent_payment_interval' => $dto->rentPaymentInterval,
-                'rent_deposit' => $dto->rentDeposit,
-                'appointment_days' => $dto->appointmentDays,
-                'appointment_time_slot' => $dto->appointmentTimeSlot,
-                'appointment_contact_name' => $dto->appointmentContactName,
-                'appointment_contact_phone' => $dto->appointmentContactPhone,
-                'appointment_contact_email' => $dto->appointmentContactEmail,
-                'appointment_note' => $dto->appointmentNote,
-                'submitted_at' => $dto->saveAsDraft ? null : now(),
-            ]);
-
-            // Replace images
-            $this->listingRepository->deleteListingImages($listing->id);
-            foreach ($dto->images as $index => $imageUrl) {
-                $this->listingRepository->createListingImage([
-                    'listing_id' => $listing->id,
-                    'image_url' => $imageUrl,
-                    'is_thumbnail' => $index === 0,
-                    'sort_order' => $index,
-                ]);
-            }
-
-            // Replace videos
-            $this->listingRepository->deleteListingVideos($listing->id);
-            if ($dto->video !== null) {
-                $this->listingRepository->createListingVideo([
-                    'listing_id' => $listing->id,
-                    'video_url' => $dto->video,
-                    'provider' => 'CLOUDINARY',
-                    'mime_type' => 'video/mp4',
-                    'file_size' => 0,
-                ]);
-            }
-
-            // Replace verification documents
-            if ($dto->requestVerification) {
-                $this->listingRepository->deleteVerificationDocuments($listing->id);
-                $sortOrder = 0;
-                if ($dto->identityCardFront !== null) {
-                    $this->listingRepository->createVerificationDocument([
-                        'listing_id' => $listing->id,
-                        'document_type' => 'ID_FRONT',
-                        'file_url' => $dto->identityCardFront,
-                        'mime_type' => 'image/jpeg',
-                        'file_size' => 0,
-                        'sort_order' => $sortOrder++,
-                    ]);
-                }
-                if ($dto->identityCardBack !== null) {
-                    $this->listingRepository->createVerificationDocument([
-                        'listing_id' => $listing->id,
-                        'document_type' => 'ID_BACK',
-                        'file_url' => $dto->identityCardBack,
-                        'mime_type' => 'image/jpeg',
-                        'file_size' => 0,
-                        'sort_order' => $sortOrder++,
-                    ]);
-                }
-                foreach ($dto->legalDocuments as $documentUrl) {
-                    $this->listingRepository->createVerificationDocument([
-                        'listing_id' => $listing->id,
-                        'document_type' => 'LEGAL_DOCUMENT',
-                        'file_url' => $documentUrl,
-                        'mime_type' => 'image/jpeg',
-                        'file_size' => 0,
-                        'sort_order' => $sortOrder++,
-                    ]);
-                }
-            }
-
-            return $listing->fresh()->load([
-                'property.attributes.group',
-                'images',
-                'videos',
-                'verificationDocuments',
-                'appointments',
-            ]);
-        });
-
-        $this->clearPublicListingsCache();
-
-        return $updated;
+        return $this->updateListingCommand->handle($user, $id, $dto);
     }
 
     public function lock(User $user, int $id): Listing
@@ -375,7 +105,7 @@ final class ListingServiceImpl implements ListingService
                 throw new BusinessException(ErrorCode::ListingAlreadyLocked);
             }
 
-            if ($listing->status !== 'ACTIVE') {
+            if (!$this->statusStateFactory->make($listing->status)->canTransitionTo('LOCKED')) {
                 throw new BusinessException(ErrorCode::ListingCannotBeLocked);
             }
 
@@ -383,13 +113,17 @@ final class ListingServiceImpl implements ListingService
                 'status' => 'LOCKED',
             ]);
 
-            return $updated->load([
+            $loaded = $updated->load([
                 'property.attributes.group',
                 'images',
                 'videos',
                 'verificationDocuments',
                 'appointments',
             ]);
+
+            ListingSaved::dispatch($loaded, $user, 'locked');
+
+            return $loaded;
         });
     }
 
@@ -439,18 +173,7 @@ final class ListingServiceImpl implements ListingService
             if (!$listing) {
                 throw new BusinessException(ErrorCode::ListingNotFound);
             }
-
-            $currentStatus = $listing->status;
-            $allowedTransitions = [
-                'PENDING' => ['ACTIVE', 'REJECTED'],
-                'ACTIVE' => ['LOCKED', 'REJECTED'],
-                'LOCKED' => ['ACTIVE'],
-                'REJECTED' => ['ACTIVE'],
-            ];
-
-            if ($currentStatus === $status || !isset($allowedTransitions[$currentStatus]) || !in_array($status, $allowedTransitions[$currentStatus], true)) {
-                throw new \App\Exceptions\BusinessException(\App\Enums\ErrorCode::BadRequest, "Trạng thái hiện tại của listing không hỗ trợ chuyển sang trạng thái {$status}.");
-            }
+            $this->statusStateFactory->assertCanTransition($listing->status, $status);
 
             $listing->status = $status;
             if ($status === 'REJECTED') {
@@ -473,11 +196,7 @@ final class ListingServiceImpl implements ListingService
 
             return $listing;
         });
-
-        // Xóa cache danh sách tin công khai
-        Cache::tags(['listings:public'])->flush();
-
-        return $listing->load([
+        $loaded = $listing->load([
             'property.attributes.group',
             'images',
             'videos',
@@ -488,6 +207,10 @@ final class ListingServiceImpl implements ListingService
             'approver',
             'package',
         ]);
+
+        ListingSaved::dispatch($loaded, null, 'admin_status_changed');
+
+        return $loaded;
     }
 
     public function updateVerificationForAdmin(int $listingId, bool $isVerified, ?string $reason = null, ?int $adminUserId = null): Listing
