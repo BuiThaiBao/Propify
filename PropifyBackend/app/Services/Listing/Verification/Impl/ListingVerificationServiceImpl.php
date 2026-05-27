@@ -23,6 +23,10 @@ final class ListingVerificationServiceImpl implements ListingVerificationService
         $updated = DB::transaction(function () use ($user, $listingId, $documents) {
             $listing = Listing::query()->lockForUpdate()->findOrFail($listingId);
 
+            if ($listing->is_verified) {
+                throw new BusinessException(ErrorCode::BadRequest, 'Tin dang nay da duoc xac thuc.');
+            }
+
             if ((int) $listing->owner_id !== (int) $user->id) {
                 throw new BusinessException(ErrorCode::AuthForbidden);
             }

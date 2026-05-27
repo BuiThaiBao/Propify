@@ -90,6 +90,7 @@ final class ListingResource extends JsonResource
                 'full_name' => $this->owner?->full_name,
                 'avatar_url' => $this->owner?->avatar_url,
                 'email' => $this->owner?->email,
+                'phone' => $this->owner?->phone,
             ],
             'approver' => $this->approver ? [
                 'id' => $this->approver->id,
