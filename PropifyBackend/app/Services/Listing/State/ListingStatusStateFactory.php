@@ -15,6 +15,7 @@ final class ListingStatusStateFactory
             'ACTIVE' => new ActiveListingState(),
             'REJECTED' => new RejectedListingState(),
             'LOCKED' => new LockedListingState(),
+            'UNLISTED' => new UnlistedListingState(),
             default => throw new BusinessException(ErrorCode::BadRequest, "Trang thai listing {$status} khong hop le."),
         };
     }

@@ -35,6 +35,10 @@ const listingService = {
     return api.post(`/v1/listings/${id}/lock`);
   },
 
+  unlist(id) {
+    return api.post(`/v1/listings/${id}/unlist`);
+  },
+
   create(payload) {
     return api.post("/v1/listings", buildListingPayload(payload));
   },

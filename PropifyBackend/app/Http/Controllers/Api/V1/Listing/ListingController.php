@@ -106,6 +106,16 @@ final class ListingController
         );
     }
 
+    public function unlist(Request $request, int $id): JsonResponse
+    {
+        $listing = $this->listingService->unlist($request->user(), $id);
+
+        return ApiResponse::success(
+            data: new ListingResource($listing),
+            message: 'Go tin dang thanh cong.'
+        );
+    }
+
     public function myListings(GetMyListingsRequest $request): JsonResponse
     {
         $perPage = (int) $request->input('per_page', 10);

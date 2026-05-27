@@ -2,15 +2,15 @@
 
 namespace App\Services\Listing\State;
 
-final class ActiveListingState extends AbstractListingStatusState
+final class UnlistedListingState extends AbstractListingStatusState
 {
     public function value(): string
     {
-        return 'ACTIVE';
+        return 'UNLISTED';
     }
 
     protected function allowedTransitions(): array
     {
-        return ['LOCKED', 'REJECTED', 'UNLISTED'];
+        return [];
     }
 }
