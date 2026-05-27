@@ -22,7 +22,10 @@
           </p>
           <h1 class="mt-3 text-[24px] font-extrabold leading-tight text-slate-900">{{ listing.title }}</h1>
           <p class="mt-1 flex items-center gap-2 text-xs text-slate-500">
-            <span>Ngày đăng: {{ formatDate(listing.submitted_at || listing.created_at) }}</span>
+            <span class="inline-flex items-center gap-1.5">
+              <img :src="calendarIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+              Ngày đăng: {{ formatDate(listing.submitted_at || listing.created_at) }}
+            </span>
             <span v-if="listing.views != null">• {{ listing.views }} lượt xem</span>
           </p>
         </div>
@@ -67,7 +70,7 @@
 
           <section class="detail-card">
             <h2 class="detail-title">
-              <img :src="legalIcon" class="detail-title-icon" alt="" />
+              <img :src="descriptionIcon" class="detail-title-icon" alt="" />
               Mô tả tin đăng
             </h2>
             <p class="whitespace-pre-wrap text-sm leading-6 text-slate-600">{{ listing.description || 'Chưa có mô tả.' }}</p>
@@ -75,7 +78,7 @@
 
           <section class="detail-card">
             <h2 class="detail-title">
-              <img :src="propertyIcon" class="detail-title-icon" alt="" />
+              <img :src="detailInfoIcon" class="detail-title-icon" alt="" />
               Thông tin chi tiết
             </h2>
             <div class="grid gap-x-10 sm:grid-cols-2">
@@ -95,7 +98,12 @@
               Tiện ích
             </h2>
             <div class="flex flex-wrap gap-2">
-              <span v-for="amenity in listing.property.amenities" :key="amenity" class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-600">
+              <span
+                v-for="amenity in listing.property.amenities"
+                :key="amenity"
+                class="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-500"
+              >
+                <img :src="amenityCheckIcon" class="h-3.5 w-3.5 object-contain" alt="" />
                 {{ amenity }}
               </span>
             </div>
@@ -103,10 +111,13 @@
 
           <section class="detail-card">
             <h2 class="detail-title">
-              <img :src="pointIcon" class="detail-title-icon" alt="" />
+              <img :src="mapSectionIcon" class="detail-title-icon" alt="" />
               Vị trí bản đồ
             </h2>
-            <p class="mb-3 text-xs text-slate-500">{{ fullAddress }}</p>
+            <p class="mb-3 flex items-center gap-1.5 text-xs text-slate-500">
+              <img :src="pointIcon" class="h-3.5 w-3.5 object-contain" alt="" />
+              {{ fullAddress }}
+            </p>
             <div class="relative h-[360px] w-full overflow-hidden rounded-xl bg-slate-100">
               <button v-if="hasLatLng" type="button" class="absolute left-3 top-3 z-10 rounded-lg border border-white/70 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm" @click.stop="toggleMapMode">
                 {{ mapMode === 'satellite' ? 'Bản đồ' : 'Vệ tinh' }}
@@ -162,8 +173,20 @@
             <div class="py-4 text-xs">
               <p class="mb-3 font-semibold text-slate-800">Thông tin của bất động sản</p>
               <div class="space-y-3">
-                <div class="flex justify-between gap-4"><span class="text-slate-400">Loại BĐS</span><span class="text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span></div>
-                <div class="flex justify-between gap-4"><span class="text-slate-400">Địa chỉ</span><span class="truncate text-sky-500">{{ fullAddress }}</span></div>
+                <div class="flex justify-between gap-4">
+                  <span class="flex items-center gap-1.5 text-slate-400">
+                    <img :src="propertyIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                    Loại BĐS
+                  </span>
+                  <span class="text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
+                </div>
+                <div class="flex justify-between gap-4">
+                  <span class="flex items-center gap-1.5 text-slate-400">
+                    <img :src="pointIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                    Địa chỉ
+                  </span>
+                  <span class="truncate text-sky-500">{{ fullAddress }}</span>
+                </div>
               </div>
             </div>
 
@@ -176,7 +199,7 @@
                 <p class="text-xs text-slate-500">{{ listing.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới' }}</p>
               </div>
               <button class="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-sky-100" aria-label="Nhắn tin chủ nhà">
-                <img :src="messagesIcon" class="h-4 w-4" alt="" />
+                <img :src="chatIcon" class="h-4 w-4" alt="" />
               </button>
             </div>
 
@@ -190,7 +213,7 @@
                 Đặt lịch xem nhà
               </button>
               <button class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600">
-                <img :src="chatIcon" class="mr-2 h-3.5 w-3.5" alt="" />
+                <img :src="messagesIcon" class="mr-2 h-3.5 w-3.5" alt="" />
                 Nhắn tin
               </button>
             </div>
@@ -256,8 +279,12 @@ import chatIcon from '@/assets/images/details/chat.png';
 import messagesIcon from '@/assets/images/details/messages.png';
 import propertyIcon from '@/assets/images/details/loaibds.png';
 import amenitiesIcon from '@/assets/images/details/tienich.png';
+import amenityCheckIcon from '@/assets/images/details/tienich2.png';
 import pointIcon from '@/assets/images/details/point.png';
 import flagIcon from '@/assets/images/details/flag.png';
+import descriptionIcon from '@/assets/images/details/motatindang.png';
+import detailInfoIcon from '@/assets/images/details/thontinchitiet.png';
+import mapSectionIcon from '@/assets/images/details/vitribando.png';
 import legalIcon from '@/assets/images/details/phaply.png';
 import bedIcon from '@/assets/images/details/giuong.png';
 import bathIcon from '@/assets/images/details/bontam.png';
