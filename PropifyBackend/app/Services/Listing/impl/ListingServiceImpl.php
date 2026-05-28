@@ -17,6 +17,7 @@ use App\Repositories\ListingRepository;
 use App\Services\Listing\Commands\CreateListingCommand;
 use App\Services\Listing\Commands\SaveDraftListingCommand;
 use App\Services\Listing\Commands\SubmitListingVerificationCommand;
+use App\Services\Listing\Commands\UnlistListingCommand;
 use App\Services\Listing\Commands\UpdateListingCommand;
 use App\Services\Listing\ListingService;
 use App\Services\Listing\Sorting\ListingSortingStrategyFactory;
@@ -39,6 +40,7 @@ final class ListingServiceImpl implements ListingService
         private readonly UpdateListingCommand $updateListingCommand,
         private readonly SaveDraftListingCommand $saveDraftListingCommand,
         private readonly SubmitListingVerificationCommand $submitListingVerificationCommand,
+        private readonly UnlistListingCommand $unlistListingCommand,
         private readonly ListingStatusStateFactory $statusStateFactory,
         private readonly UpgradeEligibilityPolicy $upgradeEligibilityPolicy,
         private readonly UpgradeListingCommand $upgradeListingCommand,
@@ -69,7 +71,13 @@ final class ListingServiceImpl implements ListingService
 
     public function getListingDetails(int $id): Listing
     {
-        return $this->listingRepository->findById($id);
+        $listing = $this->listingRepository->findById($id);
+
+        if ($listing->status !== 'ACTIVE') {
+            throw new BusinessException(ErrorCode::ListingNotFound);
+        }
+
+        return $listing;
     }
 
     public function getOwnedListingDetails(User $user, int $id): Listing
@@ -125,6 +133,11 @@ final class ListingServiceImpl implements ListingService
 
             return $loaded;
         });
+    }
+
+    public function unlist(User $user, int $id): Listing
+    {
+        return $this->unlistListingCommand->handle($user, $id);
     }
 
     public function updateVerification(User $user, int $id, array $payload): Listing

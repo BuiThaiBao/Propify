@@ -369,7 +369,7 @@
               <tr v-else-if="myListings.length === 0">
                 <td class="px-3 py-6 text-center text-slate-400" colspan="12">Bạn chưa có tin đăng nào.</td>
               </tr>
-              <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="router.push('/listings/' + item.id)">
+              <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="openListingEdit(item)">
                 <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap col-sticky-id">{{ item.id }}</td>
                 <td class="px-3 py-4 whitespace-nowrap">
                   <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-14 rounded-md object-cover" />
@@ -433,8 +433,17 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                         Đăng tin
                       </button>
-                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unpublish', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                      <button
+                        :disabled="item.status !== 'ACTIVE'"
+                        :class="[
+                          'w-full text-left px-4 py-2.5 text-[0.85rem] flex items-center gap-3 transition-colors',
+                          item.status === 'ACTIVE'
+                            ? 'text-slate-700 hover:bg-slate-50'
+                            : 'cursor-not-allowed text-slate-300 bg-slate-50'
+                        ]"
+                        @click.stop="handleDropdownAction('unpublish', item)"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                         Gỡ tin đăng
                       </button>
                       <button v-if="item.status !== 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('lock', item)">
@@ -626,6 +635,18 @@
       @cancel="closeLockListingModal"
     />
 
+    <ConfirmActionModal
+      :open="unlistListingModalOpen"
+      title="Xác nhận gỡ tin"
+      :message="unlistListingModalMessage"
+      confirm-text="Xác nhận gỡ"
+      cancel-text="Hủy"
+      :loading="unlistingListing"
+      loading-text="Đang gỡ..."
+      @confirm="handleConfirmUnlistListing"
+      @cancel="closeUnlistListingModal"
+    />
+
     <!-- Package Upgrade Modal -->
     <PackageUpgradeModal
       :visible="upgradeModalVisible"
@@ -795,10 +816,16 @@ function toggleDropdown(id, event) {
 function closeDropdown() {
   openDropdownId.value = null;
 }
+
+function openListingEdit(item) {
+  if (!item?.id) return;
+  router.push('/listings/' + item.id + '/edit');
+}
+
 function handleDropdownAction(action, item) {
   closeDropdown();
   if (action === 'edit') {
-    router.push('/listings/' + item.id + '/edit');
+    openListingEdit(item);
   } else if (action === 'verify') {
     router.push({ path: '/listings/' + item.id + '/edit', query: { mode: 'verification' } });
   } else if (action === 'upgrade') {
@@ -810,6 +837,9 @@ function handleDropdownAction(action, item) {
     } else {
       alert('Chỉ có thể đăng tin nháp.');
     }
+  } else if (action === 'unpublish') {
+    if (item.status === 'ACTIVE') openUnlistListingModal(item);
+    else alert('Chỉ có thể gỡ tin đang đăng.');
   } else if (action === 'lock') {
     if (item.status === 'ACTIVE') openLockListingModal(item);
     else alert('Chỉ có thể khóa tin đang đăng.');
@@ -839,6 +869,7 @@ const statusCounts = reactive({
   DRAFT: 0,
   REJECTED: 0,
   LOCKED: 0,
+  UNLISTED: 0,
 });
 
 const statusTabs = computed(() => [
@@ -848,6 +879,7 @@ const statusTabs = computed(() => [
   { label: 'Tin nháp', value: 'DRAFT', colorClass: 'bg-slate-400', count: statusCounts.DRAFT },
   { label: 'Từ chối', value: 'REJECTED', colorClass: 'bg-rose-500', count: statusCounts.REJECTED },
   { label: 'Tin bị khóa', value: 'LOCKED', colorClass: 'bg-red-600', count: statusCounts.LOCKED },
+  { label: 'Đã gỡ', value: 'UNLISTED', colorClass: 'bg-slate-500', count: statusCounts.UNLISTED },
 ]);
 
 let searchTimeout = null;
@@ -861,6 +893,9 @@ watch(() => listingFilters.keyword, () => {
 const lockListingModalOpen = ref(false);
 const lockListingTarget = ref(null);
 const lockingListing = ref(false);
+const unlistListingModalOpen = ref(false);
+const unlistListingTarget = ref(null);
+const unlistingListing = ref(false);
 const listingActionMessage = ref('');
 const listingActionSuccess = ref(false);
 const favoritesLoaded = ref(false);
@@ -892,6 +927,7 @@ function statusLabel(status) {
     EXPIRED: 'Hết hạn',
     REJECTED: 'Từ chối',
     LOCKED: 'Tin bị khóa',
+    UNLISTED: 'Đã gỡ',
   };
   return map[status] || status;
 }
@@ -904,6 +940,7 @@ function statusBadgeClass(status) {
     EXPIRED: 'bg-slate-200 text-slate-600',
     REJECTED: 'bg-rose-100 text-rose-700',
     LOCKED: 'bg-red-100 text-red-700',
+    UNLISTED: 'bg-slate-100 text-slate-600',
   };
   return map[status] || 'bg-slate-100 text-slate-600';
 }
@@ -1020,6 +1057,7 @@ async function loadMyListings(page = 1) {
       statusCounts.DRAFT = meta.counts.DRAFT || 0;
       statusCounts.REJECTED = meta.counts.REJECTED || 0;
       statusCounts.LOCKED = meta.counts.LOCKED || 0;
+      statusCounts.UNLISTED = meta.counts.UNLISTED || 0;
     }
 
     listingsLoaded.value = true;
@@ -1075,6 +1113,51 @@ async function handleConfirmLockListing() {
     listingActionMessage.value = error?.response?.data?.message || 'Không thể khóa tin đăng. Vui lòng thử lại.';
   } finally {
     lockingListing.value = false;
+  }
+}
+
+const unlistListingModalMessage = computed(() => {
+  if (!unlistListingTarget.value) {
+    return 'Bạn có chắc chắn muốn gỡ tin này không?';
+  }
+
+  return `Bạn có chắc chắn muốn gỡ tin "${unlistListingTarget.value.title}" không? Tin sẽ không còn hiển thị công khai.`;
+});
+
+function openUnlistListingModal(item) {
+  unlistListingTarget.value = item;
+  unlistListingModalOpen.value = true;
+}
+
+function closeUnlistListingModal() {
+  if (unlistingListing.value) {
+    return;
+  }
+
+  unlistListingModalOpen.value = false;
+  unlistListingTarget.value = null;
+}
+
+async function handleConfirmUnlistListing() {
+  if (!unlistListingTarget.value) {
+    return;
+  }
+
+  unlistingListing.value = true;
+  listingActionMessage.value = '';
+
+  try {
+    await listingService.unlist(unlistListingTarget.value.id);
+    listingActionSuccess.value = true;
+    listingActionMessage.value = 'Gỡ tin đăng thành công.';
+    unlistListingModalOpen.value = false;
+    unlistListingTarget.value = null;
+    await loadMyListings(listingPagination.currentPage);
+  } catch (error) {
+    listingActionSuccess.value = false;
+    listingActionMessage.value = error?.response?.data?.message || 'Không thể gỡ tin đăng. Vui lòng thử lại.';
+  } finally {
+    unlistingListing.value = false;
   }
 }
 

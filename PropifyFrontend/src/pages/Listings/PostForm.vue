@@ -704,8 +704,8 @@
 
               <div v-if="!mediaCollapsed" class="mt-2 ml-3">
                 <div class="flex items-center justify-between text-sm">
-                  <div :class="imageCount > 0 ? 'text-emerald-600' : ''">• Hình ảnh</div>
-                  <div :class="imageCount > 0 ? 'text-emerald-600' : 'text-slate-400'">{{ imageCount > 0 ? '✓' : '' }} {{ formatScorePoint(imagePoints) }}đ</div>
+                  <div :class="imageDone ? 'text-emerald-600' : ''">• Hình ảnh</div>
+                  <div :class="imageDone ? 'text-emerald-600' : 'text-slate-400'">{{ imageDone ? '✓' : '' }} {{ formatScorePoint(imagePoints) }}đ · {{ imageScoreCount }}/4</div>
                 </div>
                 <div class="flex items-center justify-between text-sm mt-1">
                   <div :class="videoPresent ? 'text-emerald-600' : ''">• Video</div>
@@ -1045,10 +1045,15 @@ const listingMediaUpload = useListingMediaUpload({
   onStatus: (message) => pushToast(message, "info", 1200),
 });
 
+const MAX_LISTING_IMAGES = 10;
+const IMAGE_SCORE_TARGET_COUNT = 4;
+
 const imageCount = computed(() => Array.isArray(form.images) ? form.images.length : 0);
+const imageScoreCount = computed(() => Math.min(imageCount.value, IMAGE_SCORE_TARGET_COUNT));
+const imageDone = computed(() => imageScoreCount.value >= IMAGE_SCORE_TARGET_COUNT);
 const videoPresent = computed(() => Boolean(form.video));
 
-const imagePoints = computed(() => Math.min(imageCount.value * 0.5, 2));
+const imagePoints = computed(() => Number(((imageScoreCount.value / IMAGE_SCORE_TARGET_COUNT) * 2).toFixed(2)));
 const videoPoints = computed(() => (videoPresent.value ? 2 : 0));
 const mediaPoints = computed(() => Math.min(imagePoints.value + videoPoints.value, 4));
 const mediaPercent = computed(() => Math.round((mediaPoints.value / 4) * 100));
@@ -2093,8 +2098,7 @@ function onImagesChange(event) {
   }
 
   // Giới hạn tối đa 10 ảnh
-  const MAX = 10;
-  const remaining = MAX - form.images.length;
+  const remaining = MAX_LISTING_IMAGES - form.images.length;
   if (remaining <= 0) {
     imageUploadError.value = "Bạn chỉ có thể tải tối đa 10 hình ảnh";
     pushToast("Không thể tải thêm file", "warning");
