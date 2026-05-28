@@ -211,11 +211,6 @@
               </div>
             </div>
 
-            <!-- Actions -->
-            <div class="space-y-3 pt-2">
-              <a v-if="listing.property?.contact_phone || listing.owner?.phone" :href="`tel:${listing.property.contact_phone || listing.owner.phone}`" class="flex w-full items-center justify-center gap-2 rounded-xl bg-sky-500 px-4 py-3 font-semibold text-white transition hover:bg-sky-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" /></svg>
-                GỌI {{ formatPhone(listing.property?.contact_phone || listing.owner?.phone) }}
             <div class="mb-4 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
               <div class="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 font-bold text-white">
                 {{ (listing.owner?.full_name || listing.property?.contact_name || 'U').charAt(0).toUpperCase() }}
@@ -230,7 +225,7 @@
             </div>
 
             <div class="space-y-2">
-              <a v-if="listing.property?.contact_phone" :href="`tel:${listing.property.contact_phone}`" class="flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600">
+              <a v-if="contactPhone" :href="`tel:${contactPhone}`" class="flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600">
                 <img :src="callIcon" class="detail-action-icon mr-2 h-3.5 w-3.5" alt="" />
                 Liên hệ chủ nhà
               </a>
@@ -393,6 +388,10 @@ const fullAddress = computed(() => {
   const p = listing.value.property;
   return p.full_address || buildPropertyAddress(p);
 });
+
+const contactPhone = computed(() => (
+  listing.value?.property?.contact_phone || listing.value?.owner?.phone || ''
+));
 
 function hasDetailValue(value) {
   return value !== null && value !== undefined && value !== '';

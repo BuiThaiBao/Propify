@@ -369,10 +369,8 @@
               <tr v-else-if="myListings.length === 0">
                 <td class="px-3 py-6 text-center text-slate-400" colspan="12">Bạn chưa có tin đăng nào.</td>
               </tr>
-              <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="router.push('/listings/' + item.id)">
-                <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap col-sticky-id">{{ item.id }}</td>
               <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="openListingEdit(item)">
-                <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap">{{ item.id }}</td>
+                <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap col-sticky-id">{{ item.id }}</td>
                 <td class="px-3 py-4 whitespace-nowrap">
                   <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-14 rounded-md object-cover" />
                   <div v-else class="h-12 w-14 rounded-md bg-slate-100"></div>
