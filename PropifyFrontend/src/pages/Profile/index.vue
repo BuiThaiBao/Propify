@@ -369,7 +369,7 @@
               <tr v-else-if="myListings.length === 0">
                 <td class="px-3 py-6 text-center text-slate-400" colspan="12">Bạn chưa có tin đăng nào.</td>
               </tr>
-              <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="router.push('/listings/' + item.id)">
+              <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="openListingEdit(item)">
                 <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap">{{ item.id }}</td>
                 <td class="px-3 py-4 whitespace-nowrap">
                   <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-14 rounded-md object-cover" />
@@ -816,10 +816,16 @@ function toggleDropdown(id, event) {
 function closeDropdown() {
   openDropdownId.value = null;
 }
+
+function openListingEdit(item) {
+  if (!item?.id) return;
+  router.push('/listings/' + item.id + '/edit');
+}
+
 function handleDropdownAction(action, item) {
   closeDropdown();
   if (action === 'edit') {
-    router.push('/listings/' + item.id + '/edit');
+    openListingEdit(item);
   } else if (action === 'verify') {
     router.push({ path: '/listings/' + item.id + '/edit', query: { mode: 'verification' } });
   } else if (action === 'upgrade') {

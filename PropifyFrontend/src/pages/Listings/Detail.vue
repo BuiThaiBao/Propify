@@ -1,5 +1,15 @@
 <template>
   <main :class="previewMode ? 'min-h-0 bg-[#f6f9fc] pb-6 pt-0' : 'min-h-screen bg-[#f6f9fc] pb-14 pt-24'">
+    <div class="toast-stack">
+      <div
+        v-for="toast in toasts"
+        :key="toast.id"
+        :class="['toast-item', `toast-${toast.type}`]"
+      >
+        {{ toast.message }}
+      </div>
+    </div>
+
     <div v-if="loading" class="flex min-h-[50vh] items-center justify-center">
       <div class="h-10 w-10 animate-spin rounded-full border-4 border-sky-500 border-t-transparent"></div>
     </div>
@@ -81,13 +91,22 @@
               <img :src="detailInfoIcon" class="detail-title-icon" alt="" />
               Thông tin chi tiết
             </h2>
-            <div class="grid gap-x-10 sm:grid-cols-2">
-              <div v-for="item in detailRows" :key="item.label" class="flex items-center justify-between border-b border-slate-100 py-3 text-sm">
-                <span class="flex min-w-0 items-center gap-2 text-slate-500">
-                  <img :src="item.icon" class="h-4 w-4 shrink-0 object-contain opacity-75" alt="" />
-                  <span class="truncate">{{ item.label }}</span>
-                </span>
-                <span class="ml-4 text-right font-medium text-slate-800">{{ item.value }}</span>
+            <div class="space-y-0">
+              <div v-for="row in detailRowPairs" :key="row[0].label" class="grid gap-x-10 sm:grid-cols-2">
+                <div
+                  v-for="item in row"
+                  :key="item.label || 'empty-detail-cell'"
+                  class="grid grid-cols-[minmax(120px,0.95fr)_minmax(0,1.15fr)] items-start gap-3 border-b border-slate-100 py-3 text-sm"
+                  :class="item.empty && 'hidden sm:block'"
+                >
+                  <template v-if="!item.empty">
+                  <span class="flex min-w-0 items-center gap-2 text-slate-500">
+                    <img :src="item.icon" class="h-4 w-4 shrink-0 object-contain opacity-75" alt="" />
+                    <span class="leading-5">{{ item.label }}</span>
+                  </span>
+                  <span class="text-right font-medium leading-5 text-slate-800">{{ item.value }}</span>
+                  </template>
+                </div>
               </div>
             </div>
           </section>
@@ -138,13 +157,21 @@
               <img :src="flagIcon" class="detail-title-icon" alt="" />
               Báo cáo tin đăng
             </h2>
-            <div class="grid gap-3 sm:grid-cols-2">
-              <label v-for="option in reportOptions" :key="option" class="flex items-center gap-2 text-xs text-slate-500">
-                <input type="radio" name="listing-report" class="h-3.5 w-3.5 accent-sky-500" />
-                <span>{{ option }}</span>
-              </label>
-            </div>
-            <button class="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">Gửi phản ánh</button>
+            <form @submit.prevent="submitListingReport">
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label v-for="option in reportOptions" :key="option.value" class="flex items-center gap-2 text-xs text-slate-500">
+                  <input v-model="selectedReportReasons" type="checkbox" name="listing-report" :value="option.value" class="h-3.5 w-3.5 rounded border-slate-300 accent-sky-500" />
+                  <span>{{ option.label }}</span>
+                </label>
+              </div>
+              <button
+                type="submit"
+                class="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                :disabled="reportSubmitting || selectedReportReasons.length === 0"
+              >
+                {{ reportSubmitting ? 'Đang gửi...' : 'Gửi phản ánh' }}
+              </button>
+            </form>
           </section>
         </div>
 
@@ -173,19 +200,13 @@
             <div class="py-4 text-xs">
               <p class="mb-3 font-semibold text-slate-800">Thông tin của bất động sản</p>
               <div class="space-y-3">
-                <div class="flex justify-between gap-4">
-                  <span class="flex items-center gap-1.5 text-slate-400">
-                    <img :src="propertyIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
-                    Loại BĐS
-                  </span>
-                  <span class="text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
+                <div class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
+                  <span class="whitespace-nowrap text-slate-400">Loại BĐS</span>
+                  <span class="truncate text-right text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
                 </div>
-                <div class="flex justify-between gap-4">
-                  <span class="flex items-center gap-1.5 text-slate-400">
-                    <img :src="pointIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
-                    Địa chỉ
-                  </span>
-                  <span class="truncate text-sky-500">{{ fullAddress }}</span>
+                <div class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
+                  <span class="whitespace-nowrap text-slate-400">Địa chỉ</span>
+                  <span class="truncate text-right text-sky-500">{{ fullAddress }}</span>
                 </div>
               </div>
             </div>
@@ -317,6 +338,10 @@ const mapElement = ref(null);
 const showAppointmentPopup = ref(false);
 const mapMode = ref('standard');
 const isMap3dEnabled = ref(false);
+const selectedReportReasons = ref([]);
+const reportSubmitting = ref(false);
+const toasts = ref([]);
+let toastIdCounter = 1;
 let map = null;
 
 const SATELLITE_LAYER_ID = 'satellite-base';
@@ -364,34 +389,52 @@ const fullAddress = computed(() => {
   return p.full_address || buildPropertyAddress(p);
 });
 
-const detailRows = computed(() => {
-  const property = listing.value?.property || {};
-  const rows = [
-    { label: 'Loại BĐS', value: property.type ? propertyTypeLabel(property.type) : null, icon: propertyIcon },
-    { label: 'Diện tích', value: property.area ? `${property.area} m²` : null, icon: areaIcon },
-    { label: 'Phòng ngủ', value: property.bedrooms ? `${property.bedrooms} PN` : null, icon: bedIcon },
-    { label: 'Phòng tắm', value: property.bathrooms ? `${property.bathrooms} WC` : null, icon: bathIcon },
-    { label: 'Hướng nhà', value: property.direction_code ? directionLabel(property.direction_code) : null, icon: directionIcon },
-    { label: 'Hướng ban công', value: property.balcony_direction_code ? directionLabel(property.balcony_direction_code) : null, icon: directionIcon },
-    { label: 'Nội thất', value: property.furniture_status ? furnitureLabel(property.furniture_status) : null, icon: interiorIcon },
-    { label: 'Pháp lý', value: property.legal_paper_types?.length ? property.legal_paper_types.map((v) => legalPaperLabel(v)).join(', ') : null, icon: legalIcon },
-    { label: 'Đường rộng', value: property.road_width ? `${property.road_width} m` : null, icon: roadIcon },
-    { label: 'Mặt tiền', value: property.facade_width ? `${property.facade_width} m` : null, icon: roadIcon },
-    { label: 'Chiều sâu', value: property.depth ? `${property.depth} m` : null, icon: roadIcon },
-    { label: 'Số tầng', value: property.floors ? property.floors : null, icon: floorIcon },
-  ];
+function hasDetailValue(value) {
+  return value !== null && value !== undefined && value !== '';
+}
 
-  return rows
-    .filter((item) => item.value !== null && item.value !== undefined && item.value !== '');
+function detailText(value, suffix = '') {
+  if (!hasDetailValue(value)) return '-';
+  return suffix ? `${value}${suffix}` : value;
+}
+
+const detailRowPairs = computed(() => {
+  const property = listing.value?.property || {};
+  return [
+    [
+      { label: 'Loại BĐS', value: property.type ? propertyTypeLabel(property.type) : '-', icon: propertyIcon },
+      { label: 'Diện tích', value: detailText(property.area, ' m²'), icon: areaIcon },
+    ],
+    [
+      { label: 'Phòng ngủ', value: detailText(property.bedrooms, ' PN'), icon: bedIcon },
+      { label: 'Phòng tắm', value: detailText(property.bathrooms, ' WC'), icon: bathIcon },
+    ],
+    [
+      { label: 'Hướng nhà', value: property.direction_code ? directionLabel(property.direction_code) : '-', icon: directionIcon },
+      { label: 'Hướng ban công', value: property.balcony_direction_code ? directionLabel(property.balcony_direction_code) : '-', icon: directionIcon },
+    ],
+    [
+      { label: 'Nội thất', value: property.furniture_status ? furnitureLabel(property.furniture_status) : '-', icon: interiorIcon },
+      { label: 'Pháp lý', value: property.legal_paper_types?.length ? property.legal_paper_types.map((v) => legalPaperLabel(v)).join(', ') : '-', icon: legalIcon },
+    ],
+    [
+      { label: 'Chiều sâu', value: detailText(property.depth, ' m'), icon: roadIcon },
+      { label: 'Mặt tiền', value: detailText(property.facade_width, ' m'), icon: roadIcon },
+    ],
+    [
+      { label: 'Số tầng', value: detailText(property.floors), icon: floorIcon },
+      { label: '', value: '', icon: null, empty: true },
+    ],
+  ];
 });
 
 const reportOptions = [
-  'Định giá chưa đúng với thực tế',
-  'Địa chỉ của BĐS chưa chính xác',
-  'BĐS đã bán/đã thuê/đã sang nhượng',
-  'Thông tin chưa chính xác',
-  'Không liên lạc được với người đăng tin',
-  'Trùng với tin rao khác',
+  { value: 'WRONG_PRICE', label: 'Định giá chưa đúng với thực tế' },
+  { value: 'WRONG_ADDRESS', label: 'Địa chỉ của BĐS chưa chính xác' },
+  { value: 'SOLD_OR_RENTED', label: 'BĐS đã bán/đã thuê/đã sang nhượng' },
+  { value: 'WRONG_INFORMATION', label: 'Thông tin chưa chính xác' },
+  { value: 'UNREACHABLE_OWNER', label: 'Không liên lạc được với người đăng tin' },
+  { value: 'DUPLICATE_LISTING', label: 'Trùng với tin rao khác' },
 ];
 
 const relatedListings = computed(() => {
@@ -424,6 +467,40 @@ function nextImage() {
     activeImageIndex.value++;
   } else {
     activeImageIndex.value = 0;
+  }
+}
+
+function pushToast(message, type = 'info', duration = 2500) {
+  const id = toastIdCounter++;
+  toasts.value = [...toasts.value, { id, message, type }];
+  setTimeout(() => {
+    toasts.value = toasts.value.filter((item) => item.id !== id);
+  }, duration);
+}
+
+async function submitListingReport() {
+  if (selectedReportReasons.value.length === 0) {
+    pushToast('Vui lòng chọn ít nhất một lý do báo cáo.', 'warning');
+    return;
+  }
+
+  if (!listing.value?.id) {
+    pushToast('Không tìm thấy tin đăng.', 'error');
+    return;
+  }
+
+  try {
+    reportSubmitting.value = true;
+    const response = await listingService.report(listing.value.id, {
+      reasons: selectedReportReasons.value,
+    });
+
+    pushToast(response.data?.message || 'Cảm ơn bạn đã phản hồi.', 'success');
+    selectedReportReasons.value = [];
+  } catch (err) {
+    pushToast(err.response?.data?.message || 'Hệ thống bận, vui lòng gửi báo cáo sau.', 'error');
+  } finally {
+    reportSubmitting.value = false;
   }
 }
 
@@ -895,6 +972,51 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.toast-stack {
+  position: fixed;
+  top: 88px;
+  right: 14px;
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toast-item {
+  min-width: 260px;
+  max-width: 360px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+}
+
+.toast-success {
+  background: #ecfdf3;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.toast-info {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.toast-warning {
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.toast-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
 .detail-card {
   margin-top: 18px;
   border: 1px solid #e2e8f0;

@@ -64,6 +64,9 @@ use App\Services\Listing\impl\ListingServiceImpl;
 use App\Services\Listing\Favorite\FavoriteService;
 use App\Services\Listing\Favorite\Impl\FavoriteServiceImpl;
 use App\Services\Listing\ListingService;
+use App\Services\Listing\Reports\ListingReportValidationChain;
+use App\Services\Listing\Reports\Rules\EnsureListingCanBeReportedHandler;
+use App\Services\Listing\Reports\Rules\PreventDuplicateListingReportHandler;
 use App\Services\Listing\Verification\Impl\ListingVerificationServiceImpl;
 use App\Services\Listing\Verification\ListingVerificationService;
 use App\Services\Notification\Channel\EmailChannel;
@@ -129,6 +132,14 @@ final class AppServiceProvider extends ServiceProvider
         $this->app->bind(ListingAmenityService::class, ListingAmenityServiceImpl::class);
         $this->app->bind(FavoriteService::class, FavoriteServiceImpl::class);
         $this->app->bind(ListingVerificationService::class, ListingVerificationServiceImpl::class);
+        $this->app->bind(ListingReportValidationChain::class, function () {
+            $activeStatus = app(EnsureListingCanBeReportedHandler::class);
+            $spamGuard = app(PreventDuplicateListingReportHandler::class);
+
+            $activeStatus->setNext($spamGuard);
+
+            return new ListingReportValidationChain($activeStatus);
+        });
 
         // ── Notification bindings ─────────────────────────────────────────
         // NotificationServiceImpl nhận array $channels qua constructor

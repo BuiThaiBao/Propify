@@ -130,7 +130,7 @@
               v-for="row in rows" 
               :key="row.id" 
               class="border-t border-slate-100 hover:bg-slate-50 transition cursor-pointer group"
-              @click="goToDetail(row.id)"
+              @click="goToEdit(row.id)"
             >
               <td class="px-3 py-3 font-medium text-sky-600 group-hover:underline">
                 {{ row.id }}
@@ -364,8 +364,8 @@ function selectStatus(status) {
   reload(1);
 }
 
-function goToDetail(id) {
-  router.push('/listings/' + id);
+function goToEdit(id) {
+  router.push('/listings/' + id + '/edit');
 }
 
 onMounted(() => {

@@ -199,6 +199,10 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
         Route::patch('/{id}/verification', [ListingController::class, 'updateVerification'])->where('id', '[0-9]+')->name('verification.update');
         Route::post('/{id}/lock', [ListingController::class, 'lock'])->where('id', '[0-9]+')->name('lock');
         Route::post('/{id}/unlist', [ListingController::class, 'unlist'])->where('id', '[0-9]+')->name('unlist');
+        Route::post('/{id}/reports', [ListingController::class, 'report'])
+            ->where('id', '[0-9]+')
+            ->middleware('throttle:6,1')
+            ->name('reports.store');
         Route::post('/{id}/upgrade', [ListingUpgradeController::class, 'upgrade'])
             ->where('id', '[0-9]+')
             ->name('upgrade');
