@@ -84,7 +84,7 @@ final class AdminListingController extends Controller
             throw new BusinessException(ErrorCode::AuthForbidden);
         }
 
-        $listing = $this->listingService->getListingDetails($id);
+        $listing = $this->listingService->getListingDetailsForAdmin($id);
 
         return ApiResponse::success(
             data: new ListingResource($listing),

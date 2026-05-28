@@ -80,6 +80,17 @@ final class ListingServiceImpl implements ListingService
         return $listing;
     }
 
+    public function getListingDetailsForAdmin(int $id): Listing
+    {
+        $listing = $this->listingRepository->findById($id);
+
+        if ($listing->status === 'DRAFT') {
+            throw new BusinessException(ErrorCode::ListingNotFound);
+        }
+
+        return $listing;
+    }
+
     public function getOwnedListingDetails(User $user, int $id): Listing
     {
         $listing = $this->listingRepository->findById($id);
