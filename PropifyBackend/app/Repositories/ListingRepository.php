@@ -8,6 +8,7 @@ use App\Models\ListingImage;
 use App\Models\ListingVerificationDocument;
 use App\Models\ListingVideo;
 use App\Models\Property;
+use App\Services\Listing\Sorting\ListingSortingStrategy;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 interface ListingRepository
@@ -28,7 +29,7 @@ interface ListingRepository
 
     public function findById(int $id): Listing;
 
-    public function paginatePublic(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
+    public function paginatePublic(ListingSortingStrategy $sortingStrategy, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 
     public function paginateAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 

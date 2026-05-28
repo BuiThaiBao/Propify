@@ -9,6 +9,7 @@ use App\Models\ListingVerificationDocument;
 use App\Models\ListingVideo;
 use App\Models\Property;
 use App\Repositories\ListingRepository;
+use App\Services\Listing\Sorting\ListingSortingStrategy;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 final class EloquentListingRepository implements ListingRepository
@@ -96,30 +97,19 @@ final class EloquentListingRepository implements ListingRepository
             ->findOrFail($id);
     }
 
-    public function paginatePublic(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
+    public function paginatePublic(ListingSortingStrategy $sortingStrategy, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
     {
-        return Listing::query()
+        $query = Listing::query()
             ->select([
                 'listings.id', 'listings.property_id', 'listings.owner_id', 'listings.title',
                 'listings.demand_type', 'listings.status', 'listings.is_verified',
                 'listings.has_video', 'listings.package_id', 'listings.score',
                 'listings.views', 'listings.submitted_at', 'listings.published_at',
             ])
-            // Tính final_score trong SQL để sort chính xác
-            ->selectRaw('
-                COALESCE(packages.priority, 1) AS pkg_priority,
-                (
-                    COALESCE(listings.score, 0)
-                    * COALESCE(packages.multiplier, 1.0)
-                    * (1.0 / (1.0 + TIMESTAMPDIFF(HOUR, COALESCE(listings.published_at, listings.created_at), NOW()) / 24.0))
-                    * EXP(-COALESCE(packages.decay_rate, 0.05) * TIMESTAMPDIFF(HOUR, COALESCE(listings.published_at, listings.created_at), NOW()))
-                ) AS final_score
-            ')
-            ->leftJoin('packages', 'listings.package_id', '=', 'packages.id')
             ->with([
-                'property:id,type,province_code,ward_code,street_code,project_name,address_detail,area,price,bedrooms,bathrooms,contact_name,poster_type',
+                'property:id,type,province_code,ward_code,street_code,project_name,address_detail,area,price,bedrooms,bathrooms,contact_name,contact_phone,contact_email,poster_type',
                 'images:id,listing_id,image_url,is_thumbnail,sort_order',
-                'owner:id,full_name,avatar_url',
+                'owner:id,full_name,avatar_url,phone',
                 'package:id,name,slug,badge,color,priority',
             ])
             ->where('listings.status', 'ACTIVE')
@@ -137,11 +127,11 @@ final class EloquentListingRepository implements ListingRepository
                                 ->orWhere('project_name', 'like', '%' . $keyword . '%');
                         });
                 });
-            })
-            // 🔥 Ranking: Sort theo tầng ưu tiên (priority) trước, rồi mới so final_score
-            ->orderByDesc('pkg_priority')
-            ->orderByDesc('final_score')
-            ->paginate($perPage);
+            });
+
+        $query = $sortingStrategy->apply($query);
+
+        return $query->paginate($perPage);
     }
 
     public function paginateAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator

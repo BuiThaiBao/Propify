@@ -26,7 +26,7 @@ interface ListingService
 
     public function unlist(User $user, int $id): Listing;
 
-    public function getPublicListings(?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
+    public function getPublicListings(?string $sortBy, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 
     public function getAllForAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 
