@@ -124,4 +124,9 @@ final class Listing extends Model
     {
         return $this->hasMany(UserFavorite::class, 'listing_id');
     }
+
+    public function reports(): HasMany
+    {
+        return $this->hasMany(ListingReport::class, 'listing_id');
+    }
 }

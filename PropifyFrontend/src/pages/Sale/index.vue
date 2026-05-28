@@ -223,6 +223,7 @@ function getAuthor(item) {
   return {
     name: item.property?.contact_name || item.owner?.full_name || 'Chủ nhà',
     role: item.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới',
+    phone: item.property?.contact_phone || item.owner?.phone,
   };
 }
 

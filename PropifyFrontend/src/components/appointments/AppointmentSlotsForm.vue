@@ -69,27 +69,87 @@
             <div>
               <label class="appointment-label">Khung giờ</label>
               <div class="mt-[10px] flex flex-wrap items-center gap-2.5">
-                <input
-                  :value="row.start_time"
-                  type="text"
-                  inputmode="numeric"
-                  maxlength="8"
-                  placeholder="00:00:00"
-                  class="h-11 w-36 rounded-[10px] border border-[#dbe7f4] bg-[#f3f7fc] px-[14px] text-sm text-[#0f172a] outline-none transition focus:border-[#38bdf8] focus:bg-white focus:shadow-[0_0_0_3px_rgba(56,189,248,0.14)]"
-                  @input="onTimeInput($event, rowIndex, 'start_time')"
-                  @blur="syncTimeFields(rowIndex); validateAll()"
-                />
+                <div class="time-part-group" aria-label="Giờ bắt đầu">
+                  <input
+                    :value="getEditableTimePart(row.start_time, 'hour')"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="2"
+                    class="time-part-input"
+                    :ref="(el) => setTimeInputRef(el, rowIndex, 'start_time', 'hour')"
+                    @mousedown="focusAndSelectTimePart($event, rowIndex, 'start_time', 'hour')"
+                    @focus="focusAndSelectTimePart($event, rowIndex, 'start_time', 'hour', false)"
+                    @input="onEditableTimePartInput($event, rowIndex, 'start_time', 'hour')"
+                    @blur="commitEditableTime(rowIndex)"
+                  />
+                  <span>:</span>
+                  <input
+                    :value="getEditableTimePart(row.start_time, 'minute')"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="2"
+                    class="time-part-input"
+                    :ref="(el) => setTimeInputRef(el, rowIndex, 'start_time', 'minute')"
+                    @mousedown="focusAndSelectTimePart($event, rowIndex, 'start_time', 'minute')"
+                    @focus="focusAndSelectTimePart($event, rowIndex, 'start_time', 'minute', false)"
+                    @input="onEditableTimePartInput($event, rowIndex, 'start_time', 'minute')"
+                    @blur="commitEditableTime(rowIndex)"
+                  />
+                  <span>:</span>
+                  <input
+                    :value="getEditableTimePart(row.start_time, 'second')"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="2"
+                    class="time-part-input"
+                    :ref="(el) => setTimeInputRef(el, rowIndex, 'start_time', 'second')"
+                    @mousedown="focusAndSelectTimePart($event, rowIndex, 'start_time', 'second')"
+                    @focus="focusAndSelectTimePart($event, rowIndex, 'start_time', 'second', false)"
+                    @input="onEditableTimePartInput($event, rowIndex, 'start_time', 'second')"
+                    @blur="commitEditableTime(rowIndex)"
+                  />
+                </div>
                 <span class="text-sm text-[#64748b]">-</span>
-                <input
-                  :value="row.end_time"
-                  type="text"
-                  inputmode="numeric"
-                  maxlength="8"
-                  placeholder="00:00:00"
-                  class="h-11 w-36 rounded-[10px] border border-[#dbe7f4] bg-[#f3f7fc] px-[14px] text-sm text-[#0f172a] outline-none transition focus:border-[#38bdf8] focus:bg-white focus:shadow-[0_0_0_3px_rgba(56,189,248,0.14)]"
-                  @input="onTimeInput($event, rowIndex, 'end_time')"
-                  @blur="syncTimeFields(rowIndex); validateAll()"
-                />
+                <div class="time-part-group" aria-label="Giờ kết thúc">
+                  <input
+                    :value="getEditableTimePart(row.end_time, 'hour')"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="2"
+                    class="time-part-input"
+                    :ref="(el) => setTimeInputRef(el, rowIndex, 'end_time', 'hour')"
+                    @mousedown="focusAndSelectTimePart($event, rowIndex, 'end_time', 'hour')"
+                    @focus="focusAndSelectTimePart($event, rowIndex, 'end_time', 'hour', false)"
+                    @input="onEditableTimePartInput($event, rowIndex, 'end_time', 'hour')"
+                    @blur="commitEditableTime(rowIndex)"
+                  />
+                  <span>:</span>
+                  <input
+                    :value="getEditableTimePart(row.end_time, 'minute')"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="2"
+                    class="time-part-input"
+                    :ref="(el) => setTimeInputRef(el, rowIndex, 'end_time', 'minute')"
+                    @mousedown="focusAndSelectTimePart($event, rowIndex, 'end_time', 'minute')"
+                    @focus="focusAndSelectTimePart($event, rowIndex, 'end_time', 'minute', false)"
+                    @input="onEditableTimePartInput($event, rowIndex, 'end_time', 'minute')"
+                    @blur="commitEditableTime(rowIndex)"
+                  />
+                  <span>:</span>
+                  <input
+                    :value="getEditableTimePart(row.end_time, 'second')"
+                    type="text"
+                    inputmode="numeric"
+                    maxlength="2"
+                    class="time-part-input"
+                    :ref="(el) => setTimeInputRef(el, rowIndex, 'end_time', 'second')"
+                    @mousedown="focusAndSelectTimePart($event, rowIndex, 'end_time', 'second')"
+                    @focus="focusAndSelectTimePart($event, rowIndex, 'end_time', 'second', false)"
+                    @input="onEditableTimePartInput($event, rowIndex, 'end_time', 'second')"
+                    @blur="commitEditableTime(rowIndex)"
+                  />
+                </div>
               </div>
             </div>
 
@@ -124,7 +184,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 
 const isOpen = ref(true);
 const dropdownOpenIndex = ref(-1);
@@ -177,6 +237,92 @@ const normalizeTimeValue = (value) => {
 const formatTimeForDisplay = (value) => normalizeTimeValue(value);
 
 const toBackendTime = (value) => normalizeTimeValue(value).slice(0, 5);
+
+const splitEditableTime = (value) => {
+  const text = String(value || '00:00:00');
+  const [hour = '00', minute = '00', second = '00'] = text.split(':');
+  return [hour, minute, second];
+};
+
+const timeInputRefs = new Map();
+const timeFieldOrder = ['start_time', 'end_time'];
+const timePartOrder = ['hour', 'minute', 'second'];
+
+const timeInputKey = (rowIndex, field, part) => `${rowIndex}:${field}:${part}`;
+
+const setTimeInputRef = (el, rowIndex, field, part) => {
+  const key = timeInputKey(rowIndex, field, part);
+  if (el) {
+    timeInputRefs.set(key, el);
+  } else {
+    timeInputRefs.delete(key);
+  }
+};
+
+const focusAndSelectTimePart = (event, rowIndex, field, part, preventDefault = true) => {
+  if (preventDefault) {
+    event.preventDefault();
+  }
+
+  nextTick(() => {
+    const input = timeInputRefs.get(timeInputKey(rowIndex, field, part)) || event.target;
+    input?.focus();
+    input?.select();
+  });
+};
+
+const focusNextTimePart = (rowIndex, field, part) => {
+  const partIndex = timePartOrder.indexOf(part);
+  const fieldIndex = timeFieldOrder.indexOf(field);
+  const nextPart = timePartOrder[partIndex + 1];
+  const nextField = nextPart ? field : timeFieldOrder[fieldIndex + 1];
+  const resolvedNextPart = nextPart || 'hour';
+
+  if (!nextField) return;
+
+  nextTick(() => {
+    const input = timeInputRefs.get(timeInputKey(rowIndex, nextField, resolvedNextPart));
+    input?.focus();
+    input?.select();
+  });
+};
+
+const getEditableTimePart = (value, part) => {
+  const [hour, minute, second] = splitEditableTime(value);
+  if (part === 'hour') return hour;
+  if (part === 'minute') return minute;
+  return second;
+};
+
+const isCompleteEditableTime = (value) => splitEditableTime(value).every((part) => /^\d{2}$/.test(part));
+
+const onEditableTimePartInput = (event, rowIndex, field, part) => {
+  const row = appointmentRows.value[rowIndex];
+  if (!row) return;
+
+  const digits = String(event.target.value || '').replace(/\D/g, '').slice(0, 2);
+  event.target.value = digits;
+
+  const [currentHour, currentMinute, currentSecond] = splitEditableTime(row[field]);
+  const hour = part === 'hour' ? digits : currentHour;
+  const minute = part === 'minute' ? digits : currentMinute;
+  const second = part === 'second' ? digits : currentSecond;
+  row[field] = `${hour}:${minute}:${second}`;
+  duplicateError.value = '';
+
+  if (digits.length === 2) {
+    if (isCompleteEditableTime(row.start_time) && isCompleteEditableTime(row.end_time)) {
+      validateAll();
+    }
+
+    focusNextTimePart(rowIndex, field, part);
+  }
+};
+
+const commitEditableTime = (rowIndex) => {
+  syncTimeFields(rowIndex);
+  validateAll();
+};
 
 const onTimeInput = (event, rowIndex, field) => {
   const row = appointmentRows.value[rowIndex];
@@ -557,6 +703,40 @@ defineExpose({ getFormData, isValid, validateAll, appointmentRows, isOpen, reset
 .time-input {
   width: 144px;
   padding: 0 14px;
+}
+
+.time-part-group {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #dbe7f4;
+  border-radius: 10px;
+  background: #f3f7fc;
+  padding: 0 10px;
+  color: #64748b;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.time-part-group:focus-within {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.14);
+  background: #fff;
+}
+
+.time-part-input {
+  width: 34px;
+  border: 0;
+  background: transparent;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+  outline: none;
+}
+
+.time-part-input::selection {
+  background: #bae6fd;
 }
 
 .time-separator {

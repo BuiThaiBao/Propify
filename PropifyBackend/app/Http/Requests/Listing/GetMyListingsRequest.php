@@ -15,7 +15,7 @@ final class GetMyListingsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['nullable', Rule::in(['DRAFT', 'PENDING', 'ACTIVE', 'EXPIRED', 'REJECTED', 'LOCKED'])],
+            'status' => ['nullable', Rule::in(['DRAFT', 'PENDING', 'ACTIVE', 'EXPIRED', 'REJECTED', 'LOCKED', 'UNLISTED'])],
             'demand_type' => ['nullable', Rule::in(['SALE', 'RENT'])],
             'keyword' => ['nullable', 'string', 'max:120'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],

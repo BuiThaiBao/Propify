@@ -11,6 +11,6 @@ final class ActiveListingState extends AbstractListingStatusState
 
     protected function allowedTransitions(): array
     {
-        return ['LOCKED', 'REJECTED'];
+        return ['LOCKED', 'REJECTED', 'UNLISTED'];
     }
 }

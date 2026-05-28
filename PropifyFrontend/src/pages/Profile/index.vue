@@ -348,7 +348,7 @@
           <table class="min-w-full text-sm">
             <thead class="bg-slate-50 text-left text-xs text-slate-500">
               <tr>
-                <th class="px-3 py-4 whitespace-nowrap">ID</th>
+                <th class="px-3 py-4 whitespace-nowrap col-sticky-id">ID</th>
                 <th class="px-3 py-4 whitespace-nowrap">Ảnh</th>
                 <th class="px-3 py-4 whitespace-nowrap">Mã tin đăng</th>
                 <th class="px-3 py-4 min-w-[200px]">Tin đăng</th>
@@ -358,8 +358,8 @@
                 <th class="px-3 py-4 whitespace-nowrap">Gói tin</th>
                 <th class="px-3 py-4 whitespace-nowrap">Xác thực</th>
                 <th class="px-3 py-4 text-center whitespace-nowrap">Hiển thị</th>
-                <th class="px-3 py-4 whitespace-nowrap">Trạng thái</th>
-                <th class="pl-3 pr-5 py-4 w-12 text-center"></th>
+                <th class="px-3 py-4 whitespace-nowrap col-sticky-status">Trạng thái</th>
+                <th class="pl-3 pr-5 py-4 w-12 text-center col-sticky-actions"></th>
               </tr>
             </thead>
             <tbody>
@@ -369,8 +369,8 @@
               <tr v-else-if="myListings.length === 0">
                 <td class="px-3 py-6 text-center text-slate-400" colspan="12">Bạn chưa có tin đăng nào.</td>
               </tr>
-              <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="router.push('/listings/' + item.id)">
-                <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap">{{ item.id }}</td>
+              <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="openListingEdit(item)">
+                <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap col-sticky-id">{{ item.id }}</td>
                 <td class="px-3 py-4 whitespace-nowrap">
                   <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-14 rounded-md object-cover" />
                   <div v-else class="h-12 w-14 rounded-md bg-slate-100"></div>
@@ -396,12 +396,12 @@
                     <span class="font-medium text-sm">{{ item.views ?? 0 }}</span>
                   </div>
                 </td>
-                <td class="px-3 py-4 whitespace-nowrap">
+                <td class="px-3 py-4 whitespace-nowrap col-sticky-status">
                   <span :class="['rounded-full px-2 py-1 text-xs font-medium', statusBadgeClass(item.status)]">
                     {{ statusLabel(item.status) }}
                   </span>
                 </td>
-                <td class="pl-3 pr-5 py-4 relative">
+                <td class="pl-3 pr-5 py-4 relative col-sticky-actions">
                   <button @click.stop="toggleDropdown(item.id, $event)" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center mx-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
                   </button>
@@ -409,14 +409,14 @@
                   <Teleport to="body">
                     <div v-if="openDropdownId === item.id" :style="{ top: dropdownStyle.top, left: dropdownStyle.left }" class="absolute w-[200px] bg-white border border-slate-100 shadow-xl rounded-xl py-2 z-[9999] text-left">
                       <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('edit', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
                         Sửa tin đăng
                       </button>
                       <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('upgrade', item)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                         Nâng cấp gói tin
                       </button>
-                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('verify', item)">
+                      <button v-if="!item.isVerified" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('verify', item)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
                         Xác thực BĐS
                       </button>
@@ -433,15 +433,24 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                         Đăng tin
                       </button>
-                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unpublish', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                      <button
+                        :disabled="item.status !== 'ACTIVE'"
+                        :class="[
+                          'w-full text-left px-4 py-2.5 text-[0.85rem] flex items-center gap-3 transition-colors',
+                          item.status === 'ACTIVE'
+                            ? 'text-slate-700 hover:bg-slate-50'
+                            : 'cursor-not-allowed text-slate-300 bg-slate-50'
+                        ]"
+                        @click.stop="handleDropdownAction('unpublish', item)"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                         Gỡ tin đăng
                       </button>
-                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('lock', item)">
+                      <button v-if="item.status !== 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('lock', item)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                         Khóa tin đăng
                       </button>
-                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unlock', item)">
+                      <button v-if="item.status === 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unlock', item)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
                         Mở khóa tin đăng
                       </button>
@@ -626,6 +635,18 @@
       @cancel="closeLockListingModal"
     />
 
+    <ConfirmActionModal
+      :open="unlistListingModalOpen"
+      title="Xác nhận gỡ tin"
+      :message="unlistListingModalMessage"
+      confirm-text="Xác nhận gỡ"
+      cancel-text="Hủy"
+      :loading="unlistingListing"
+      loading-text="Đang gỡ..."
+      @confirm="handleConfirmUnlistListing"
+      @cancel="closeUnlistListingModal"
+    />
+
     <!-- Package Upgrade Modal -->
     <PackageUpgradeModal
       :visible="upgradeModalVisible"
@@ -795,10 +816,16 @@ function toggleDropdown(id, event) {
 function closeDropdown() {
   openDropdownId.value = null;
 }
+
+function openListingEdit(item) {
+  if (!item?.id) return;
+  router.push('/listings/' + item.id + '/edit');
+}
+
 function handleDropdownAction(action, item) {
   closeDropdown();
   if (action === 'edit') {
-    router.push('/listings/' + item.id + '/edit');
+    openListingEdit(item);
   } else if (action === 'verify') {
     router.push({ path: '/listings/' + item.id + '/edit', query: { mode: 'verification' } });
   } else if (action === 'upgrade') {
@@ -810,6 +837,9 @@ function handleDropdownAction(action, item) {
     } else {
       alert('Chỉ có thể đăng tin nháp.');
     }
+  } else if (action === 'unpublish') {
+    if (item.status === 'ACTIVE') openUnlistListingModal(item);
+    else alert('Chỉ có thể gỡ tin đang đăng.');
   } else if (action === 'lock') {
     if (item.status === 'ACTIVE') openLockListingModal(item);
     else alert('Chỉ có thể khóa tin đang đăng.');
@@ -839,6 +869,7 @@ const statusCounts = reactive({
   DRAFT: 0,
   REJECTED: 0,
   LOCKED: 0,
+  UNLISTED: 0,
 });
 
 const statusTabs = computed(() => [
@@ -848,6 +879,7 @@ const statusTabs = computed(() => [
   { label: 'Tin nháp', value: 'DRAFT', colorClass: 'bg-slate-400', count: statusCounts.DRAFT },
   { label: 'Từ chối', value: 'REJECTED', colorClass: 'bg-rose-500', count: statusCounts.REJECTED },
   { label: 'Tin bị khóa', value: 'LOCKED', colorClass: 'bg-red-600', count: statusCounts.LOCKED },
+  { label: 'Đã gỡ', value: 'UNLISTED', colorClass: 'bg-slate-500', count: statusCounts.UNLISTED },
 ]);
 
 let searchTimeout = null;
@@ -861,6 +893,9 @@ watch(() => listingFilters.keyword, () => {
 const lockListingModalOpen = ref(false);
 const lockListingTarget = ref(null);
 const lockingListing = ref(false);
+const unlistListingModalOpen = ref(false);
+const unlistListingTarget = ref(null);
+const unlistingListing = ref(false);
 const listingActionMessage = ref('');
 const listingActionSuccess = ref(false);
 const favoritesLoaded = ref(false);
@@ -892,6 +927,7 @@ function statusLabel(status) {
     EXPIRED: 'Hết hạn',
     REJECTED: 'Từ chối',
     LOCKED: 'Tin bị khóa',
+    UNLISTED: 'Đã gỡ',
   };
   return map[status] || status;
 }
@@ -904,6 +940,7 @@ function statusBadgeClass(status) {
     EXPIRED: 'bg-slate-200 text-slate-600',
     REJECTED: 'bg-rose-100 text-rose-700',
     LOCKED: 'bg-red-100 text-red-700',
+    UNLISTED: 'bg-slate-100 text-slate-600',
   };
   return map[status] || 'bg-slate-100 text-slate-600';
 }
@@ -1020,6 +1057,7 @@ async function loadMyListings(page = 1) {
       statusCounts.DRAFT = meta.counts.DRAFT || 0;
       statusCounts.REJECTED = meta.counts.REJECTED || 0;
       statusCounts.LOCKED = meta.counts.LOCKED || 0;
+      statusCounts.UNLISTED = meta.counts.UNLISTED || 0;
     }
 
     listingsLoaded.value = true;
@@ -1075,6 +1113,51 @@ async function handleConfirmLockListing() {
     listingActionMessage.value = error?.response?.data?.message || 'Không thể khóa tin đăng. Vui lòng thử lại.';
   } finally {
     lockingListing.value = false;
+  }
+}
+
+const unlistListingModalMessage = computed(() => {
+  if (!unlistListingTarget.value) {
+    return 'Bạn có chắc chắn muốn gỡ tin này không?';
+  }
+
+  return `Bạn có chắc chắn muốn gỡ tin "${unlistListingTarget.value.title}" không? Tin sẽ không còn hiển thị công khai.`;
+});
+
+function openUnlistListingModal(item) {
+  unlistListingTarget.value = item;
+  unlistListingModalOpen.value = true;
+}
+
+function closeUnlistListingModal() {
+  if (unlistingListing.value) {
+    return;
+  }
+
+  unlistListingModalOpen.value = false;
+  unlistListingTarget.value = null;
+}
+
+async function handleConfirmUnlistListing() {
+  if (!unlistListingTarget.value) {
+    return;
+  }
+
+  unlistingListing.value = true;
+  listingActionMessage.value = '';
+
+  try {
+    await listingService.unlist(unlistListingTarget.value.id);
+    listingActionSuccess.value = true;
+    listingActionMessage.value = 'Gỡ tin đăng thành công.';
+    unlistListingModalOpen.value = false;
+    unlistListingTarget.value = null;
+    await loadMyListings(listingPagination.currentPage);
+  } catch (error) {
+    listingActionSuccess.value = false;
+    listingActionMessage.value = error?.response?.data?.message || 'Không thể gỡ tin đăng. Vui lòng thử lại.';
+  } finally {
+    unlistingListing.value = false;
   }
 }
 
@@ -1355,3 +1438,66 @@ async function handleChangePassword() {
   }
 }
 </script>
+
+<style scoped>
+.col-sticky-id,
+.col-sticky-status,
+.col-sticky-actions {
+  position: sticky !important;
+  z-index: 10;
+}
+
+.col-sticky-status,
+.col-sticky-actions {
+  box-shadow: inset 1px 0 0 0 #e2e8f0;
+}
+
+.col-sticky-id {
+  left: 0;
+  box-shadow: inset -1px 0 0 0 #e2e8f0, 3px 0 5px -2px rgba(0, 0, 0, 0.08);
+}
+
+thead tr th.col-sticky-id,
+thead tr th.col-sticky-status,
+thead tr th.col-sticky-actions {
+  background-color: #f8fafc !important;
+  z-index: 20;
+}
+
+tbody tr td.col-sticky-id,
+tbody tr td.col-sticky-status,
+tbody tr td.col-sticky-actions {
+  background-color: #ffffff;
+  transition: background-color 0.15s ease;
+}
+
+tbody tr:hover td.col-sticky-id,
+tbody tr:hover td.col-sticky-status,
+tbody tr:hover td.col-sticky-actions {
+  background-color: #f0f9ff !important;
+}
+
+.col-sticky-id {
+  width: 55px;
+  min-width: 55px;
+  max-width: 55px;
+}
+
+.col-sticky-actions {
+  right: 0px;
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+}
+
+.col-sticky-status {
+  right: 48px;
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
+  box-shadow: inset 1px 0 0 0 #e2e8f0, -3px 0 5px -2px rgba(0, 0, 0, 0.08);
+}
+thead tr th.col-sticky-status {
+  box-shadow: inset 1px 0 0 0 #e2e8f0, -3px 0 5px -2px rgba(0, 0, 0, 0.08);
+}
+</style>

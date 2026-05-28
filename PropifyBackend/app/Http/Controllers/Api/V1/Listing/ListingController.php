@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api\V1\Listing;
 use App\Helpers\ApiResponse;
 use App\Http\Requests\Listing\CreateListingRequest;
 use App\Http\Requests\Listing\GetMyListingsRequest;
+use App\Http\Requests\Listing\StoreListingReportRequest;
 use App\Http\Resources\ListingResource;
+use App\Services\Listing\Reports\ReportListingCommand;
 use App\Services\Listing\ListingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,6 +16,7 @@ final class ListingController
 {
     public function __construct(
         private readonly ListingService $listingService,
+        private readonly ReportListingCommand $reportListingCommand,
     ) {
     }
 
@@ -32,9 +35,10 @@ final class ListingController
     public function index(Request $request): JsonResponse
     {
         $perPage = (int) $request->input('per_page', 12);
+        $sortBy = $request->input('sort');
         $demandType = $request->input('demand_type');
         $keyword = $request->input('keyword');
-        $paginator = $this->listingService->getPublicListings($demandType, $keyword, $perPage);
+        $paginator = $this->listingService->getPublicListings($sortBy, $demandType, $keyword, $perPage);
 
         return ApiResponse::success(
             data: ListingResource::collection($paginator->items()),
@@ -103,6 +107,32 @@ final class ListingController
         return ApiResponse::success(
             data: new ListingResource($listing),
             message: 'Khoa tin dang thanh cong.'
+        );
+    }
+
+    public function unlist(Request $request, int $id): JsonResponse
+    {
+        $listing = $this->listingService->unlist($request->user(), $id);
+
+        return ApiResponse::success(
+            data: new ListingResource($listing),
+            message: 'Go tin dang thanh cong.'
+        );
+    }
+
+    public function report(StoreListingReportRequest $request, int $id): JsonResponse
+    {
+        $reports = $this->reportListingCommand->handle($request->user(), $id, [
+            ...$request->validated(),
+        ]);
+
+        return ApiResponse::created(
+            data: [
+                'ids' => $reports->pluck('id')->values(),
+                'count' => $reports->count(),
+                'status' => 'WARNING',
+            ],
+            message: 'Cảm ơn bạn đã phản hồi.'
         );
     }
 
