@@ -79,7 +79,18 @@
             </div>
 
             <!-- Contact form -->
-            <div class="section-label">Vui lòng cung cấp thông tin liên hệ của bạn</div>
+            <div class="contact-section-header">
+              <div class="section-label">Vui lòng cung cấp thông tin liên hệ của bạn</div>
+              <button
+                type="button"
+                class="autofill-btn"
+                :disabled="!canAutofillProfile"
+                @click="fillFromProfile"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536M4 20h4.586a1 1 0 00.707-.293L19.707 9.293a1 1 0 000-1.414l-3.586-3.586a1 1 0 00-1.414 0L4.293 14.707A1 1 0 004 15.414V20z"/></svg>
+                Dùng thông tin của tôi
+              </button>
+            </div>
             <div class="form-fields">
               <div class="input-group" :class="{ 'has-error': nameError }">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#94a3b8"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
@@ -93,7 +104,7 @@
               <p v-if="phoneError" class="field-error">{{ phoneError }}</p>
               <div class="input-group" :class="{ 'has-error': emailError }">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#94a3b8"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                <input v-model="form.email" type="email" placeholder="Email" @blur="validateEmail(true)" />
+                <input v-model="form.email" type="email" placeholder="Email *" @blur="validateEmail(true)" />
               </div>
               <p v-if="emailError" class="field-error">{{ emailError }}</p>
               <div class="input-group textarea-group">
@@ -166,6 +177,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import appointmentService from '@/services/appointmentService';
+import { useAuthStore } from '@/stores/auth';
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
@@ -173,6 +185,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'success']);
+const authStore = useAuthStore();
 
 const loading = ref(false);
 const errorMsg = ref('');
@@ -231,6 +244,20 @@ const selectedDateSlots = computed(() => {
   return allDates.value[selectedDateIndex.value]?.slots || [];
 });
 
+const profileContact = computed(() => {
+  const user = authStore.user || {};
+  return {
+    full_name: user.full_name || user.fullName || user.name || '',
+    phone: String(user.phone || user.phone_number || user.contact_phone || '').replace(/\D/g, '').slice(0, 10),
+    email: user.email || '',
+  };
+});
+
+const canAutofillProfile = computed(() => {
+  const profile = profileContact.value;
+  return Boolean(profile.full_name || profile.phone || profile.email);
+});
+
 function validateName() {
   nameError.value = form.value.full_name.trim() ? '' : 'Vui lòng nhập họ và tên.';
 }
@@ -259,10 +286,33 @@ function validateEmail(force = false) {
   if (!emailTouched.value && !force) return;
   const email = form.value.email.trim();
   if (!email) {
-    emailError.value = '';
+    emailError.value = 'Vui lòng nhập email.';
     return;
   }
   emailError.value = /^[^@\s]+@gmail\.com$/i.test(email) ? '' : 'Email phải có đuôi @gmail.com.';
+}
+
+function fillFromProfile() {
+  if (!canAutofillProfile.value) return;
+  const profile = profileContact.value;
+  form.value.full_name = profile.full_name || form.value.full_name;
+  form.value.phone = profile.phone || form.value.phone;
+  form.value.email = profile.email || form.value.email;
+  phoneTouched.value = true;
+  emailTouched.value = true;
+  validateName();
+  validatePhone(true);
+  validateEmail(true);
+}
+
+function getApiErrorMessage(err, fallback) {
+  const data = err.response?.data;
+  const errors = data?.errors;
+  if (errors && typeof errors === 'object') {
+    const firstFieldErrors = Object.values(errors).find((value) => Array.isArray(value) && value.length);
+    if (firstFieldErrors?.[0]) return firstFieldErrors[0];
+  }
+  return data?.message || fallback;
 }
 
 function scrollDates(dir) {
@@ -284,9 +334,11 @@ function formatTime(time) {
 
 const canSubmit = computed(() => {
   const phoneDigits = form.value.phone.replace(/\D/g, '');
+  const email = form.value.email.trim();
   return selectedSlotId.value
     && form.value.full_name.trim()
     && VIETNAM_PHONE_PATTERN.test(phoneDigits)
+    && /^[^@\s]+@gmail\.com$/i.test(email)
     && !nameError.value
     && !phoneError.value
     && !emailError.value;
@@ -306,7 +358,7 @@ async function fetchSlots() {
       errorMsg.value = 'Chưa có lịch hẹn nào cho bài đăng này.';
     }
   } catch (err) {
-    const msg = err.response?.data?.message || 'Không thể tải lịch hẹn.';
+    const msg = getApiErrorMessage(err, 'Không thể tải lịch hẹn.');
     errorMsg.value = msg;
   } finally {
     loading.value = false;
@@ -347,7 +399,7 @@ async function doSubmit() {
   } catch (err) {
     confirmVisible.value = false;
     resultSuccess.value = false;
-    resultMsg.value = err.response?.data?.message || 'Đặt lịch thất bại, vui lòng thử lại.';
+    resultMsg.value = getApiErrorMessage(err, 'Đặt lịch thất bại, vui lòng thử lại.');
     resultVisible.value = true;
   } finally {
     submitting.value = false;
@@ -445,6 +497,20 @@ watch(() => form.value.email, () => {
 .view-type-desc { font-size: 12px; color: #64748b; margin: 2px 0 0; }
 
 .section-label { font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 10px; }
+.contact-section-header {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  margin-bottom: 10px;
+}
+.contact-section-header .section-label { margin-bottom: 0; }
+.autofill-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 32px; padding: 7px 10px; border-radius: 8px;
+  border: 1px solid #bae6fd; background: #f0f9ff; color: #0284c7;
+  font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: all 0.2s;
+}
+.autofill-btn:hover:not(:disabled) { border-color: #38bdf8; background: #e0f2fe; }
+.autofill-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .date-selector { display: flex; align-items: center; gap: 6px; margin-bottom: 20px; }
 .date-nav-btn {
@@ -515,6 +581,10 @@ watch(() => form.value.email, () => {
 }
 .submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(14,165,233,0.4); }
 .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+@media (max-width: 480px) {
+  .autofill-btn { width: 100%; }
+}
 
 .popup-fade-enter-active, .popup-fade-leave-active { transition: opacity 0.25s; }
 .popup-fade-enter-from, .popup-fade-leave-to { opacity: 0; }
