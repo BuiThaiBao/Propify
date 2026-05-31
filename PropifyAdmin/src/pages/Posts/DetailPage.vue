@@ -22,6 +22,7 @@ import {
 } from 'lucide-vue-next'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 import { listingService } from '@/services/listingService'
+import { hydratePropertyAddress } from '@/utils/addressFormatter'
 
 const route = useRoute()
 const router = useRouter()
@@ -54,6 +55,13 @@ const LISTING_REJECT_REASONS = [
   'Nội dung mô tả sơ sài, thiếu thông tin bắt buộc.',
   'Thông tin liên hệ không hợp lệ.',
   'Tin đăng có dấu hiệu trùng lặp hoặc spam.',
+]
+const LISTING_LOCK_REASONS = [
+  'Tin đăng vi phạm quy định nội dung.',
+  'Tin đăng có dấu hiệu gian lận hoặc lừa đảo.',
+  'Tin đăng bị nhiều người dùng báo cáo.',
+  'Thông tin bất động sản không còn phù hợp để hiển thị.',
+  'Yêu cầu khóa tin từ bộ phận quản trị.',
 ]
 const VERIFICATION_REJECT_REASONS = [
   'Giấy tờ xác thực không rõ ràng hoặc bị che khuất thông tin.',
@@ -112,6 +120,7 @@ async function fetchDetail() {
   try {
     const res = await listingService.getListingDetail(route.params.id)
     listing.value = res.data?.data ?? null
+    await hydratePropertyAddress(listing.value?.property)
     if (!['SALE', 'RENT'].includes(listing.value?.demand_type)) {
       error.value = 'Trang chi tiết này hiện chỉ hỗ trợ tin mua bán và cho thuê.'
     }
@@ -218,20 +227,38 @@ function posterTypeLabel(value) {
 }
 
 function directionLabel(value) {
+  const normalized = String(value || '').trim().toUpperCase()
   return {
+    E: 'Đông',
     EAST: 'Đông',
+    W: 'Tây',
     WEST: 'Tây',
+    S: 'Nam',
     SOUTH: 'Nam',
+    N: 'Bắc',
     NORTH: 'Bắc',
+    NE: 'Đông Bắc',
     NORTHEAST: 'Đông Bắc',
     NORTH_EAST: 'Đông Bắc',
+    NW: 'Tây Bắc',
     NORTHWEST: 'Tây Bắc',
     NORTH_WEST: 'Tây Bắc',
+    SE: 'Đông Nam',
     SOUTHEAST: 'Đông Nam',
     SOUTH_EAST: 'Đông Nam',
+    SW: 'Tây Nam',
     SOUTHWEST: 'Tây Nam',
     SOUTH_WEST: 'Tây Nam',
-  }[value] || value || '--'
+  }[normalized] || value || '--'
+}
+
+function furnitureLabel(value) {
+  const normalized = String(value || '').trim().toUpperCase()
+  return {
+    NONE: 'Không có nội thất',
+    BASIC: 'Nội thất cơ bản',
+    FULL: 'Đầy đủ nội thất',
+  }[normalized] || value || '--'
 }
 
 function historyActionLabel(value) {
@@ -357,7 +384,7 @@ function openVerificationReject() {
 
 function submitReason() {
   const { type, status, selectedReason, reason } = reasonModal.value
-  const usesDropdown = type === 'verification' || status === 'REJECTED'
+  const usesDropdown = type === 'verification' || ['REJECTED', 'LOCKED'].includes(status)
   const finalReason = usesDropdown
     ? (selectedReason === REJECT_REASON_OTHER ? reason.trim() : selectedReason)
     : reason.trim()
@@ -378,15 +405,23 @@ function submitReason() {
   }
 
   reasonModal.value.open = false
+  if (status === 'LOCKED' && !finalReason) {
+    reasonModal.value.error = 'Vui lòng chọn hoặc nhập lý do khóa tin.'
+    return
+  }
+
   confirmStatusChange(status, finalReason || null)
 }
 
 function getReasonOptions() {
-  return reasonModal.value.type === 'verification' ? VERIFICATION_REJECT_REASONS : LISTING_REJECT_REASONS
+  if (reasonModal.value.type === 'verification') return VERIFICATION_REJECT_REASONS
+  return reasonModal.value.status === 'LOCKED' ? LISTING_LOCK_REASONS : LISTING_REJECT_REASONS
 }
 
 function getReasonLabel() {
-  if (!reasonModal.value.selectedReason) return 'Chọn lý do từ chối'
+  if (!reasonModal.value.selectedReason) {
+    return reasonModal.value.status === 'LOCKED' ? 'Chọn lý do khóa tin' : 'Chọn lý do từ chối'
+  }
   if (reasonModal.value.selectedReason === REJECT_REASON_OTHER) return 'Khác'
   return reasonModal.value.selectedReason
 }
@@ -599,7 +634,7 @@ onBeforeUnmount(() => {
             <div class="info-item"><span>Đường rộng</span><strong>{{ property.road_width ? `${property.road_width} m` : '--' }}</strong></div>
             <div class="info-item"><span>Hướng nhà</span><strong>{{ directionLabel(property.direction_code) }}</strong></div>
             <div class="info-item"><span>Hướng ban công</span><strong>{{ directionLabel(property.balcony_direction_code) }}</strong></div>
-            <div class="info-item"><span>Nội thất</span><strong>{{ property.furniture_status || '--' }}</strong></div>
+            <div class="info-item"><span>Nội thất</span><strong>{{ furnitureLabel(property.furniture_status) }}</strong></div>
             <div class="info-item"><span>Ban công</span><strong>{{ property.balconies ?? '--' }}</strong></div>
             <div class="info-item"><span>Thỏa thuận</span><strong>{{ property.is_negotiable ? 'Có' : 'Không' }}</strong></div>
           </div>
@@ -611,8 +646,8 @@ onBeforeUnmount(() => {
         <article class="detail-card">
           <h2><MapPin :size="16" /> Địa chỉ</h2>
           <div class="info-grid">
-            <div class="info-item"><span>Tỉnh/TP</span><strong>{{ property.province_code || '--' }}</strong></div>
-            <div class="info-item"><span>Phường/Xã</span><strong>{{ property.ward_code || '--' }}</strong></div>
+            <div class="info-item"><span>Tỉnh/TP</span><strong>{{ property.province_name || property.province_code || '--' }}</strong></div>
+            <div class="info-item"><span>Phường/Xã</span><strong>{{ property.ward_name || property.ward_code || '--' }}</strong></div>
             <div class="info-item"><span>Đường</span><strong>{{ property.street_code || '--' }}</strong></div>
             <div class="info-item wide"><span>Địa chỉ chi tiết</span><strong>{{ property.address_detail || '--' }}</strong></div>
           </div>
@@ -682,7 +717,7 @@ onBeforeUnmount(() => {
       <div class="modal-card">
         <h3>{{ reasonModal.title }}</h3>
         <div
-          v-if="reasonModal.type === 'verification' || reasonModal.status === 'REJECTED'"
+          v-if="reasonModal.type === 'verification' || ['REJECTED', 'LOCKED'].includes(reasonModal.status)"
           class="reason-dropdown"
         >
           <button
@@ -716,7 +751,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
         <textarea
-          v-if="reasonModal.status === 'LOCKED' || reasonModal.selectedReason === REJECT_REASON_OTHER"
+          v-if="reasonModal.selectedReason === REJECT_REASON_OTHER"
           v-model="reasonModal.reason"
           rows="4"
           placeholder="Nhập lý do..."

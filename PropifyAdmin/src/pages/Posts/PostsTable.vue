@@ -49,6 +49,13 @@ const REJECT_REASONS = [
   'Thông tin liên hệ không hợp lệ.',
   'Tin đăng có dấu hiệu trùng lặp hoặc spam.',
 ]
+const LOCK_REASONS = [
+  'Tin đăng vi phạm quy định nội dung.',
+  'Tin đăng có dấu hiệu gian lận hoặc lừa đảo.',
+  'Tin đăng bị nhiều người dùng báo cáo.',
+  'Thông tin bất động sản không còn phù hợp để hiển thị.',
+  'Yêu cầu khóa tin từ bộ phận quản trị.',
+]
 
 const normalizedPosts = computed(() => props.posts.map((post) => ({
   ...post,
@@ -266,9 +273,15 @@ function closeReasonModal() {
 }
 
 function getReasonLabel() {
-  if (!reasonModal.value.selectedReason) return 'Chọn lý do từ chối'
+  if (!reasonModal.value.selectedReason) {
+    return reasonModal.value.action?.status === 'LOCKED' ? 'Chọn lý do khóa tin' : 'Chọn lý do từ chối'
+  }
   if (reasonModal.value.selectedReason === REJECT_REASON_OTHER) return 'Khác'
   return reasonModal.value.selectedReason
+}
+
+function getReasonOptions() {
+  return reasonModal.value.action?.status === 'LOCKED' ? LOCK_REASONS : REJECT_REASONS
 }
 
 function selectRejectReason(reason) {
@@ -283,12 +296,15 @@ function selectRejectReason(reason) {
 function submitReasonModal() {
   const { post, action, selectedReason, reason } = reasonModal.value
   if (!post || !action) return
-  const finalReason = action.status === 'REJECTED'
+  const usesDropdown = ['REJECTED', 'LOCKED'].includes(action.status)
+  const finalReason = usesDropdown
     ? (selectedReason === REJECT_REASON_OTHER ? reason.trim() : selectedReason)
     : reason.trim()
 
-  if (action.status === 'REJECTED' && !finalReason) {
-    reasonModal.value.error = 'Vui lòng chọn hoặc nhập lý do từ chối.'
+  if (usesDropdown && !finalReason) {
+    reasonModal.value.error = action.status === 'LOCKED'
+      ? 'Vui lòng chọn hoặc nhập lý do khóa tin.'
+      : 'Vui lòng chọn hoặc nhập lý do từ chối.'
     return
   }
 
@@ -475,7 +491,7 @@ onBeforeUnmount(() => {
           {{ reasonModal.action?.status === 'LOCKED' ? 'Lý do khóa tin' : 'Lý do từ chối' }}
         </label>
         <div
-          v-if="reasonModal.action?.status === 'REJECTED'"
+          v-if="['REJECTED', 'LOCKED'].includes(reasonModal.action?.status)"
           class="reason-dropdown"
         >
           <button
@@ -489,7 +505,7 @@ onBeforeUnmount(() => {
           </button>
           <div v-if="reasonModal.reasonDropdownOpen" class="reason-dropdown-menu">
             <button
-              v-for="reason in REJECT_REASONS"
+              v-for="reason in getReasonOptions()"
               :key="reason"
               type="button"
               class="reason-dropdown-option"
@@ -509,7 +525,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
         <textarea
-          v-if="reasonModal.action?.status === 'LOCKED' || reasonModal.selectedReason === REJECT_REASON_OTHER"
+          v-if="reasonModal.selectedReason === REJECT_REASON_OTHER"
           id="status-reason-custom"
           v-model="reasonModal.reason"
           class="reason-textarea"
