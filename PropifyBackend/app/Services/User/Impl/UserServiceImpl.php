@@ -18,8 +18,8 @@ final class UserServiceImpl implements UserService
         private readonly UpdateUserProfileCommand $updateUserProfileCommand,
         private readonly ChangeUserPasswordCommand $changeUserPasswordCommand,
         private readonly AccountFacade $accountFacade,
-    ) {
-    }
+    ) {}
+
     public function getProfile(): User
     {
         /** @var User $viewer */
@@ -27,6 +27,7 @@ final class UserServiceImpl implements UserService
 
         return $this->accountFacade->getAccountOverview($viewer, (int) $viewer->id);
     }
+
     public function updateProfile(UpdateProfileDto $dto): User
     {
         /** @var User $user */
@@ -34,6 +35,7 @@ final class UserServiceImpl implements UserService
 
         return $this->updateUserProfileCommand->execute($user, $dto);
     }
+
     public function changePassword(ChangePasswordDto $dto): void
     {
         /** @var User $user */

@@ -14,7 +14,7 @@ final readonly class LoginCredentialsDto
     public static function fromRequest(FormRequest $request): self
     {
         $data = $request->validated();
-        
+
         return new self(
             email: $data['email'],
             password: $data['password'],

@@ -21,8 +21,7 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
 {
     public function __construct(
         private readonly AppointmentSlotRepository $appointmentSlotRepository
-    ) {
-    }
+    ) {}
 
     public function getSlotsByListing(GetAppointmentSlotsDto $dto): array
     {
@@ -34,7 +33,7 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
 
         // Kiểm tra Listing phải ACTIVE
         $listing = $slots->first()->listing;
-        if (!$listing || $listing->status !== 'ACTIVE') {
+        if (! $listing || $listing->status !== 'ACTIVE') {
             throw new BusinessException(ErrorCode::ListingNotActive);
         }
 
@@ -49,12 +48,12 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
             ->where('is_active', true)
             ->first();
 
-        if (!$slot) {
+        if (! $slot) {
             throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
         }
 
         // 1.1 Kiểm tra Listing phải ACTIVE
-        if (!$slot->listing || $slot->listing->status !== 'ACTIVE') {
+        if (! $slot->listing || $slot->listing->status !== 'ACTIVE') {
             throw new BusinessException(ErrorCode::ListingNotActive);
         }
 
@@ -78,7 +77,7 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
             ->where(function ($query) use ($dto) {
                 // Trùng khi: start_time mới < end_time cũ AND end_time mới > start_time cũ
                 $query->where('start_time', '<', $dto->newEndTime)
-                      ->where('end_time', '>', $dto->newStartTime);
+                    ->where('end_time', '>', $dto->newStartTime);
             })
             ->exists();
 
@@ -97,21 +96,21 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
 
         foreach ($pendingBookings as $booking) {
             $cancelNote = "[Tự động hủy] Chủ nhà đã thay đổi lịch hẹn từ ({$oldInfo}) sang ({$newInfo}).";
-            $existingNote = $booking->note ? $booking->note . ' | ' : '';
+            $existingNote = $booking->note ? $booking->note.' | ' : '';
 
             AppointmentBooking::query()
                 ->where('id', $booking->id)
                 ->update([
                     'status' => BookingStatus::CANCELLED_BY_POSTER->value,
-                    'note'   => $existingNote . $cancelNote,
+                    'note' => $existingNote.$cancelNote,
                 ]);
         }
 
         // 6. Cập nhật slot
         $slot->update([
             'day_of_week' => $dto->newDayOfWeek,
-            'start_time'  => $dto->newStartTime,
-            'end_time'    => $dto->newEndTime,
+            'start_time' => $dto->newStartTime,
+            'end_time' => $dto->newEndTime,
         ]);
 
         return $slot->fresh();
@@ -121,7 +120,7 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
      * Chuyển đổi danh sách slot (chứa day_of_week) thành danh sách ngày cụ thể
      * cho tuần hiện tại và tuần sau, gộp các khung giờ theo từng ngày.
      *
-     * @param  Collection<int, \App\Models\AppointmentSlot>  $slots
+     * @param  Collection<int, AppointmentSlot>  $slots
      * @return array<int, array{date: string, slots: array}>
      */
     private function buildDateSlots(Collection $slots): array
@@ -142,7 +141,7 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
             $dayOfWeek = (int) $date->dayOfWeekIso;
 
             // Bỏ qua nếu không có slot nào cho thứ này
-            if (!$slotsByDayOfWeek->has($dayOfWeek)) {
+            if (! $slotsByDayOfWeek->has($dayOfWeek)) {
                 continue;
             }
 
@@ -152,24 +151,26 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
             $formattedSlots = $daySlots->filter(function ($slot) use ($dateString, $today, $now) {
                 // Nếu là ngày hôm nay, chỉ hiển thị slot cách giờ hiện tại ít nhất 2 tiếng
                 if ($dateString === $today->toDateString()) {
-                    $slotStartTime = Carbon::parse($dateString . ' ' . $slot->start_time);
+                    $slotStartTime = Carbon::parse($dateString.' '.$slot->start_time);
+
                     return $now->diffInHours($slotStartTime, false) >= 2;
                 }
+
                 return true;
             })->map(function ($slot) {
                 return [
-                    'id'          => $slot->id,
+                    'id' => $slot->id,
                     'day_of_week' => $slot->day_of_week,
-                    'start_time'  => $slot->start_time,
-                    'end_time'    => $slot->end_time,
-                    'is_active'   => $slot->is_active,
+                    'start_time' => $slot->start_time,
+                    'end_time' => $slot->end_time,
+                    'is_active' => $slot->is_active,
                 ];
             })->values()->toArray();
 
             // Chỉ thêm ngày có ít nhất 1 slot hợp lệ
-            if (!empty($formattedSlots)) {
+            if (! empty($formattedSlots)) {
                 $result[] = [
-                    'date'  => $dateString,
+                    'date' => $dateString,
                     'slots' => $formattedSlots,
                 ];
             }
@@ -185,7 +186,7 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
             ->where('id', $dto->listingId)
             ->first();
 
-        if (!$listing) {
+        if (! $listing) {
             throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
         }
 
@@ -204,12 +205,12 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
         $createdSlots = [];
         foreach ($dto->slots as $slot) {
             $createdSlot = AppointmentSlot::create([
-                'listing_id'    => $dto->listingId,
-                'poster_id'     => $dto->posterId,
-                'day_of_week'   => $slot['day_of_week'],
-                'start_time'    => $slot['start_time'],
-                'end_time'      => $slot['end_time'],
-                'is_active'     => true,
+                'listing_id' => $dto->listingId,
+                'poster_id' => $dto->posterId,
+                'day_of_week' => $slot['day_of_week'],
+                'start_time' => $slot['start_time'],
+                'end_time' => $slot['end_time'],
+                'is_active' => true,
             ]);
 
             $createdSlots[] = $createdSlot;
@@ -224,7 +225,7 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
             ->where('id', $dto->listingId)
             ->first();
 
-        if (!$listing) {
+        if (! $listing) {
             throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
         }
 
@@ -282,7 +283,7 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
                 ->where(function ($query) use ($newSlot) {
                     // Kiểm tra trùng khung giờ: start < newEnd AND end > newStart
                     $query->where('start_time', '<', $newSlot['end_time'])
-                          ->where('end_time', '>', $newSlot['start_time']);
+                        ->where('end_time', '>', $newSlot['start_time']);
                 })
                 ->exists();
 
@@ -296,7 +297,7 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
     {
         $slot = AppointmentSlot::find($slotId);
 
-        if (!$slot) {
+        if (! $slot) {
             throw new BusinessException(ErrorCode::AppointmentSlotNotFound);
         }
 
@@ -306,5 +307,4 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
 
         return $slot->update(['is_active' => false]);
     }
-
 }

@@ -17,8 +17,7 @@ final class UpdateListingCommand
     public function __construct(
         private readonly ListingRepository $listingRepository,
         private readonly ListingStatusStateFactory $statusStateFactory,
-    ) {
-    }
+    ) {}
 
     public function handle(User $user, int $id, CreateListingDto $dto): Listing
     {
@@ -142,7 +141,7 @@ final class UpdateListingCommand
 
     private function replaceVerificationDocuments(Listing $listing, CreateListingDto $dto): void
     {
-        if (!$dto->requestVerification) {
+        if (! $dto->requestVerification) {
             return;
         }
 

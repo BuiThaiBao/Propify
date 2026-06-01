@@ -2,6 +2,4 @@
 
 namespace App\DTOs\Auth;
 
-interface AuthPayload
-{
-}
+interface AuthPayload {}

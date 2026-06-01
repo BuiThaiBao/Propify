@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { Ban, CheckCircle, Info, Lock, MoreHorizontal } from 'lucide-vue-next'
+import { Ban, CheckCircle, ChevronDown, Info, Lock, MoreHorizontal } from 'lucide-vue-next'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 
 const props = defineProps({
@@ -35,8 +35,27 @@ const reasonModal = ref({
   open: false,
   post: null,
   action: null,
+  selectedReason: '',
+  reasonDropdownOpen: false,
   reason: '',
+  error: '',
 })
+
+const REJECT_REASON_OTHER = '__OTHER__'
+const REJECT_REASONS = [
+  'Thông tin bài đăng không chính xác hoặc thiếu nhất quán.',
+  'Hình ảnh không rõ ràng hoặc không phù hợp với nội dung tin.',
+  'Nội dung mô tả sơ sài, thiếu thông tin bắt buộc.',
+  'Thông tin liên hệ không hợp lệ.',
+  'Tin đăng có dấu hiệu trùng lặp hoặc spam.',
+]
+const LOCK_REASONS = [
+  'Tin đăng vi phạm quy định nội dung.',
+  'Tin đăng có dấu hiệu gian lận hoặc lừa đảo.',
+  'Tin đăng bị nhiều người dùng báo cáo.',
+  'Thông tin bất động sản không còn phù hợp để hiển thị.',
+  'Yêu cầu khóa tin từ bộ phận quản trị.',
+]
 
 const normalizedPosts = computed(() => props.posts.map((post) => ({
   ...post,
@@ -225,7 +244,10 @@ function handleAction(post, action) {
       open: true,
       post,
       action,
+      selectedReason: '',
+      reasonDropdownOpen: false,
       reason: '',
+      error: '',
     }
     return
   }
@@ -243,18 +265,53 @@ function closeReasonModal() {
     open: false,
     post: null,
     action: null,
+    selectedReason: '',
+    reasonDropdownOpen: false,
     reason: '',
+    error: '',
+  }
+}
+
+function getReasonLabel() {
+  if (!reasonModal.value.selectedReason) {
+    return reasonModal.value.action?.status === 'LOCKED' ? 'Chọn lý do khóa tin' : 'Chọn lý do từ chối'
+  }
+  if (reasonModal.value.selectedReason === REJECT_REASON_OTHER) return 'Khác'
+  return reasonModal.value.selectedReason
+}
+
+function getReasonOptions() {
+  return reasonModal.value.action?.status === 'LOCKED' ? LOCK_REASONS : REJECT_REASONS
+}
+
+function selectRejectReason(reason) {
+  reasonModal.value.selectedReason = reason
+  reasonModal.value.reasonDropdownOpen = false
+  reasonModal.value.error = ''
+  if (reason !== REJECT_REASON_OTHER) {
+    reasonModal.value.reason = ''
   }
 }
 
 function submitReasonModal() {
-  const { post, action, reason } = reasonModal.value
+  const { post, action, selectedReason, reason } = reasonModal.value
   if (!post || !action) return
+  const usesDropdown = ['REJECTED', 'LOCKED'].includes(action.status)
+  const finalReason = usesDropdown
+    ? (selectedReason === REJECT_REASON_OTHER ? reason.trim() : selectedReason)
+    : reason.trim()
+
+  if (usesDropdown && !finalReason) {
+    reasonModal.value.error = action.status === 'LOCKED'
+      ? 'Vui lòng chọn hoặc nhập lý do khóa tin.'
+      : 'Vui lòng chọn hoặc nhập lý do từ chối.'
+    return
+  }
 
   emit('change-status', {
     id: post.id,
     status: action.status,
-    rejectionReason: reason.trim() || null,
+    rejectionReason: finalReason || null,
   })
   closeReasonModal()
 }
@@ -433,14 +490,49 @@ onBeforeUnmount(() => {
         <label class="reason-label" for="status-reason">
           {{ reasonModal.action?.status === 'LOCKED' ? 'Lý do khóa tin' : 'Lý do từ chối' }}
         </label>
+        <div
+          v-if="['REJECTED', 'LOCKED'].includes(reasonModal.action?.status)"
+          class="reason-dropdown"
+        >
+          <button
+            type="button"
+            class="reason-dropdown-trigger"
+            :class="{ placeholder: !reasonModal.selectedReason }"
+            @click="reasonModal.reasonDropdownOpen = !reasonModal.reasonDropdownOpen"
+          >
+            <span>{{ getReasonLabel() }}</span>
+            <ChevronDown :size="16" :class="{ open: reasonModal.reasonDropdownOpen }" />
+          </button>
+          <div v-if="reasonModal.reasonDropdownOpen" class="reason-dropdown-menu">
+            <button
+              v-for="reason in getReasonOptions()"
+              :key="reason"
+              type="button"
+              class="reason-dropdown-option"
+              :class="{ selected: reasonModal.selectedReason === reason }"
+              @click="selectRejectReason(reason)"
+            >
+              {{ reason }}
+            </button>
+            <button
+              type="button"
+              class="reason-dropdown-option"
+              :class="{ selected: reasonModal.selectedReason === REJECT_REASON_OTHER }"
+              @click="selectRejectReason(REJECT_REASON_OTHER)"
+            >
+              Khác
+            </button>
+          </div>
+        </div>
         <textarea
-          id="status-reason"
+          v-if="reasonModal.selectedReason === REJECT_REASON_OTHER"
+          id="status-reason-custom"
           v-model="reasonModal.reason"
           class="reason-textarea"
           rows="4"
           placeholder="Nhập lý do..."
-          autofocus
         ></textarea>
+        <p v-if="reasonModal.error" class="reason-error">{{ reasonModal.error }}</p>
         <div class="reason-actions">
           <button class="reason-btn secondary" type="button" @click="closeReasonModal">Hủy</button>
           <button class="reason-btn primary" type="button" @click="submitReasonModal">
@@ -746,8 +838,6 @@ thead .sticky-right {
 
 .reason-textarea {
   width: 100%;
-  resize: vertical;
-  min-height: 108px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   padding: 10px 12px;
@@ -756,9 +846,105 @@ thead .sticky-right {
   outline: none;
 }
 
+.reason-dropdown {
+  position: relative;
+}
+
+.reason-dropdown-trigger {
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.reason-dropdown-trigger.placeholder {
+  color: #64748b;
+}
+
+.reason-dropdown-trigger:hover,
+.reason-dropdown-trigger:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  outline: none;
+}
+
+.reason-dropdown-trigger svg {
+  flex-shrink: 0;
+  color: #64748b;
+  transition: transform 0.2s;
+}
+
+.reason-dropdown-trigger svg.open {
+  transform: rotate(180deg);
+}
+
+.reason-dropdown-menu {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  max-height: 230px;
+  overflow-y: auto;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
+  padding: 6px;
+}
+
+.reason-dropdown-option {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #0f172a;
+  padding: 9px 10px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reason-dropdown-option:hover {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.reason-dropdown-option.selected {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-weight: 700;
+}
+
+.reason-textarea {
+  resize: vertical;
+  min-height: 108px;
+  margin-top: 10px;
+}
+
 .reason-textarea:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.reason-error {
+  margin: 8px 0 0;
+  color: #dc2626;
+  font-size: 13px;
 }
 
 .reason-actions {

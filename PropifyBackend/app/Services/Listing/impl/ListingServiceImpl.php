@@ -6,7 +6,6 @@ use App\DTOs\Listing\CreateListingDto;
 use App\DTOs\Listing\UpgradeContext;
 use App\Enums\ErrorCode;
 use App\Events\Listing\ListingSaved;
-use App\Events\Listing\ListingPackageUpgraded;
 use App\Exceptions\BusinessException;
 use App\Models\Listing;
 use App\Models\ListingStatusHistory;
@@ -21,14 +20,13 @@ use App\Services\Listing\Commands\UnlistListingCommand;
 use App\Services\Listing\Commands\UpdateListingCommand;
 use App\Services\Listing\ListingService;
 use App\Services\Listing\Sorting\ListingSortingStrategyFactory;
-use App\Services\Listing\Upgrade\CreateUpgradePaymentCommand;
-use App\Services\Listing\Upgrade\UpgradeListingCommand;
 use App\Services\Listing\State\ListingStatusStateFactory;
-use App\Services\Listing\Upgrade\Benefits\PackageBenefitStrategyFactory;
-use App\Services\Listing\Upgrade\Expiry\ExpiryCalculationStrategyFactory;
+use App\Services\Listing\Upgrade\CreateUpgradePaymentCommand;
 use App\Services\Listing\Upgrade\UpgradeEligibilityPolicy;
+use App\Services\Listing\Upgrade\UpgradeListingCommand;
 use App\Services\Listing\Verification\ListingVerificationService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -46,8 +44,7 @@ final class ListingServiceImpl implements ListingService
         private readonly UpgradeListingCommand $upgradeListingCommand,
         private readonly CreateUpgradePaymentCommand $createUpgradePaymentCommand,
         private readonly ListingVerificationService $listingVerificationService,
-    ) {
-    }
+    ) {}
 
     public function create(User $user, CreateListingDto $dto): Listing
     {
@@ -74,6 +71,17 @@ final class ListingServiceImpl implements ListingService
         $listing = $this->listingRepository->findById($id);
 
         if ($listing->status !== 'ACTIVE') {
+            throw new BusinessException(ErrorCode::ListingNotFound);
+        }
+
+        return $listing;
+    }
+
+    public function getListingDetailsForAdmin(int $id): Listing
+    {
+        $listing = $this->listingRepository->findById($id);
+
+        if ($listing->status === 'DRAFT') {
             throw new BusinessException(ErrorCode::ListingNotFound);
         }
 
@@ -113,7 +121,7 @@ final class ListingServiceImpl implements ListingService
                 throw new BusinessException(ErrorCode::ListingAlreadyLocked);
             }
 
-            if (!$this->statusStateFactory->make($listing->status)->canTransitionTo('LOCKED')) {
+            if (! $this->statusStateFactory->make($listing->status)->canTransitionTo('LOCKED')) {
                 throw new BusinessException(ErrorCode::ListingCannotBeLocked);
             }
 
@@ -149,26 +157,74 @@ final class ListingServiceImpl implements ListingService
         return $updated;
     }
 
-    public function getPublicListings(?string $sortBy, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
-    {
+    public function getPublicListings(
+        ?string $sortBy,
+        ?string $demandType,
+        ?string $keyword,
+        int $perPage,
+        ?string $posterType = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        ?float $minArea = null,
+        ?float $maxArea = null
+    ): LengthAwarePaginator {
         $strategy = ListingSortingStrategyFactory::make($sortBy);
         $page = request()->input('page', 1);
-        $cacheKey = 'listings:public:' . md5(serialize([
+        $cacheKey = 'listings:public:'.md5(serialize([
             'sort' => $sortBy,
             'demand_type' => $demandType,
-            'keyword'     => $keyword,
-            'per_page'    => $perPage,
-            'page'        => $page,
+            'keyword' => $keyword,
+            'per_page' => $perPage,
+            'page' => $page,
+            'poster_type' => $posterType,
+            'min_price' => $minPrice,
+            'max_price' => $maxPrice,
+            'min_area' => $minArea,
+            'max_area' => $maxArea,
         ]));
 
-        return Cache::tags(['listings:public'])->remember($cacheKey, 300, function () use ($strategy, $demandType, $keyword, $perPage) {
-            return $this->listingRepository->paginatePublic($strategy, $demandType, $keyword, $perPage);
+        return Cache::tags(['listings:public'])->remember($cacheKey, 300, function () use (
+            $strategy, $demandType, $keyword, $perPage, $posterType, $minPrice, $maxPrice, $minArea, $maxArea
+        ) {
+            return $this->listingRepository->paginatePublic(
+                $strategy, $demandType, $keyword, $perPage, $posterType, $minPrice, $maxPrice, $minArea, $maxArea
+            );
         });
     }
 
     public function getAllForAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
     {
         return $this->listingRepository->paginateAdmin($status, $demandType, $keyword, $perPage);
+    }
+
+    public function getMapListings(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $posterType = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        ?float $minArea = null,
+        ?float $maxArea = null
+    ): Collection {
+        $cacheKey = 'listings:public:map:'.md5(serialize([
+            'demand_type' => $demandType,
+            'keyword' => $keyword,
+            'poster_type' => $posterType,
+            'min_price' => $minPrice,
+            'max_price' => $maxPrice,
+            'min_area' => $minArea,
+            'max_area' => $maxArea,
+        ]));
+
+        return Cache::tags(['listings:public'])->remember($cacheKey, 300, fn () => $this->listingRepository->getMapListings(
+            demandType: $demandType,
+            keyword: $keyword,
+            posterType: $posterType,
+            minPrice: $minPrice,
+            maxPrice: $maxPrice,
+            minArea: $minArea,
+            maxArea: $maxArea,
+        ));
     }
 
     public function changeStatusForAdmin(int $listingId, string $status, ?string $rejectionReason = null, ?int $adminUserId = null): Listing
@@ -183,7 +239,7 @@ final class ListingServiceImpl implements ListingService
 
         $listing = DB::transaction(function () use ($listingId, $status, $rejectionReason, $adminUserId) {
             $listing = Listing::query()->lockForUpdate()->find($listingId);
-            if (!$listing) {
+            if (! $listing) {
                 throw new BusinessException(ErrorCode::ListingNotFound);
             }
             $this->statusStateFactory->assertCanTransition($listing->status, $status);
@@ -237,6 +293,7 @@ final class ListingServiceImpl implements ListingService
             : $this->listingVerificationService->rejectVerification($listingId, $adminUserId, (string) $reason);
 
         Cache::tags(['listings:public'])->flush();
+
         return $listing;
     }
 
@@ -277,13 +334,13 @@ final class ListingServiceImpl implements ListingService
     {
         $listing = Listing::find($listingId);
 
-        if (!$listing) {
+        if (! $listing) {
             throw new BusinessException(ErrorCode::ListingNotFound);
         }
 
         $newPackage = Package::find($packageId);
 
-        if (!$newPackage) {
+        if (! $newPackage) {
             throw new BusinessException(ErrorCode::PackageNotFound);
         }
 
@@ -292,7 +349,7 @@ final class ListingServiceImpl implements ListingService
             ->where('is_active', true)
             ->first();
 
-        if (!$pricing) {
+        if (! $pricing) {
             throw new BusinessException(ErrorCode::PackagePricingNotFound);
         }
 
@@ -367,17 +424,17 @@ final class ListingServiceImpl implements ListingService
         $score = 0;
 
         // Title rõ ràng (>= 10 ký tự)
-        if (!empty($dto->title) && mb_strlen($dto->title) >= 10) {
+        if (! empty($dto->title) && mb_strlen($dto->title) >= 10) {
             $score += 10;
         }
 
         // Có description (>= 20 ký tự)
-        if (!empty($dto->description) && mb_strlen($dto->description) >= 20) {
+        if (! empty($dto->description) && mb_strlen($dto->description) >= 20) {
             $score += 10;
         }
 
         // Có ảnh
-        if (!empty($dto->images) && count($dto->images) > 0) {
+        if (! empty($dto->images) && count($dto->images) > 0) {
             $score += 20;
         }
 
@@ -389,7 +446,7 @@ final class ListingServiceImpl implements ListingService
         // Thông tin đầy đủ: giá > 0, diện tích > 0, có địa chỉ
         $hasFullInfo = ($dto->price > 0)
             && ($dto->area > 0)
-            && (!empty($dto->addressDetail) || !empty($dto->projectName));
+            && (! empty($dto->addressDetail) || ! empty($dto->projectName));
         if ($hasFullInfo) {
             $score += 20;
         }

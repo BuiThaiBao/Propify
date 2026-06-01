@@ -9,6 +9,8 @@ use App\Models\User;
 interface UserService
 {
     public function getProfile(): User;
+
     public function updateProfile(UpdateProfileDto $dto): User;
+
     public function changePassword(ChangePasswordDto $dto): void;
 }

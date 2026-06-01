@@ -44,7 +44,7 @@ final class ChangeUserPasswordCommandTest extends TestCase
             }))
             ->andReturn($user);
 
-        $command = new ChangeUserPasswordCommand($repository, new PasswordValidationChain());
+        $command = new ChangeUserPasswordCommand($repository, new PasswordValidationChain);
         $command->execute($user, new ChangePasswordDto('OldPassword123', 'NewPassword123'));
 
         $auditLog = AuditLog::query()->firstOrFail();
@@ -74,7 +74,7 @@ final class ChangeUserPasswordCommandTest extends TestCase
         $repository = Mockery::mock(UserRepository::class);
         $repository->shouldNotReceive('update');
 
-        $command = new ChangeUserPasswordCommand($repository, new PasswordValidationChain());
+        $command = new ChangeUserPasswordCommand($repository, new PasswordValidationChain);
 
         try {
             $command->execute($user, new ChangePasswordDto('WrongPassword123', 'NewPassword123'));

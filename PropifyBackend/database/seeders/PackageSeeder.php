@@ -12,43 +12,43 @@ class PackageSeeder extends Seeder
     {
         $packages = [
             [
-                'name'        => 'Cơ bản',
-                'slug'        => 'basic',
-                'price'       => 0, // Not applicable
-                'priority'    => 1,
-                'multiplier'  => 1.0,
+                'name' => 'Cơ bản',
+                'slug' => 'basic',
+                'price' => 0, // Not applicable
+                'priority' => 1,
+                'multiplier' => 1.0,
                 'daily_quota' => 100,
-                'decay_rate'  => 0.05,
+                'decay_rate' => 0.05,
                 'benefit_strategy_key' => 'data_driven',
-                'badge'       => null,
-                'color'       => null,
-                'is_active'   => true,
+                'badge' => null,
+                'color' => null,
+                'is_active' => true,
             ],
             [
-                'name'        => 'Silver',
-                'slug'        => 'silver',
-                'price'       => 3000,
-                'priority'    => 2,
-                'multiplier'  => 1.2,
+                'name' => 'Silver',
+                'slug' => 'silver',
+                'price' => 3000,
+                'priority' => 2,
+                'multiplier' => 1.2,
                 'daily_quota' => 200,
-                'decay_rate'  => 0.02,
+                'decay_rate' => 0.02,
                 'benefit_strategy_key' => 'data_driven',
-                'badge'       => 'Bạc',
-                'color'       => '#C0C0C0',
-                'is_active'   => true,
+                'badge' => 'Bạc',
+                'color' => '#C0C0C0',
+                'is_active' => true,
             ],
             [
-                'name'        => 'Gold',
-                'slug'        => 'gold',
-                'price'       => 5000,
-                'priority'    => 3,
-                'multiplier'  => 1.5,
+                'name' => 'Gold',
+                'slug' => 'gold',
+                'price' => 5000,
+                'priority' => 3,
+                'multiplier' => 1.5,
                 'daily_quota' => 500,
-                'decay_rate'  => 0.01,
+                'decay_rate' => 0.01,
                 'benefit_strategy_key' => 'data_driven',
-                'badge'       => 'Vàng',
-                'color'       => '#FFD700',
-                'is_active'   => true,
+                'badge' => 'Vàng',
+                'color' => '#FFD700',
+                'is_active' => true,
             ],
         ];
 
@@ -66,12 +66,12 @@ class PackageSeeder extends Seeder
                     PackagePricing::updateOrCreate(
                         [
                             'package_id' => $package->id,
-                            'duration_days' => $days
+                            'duration_days' => $days,
                         ],
                         [
                             'price' => $package->price * $days,
-                            'label' => $days . ' ngày',
-                            'is_active' => true
+                            'label' => $days.' ngày',
+                            'is_active' => true,
                         ]
                     );
                 }

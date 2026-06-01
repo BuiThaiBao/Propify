@@ -16,7 +16,7 @@ final class RegistrationValidationChain
 
     public function validate(RegisterUserDto $dto): void
     {
-        if (!filter_var($dto->email, FILTER_VALIDATE_EMAIL)) {
+        if (! filter_var($dto->email, FILTER_VALIDATE_EMAIL)) {
             throw new BusinessException(ErrorCode::ValidationError, 'Email không hợp lệ.');
         }
 

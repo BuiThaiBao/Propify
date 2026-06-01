@@ -32,7 +32,7 @@ final class RegisterRequest extends FormRequest
                     if ($user && $user->status !== UserStatus::Pending) {
                         $fail('Địa chỉ email này đã được đăng ký.');
                     }
-                }
+                },
             ],
             'password' => [
                 'required',

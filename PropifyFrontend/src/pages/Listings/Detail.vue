@@ -1,5 +1,5 @@
 <template>
-  <main :class="previewMode ? 'min-h-0 bg-[#f6f9fc] pb-6 pt-0' : 'min-h-screen bg-[#f6f9fc] pb-14 pt-24'">
+  <main :class="(previewMode || isEmbedded) ? 'min-h-0 bg-[#f6f9fc] pb-6 pt-0' : 'min-h-screen bg-[#f6f9fc] pb-14 pt-24'">
     <div class="toast-stack">
       <div
         v-for="toast in toasts"
@@ -22,7 +22,7 @@
     <div v-else-if="listing" :class="previewMode ? 'mx-auto w-full max-w-[1280px] px-0' : 'mx-auto w-full max-w-[1280px] px-4 lg:px-8'">
       <div class="mb-5 flex items-start justify-between gap-4">
         <div class="min-w-0">
-          <p class="flex items-center gap-2 text-xs text-slate-400">
+          <p v-if="!isEmbedded" class="flex items-center gap-2 text-xs text-slate-400">
             <button type="button" class="flex items-center gap-1 hover:text-sky-500" @click="router.back()">
               <span class="text-base leading-none">←</span>
               <span>Danh sách</span>
@@ -40,8 +40,13 @@
           </p>
         </div>
         <div class="hidden shrink-0 items-center gap-2 sm:flex">
-          <button class="detail-icon-button" aria-label="Yêu thích">
-            <img :src="favoriteIcon" class="h-4 w-4" alt="" />
+          <button
+            class="detail-icon-button"
+            :class="{ 'is-active': isFavorite(listing) }"
+            aria-label="Yêu thích"
+            @click="toggleFavorite(listing)"
+          >
+            <Heart class="h-4 w-4" :fill="isFavorite(listing) ? 'currentColor' : 'none'" />
           </button>
           <button class="detail-icon-button" aria-label="Chia sẻ">
             <img :src="shareIcon" class="h-4 w-4" alt="" />
@@ -86,7 +91,72 @@
             <p class="whitespace-pre-wrap text-sm leading-6 text-slate-600">{{ listing.description }}</p>
           </section>
 
-          <section v-if="detailRowPairs.length" class="detail-card">
+          <!-- Contact & Price details immediately after description when embedded from map -->
+          <section v-if="isEmbedded" class="mt-[18px] rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+            <div class="border-b border-slate-100 pb-4">
+              <h2 class="text-[26px] font-extrabold text-sky-500">
+                {{ formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT'" class="text-sm font-medium text-slate-500">/tháng</span>
+              </h2>
+              <div class="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                <span class="flex items-center gap-1.5">
+                  <img :src="bedIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                  {{ listing.property?.bedrooms || 0 }} PN
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <img :src="bathIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                  {{ listing.property?.bathrooms || 0 }} WC
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <img :src="areaIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                  {{ listing.property?.area || 0 }} m²
+                </span>
+              </div>
+            </div>
+
+            <div class="py-4 text-xs">
+              <p class="mb-3 font-semibold text-slate-800">Thông tin của bất động sản</p>
+              <div class="space-y-3">
+                <div class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
+                  <span class="whitespace-nowrap text-slate-400">Loại BĐS</span>
+                  <span class="truncate text-right text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
+                </div>
+                <div class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
+                  <span class="whitespace-nowrap text-slate-400">Địa chỉ</span>
+                  <span class="truncate text-right text-sky-500">{{ fullAddress }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 font-bold text-white">
+                {{ (listing.owner?.full_name || listing.property?.contact_name || 'U').charAt(0).toUpperCase() }}
+              </div>
+              <div class="min-w-0">
+                <p class="truncate text-sm font-semibold text-slate-800">{{ listing.property?.contact_name || listing.owner?.full_name }}</p>
+                <p class="text-xs text-slate-500">{{ listing.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới' }}</p>
+              </div>
+              <button class="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-sky-100" aria-label="Nhắn tin chủ nhà">
+                <img :src="chatIcon" class="h-4 w-4" alt="" />
+              </button>
+            </div>
+
+            <div class="space-y-2">
+              <a v-if="contactPhone" :href="`tel:${contactPhone}`" class="flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600">
+                <img :src="callIcon" class="detail-action-icon mr-2 h-3.5 w-3.5" alt="" />
+                Liên hệ chủ nhà
+              </a>
+              <button v-if="!previewMode" class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600" @click="showAppointmentPopup = true">
+                <img :src="calendarIcon" class="mr-2 h-3.5 w-3.5" alt="" />
+                Đặt lịch xem nhà
+              </button>
+              <button class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600">
+                <img :src="messagesIcon" class="mr-2 h-3.5 w-3.5" alt="" />
+                Nhắn tin
+              </button>
+            </div>
+          </section>
+
+          <section class="detail-card">
             <h2 class="detail-title">
               <img :src="detailInfoIcon" class="detail-title-icon" alt="" />
               Thông tin chi tiết
@@ -176,7 +246,7 @@
         </div>
 
         <aside class="space-y-5 lg:sticky lg:top-24">
-          <section class="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+          <section v-if="!isEmbedded" class="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
             <div class="border-b border-slate-100 pb-4">
               <h2 class="text-[26px] font-extrabold text-sky-500">
                 {{ formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT'" class="text-sm font-medium text-slate-500">/tháng</span>
@@ -275,11 +345,33 @@
       @close="showAppointmentPopup = false"
       @success="showAppointmentPopup = false"
     />
+
+    <!-- Floating Save Listing Button -->
+    <div
+      v-if="listing && !loading"
+      @click="toggleFavorite(listing)"
+      class="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white border border-r-0 border-slate-200 shadow-md rounded-l-xl py-3 px-2.5 w-14 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 active:scale-[0.95] transition-all group"
+    >
+      <Heart
+        class="h-5 w-5 text-slate-400 group-hover:text-slate-600 transition-colors"
+        :class="{ 'text-red-500 fill-red-500': isFavorite(listing) }"
+        :fill="isFavorite(listing) ? 'currentColor' : 'none'"
+      />
+      <span
+        class="text-[10px] mt-1 font-semibold text-slate-500 text-center select-none"
+        :class="{ 'text-red-500': isFavorite(listing) }"
+      >
+        Lưu tin
+      </span>
+    </div>
   </main>
 </template>
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { useFavoriteListings } from '@/composables/useFavoriteListings';
+import { Heart } from 'lucide-vue-next';
 import listingService from '@/services/listingService';
 import AppointmentBookingPopup from '@/components/appointments/AppointmentBookingPopup.vue';
 import { buildPropertyAddress, hydratePropertyAddress } from '@/utils/addressFormatter';
@@ -313,6 +405,8 @@ import floorIcon from '@/assets/images/details/sotang.png';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
+const { isFavorite, toggleFavorite, loadFavorites } = useFavoriteListings();
 
 const props = defineProps({
   previewMode: {
@@ -325,6 +419,7 @@ const props = defineProps({
   },
 });
 
+const isEmbedded = ref(false);
 const loading = ref(!props.previewMode);
 const error = ref('');
 const listing = ref(props.previewListing || {});
@@ -983,6 +1078,7 @@ function initMap() {
 
 
 onMounted(() => {
+  isEmbedded.value = window.self !== window.top;
   if (props.previewMode) {
     loading.value = false;
     if (hasLatLng.value) {
@@ -992,7 +1088,17 @@ onMounted(() => {
   }
 
   loadListing();
+  loadFavorites();
 });
+
+watch(
+  () => authStore.isAuthenticated,
+  () => {
+    if (!props.previewMode) {
+      loadFavorites();
+    }
+  }
+);
 
 onUnmounted(() => {
   if (map) {
@@ -1090,6 +1196,30 @@ onUnmounted(() => {
   border-color: #bae6fd;
   box-shadow: 0 8px 18px rgba(14, 165, 233, 0.12);
   transform: translateY(-1px);
+}
+
+.detail-icon-button.is-active {
+  border-color: #fecdd3;
+  background-color: #fff1f2;
+  color: #f43f5e;
+}
+
+.detail-icon-button.is-active:hover {
+  border-color: #fda4af;
+  background-color: #ffe4e6;
+  box-shadow: 0 8px 18px rgba(244, 63, 94, 0.15);
+}
+
+.detail-icon-button.is-active {
+  border-color: #fecdd3;
+  background-color: #fff1f2;
+  color: #f43f5e;
+}
+
+.detail-icon-button.is-active:hover {
+  border-color: #fda4af;
+  background-color: #ffe4e6;
+  box-shadow: 0 8px 18px rgba(244, 63, 94, 0.15);
 }
 
 .detail-action-icon {

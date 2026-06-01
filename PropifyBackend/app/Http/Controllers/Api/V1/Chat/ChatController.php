@@ -5,10 +5,10 @@ namespace App\Http\Controllers\Api\V1\Chat;
 use App\DTOs\Chat\GetOrCreateConversationDto;
 use App\DTOs\Chat\SendMessageDto;
 use App\Helpers\ApiResponse;
-use App\Http\Resources\ConversationResource;
-use App\Http\Resources\MessageResource;
 use App\Http\Requests\Chat\GetOrCreateConversationRequest;
 use App\Http\Requests\Chat\SendMessageRequest;
+use App\Http\Resources\ConversationResource;
+use App\Http\Resources\MessageResource;
 use App\Services\Chat\ChatService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,8 +21,7 @@ final class ChatController
 {
     public function __construct(
         private readonly ChatService $chatService,
-    ) {
-    }
+    ) {}
 
     /**
      * GET /v1/chat/conversations
@@ -68,7 +67,7 @@ final class ChatController
         );
 
         // Tự động đánh dấu đã đọc khi load trang đầu tiên (không có cursor)
-        if (!$cursor) {
+        if (! $cursor) {
             $this->chatService->markAsRead($conversationId, auth()->id());
         }
 
@@ -76,8 +75,8 @@ final class ChatController
             data: MessageResource::collection($paginator->items()),
             message: 'Danh sách tin nhắn',
             meta: [
-                'next_cursor'   => $paginator->nextCursor()?->encode(),
-                'has_more'      => $paginator->hasMorePages(),
+                'next_cursor' => $paginator->nextCursor()?->encode(),
+                'has_more' => $paginator->hasMorePages(),
             ],
         );
     }

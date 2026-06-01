@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Cloudinary;
 
 use App\Helpers\ApiResponse;
+use App\Models\User;
 use App\Services\Media\UploadSignatureAdapter;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Http\JsonResponse;
@@ -24,8 +25,7 @@ final class CloudinaryController
     public function __construct(
         private readonly UploadSignatureAdapter $uploadSignatureAdapter,
         private readonly AuthFactory $authFactory
-    ) {
-    }
+    ) {}
 
     /**
      * Tạo upload signature.
@@ -40,12 +40,12 @@ final class CloudinaryController
 
         $uploadType = $request->query('type', 'avatar');
 
-        /** @var \App\Models\User $user */
-        $user   = $this->authFactory->guard('api')->user();
+        /** @var User $user */
+        $user = $this->authFactory->guard('api')->user();
         $folder = match ($uploadType) {
-            'avatar'  => 'propify/avatars',
+            'avatar' => 'propify/avatars',
             'listing' => 'propify/listings',
-            default   => 'propify/avatars',
+            default => 'propify/avatars',
         };
 
         $signatureData = $this->uploadSignatureAdapter->generateSignature($folder, $uploadType);

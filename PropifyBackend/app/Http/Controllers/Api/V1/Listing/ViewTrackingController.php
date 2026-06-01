@@ -31,33 +31,33 @@ final class ViewTrackingController
             // Token invalid/expired → treat as guest
         }
 
-        $ip        = $request->ip();
+        $ip = $request->ip();
         $userAgent = $request->userAgent() ?? '';
         $anonCookie = $request->cookie('_pv_anon') ?? $request->header('X-Anon-Id');
 
         try {
             $result = $this->viewTrackingService->trackView(
-                listingId:  $id,
-                userId:     $userId,
-                ip:         $ip,
-                userAgent:  $userAgent,
+                listingId: $id,
+                userId: $userId,
+                ip: $ip,
+                userAgent: $userAgent,
                 anonCookie: $anonCookie,
             );
 
             return ApiResponse::success(
                 data: ['counted' => $result['counted']],
                 message: match ($result['reason']) {
-                    'view_counted'   => 'View counted',
+                    'view_counted' => 'View counted',
                     'duplicated_view' => 'View already counted',
-                    'bot_detected'   => 'Request rejected',
+                    'bot_detected' => 'Request rejected',
                     'invalid_listing' => 'Listing not found or inactive',
-                    default          => $result['reason'],
+                    default => $result['reason'],
                 },
             );
         } catch (\Throwable $e) {
             Log::error('ViewTracking: unexpected error', [
                 'listing_id' => $id,
-                'error'      => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
 
             // Fail silently — view tracking should never break UX

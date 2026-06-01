@@ -8,6 +8,5 @@ final readonly class SocialAuthPayload implements AuthPayload
 {
     public function __construct(
         public SocialUserAdapter $socialUser,
-    ) {
-    }
+    ) {}
 }

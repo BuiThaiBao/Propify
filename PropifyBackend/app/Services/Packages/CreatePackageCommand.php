@@ -7,6 +7,7 @@ use App\Enums\ErrorCode;
 use App\Events\Package\PackageCreated;
 use App\Exceptions\BusinessException;
 use App\Models\Package;
+use App\Models\PackagePricing;
 use App\Repositories\PackageRepository;
 use Illuminate\Support\Facades\DB;
 
@@ -34,12 +35,12 @@ final class CreatePackageCommand
 
     private function syncPricings(Package $package, array $activeDurations): void
     {
-        \App\Models\PackagePricing::where('package_id', $package->id)->update(['is_active' => false]);
+        PackagePricing::where('package_id', $package->id)->update(['is_active' => false]);
         $durations = collect($activeDurations)->map(fn ($d) => (int) $d)->filter(fn ($d) => $d > 0)->unique()->values();
         foreach ($durations as $days) {
-            \App\Models\PackagePricing::updateOrCreate(
+            PackagePricing::updateOrCreate(
                 ['package_id' => $package->id, 'duration_days' => $days],
-                ['price' => $package->price * $days, 'label' => $days . ' ngày', 'is_active' => true]
+                ['price' => $package->price * $days, 'label' => $days.' ngày', 'is_active' => true]
             );
         }
     }

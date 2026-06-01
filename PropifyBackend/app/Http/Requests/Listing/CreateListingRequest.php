@@ -122,7 +122,7 @@ final class CreateListingRequest extends FormRequest
             $isNegotiable = filter_var($this->input('is_negotiable', false), FILTER_VALIDATE_BOOLEAN);
             $price = $this->input('price');
 
-            if (!$isNegotiable) {
+            if (! $isNegotiable) {
                 if ($price === null || $price === '') {
                     $validator->errors()->add('price', 'Gia bat buoc nhap neu tin dang khong de o che do thuong luong.');
                 } elseif ((float) $price <= 0) {
@@ -133,11 +133,11 @@ final class CreateListingRequest extends FormRequest
             $requestVerification = filter_var($this->input('request_verification', false), FILTER_VALIDATE_BOOLEAN);
 
             if ($requestVerification) {
-                if (!$this->input('identity_card_front')) {
+                if (! $this->input('identity_card_front')) {
                     $validator->errors()->add('identity_card_front', 'Can tai len anh CCCD mat truoc de gui yeu cau xac thuc.');
                 }
 
-                if (!$this->input('identity_card_back')) {
+                if (! $this->input('identity_card_back')) {
                     $validator->errors()->add('identity_card_back', 'Can tai len anh CCCD mat sau de gui yeu cau xac thuc.');
                 }
             }

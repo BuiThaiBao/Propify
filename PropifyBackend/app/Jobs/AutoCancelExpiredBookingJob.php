@@ -22,8 +22,7 @@ final class AutoCancelExpiredBookingJob implements ShouldQueue
 
     public function __construct(
         private readonly int $bookingId,
-    ) {
-    }
+    ) {}
 
     /**
      * Khi job được thực thi (đúng lúc confirm_deadline),
@@ -33,22 +32,24 @@ final class AutoCancelExpiredBookingJob implements ShouldQueue
     {
         $booking = AppointmentBooking::find($this->bookingId);
 
-        if (!$booking) {
+        if (! $booking) {
             Log::info("[AutoCancel] Booking #{$this->bookingId} không tồn tại, bỏ qua.");
+
             return;
         }
 
         // Chỉ hủy nếu vẫn đang ở trạng thái PENDING
         if ($booking->status !== BookingStatus::PENDING->value) {
             Log::info("[AutoCancel] Booking #{$this->bookingId} đã chuyển sang trạng thái [{$booking->status}], bỏ qua.");
+
             return;
         }
 
-        $existingNote = $booking->note ? $booking->note . ' | ' : '';
+        $existingNote = $booking->note ? $booking->note.' | ' : '';
 
         $booking->update([
             'status' => BookingStatus::EXPIRED->value,
-            'note'   => $existingNote . '[Tự động hủy] Đặt lịch thất bại vì chủ tin chưa xác nhận.',
+            'note' => $existingNote.'[Tự động hủy] Đặt lịch thất bại vì chủ tin chưa xác nhận.',
         ]);
 
         Log::info("[AutoCancel] Booking #{$this->bookingId} đã bị hủy tự động do quá hạn xác nhận.");

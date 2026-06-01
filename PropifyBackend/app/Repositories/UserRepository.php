@@ -9,7 +9,7 @@ interface UserRepository
     /**
      * Create a new user record.
      *
-     * @param array<string, mixed> $attributes
+     * @param  array<string, mixed>  $attributes
      */
     public function create(array $attributes): User;
 
@@ -37,7 +37,7 @@ interface UserRepository
     /**
      * Update a user record by ID.
      *
-     * @param array<string, mixed> $attributes
+     * @param  array<string, mixed>  $attributes
      */
     public function update(int $id, array $attributes): User;
 }

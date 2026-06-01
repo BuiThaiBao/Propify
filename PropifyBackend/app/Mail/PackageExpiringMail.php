@@ -17,10 +17,10 @@ final class PackageExpiringMail extends Mailable implements ShouldQueue
 
     public function __construct(
         public readonly Listing $listing,
-        public readonly string  $ownerName,
-        public readonly string  $packageName,
-        public readonly int     $daysLeft,
-        public readonly Carbon  $expiresAt,
+        public readonly string $ownerName,
+        public readonly string $packageName,
+        public readonly int $daysLeft,
+        public readonly Carbon $expiresAt,
     ) {}
 
     public function envelope(): Envelope

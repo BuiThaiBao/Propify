@@ -17,8 +17,7 @@ final class EloquentChatRepository implements ChatRepository
         protected readonly Conversation $conversationModel,
         protected readonly Message $messageModel,
         protected readonly ConversationParticipant $participantModel,
-    ) {
-    }
+    ) {}
 
     /**
      * Tìm conversation theo normalized pair (min/max user IDs).
@@ -46,17 +45,17 @@ final class EloquentChatRepository implements ChatRepository
             $conversation = $this->conversationModel->create([
                 'participant_a_id' => $minId,
                 'participant_b_id' => $maxId,
-                'listing_id'       => $listingId,
+                'listing_id' => $listingId,
             ]);
 
             // Seed participants
             $this->participantModel->create([
                 'conversation_id' => $conversation->id,
-                'user_id'         => $minId,
+                'user_id' => $minId,
             ]);
             $this->participantModel->create([
                 'conversation_id' => $conversation->id,
-                'user_id'         => $maxId,
+                'user_id' => $maxId,
             ]);
 
             return $conversation;
@@ -108,7 +107,7 @@ final class EloquentChatRepository implements ChatRepository
             ->where('id', $conversationId)
             ->where(function ($q) use ($userId) {
                 $q->where('participant_a_id', $userId)
-                  ->orWhere('participant_b_id', $userId);
+                    ->orWhere('participant_b_id', $userId);
             })
             ->first();
     }
@@ -165,7 +164,7 @@ final class EloquentChatRepository implements ChatRepository
             ->where('user_id', $userId)
             ->first();
 
-        if (!$participant) {
+        if (! $participant) {
             return 0;
         }
 

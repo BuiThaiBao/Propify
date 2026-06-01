@@ -19,6 +19,6 @@ final class TokenProcessServiceImpl implements TokenProcessService
 
     public function getBlackListKey(string $token): string
     {
-        return 'blacklist:' . $token;
+        return 'blacklist:'.$token;
     }
 }

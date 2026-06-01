@@ -11,6 +11,7 @@ use App\Models\Property;
 use App\Repositories\ListingRepository;
 use App\Services\Listing\Sorting\ListingSortingStrategy;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 final class EloquentListingRepository implements ListingRepository
 {
@@ -66,12 +67,12 @@ final class EloquentListingRepository implements ListingRepository
             ->when($keyword, function ($query) use ($keyword) {
                 $query->where(function ($subQuery) use ($keyword) {
                     $subQuery
-                        ->where('title', 'like', '%' . $keyword . '%')
-                        ->orWhere('description', 'like', '%' . $keyword . '%')
+                        ->where('title', 'like', '%'.$keyword.'%')
+                        ->orWhere('description', 'like', '%'.$keyword.'%')
                         ->orWhereHas('property', function ($propertyQuery) use ($keyword) {
                             $propertyQuery
-                                ->where('address_detail', 'like', '%' . $keyword . '%')
-                                ->orWhere('project_name', 'like', '%' . $keyword . '%');
+                                ->where('address_detail', 'like', '%'.$keyword.'%')
+                                ->orWhere('project_name', 'like', '%'.$keyword.'%');
                         });
                 });
             })
@@ -97,8 +98,19 @@ final class EloquentListingRepository implements ListingRepository
             ->findOrFail($id);
     }
 
-    public function paginatePublic(ListingSortingStrategy $sortingStrategy, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
-    {
+    public function paginatePublic(
+        ListingSortingStrategy $sortingStrategy,
+        ?string $demandType,
+        ?string $keyword,
+        int $perPage,
+        ?string $posterType = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        ?float $minArea = null,
+        ?float $maxArea = null
+    ): LengthAwarePaginator {
+        $hasPropertyFilters = $posterType || $minPrice !== null || $maxPrice !== null || $minArea !== null || $maxArea !== null;
+
         $query = Listing::query()
             ->select([
                 'listings.id', 'listings.property_id', 'listings.owner_id', 'listings.title',
@@ -119,13 +131,32 @@ final class EloquentListingRepository implements ListingRepository
             ->when($keyword, function ($query) use ($keyword) {
                 $query->where(function ($subQuery) use ($keyword) {
                     $subQuery
-                        ->where('listings.title', 'like', '%' . $keyword . '%')
-                        ->orWhere('listings.description', 'like', '%' . $keyword . '%')
+                        ->where('listings.title', 'like', '%'.$keyword.'%')
+                        ->orWhere('listings.description', 'like', '%'.$keyword.'%')
                         ->orWhereHas('property', function ($propertyQuery) use ($keyword) {
                             $propertyQuery
-                                ->where('address_detail', 'like', '%' . $keyword . '%')
-                                ->orWhere('project_name', 'like', '%' . $keyword . '%');
+                                ->where('address_detail', 'like', '%'.$keyword.'%')
+                                ->orWhere('project_name', 'like', '%'.$keyword.'%');
                         });
+                });
+            })
+            ->when($hasPropertyFilters, function ($query) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
+                $query->whereHas('property', function ($q) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
+                    if ($posterType) {
+                        $q->where('poster_type', strtoupper($posterType));
+                    }
+                    if ($minPrice !== null) {
+                        $q->where('price', '>=', $minPrice);
+                    }
+                    if ($maxPrice !== null) {
+                        $q->where('price', '<=', $maxPrice);
+                    }
+                    if ($minArea !== null) {
+                        $q->where('area', '>=', $minArea);
+                    }
+                    if ($maxArea !== null) {
+                        $q->where('area', '<=', $maxArea);
+                    }
                 });
             });
 
@@ -163,13 +194,13 @@ final class EloquentListingRepository implements ListingRepository
 
                 $query->where(function ($subQuery) use ($keyword, $isRent, $isSale) {
                     $subQuery
-                        ->where('title', 'like', '%' . $keyword . '%')
+                        ->where('title', 'like', '%'.$keyword.'%')
                         ->orWhereHas('property', function ($propertyQuery) use ($keyword) {
                             $propertyQuery
-                                ->where('address_detail', 'like', '%' . $keyword . '%')
-                                ->orWhere('project_name', 'like', '%' . $keyword . '%');
+                                ->where('address_detail', 'like', '%'.$keyword.'%')
+                                ->orWhere('project_name', 'like', '%'.$keyword.'%');
                         });
-                    
+
                     if ($isRent) {
                         $subQuery->orWhere('demand_type', 'RENT');
                     }
@@ -182,10 +213,61 @@ final class EloquentListingRepository implements ListingRepository
             ->paginate($perPage);
     }
 
+    public function getMapListings(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $posterType = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        ?float $minArea = null,
+        ?float $maxArea = null
+    ): Collection {
+        return Listing::query()
+            ->select(['id', 'property_id', 'title', 'demand_type'])
+            ->with([
+                'property:id,address_detail,price,area,poster_type,lat,lng,project_name',
+                'images:id,listing_id,image_url,is_thumbnail',
+            ])
+            ->where('status', 'ACTIVE')
+            ->when($demandType, fn ($query) => $query->where('demand_type', $demandType))
+            ->when($keyword, function ($query) use ($keyword) {
+                $query->where(function ($subQuery) use ($keyword) {
+                    $subQuery
+                        ->where('title', 'like', '%'.$keyword.'%')
+                        ->orWhereHas('property', fn ($propertyQuery) => $propertyQuery
+                            ->where('address_detail', 'like', '%'.$keyword.'%')
+                            ->orWhere('project_name', 'like', '%'.$keyword.'%'));
+                });
+            })
+            ->whereHas('property', function ($query) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
+                $query->whereNotNull('lat')
+                    ->whereNotNull('lng');
+
+                if ($posterType) {
+                    $query->where('poster_type', strtoupper($posterType));
+                }
+                if ($minPrice !== null) {
+                    $query->where('price', '>=', $minPrice);
+                }
+                if ($maxPrice !== null) {
+                    $query->where('price', '<=', $maxPrice);
+                }
+                if ($minArea !== null) {
+                    $query->where('area', '>=', $minArea);
+                }
+                if ($maxArea !== null) {
+                    $query->where('area', '<=', $maxArea);
+                }
+            })
+            ->orderByDesc('id')
+            ->get();
+    }
+
     public function updateProperty(int $id, array $attributes): Property
     {
         $property = Property::findOrFail($id);
         $property->update($attributes);
+
         return $property->fresh();
     }
 
@@ -193,6 +275,7 @@ final class EloquentListingRepository implements ListingRepository
     {
         $listing = Listing::findOrFail($id);
         $listing->update($attributes);
+
         return $listing->fresh();
     }
 

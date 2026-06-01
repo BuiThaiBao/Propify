@@ -17,19 +17,19 @@ final class ExpirePendingTransactionJob implements ShouldQueue
 
     public function __construct(
         private readonly int $transactionId,
-    ) {
-    }
+    ) {}
 
     public function handle(): void
     {
         $transaction = Transaction::find($this->transactionId);
 
-        if (!$transaction || $transaction->status !== 'PENDING') {
+        if (! $transaction || $transaction->status !== 'PENDING') {
             return;
         }
 
         if ($transaction->expires_at && $transaction->expires_at->isFuture()) {
             self::dispatch($transaction->id)->delay($transaction->expires_at);
+
             return;
         }
 

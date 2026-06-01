@@ -8,6 +8,7 @@ use Symfony\Component\HttpFoundation\Cookie;
 final class AuthCookieFactory
 {
     public const CLIENT_ADMIN = 'admin';
+
     public const CLIENT_USER = 'user';
 
     /**
@@ -109,6 +110,7 @@ final class AuthCookieFactory
     private static function domain(): ?string
     {
         $domain = config('auth_cookies.domain');
+
         return $domain === null || $domain === '' ? null : (string) $domain;
     }
 

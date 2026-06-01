@@ -21,7 +21,7 @@ final class ResetPasswordCommand
     public function execute(string $email, string $otp, string $password): void
     {
         $user = $this->userRepository->findByEmail($email);
-        if (!$user || !$this->otpService->verify($user, $otp, OtpContext::RESET_PASSWORD)) {
+        if (! $user || ! $this->otpService->verify($user, $otp, OtpContext::RESET_PASSWORD)) {
             throw new BusinessException(ErrorCode::AuthOtpInvalid);
         }
 

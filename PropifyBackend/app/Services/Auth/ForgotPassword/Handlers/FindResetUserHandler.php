@@ -11,8 +11,7 @@ final class FindResetUserHandler extends AbstractForgotPasswordHandler
 {
     public function __construct(
         private readonly UserRepository $userRepository,
-    ) {
-    }
+    ) {}
 
     public function handle(ForgotPasswordContext $context): void
     {

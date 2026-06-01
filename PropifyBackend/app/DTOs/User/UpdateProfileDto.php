@@ -7,11 +7,10 @@ use Illuminate\Http\Request;
 final readonly class UpdateProfileDto
 {
     public function __construct(
-        public string  $fullName,
+        public string $fullName,
         public ?string $phone = null,
         public ?string $avatarUrl = null,
-    ) {
-    }
+    ) {}
 
     public static function fromRequest(Request $request): self
     {

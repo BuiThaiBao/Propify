@@ -6,6 +6,7 @@ import {
   Ban,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Calendar,
   CheckCircle,
   X,
@@ -21,6 +22,7 @@ import {
 } from 'lucide-vue-next'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 import { listingService } from '@/services/listingService'
+import { hydratePropertyAddress } from '@/utils/addressFormatter'
 
 const route = useRoute()
 const router = useRouter()
@@ -30,7 +32,7 @@ const loading = ref(false)
 const error = ref('')
 const activeTab = ref('info')
 const actionLoading = ref(false)
-const reasonModal = ref({ open: false, type: 'status', status: '', title: '', reason: '', error: '' })
+const reasonModal = ref({ open: false, type: 'status', status: '', title: '', selectedReason: '', reasonDropdownOpen: false, reason: '', error: '' })
 const confirmModal = ref({ open: false, title: '', message: '', confirmText: 'Xác nhận', tone: 'primary', action: null })
 const lightbox = ref({ open: false, items: [], index: 0 })
 const lightboxZoomed = ref(false)
@@ -45,6 +47,29 @@ const panState = ref({
   y: 0,
 })
 let previousBodyOverflow = ''
+
+const REJECT_REASON_OTHER = '__OTHER__'
+const LISTING_REJECT_REASONS = [
+  'Thông tin bài đăng không chính xác hoặc thiếu nhất quán.',
+  'Hình ảnh không rõ ràng hoặc không phù hợp với nội dung tin.',
+  'Nội dung mô tả sơ sài, thiếu thông tin bắt buộc.',
+  'Thông tin liên hệ không hợp lệ.',
+  'Tin đăng có dấu hiệu trùng lặp hoặc spam.',
+]
+const LISTING_LOCK_REASONS = [
+  'Tin đăng vi phạm quy định nội dung.',
+  'Tin đăng có dấu hiệu gian lận hoặc lừa đảo.',
+  'Tin đăng bị nhiều người dùng báo cáo.',
+  'Thông tin bất động sản không còn phù hợp để hiển thị.',
+  'Yêu cầu khóa tin từ bộ phận quản trị.',
+]
+const VERIFICATION_REJECT_REASONS = [
+  'Giấy tờ xác thực không rõ ràng hoặc bị che khuất thông tin.',
+  'Giấy tờ không trùng khớp với thông tin bất động sản.',
+  'Thiếu giấy tờ pháp lý cần thiết.',
+  'Giấy tờ có dấu hiệu chỉnh sửa hoặc không hợp lệ.',
+  'Thông tin chủ sở hữu không khớp với hồ sơ đăng tin.',
+]
 
 const post = computed(() => listing.value)
 const property = computed(() => post.value?.property ?? {})
@@ -95,6 +120,7 @@ async function fetchDetail() {
   try {
     const res = await listingService.getListingDetail(route.params.id)
     listing.value = res.data?.data ?? null
+    await hydratePropertyAddress(listing.value?.property)
     if (!['SALE', 'RENT'].includes(listing.value?.demand_type)) {
       error.value = 'Trang chi tiết này hiện chỉ hỗ trợ tin mua bán và cho thuê.'
     }
@@ -201,20 +227,38 @@ function posterTypeLabel(value) {
 }
 
 function directionLabel(value) {
+  const normalized = String(value || '').trim().toUpperCase()
   return {
+    E: 'Đông',
     EAST: 'Đông',
+    W: 'Tây',
     WEST: 'Tây',
+    S: 'Nam',
     SOUTH: 'Nam',
+    N: 'Bắc',
     NORTH: 'Bắc',
+    NE: 'Đông Bắc',
     NORTHEAST: 'Đông Bắc',
     NORTH_EAST: 'Đông Bắc',
+    NW: 'Tây Bắc',
     NORTHWEST: 'Tây Bắc',
     NORTH_WEST: 'Tây Bắc',
+    SE: 'Đông Nam',
     SOUTHEAST: 'Đông Nam',
     SOUTH_EAST: 'Đông Nam',
+    SW: 'Tây Nam',
     SOUTHWEST: 'Tây Nam',
     SOUTH_WEST: 'Tây Nam',
-  }[value] || value || '--'
+  }[normalized] || value || '--'
+}
+
+function furnitureLabel(value) {
+  const normalized = String(value || '').trim().toUpperCase()
+  return {
+    NONE: 'Không có nội thất',
+    BASIC: 'Nội thất cơ bản',
+    FULL: 'Đầy đủ nội thất',
+  }[normalized] || value || '--'
 }
 
 function historyActionLabel(value) {
@@ -318,6 +362,8 @@ function openReason(status) {
     type: 'status',
     status,
     title: status === 'LOCKED' ? 'Khóa tin' : 'Từ chối tin',
+    selectedReason: '',
+    reasonDropdownOpen: false,
     reason: '',
     error: '',
   }
@@ -329,30 +375,64 @@ function openVerificationReject() {
     type: 'verification',
     status: '',
     title: 'Từ chối xác thực',
+    selectedReason: '',
+    reasonDropdownOpen: false,
     reason: '',
     error: '',
   }
 }
 
 function submitReason() {
-  const { type, status, reason } = reasonModal.value
+  const { type, status, selectedReason, reason } = reasonModal.value
+  const usesDropdown = type === 'verification' || ['REJECTED', 'LOCKED'].includes(status)
+  const finalReason = usesDropdown
+    ? (selectedReason === REJECT_REASON_OTHER ? reason.trim() : selectedReason)
+    : reason.trim()
+
   if (type === 'verification') {
-    if (!reason.trim()) {
-      reasonModal.value.error = 'Vui lòng nhập lý do từ chối xác thực.'
+    if (!finalReason) {
+      reasonModal.value.error = 'Vui lòng chọn hoặc nhập lý do từ chối xác thực.'
       return
     }
     reasonModal.value.open = false
-    confirmVerificationChange(false, reason.trim())
+    confirmVerificationChange(false, finalReason)
     return
   }
 
-  if (status === 'REJECTED' && !reason.trim()) {
-    reasonModal.value.error = 'Vui lòng nhập lý do từ chối.'
+  if (status === 'REJECTED' && !finalReason) {
+    reasonModal.value.error = 'Vui lòng chọn hoặc nhập lý do từ chối.'
     return
   }
 
   reasonModal.value.open = false
-  confirmStatusChange(status, reason.trim() || null)
+  if (status === 'LOCKED' && !finalReason) {
+    reasonModal.value.error = 'Vui lòng chọn hoặc nhập lý do khóa tin.'
+    return
+  }
+
+  confirmStatusChange(status, finalReason || null)
+}
+
+function getReasonOptions() {
+  if (reasonModal.value.type === 'verification') return VERIFICATION_REJECT_REASONS
+  return reasonModal.value.status === 'LOCKED' ? LISTING_LOCK_REASONS : LISTING_REJECT_REASONS
+}
+
+function getReasonLabel() {
+  if (!reasonModal.value.selectedReason) {
+    return reasonModal.value.status === 'LOCKED' ? 'Chọn lý do khóa tin' : 'Chọn lý do từ chối'
+  }
+  if (reasonModal.value.selectedReason === REJECT_REASON_OTHER) return 'Khác'
+  return reasonModal.value.selectedReason
+}
+
+function selectRejectReason(reason) {
+  reasonModal.value.selectedReason = reason
+  reasonModal.value.reasonDropdownOpen = false
+  reasonModal.value.error = ''
+  if (reason !== REJECT_REASON_OTHER) {
+    reasonModal.value.reason = ''
+  }
 }
 
 function openLightbox(items, index = 0) {
@@ -474,6 +554,7 @@ onBeforeUnmount(() => {
       <div class="tabs">
         <button :class="{ active: activeTab === 'info' }" @click="activeTab = 'info'">Thông tin</button>
         <button v-if="isSaleListing" :class="{ active: activeTab === 'verify' }" @click="activeTab = 'verify'">Xác thực</button>
+        <button :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">Lịch sử</button>
       </div>
 
       <section v-if="activeTab === 'info'" class="section-stack">
@@ -553,7 +634,7 @@ onBeforeUnmount(() => {
             <div class="info-item"><span>Đường rộng</span><strong>{{ property.road_width ? `${property.road_width} m` : '--' }}</strong></div>
             <div class="info-item"><span>Hướng nhà</span><strong>{{ directionLabel(property.direction_code) }}</strong></div>
             <div class="info-item"><span>Hướng ban công</span><strong>{{ directionLabel(property.balcony_direction_code) }}</strong></div>
-            <div class="info-item"><span>Nội thất</span><strong>{{ property.furniture_status || '--' }}</strong></div>
+            <div class="info-item"><span>Nội thất</span><strong>{{ furnitureLabel(property.furniture_status) }}</strong></div>
             <div class="info-item"><span>Ban công</span><strong>{{ property.balconies ?? '--' }}</strong></div>
             <div class="info-item"><span>Thỏa thuận</span><strong>{{ property.is_negotiable ? 'Có' : 'Không' }}</strong></div>
           </div>
@@ -565,8 +646,8 @@ onBeforeUnmount(() => {
         <article class="detail-card">
           <h2><MapPin :size="16" /> Địa chỉ</h2>
           <div class="info-grid">
-            <div class="info-item"><span>Tỉnh/TP</span><strong>{{ property.province_code || '--' }}</strong></div>
-            <div class="info-item"><span>Phường/Xã</span><strong>{{ property.ward_code || '--' }}</strong></div>
+            <div class="info-item"><span>Tỉnh/TP</span><strong>{{ property.province_name || property.province_code || '--' }}</strong></div>
+            <div class="info-item"><span>Phường/Xã</span><strong>{{ property.ward_name || property.ward_code || '--' }}</strong></div>
             <div class="info-item"><span>Đường</span><strong>{{ property.street_code || '--' }}</strong></div>
             <div class="info-item wide"><span>Địa chỉ chi tiết</span><strong>{{ property.address_detail || '--' }}</strong></div>
           </div>
@@ -585,7 +666,7 @@ onBeforeUnmount(() => {
         </article>
       </section>
 
-      <section v-else class="section-stack">
+      <section v-else-if="activeTab === 'verify'" class="section-stack">
         <article class="detail-card">
           <div class="card-head">
             <h2><ShieldCheck :size="16" /> Giấy tờ pháp lý</h2>
@@ -593,7 +674,7 @@ onBeforeUnmount(() => {
               <button class="outline-danger" :disabled="actionLoading" @click="openVerificationReject">
                 <Ban :size="15" /> Từ chối
               </button>
-              <button class="primary-action" :disabled="actionLoading || post.is_verified" @click="confirmVerificationChange(true)">
+              <button v-if="!post.is_verified" class="primary-action" :disabled="actionLoading" @click="confirmVerificationChange(true)">
                 <CheckCircle :size="15" /> Phê duyệt
               </button>
             </div>
@@ -615,7 +696,9 @@ onBeforeUnmount(() => {
           </div>
           <p v-else class="muted">Không có giấy tờ xác thực.</p>
         </article>
+      </section>
 
+      <section v-else-if="activeTab === 'history'" class="section-stack">
         <article class="detail-card">
           <h2><FileCheck :size="16" /> Lịch sử xử lý</h2>
           <div v-if="histories.length" class="history-list">
@@ -633,7 +716,46 @@ onBeforeUnmount(() => {
     <div v-if="reasonModal.open" class="modal-backdrop" @click.self="reasonModal.open = false">
       <div class="modal-card">
         <h3>{{ reasonModal.title }}</h3>
-        <textarea v-model="reasonModal.reason" rows="4" placeholder="Nhập lý do..."></textarea>
+        <div
+          v-if="reasonModal.type === 'verification' || ['REJECTED', 'LOCKED'].includes(reasonModal.status)"
+          class="reason-dropdown"
+        >
+          <button
+            type="button"
+            class="reason-dropdown-trigger"
+            :class="{ placeholder: !reasonModal.selectedReason }"
+            @click="reasonModal.reasonDropdownOpen = !reasonModal.reasonDropdownOpen"
+          >
+            <span>{{ getReasonLabel() }}</span>
+            <ChevronDown :size="16" :class="{ open: reasonModal.reasonDropdownOpen }" />
+          </button>
+          <div v-if="reasonModal.reasonDropdownOpen" class="reason-dropdown-menu">
+            <button
+              v-for="reason in getReasonOptions()"
+              :key="reason"
+              type="button"
+              class="reason-dropdown-option"
+              :class="{ selected: reasonModal.selectedReason === reason }"
+              @click="selectRejectReason(reason)"
+            >
+              {{ reason }}
+            </button>
+            <button
+              type="button"
+              class="reason-dropdown-option"
+              :class="{ selected: reasonModal.selectedReason === REJECT_REASON_OTHER }"
+              @click="selectRejectReason(REJECT_REASON_OTHER)"
+            >
+              Khác
+            </button>
+          </div>
+        </div>
+        <textarea
+          v-if="reasonModal.selectedReason === REJECT_REASON_OTHER"
+          v-model="reasonModal.reason"
+          rows="4"
+          placeholder="Nhập lý do..."
+        ></textarea>
         <p v-if="reasonModal.error" class="modal-error">{{ reasonModal.error }}</p>
         <div class="modal-actions">
           <button class="outline-neutral" @click="reasonModal.open = false">Hủy</button>
@@ -765,7 +887,30 @@ onBeforeUnmount(() => {
 .modal-card { width: min(440px, calc(100vw - 32px)); background: #fff; border-radius: 12px; padding: 20px; }
 .modal-card h3 { margin: 0 0 12px; }
 .confirm-card p { margin: 0; color: #475569; line-height: 1.6; }
-.modal-card textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 9px; padding: 10px; resize: vertical; }
+.modal-card textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 9px; padding: 10px; font: inherit; color: #0f172a; }
+.modal-card textarea { resize: vertical; margin-top: 10px; }
+.reason-dropdown { position: relative; }
+.reason-dropdown-trigger {
+  width: 100%; min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  border: 1px solid #cbd5e1; border-radius: 9px; background: #fff; color: #0f172a;
+  padding: 10px 12px; font: inherit; font-size: 13px; text-align: left; cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.reason-dropdown-trigger.placeholder { color: #64748b; }
+.reason-dropdown-trigger:hover, .reason-dropdown-trigger:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); outline: none; }
+.reason-dropdown-trigger svg { flex-shrink: 0; color: #64748b; transition: transform 0.2s; }
+.reason-dropdown-trigger svg.open { transform: rotate(180deg); }
+.reason-dropdown-menu {
+  position: absolute; z-index: 3; left: 0; right: 0; top: calc(100% + 6px);
+  max-height: 230px; overflow-y: auto; border: 1px solid #dbe3ef; border-radius: 10px;
+  background: #fff; box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18); padding: 6px;
+}
+.reason-dropdown-option {
+  width: 100%; border: 0; border-radius: 8px; background: transparent; color: #0f172a;
+  padding: 9px 10px; font: inherit; font-size: 13px; line-height: 1.35; text-align: left; cursor: pointer;
+}
+.reason-dropdown-option:hover { background: #eff6ff; color: #1d4ed8; }
+.reason-dropdown-option.selected { background: #dbeafe; color: #1d4ed8; font-weight: 700; }
 .modal-error { margin: 8px 0 0; color: #dc2626; font-size: 13px; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
 .lightbox-backdrop { position: fixed; inset: 0; z-index: 1300; display: flex; align-items: center; justify-content: center; background: rgba(2, 6, 23, 0.86); padding: 56px 88px; }

@@ -3,6 +3,7 @@
 namespace App\Services\Appointment;
 
 use App\DTOs\Appointment\CreateBookingDto;
+use App\Exceptions\BusinessException;
 use App\Models\AppointmentBooking;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -11,7 +12,7 @@ interface AppointmentBookingService
     /**
      * Tạo mới một booking lịch hẹn xem nhà.
      *
-     * @throws \App\Exceptions\BusinessException
+     * @throws BusinessException
      */
     public function createBooking(CreateBookingDto $dto): AppointmentBooking;
 

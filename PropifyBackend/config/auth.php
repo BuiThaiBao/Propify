@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\User;
+
 // ====================================================================
 // BƯỚC 3: Cấu hình Auth Guard
 // ====================================================================
@@ -51,7 +53,7 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model'  => App\Models\User::class,
+            'model' => User::class,
         ],
     ],
 

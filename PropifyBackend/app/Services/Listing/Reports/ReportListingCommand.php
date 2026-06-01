@@ -13,8 +13,7 @@ final readonly class ReportListingCommand
 {
     public function __construct(
         private ListingReportValidationChain $validationChain,
-    ) {
-    }
+    ) {}
 
     public function handle(User $reporter, int $listingId, array $payload): Collection
     {

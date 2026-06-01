@@ -10,8 +10,8 @@
 
 				<div
 					:class="[
-						'absolute flex min-h-[3.5rem] items-center gap-1.5 z-10',
-						packageIcon ? 'left-0 top-0' : 'left-3 top-3'
+						'absolute flex items-center gap-1.5 z-10',
+						packageIcon ? 'left-0 top-0 h-[3.5rem]' : 'left-4 top-4'
 					]"
 				>
 					<span v-if="packageIcon" class="relative inline-block">

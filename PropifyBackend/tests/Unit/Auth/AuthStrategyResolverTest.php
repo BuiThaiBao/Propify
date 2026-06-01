@@ -13,7 +13,8 @@ final class AuthStrategyResolverTest extends TestCase
 {
     public function test_it_resolves_the_strategy_matching_the_requested_method(): void
     {
-        $emailStrategy = new class implements AuthStrategy {
+        $emailStrategy = new class implements AuthStrategy
+        {
             public function method(): AuthMethod
             {
                 return AuthMethod::EmailPassword;
@@ -25,7 +26,8 @@ final class AuthStrategyResolverTest extends TestCase
             }
         };
 
-        $googleStrategy = new class implements AuthStrategy {
+        $googleStrategy = new class implements AuthStrategy
+        {
             public function method(): AuthMethod
             {
                 return AuthMethod::GoogleOAuth;

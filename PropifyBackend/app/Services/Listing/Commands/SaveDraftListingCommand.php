@@ -11,8 +11,7 @@ final class SaveDraftListingCommand
     public function __construct(
         private readonly CreateListingCommand $createListingCommand,
         private readonly UpdateListingCommand $updateListingCommand,
-    ) {
-    }
+    ) {}
 
     public function create(User $user, CreateListingDto $dto): Listing
     {

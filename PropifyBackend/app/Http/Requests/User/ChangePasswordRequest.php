@@ -12,6 +12,7 @@ final class ChangePasswordRequest extends FormRequest
     {
         return true;
     }
+
     public function rules(): array
     {
         return [
@@ -37,6 +38,7 @@ final class ChangePasswordRequest extends FormRequest
             'new_password_confirmation' => trim($this->input('new_password_confirmation', '')),
         ]);
     }
+
     public function messages(): array
     {
         return [
@@ -47,6 +49,7 @@ final class ChangePasswordRequest extends FormRequest
             'new_password.min' => 'Mật khẩu mới phải có ít nhất :min ký tự.',
         ];
     }
+
     public function toDto(): ChangePasswordDto
     {
         return ChangePasswordDto::fromRequest($this);

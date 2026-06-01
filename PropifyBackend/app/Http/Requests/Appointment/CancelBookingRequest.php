@@ -18,7 +18,7 @@ final class CancelBookingRequest extends FormRequest
     {
         return [
             'booking_id' => ['required', 'integer'],
-            'reason'     => ['required', 'string', 'min:5', 'max:500'],
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
         ];
     }
 
@@ -29,9 +29,9 @@ final class CancelBookingRequest extends FormRequest
     {
         return [
             'booking_id.required' => 'Vui lòng truyền booking_id.',
-            'reason.required'     => 'Vui lòng nhập lý do hủy lịch.',
-            'reason.min'          => 'Lý do hủy quá ngắn (tối thiểu 5 ký tự).',
-            'reason.max'          => 'Lý do hủy tối đa 500 ký tự.',
+            'reason.required' => 'Vui lòng nhập lý do hủy lịch.',
+            'reason.min' => 'Lý do hủy quá ngắn (tối thiểu 5 ký tự).',
+            'reason.max' => 'Lý do hủy tối đa 500 ký tự.',
         ];
     }
 }

@@ -5,9 +5,9 @@ namespace App\DTOs\Listing;
 final readonly class CreateListingDto
 {
     /**
-     * @param UploadedFile[] $images
-     * @param int[] $attributeIds
-     * @param UploadedFile[] $legalDocuments
+     * @param  UploadedFile[]  $images
+     * @param  int[]  $attributeIds
+     * @param  UploadedFile[]  $legalDocuments
      */
     public function __construct(
         public string $demandType,
@@ -61,6 +61,5 @@ final readonly class CreateListingDto
         public ?string $appointmentNote,
         public ?int $packageId,
         public bool $saveAsDraft = false,
-    ) {
-    }
+    ) {}
 }
