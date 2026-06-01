@@ -1097,6 +1097,18 @@ onUnmounted(() => {
   box-shadow: 0 8px 18px rgba(244, 63, 94, 0.15);
 }
 
+.detail-icon-button.is-active {
+  border-color: #fecdd3;
+  background-color: #fff1f2;
+  color: #f43f5e;
+}
+
+.detail-icon-button.is-active:hover {
+  border-color: #fda4af;
+  background-color: #ffe4e6;
+  box-shadow: 0 8px 18px rgba(244, 63, 94, 0.15);
+}
+
 .detail-action-icon {
   filter: brightness(0) invert(1);
 }
