@@ -83,6 +83,8 @@
             </div>
           </section>
 
+          <!-- Contact & Price details when embedded from map -->
+          <section v-if="isEmbedded" class="mb-4 rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
           <section v-if="listing.description?.trim()" class="detail-card">
             <h2 class="detail-title">
               <img :src="descriptionIcon" class="detail-title-icon" alt="" />
@@ -151,9 +153,6 @@
                 <p class="truncate text-sm font-semibold text-slate-800">{{ listing.property?.contact_name || listing.owner?.full_name }}</p>
                 <p class="text-xs text-slate-500">{{ listing.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới' }}</p>
               </div>
-              <button class="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-sky-100" aria-label="Nhắn tin chủ nhà">
-                <img :src="chatIcon" class="h-4 w-4" alt="" />
-              </button>
             </div>
 
             <div class="space-y-2">
@@ -165,11 +164,15 @@
                 <img :src="calendarIcon" class="mr-2 h-3.5 w-3.5" alt="" />
                 Đặt lịch xem nhà
               </button>
-              <button class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600">
-                <img :src="messagesIcon" class="mr-2 h-3.5 w-3.5" alt="" />
-                Nhắn tin
-              </button>
             </div>
+          </section>
+
+          <section v-if="listing.description?.trim()" class="detail-card">
+            <h2 class="detail-title">
+              <img :src="descriptionIcon" class="detail-title-icon" alt="" />
+              Mô tả tin đăng
+            </h2>
+            <p class="whitespace-pre-wrap text-sm leading-6 text-slate-600">{{ listing.description }}</p>
           </section>
 
           <section class="detail-card">
