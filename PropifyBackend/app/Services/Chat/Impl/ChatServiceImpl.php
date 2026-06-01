@@ -4,8 +4,8 @@ namespace App\Services\Chat\Impl;
 
 use App\DTOs\Chat\GetOrCreateConversationDto;
 use App\DTOs\Chat\SendMessageDto;
-use App\Events\Chat\MessageSent;
 use App\Enums\ErrorCode;
+use App\Events\Chat\MessageSent;
 use App\Exceptions\BusinessException;
 use App\Models\Conversation;
 use App\Models\Message;
@@ -18,8 +18,7 @@ final class ChatServiceImpl implements ChatService
 {
     public function __construct(
         private readonly ChatRepository $chatRepository,
-    ) {
-    }
+    ) {}
 
     /**
      * Lấy hoặc tạo conversation — không bao giờ tạo duplicate nhờ:
@@ -78,10 +77,10 @@ final class ChatServiceImpl implements ChatService
 
         $message = $this->chatRepository->createMessage([
             'conversation_id' => $dto->conversationId,
-            'sender_id'       => $dto->senderId,
-            'type'            => $dto->type->value,
-            'body'            => $dto->body,
-            'file_url'        => $dto->fileUrl,
+            'sender_id' => $dto->senderId,
+            'type' => $dto->type->value,
+            'body' => $dto->body,
+            'file_url' => $dto->fileUrl,
         ]);
 
         // Dispatch event vào queue → broadcast không đồng bộ (không block request)
@@ -107,10 +106,10 @@ final class ChatServiceImpl implements ChatService
     {
         $conversation = $this->chatRepository->conversationBelongsToUser($conversationId, $userId);
 
-        if (!$conversation) {
+        if (! $conversation) {
             // Kiểm tra thêm: conversation có tồn tại không?
             $exists = $this->chatRepository->findById($conversationId);
-            if (!$exists) {
+            if (! $exists) {
                 throw new BusinessException(ErrorCode::ConversationNotFound);
             }
             throw new BusinessException(ErrorCode::UnauthorizedConversationAccess);

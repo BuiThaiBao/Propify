@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Builder;
 
 final class PackagePricing extends Model
 {
@@ -20,8 +20,8 @@ final class PackagePricing extends Model
 
     protected $casts = [
         'duration_days' => 'integer',
-        'price'         => 'decimal:2',
-        'is_active'     => 'boolean',
+        'price' => 'decimal:2',
+        'is_active' => 'boolean',
     ];
 
     // ==================== Relationships ====================

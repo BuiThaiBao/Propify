@@ -34,11 +34,11 @@ class UsersFactory extends Factory
     {
         return [
             'full_name' => fake()->name(),
-            'phone'     => fake()->unique()->numerify('##########'),
-            'email'     => fake()->unique()->safeEmail(),
-            'password'  => static::$password ??= Hash::make('password'),
-            'role'      => UserRole::User->value,
-            'status'    => UserStatus::Active->value,
+            'phone' => fake()->unique()->numerify('##########'),
+            'email' => fake()->unique()->safeEmail(),
+            'password' => static::$password ??= Hash::make('password'),
+            'role' => UserRole::User->value,
+            'status' => UserStatus::Active->value,
         ];
     }
 }

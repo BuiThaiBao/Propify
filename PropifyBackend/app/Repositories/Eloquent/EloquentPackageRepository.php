@@ -7,10 +7,8 @@ use App\Repositories\PackageRepository;
 
 final class EloquentPackageRepository implements PackageRepository
 {
+    public function __construct(protected readonly Package $model) {}
 
-    public function __construct(protected readonly Package $model){
-
-    }
     public function all()
     {
         return $this->model->all();
@@ -34,15 +32,19 @@ final class EloquentPackageRepository implements PackageRepository
     public function update(int $id, array $attributes): bool
     {
         $package = $this->findById($id);
-        if (!$package) return false;
-        
+        if (! $package) {
+            return false;
+        }
+
         return $package->update($attributes);
     }
 
     public function delete(int $id): bool
     {
         $package = $this->findById($id);
-        if (!$package) return false;
+        if (! $package) {
+            return false;
+        }
 
         return $package->delete();
     }

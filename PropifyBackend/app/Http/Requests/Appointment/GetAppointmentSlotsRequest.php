@@ -29,8 +29,8 @@ final class GetAppointmentSlotsRequest extends FormRequest
     {
         return [
             'listing_id.required' => 'Vui lòng truyền listing_id.',
-            'listing_id.integer'  => 'listing_id phải là số nguyên.',
-            'listing_id.exists'   => 'Listing không tồn tại.',
+            'listing_id.integer' => 'listing_id phải là số nguyên.',
+            'listing_id.exists' => 'Listing không tồn tại.',
         ];
     }
 

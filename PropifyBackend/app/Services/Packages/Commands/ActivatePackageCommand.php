@@ -17,7 +17,7 @@ final class ActivatePackageCommand
     public function execute(int $packageId): Package
     {
         $package = $this->repository->findById($packageId);
-        if (!$package) {
+        if (! $package) {
             throw new BusinessException(ErrorCode::PackageNotFound);
         }
         if ($package->is_active) {

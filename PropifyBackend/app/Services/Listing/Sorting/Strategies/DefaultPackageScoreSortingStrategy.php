@@ -13,7 +13,7 @@ final class DefaultPackageScoreSortingStrategy implements ListingSortingStrategy
         $driver = DB::connection()->getDriverName();
         $hoursSincePublished = $driver === 'sqlite'
             ? "((julianday('now') - julianday(COALESCE(listings.published_at, listings.created_at))) * 24.0)"
-            : "TIMESTAMPDIFF(HOUR, COALESCE(listings.published_at, listings.created_at), NOW())";
+            : 'TIMESTAMPDIFF(HOUR, COALESCE(listings.published_at, listings.created_at), NOW())';
 
         $finalScoreFormula = $driver === 'sqlite'
             ? "(COALESCE(listings.score, 0) * COALESCE(packages.multiplier, 1.0) * (1.0 / (1.0 + {$hoursSincePublished} / 24.0)))"

@@ -15,8 +15,7 @@ final class UpdateUserProfileCommand
     public function __construct(
         private readonly UserRepository $userRepository,
         private readonly ProfileValidationChain $profileValidationChain,
-    ) {
-    }
+    ) {}
 
     public function execute(User $user, UpdateProfileDto $dto): User
     {
@@ -57,7 +56,7 @@ final class UpdateUserProfileCommand
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      * @return array<string, array{old: mixed, new: mixed}>
      */
     private function changedFields(User $user, array $data): array

@@ -13,7 +13,7 @@ class ApiResponse
     public static function success(mixed $data = null, string $message = 'Thành công', int $statusCode = 200, ?array $meta = null): JsonResponse
     {
         $response = [
-            'status'  => true,
+            'status' => true,
             'message' => $message,
         ];
 
@@ -40,13 +40,13 @@ class ApiResponse
      * Error response
      */
     public static function error(
-        string $message = 'Có lỗi xảy ra', 
-        int $statusCode = 400, 
-        mixed $errors = null, 
+        string $message = 'Có lỗi xảy ra',
+        int $statusCode = 400,
+        mixed $errors = null,
         ?ErrorCode $errorCode = null
     ): JsonResponse {
         $response = [
-            'status'  => false,
+            'status' => false,
             'message' => $message,
         ];
 

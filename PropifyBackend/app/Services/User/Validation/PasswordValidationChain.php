@@ -12,7 +12,7 @@ final class PasswordValidationChain
 {
     public function validate(User $user, ChangePasswordDto $dto): void
     {
-        if (!Hash::check($dto->currentPassword, $user->password)) {
+        if (! Hash::check($dto->currentPassword, $user->password)) {
             throw new BusinessException(ErrorCode::AuthPasswordIncorrect);
         }
 

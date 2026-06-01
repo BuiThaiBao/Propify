@@ -4,7 +4,7 @@ namespace App\Enums;
 
 enum MessageType: string
 {
-    case Text  = 'text';
+    case Text = 'text';
     case Image = 'image';
-    case File  = 'file';
+    case File = 'file';
 }

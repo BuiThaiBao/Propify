@@ -59,32 +59,32 @@ final class ExpiryCalculationStrategyTest extends TestCase
     private function factory(): ExpiryCalculationStrategyFactory
     {
         return new ExpiryCalculationStrategyFactory(
-            new FreshPurchaseExpiryStrategy(),
-            new RenewalExpiryStrategy(),
+            new FreshPurchaseExpiryStrategy,
+            new RenewalExpiryStrategy,
         );
     }
 
     private function context(int $listingPackageId, int $newPackageId, Carbon $expiresAt): UpgradeContext
     {
-        $user = new User();
+        $user = new User;
         $user->id = 1;
 
-        $listing = new Listing();
+        $listing = new Listing;
         $listing->owner_id = 1;
         $listing->status = 'ACTIVE';
         $listing->package_id = $listingPackageId;
         $listing->package_expires_at = $expiresAt;
 
-        $currentPackage = new Package();
+        $currentPackage = new Package;
         $currentPackage->id = $listingPackageId;
         $currentPackage->priority = 1;
 
-        $newPackage = new Package();
+        $newPackage = new Package;
         $newPackage->id = $newPackageId;
         $newPackage->priority = 2;
         $newPackage->is_active = true;
 
-        $pricing = new PackagePricing();
+        $pricing = new PackagePricing;
         $pricing->duration_days = 7;
         $pricing->price = '7000.00';
 

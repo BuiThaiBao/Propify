@@ -4,7 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('listings', function (Blueprint $table) {
@@ -12,7 +13,7 @@ return new class extends Migration {
             // WHERE status = 'ACTIVE' AND demand_type = 'SALE' ORDER BY id DESC
             // Covering index: (status, demand_type, id DESC) giúp MySQL dùng index scan
             // thay vì full table scan + filesort
-            if (!$this->indexExists('listings', 'idx_listings_status_demand_id')) {
+            if (! $this->indexExists('listings', 'idx_listings_status_demand_id')) {
                 $table->index(['status', 'demand_type', 'id'], 'idx_listings_status_demand_id');
             }
         });
@@ -33,6 +34,7 @@ return new class extends Migration {
                 return true;
             }
         }
+
         return false;
 
     }

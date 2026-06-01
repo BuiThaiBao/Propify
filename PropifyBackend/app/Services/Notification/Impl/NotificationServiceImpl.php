@@ -12,15 +12,14 @@ use Illuminate\Support\Facades\Log;
 final class NotificationServiceImpl implements NotificationService
 {
     /**
-     * @param NotificationChannel[] $channels
+     * @param  NotificationChannel[]  $channels
      */
     public function __construct(
         private readonly array $channels
-    ) {
-    }
+    ) {}
 
     /**
-     * @param NotificationChanelType[] $channels  Danh sách channel muốn gửi
+     * @param  NotificationChanelType[]  $channels  Danh sách channel muốn gửi
      */
     public function send(
         User $user,
@@ -30,7 +29,7 @@ final class NotificationServiceImpl implements NotificationService
     ): void {
         foreach ($this->channels as $channel) {
             // So sánh enum với enum — dùng in_array strict
-            if (!in_array($channel->name(), $channels, true)) {
+            if (! in_array($channel->name(), $channels, true)) {
                 continue;
             }
 

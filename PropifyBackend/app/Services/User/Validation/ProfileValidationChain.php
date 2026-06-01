@@ -14,7 +14,7 @@ final class ProfileValidationChain
             throw new BusinessException(ErrorCode::ValidationError, 'Họ tên không được để trống.');
         }
 
-        if ($dto->phone !== null && !preg_match('/^[0-9]{9,12}$/', $dto->phone)) {
+        if ($dto->phone !== null && ! preg_match('/^[0-9]{9,12}$/', $dto->phone)) {
             throw new BusinessException(ErrorCode::ValidationError, 'Số điện thoại không hợp lệ.');
         }
     }

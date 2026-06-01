@@ -23,8 +23,8 @@ class ChatTestSeeder extends Seeder
             ['email' => 'chat-user-a@test.com'],
             [
                 'full_name' => 'Test User A',
-                'password'  => Hash::make('password123'),
-                'phone'     => '0901111111',
+                'password' => Hash::make('password123'),
+                'phone' => '0901111111',
             ]
         );
 
@@ -32,8 +32,8 @@ class ChatTestSeeder extends Seeder
             ['email' => 'chat-user-b@test.com'],
             [
                 'full_name' => 'Test User B',
-                'password'  => Hash::make('password123'),
-                'phone'     => '0902222222',
+                'password' => Hash::make('password123'),
+                'phone' => '0902222222',
             ]
         );
 
@@ -45,19 +45,19 @@ class ChatTestSeeder extends Seeder
             [
                 'participant_a_id' => $participantA,
                 'participant_b_id' => $participantB,
-                'listing_id'       => null,
+                'listing_id' => null,
             ]
         );
 
         // ── Tạo participants ──────────────────────────────────────────────
         ConversationParticipant::firstOrCreate([
             'conversation_id' => $conversation->id,
-            'user_id'         => $userA->id,
+            'user_id' => $userA->id,
         ]);
 
         ConversationParticipant::firstOrCreate([
             'conversation_id' => $conversation->id,
-            'user_id'         => $userB->id,
+            'user_id' => $userB->id,
         ]);
 
         // ── Tạo sample messages ───────────────────────────────────────────
@@ -75,9 +75,9 @@ class ChatTestSeeder extends Seeder
             foreach ($sampleMessages as [$senderId, $body]) {
                 Message::create([
                     'conversation_id' => $conversation->id,
-                    'sender_id'       => $senderId,
-                    'type'            => 'text',
-                    'body'            => $body,
+                    'sender_id' => $senderId,
+                    'type' => 'text',
+                    'body' => $body,
                 ]);
             }
         }

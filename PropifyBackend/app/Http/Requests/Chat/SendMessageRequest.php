@@ -15,8 +15,8 @@ final class SendMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type'     => ['sometimes', 'string', Rule::in(['text', 'image', 'file'])],
-            'body'     => ['required_if:type,text', 'nullable', 'string', 'max:5000'],
+            'type' => ['sometimes', 'string', Rule::in(['text', 'image', 'file'])],
+            'body' => ['required_if:type,text', 'nullable', 'string', 'max:5000'],
             'file_url' => ['required_if:type,image,file', 'nullable', 'string', 'url'],
         ];
     }
@@ -24,11 +24,11 @@ final class SendMessageRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'body.required_if'     => 'Nội dung tin nhắn không được để trống.',
-            'body.max'             => 'Tin nhắn không được vượt quá 5000 ký tự.',
+            'body.required_if' => 'Nội dung tin nhắn không được để trống.',
+            'body.max' => 'Tin nhắn không được vượt quá 5000 ký tự.',
             'file_url.required_if' => 'URL file/ảnh không được để trống.',
-            'file_url.url'         => 'URL file/ảnh không hợp lệ.',
-            'type.in'              => 'Loại tin nhắn phải là: text, image, hoặc file.',
+            'file_url.url' => 'URL file/ảnh không hợp lệ.',
+            'type.in' => 'Loại tin nhắn phải là: text, image, hoặc file.',
         ];
     }
 }

@@ -7,11 +7,12 @@ use App\DTOs\Auth\AuthResultDto;
 use App\DTOs\Auth\EmailPasswordAuthPayload;
 use App\Enums\AuthMethod;
 use App\Events\Auth\UserLoggedIn;
-use App\Services\Auth\Login\LoginValidationChain;
 use App\Services\Auth\AuthStrategy;
 use App\Services\Auth\AuthTokenIssuer;
+use App\Services\Auth\Login\LoginValidationChain;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use InvalidArgumentException;
+use Tymon\JWTAuth\JWTGuard;
 
 final class EmailPasswordAuthStrategy implements AuthStrategy
 {
@@ -19,8 +20,7 @@ final class EmailPasswordAuthStrategy implements AuthStrategy
         private readonly AuthFactory $authFactory,
         private readonly AuthTokenIssuer $tokenIssuer,
         private readonly LoginValidationChain $loginValidationChain,
-    ) {
-    }
+    ) {}
 
     public function method(): AuthMethod
     {
@@ -29,14 +29,14 @@ final class EmailPasswordAuthStrategy implements AuthStrategy
 
     public function authenticate(AuthPayload $payload): AuthResultDto
     {
-        if (!$payload instanceof EmailPasswordAuthPayload) {
+        if (! $payload instanceof EmailPasswordAuthPayload) {
             throw new InvalidArgumentException('EmailPasswordAuthStrategy requires EmailPasswordAuthPayload.');
         }
 
         $credentials = $payload->credentials;
         $this->loginValidationChain->validate($credentials->email, $credentials->password);
 
-        /** @var \Tymon\JWTAuth\JWTGuard $guard */
+        /** @var JWTGuard $guard */
         $guard = $this->authFactory->guard('api');
         $token = $guard->attempt(['email' => $credentials->email, 'password' => $credentials->password]);
         /** @var User $user */

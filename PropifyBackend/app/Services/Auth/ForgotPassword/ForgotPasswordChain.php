@@ -8,8 +8,7 @@ final class ForgotPasswordChain
 {
     public function __construct(
         private readonly ForgotPasswordHandler $firstHandler,
-    ) {
-    }
+    ) {}
 
     public function execute(string $email): void
     {

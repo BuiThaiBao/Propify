@@ -17,7 +17,7 @@ final class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email'    => ['required', 'email'],
+            'email' => ['required', 'email'],
             'password' => ['required', 'string', 'min:8'],
         ];
     }
@@ -40,11 +40,11 @@ final class LoginRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.required'    => 'Vui lòng nhập địa chỉ email.',
-            'email.email'       => 'Địa chỉ email không hợp lệ.',
+            'email.required' => 'Vui lòng nhập địa chỉ email.',
+            'email.email' => 'Địa chỉ email không hợp lệ.',
             'password.required' => 'Vui lòng nhập mật khẩu.',
-            'password.string'   => 'Mật khẩu phải là chuỗi ký tự.',
-            'password.min'      => 'Mật khẩu phải có ít nhất :min ký tự.',
+            'password.string' => 'Mật khẩu phải là chuỗi ký tự.',
+            'password.min' => 'Mật khẩu phải có ít nhất :min ký tự.',
         ];
     }
 }

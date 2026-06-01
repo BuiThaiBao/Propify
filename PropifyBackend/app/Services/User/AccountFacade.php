@@ -18,7 +18,7 @@ final class AccountFacade
     public function getAccountOverview(User $viewer, int $targetUserId): User
     {
         $target = $this->userRepository->findById($targetUserId);
-        if (!$target) {
+        if (! $target) {
             return $viewer;
         }
 

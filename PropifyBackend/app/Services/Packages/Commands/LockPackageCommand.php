@@ -17,10 +17,10 @@ final class LockPackageCommand
     public function execute(int $packageId): Package
     {
         $package = $this->repository->findById($packageId);
-        if (!$package) {
+        if (! $package) {
             throw new BusinessException(ErrorCode::PackageNotFound);
         }
-        if (!$package->is_active) {
+        if (! $package->is_active) {
             throw new BusinessException(ErrorCode::BadRequest, 'Gói đã ở trạng thái khóa.');
         }
 

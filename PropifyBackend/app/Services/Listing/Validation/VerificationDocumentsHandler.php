@@ -9,11 +9,11 @@ final class VerificationDocumentsHandler extends AbstractListingSubmissionValida
 {
     protected function validate(ListingSubmissionValidationContext $context): void
     {
-        if (!$context->dto->requestVerification) {
+        if (! $context->dto->requestVerification) {
             return;
         }
 
-        if (!$context->dto->identityCardFront || !$context->dto->identityCardBack) {
+        if (! $context->dto->identityCardFront || ! $context->dto->identityCardBack) {
             throw new BusinessException(ErrorCode::ValidationError, 'Can tai len day du CCCD mat truoc va mat sau de gui yeu cau xac thuc.');
         }
     }

@@ -6,6 +6,7 @@ use App\DTOs\Auth\AuthResultDto;
 use App\DTOs\Auth\LoginCredentialsDto;
 use App\DTOs\Auth\RegisterUserDto;
 use App\Exceptions\AuthenticationFailedException;
+use App\Exceptions\BusinessException;
 use App\Exceptions\OtpInvalidException;
 use App\Models\User;
 
@@ -60,7 +61,7 @@ interface AuthService
     /**
      * Tìm user theo email, sinh OTP, gửi mail quên mật khẩu.
      *
-     * @throws \App\Exceptions\BusinessException nếu email không tồn tại
+     * @throws BusinessException nếu email không tồn tại
      */
     public function forgotPassword(string $email): void;
 

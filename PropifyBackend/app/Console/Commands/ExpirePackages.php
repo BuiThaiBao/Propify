@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Log;
 final class ExpirePackages extends Command
 {
     protected $signature = 'packages:expire';
+
     protected $description = 'Remove package from expired listings';
 
     public function handle(): int
@@ -32,6 +33,7 @@ final class ExpirePackages extends Command
 
         if ($expiredListings->isEmpty()) {
             $this->line('No expired packages found.');
+
             return self::SUCCESS;
         }
 
@@ -41,9 +43,9 @@ final class ExpirePackages extends Command
         DB::table('listings')
             ->whereIn('id', $ids)
             ->update([
-                'package_id'         => null,
+                'package_id' => null,
                 'package_expires_at' => null,
-                'updated_at'         => now(),
+                'updated_at' => now(),
             ]);
 
         // Clear cache
@@ -54,7 +56,7 @@ final class ExpirePackages extends Command
         }
 
         Log::info('[ExpirePackages] Expired packages removed', [
-            'count'       => count($ids),
+            'count' => count($ids),
             'listing_ids' => $ids,
         ]);
 

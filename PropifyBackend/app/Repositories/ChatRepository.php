@@ -3,7 +3,6 @@
 namespace App\Repositories;
 
 use App\Models\Conversation;
-use App\Models\ConversationParticipant;
 use App\Models\Message;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -36,7 +35,7 @@ interface ChatRepository
     /**
      * Lưu message mới vào DB.
      *
-     * @param array<string, mixed> $data
+     * @param  array<string, mixed>  $data
      */
     public function createMessage(array $data): Message;
 

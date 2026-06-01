@@ -13,19 +13,15 @@ interface ViewTrackingService
      * 3. Redis dedup check (1 view / 30 min / user or guest)
      * 4. Redis atomic INCR counter
      *
-     * @param int         $listingId
-     * @param int|null    $userId   Null if guest
-     * @param string      $ip
-     * @param string      $userAgent
-     * @param string|null $anonCookie  Anonymous cookie for better guest fingerprinting
-     *
+     * @param  int|null  $userId  Null if guest
+     * @param  string|null  $anonCookie  Anonymous cookie for better guest fingerprinting
      * @return array{counted: bool, reason: string}
      */
     public function trackView(
-        int     $listingId,
-        ?int    $userId,
-        string  $ip,
-        string  $userAgent,
+        int $listingId,
+        ?int $userId,
+        string $ip,
+        string $userAgent,
         ?string $anonCookie = null,
     ): array;
 }

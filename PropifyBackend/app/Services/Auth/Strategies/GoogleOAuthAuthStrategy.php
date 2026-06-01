@@ -19,8 +19,7 @@ final class GoogleOAuthAuthStrategy implements AuthStrategy
     public function __construct(
         private readonly UserUpsertService $userUpsertService,
         private readonly AuthTokenIssuer $tokenIssuer,
-    ) {
-    }
+    ) {}
 
     public function method(): AuthMethod
     {
@@ -29,7 +28,7 @@ final class GoogleOAuthAuthStrategy implements AuthStrategy
 
     public function authenticate(AuthPayload $payload): AuthResultDto
     {
-        if (!$payload instanceof SocialAuthPayload) {
+        if (! $payload instanceof SocialAuthPayload) {
             throw new InvalidArgumentException('GoogleOAuthAuthStrategy requires SocialAuthPayload.');
         }
 

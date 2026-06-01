@@ -11,8 +11,7 @@ final class ListingUpgradeController
 {
     public function __construct(
         private readonly ListingService $listingService,
-    ) {
-    }
+    ) {}
 
     /**
      * Create a VNPAY payment URL for a listing package upgrade.

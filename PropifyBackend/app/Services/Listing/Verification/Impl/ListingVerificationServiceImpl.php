@@ -101,13 +101,13 @@ final class ListingVerificationServiceImpl implements ListingVerificationService
 
     private function updateVerificationStatus(int $listingId, bool $isVerified, ?string $reason, int $adminUserId): Listing
     {
-        if (!$isVerified && trim((string) $reason) === '') {
+        if (! $isVerified && trim((string) $reason) === '') {
             throw new BusinessException(ErrorCode::BadRequest, 'Vui lòng nhập lý do từ chối xác thực.');
         }
 
         $listing = DB::transaction(function () use ($listingId, $isVerified, $reason, $adminUserId) {
             $listing = Listing::query()->lockForUpdate()->find($listingId);
-            if (!$listing) {
+            if (! $listing) {
                 throw new BusinessException(ErrorCode::ListingNotFound);
             }
 

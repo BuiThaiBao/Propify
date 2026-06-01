@@ -9,8 +9,7 @@ final class EloquentUserRepository implements UserRepository
 {
     public function __construct(
         protected readonly User $model
-    ) {
-    }
+    ) {}
 
     public function create(array $attributes): User
     {
@@ -36,12 +35,13 @@ final class EloquentUserRepository implements UserRepository
     {
         $user = $this->model->findOrFail($id);
         $user->update($attributes);
+
         return $user;
     }
 
     public function findByProviderId(string $provider, string $providerId): ?User
     {
-        $column = $provider . '_id'; // 'google_id', 'facebook_id', ...
+        $column = $provider.'_id'; // 'google_id', 'facebook_id', ...
 
         return $this->model->where($column, $providerId)->first();
     }

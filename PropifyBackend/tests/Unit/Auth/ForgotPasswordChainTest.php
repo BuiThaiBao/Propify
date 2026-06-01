@@ -82,7 +82,7 @@ final class ForgotPasswordChainTest extends TestCase
     {
         $findUser = new FindResetUserHandler($repository);
         $sendOtp = new SendResetOtpHandler($otpService);
-        $logAttempt = new LogResetAttemptHandler();
+        $logAttempt = new LogResetAttemptHandler;
 
         $findUser->setNext($sendOtp)->setNext($logAttempt);
 
