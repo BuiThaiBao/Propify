@@ -40,8 +40,13 @@
           </p>
         </div>
         <div class="hidden shrink-0 items-center gap-2 sm:flex">
-          <button class="detail-icon-button" aria-label="Yêu thích">
-            <img :src="favoriteIcon" class="h-4 w-4" alt="" />
+          <button
+            class="detail-icon-button"
+            :class="{ 'is-active': isFavorite(listing) }"
+            aria-label="Yêu thích"
+            @click="toggleFavorite(listing)"
+          >
+            <Heart class="h-4 w-4" :fill="isFavorite(listing) ? 'currentColor' : 'none'" />
           </button>
           <button class="detail-icon-button" aria-label="Chia sẻ">
             <img :src="shareIcon" class="h-4 w-4" alt="" />
@@ -284,6 +289,9 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { useFavoriteListings } from '@/composables/useFavoriteListings';
+import { Heart } from 'lucide-vue-next';
 import listingService from '@/services/listingService';
 import AppointmentBookingPopup from '@/components/appointments/AppointmentBookingPopup.vue';
 import { buildPropertyAddress, hydratePropertyAddress } from '@/utils/addressFormatter';
@@ -317,6 +325,8 @@ import floorIcon from '@/assets/images/details/sotang.png';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
+const { isFavorite, toggleFavorite, loadFavorites } = useFavoriteListings();
 
 const props = defineProps({
   previewMode: {
@@ -965,7 +975,17 @@ onMounted(() => {
   }
 
   loadListing();
+  loadFavorites();
 });
+
+watch(
+  () => authStore.isAuthenticated,
+  () => {
+    if (!props.previewMode) {
+      loadFavorites();
+    }
+  }
+);
 
 onUnmounted(() => {
   if (map) {
@@ -1063,6 +1083,18 @@ onUnmounted(() => {
   border-color: #bae6fd;
   box-shadow: 0 8px 18px rgba(14, 165, 233, 0.12);
   transform: translateY(-1px);
+}
+
+.detail-icon-button.is-active {
+  border-color: #fecdd3;
+  background-color: #fff1f2;
+  color: #f43f5e;
+}
+
+.detail-icon-button.is-active:hover {
+  border-color: #fda4af;
+  background-color: #ffe4e6;
+  box-shadow: 0 8px 18px rgba(244, 63, 94, 0.15);
 }
 
 .detail-action-icon {
