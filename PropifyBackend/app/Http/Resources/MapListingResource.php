@@ -21,6 +21,9 @@ class MapListingResource extends JsonResource
             'address' => $property?->address_detail,
             'latitude' => $property?->lat,
             'longitude' => $property?->lng,
+            'bedrooms' => $property?->bedrooms,
+            'bathrooms' => $property?->bathrooms,
+            'poster_type' => $property?->poster_type,
             'thumbnail' => $thumbnail?->image_url,
         ];
     }
