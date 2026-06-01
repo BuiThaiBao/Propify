@@ -156,6 +156,71 @@
             </div>
           </section>
 
+          <!-- Contact & Price details immediately after description when embedded from map -->
+          <section v-if="isEmbedded" class="mt-[18px] rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+            <div class="border-b border-slate-100 pb-4">
+              <h2 class="text-[26px] font-extrabold text-sky-500">
+                {{ formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT'" class="text-sm font-medium text-slate-500">/tháng</span>
+              </h2>
+              <div class="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                <span class="flex items-center gap-1.5">
+                  <img :src="bedIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                  {{ listing.property?.bedrooms || 0 }} PN
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <img :src="bathIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                  {{ listing.property?.bathrooms || 0 }} WC
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <img :src="areaIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                  {{ listing.property?.area || 0 }} m²
+                </span>
+              </div>
+            </div>
+
+            <div class="py-4 text-xs">
+              <p class="mb-3 font-semibold text-slate-800">Thông tin của bất động sản</p>
+              <div class="space-y-3">
+                <div class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
+                  <span class="whitespace-nowrap text-slate-400">Loại BĐS</span>
+                  <span class="truncate text-right text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
+                </div>
+                <div class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
+                  <span class="whitespace-nowrap text-slate-400">Địa chỉ</span>
+                  <span class="truncate text-right text-sky-500">{{ fullAddress }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 font-bold text-white">
+                {{ (listing.owner?.full_name || listing.property?.contact_name || 'U').charAt(0).toUpperCase() }}
+              </div>
+              <div class="min-w-0">
+                <p class="truncate text-sm font-semibold text-slate-800">{{ listing.property?.contact_name || listing.owner?.full_name }}</p>
+                <p class="text-xs text-slate-500">{{ listing.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới' }}</p>
+              </div>
+              <button class="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-sky-100" aria-label="Nhắn tin chủ nhà">
+                <img :src="chatIcon" class="h-4 w-4" alt="" />
+              </button>
+            </div>
+
+            <div class="space-y-2">
+              <a v-if="contactPhone" :href="`tel:${contactPhone}`" class="flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600">
+                <img :src="callIcon" class="detail-action-icon mr-2 h-3.5 w-3.5" alt="" />
+                Liên hệ chủ nhà
+              </a>
+              <button v-if="!previewMode" class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600" @click="showAppointmentPopup = true">
+                <img :src="calendarIcon" class="mr-2 h-3.5 w-3.5" alt="" />
+                Đặt lịch xem nhà
+              </button>
+              <button class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600">
+                <img :src="messagesIcon" class="mr-2 h-3.5 w-3.5" alt="" />
+                Nhắn tin
+              </button>
+            </div>
+          </section>
+
           <section class="detail-card">
             <h2 class="detail-title">
               <img :src="detailInfoIcon" class="detail-title-icon" alt="" />
