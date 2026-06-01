@@ -652,11 +652,11 @@
             class="group overflow-hidden rounded-xl border border-slate-100 bg-white transition hover:shadow-md flex flex-col md:flex-row relative"
           >
             <!-- Left Side: Image section -->
-            <div class="relative w-full md:w-[260px] lg:w-[280px] shrink-0 bg-slate-50 overflow-hidden">
+            <div class="relative w-full md:w-[260px] lg:w-[280px] h-48 md:h-[200px] shrink-0 bg-slate-50 overflow-hidden">
               <img
                 :src="item.thumbnail || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60'"
                 alt="thumb"
-                class="w-full h-48 md:h-full min-h-[200px] object-cover transition-transform duration-500 group-hover:scale-105"
+                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
               
               <!-- Floating Package Badge -->
