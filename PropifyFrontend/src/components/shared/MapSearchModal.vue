@@ -6,6 +6,23 @@
       :class="isSidebarOpen ? 'translate-x-0 md:translate-x-[380px]' : 'translate-x-0'"
     >
       <div ref="mapEl" class="h-full w-full"></div>
+
+      <!-- User Location GPS Button -->
+      <button
+        @click="getUserLocation"
+        type="button"
+        class="absolute top-4 left-4 z-20 w-10 h-10 bg-[#1e293b] rounded-xl shadow-lg hover:bg-slate-800 flex items-center justify-center transition duration-200"
+        title="Vị trí của tôi"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+          <circle cx="12" cy="12" r="6"/>
+          <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+          <line x1="12" y1="2" x2="12" y2="4"/>
+          <line x1="12" y1="20" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="4" y2="12"/>
+          <line x1="20" y1="12" x2="22" y2="12"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Close Button (Static relative to screen) -->
@@ -176,6 +193,13 @@
                   {{ item.bathrooms || 0 }} WC
                 </span>
               </div>
+              <div v-if="item.address" class="flex items-center gap-1 text-[11px] text-slate-400 mb-1.5 min-w-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 shrink-0 opacity-70 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span class="truncate">{{ item.address }}</span>
+              </div>
             </div>
             <div class="text-[#0DA2E7] font-extrabold text-[13px]">
               {{ formatPrice(item.price) }}
@@ -236,6 +260,7 @@ let activeMarkers = [];
 let activePopups = [];
 let items = [];
 const selectedListing = ref(null);
+let userMarker = null;
 
 const currentBounds = ref(null);
 const localPosterType = ref('ALL'); // 'ALL', 'OWNER', 'BROKER'
@@ -354,6 +379,94 @@ function selectListingCard(item) {
       duration: 800,
     });
   }
+}
+
+function showUserMarker(lat, lng) {
+  if (!map) return;
+  
+  if (userMarker) {
+    userMarker.remove();
+  }
+  
+  const el = document.createElement('div');
+  el.style.width = '20px';
+  el.style.height = '20px';
+  el.style.borderRadius = '50%';
+  el.style.background = '#1E6BFE';
+  el.style.border = '3px solid #fff';
+  el.style.boxShadow = '0 0 10px rgba(30, 107, 254, 0.6)';
+  el.style.position = 'relative';
+  
+  const pulse = document.createElement('div');
+  pulse.style.position = 'absolute';
+  pulse.style.inset = '-6px';
+  pulse.style.borderRadius = '50%';
+  pulse.style.border = '2px solid #1E6BFE';
+  pulse.style.animation = 'gps-pulse 1.8s infinite ease-out';
+  pulse.style.opacity = '0';
+  el.appendChild(pulse);
+  
+  if (!document.getElementById('gps-pulse-style')) {
+    const style = document.createElement('style');
+    style.id = 'gps-pulse-style';
+    style.innerHTML = `
+      @keyframes gps-pulse {
+        0% { transform: scale(0.6); opacity: 0.8; }
+        100% { transform: scale(1.6); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  userMarker = new maplibregl.Marker({ element: el })
+    .setLngLat([lng, lat])
+    .addTo(map);
+}
+
+function getUserLocation() {
+  if (!navigator.geolocation) {
+    console.warn("Trình duyệt không hỗ trợ định vị vị trí.");
+    return;
+  }
+  
+  const successCallback = (position) => {
+    const lat = position.coords.latitude;
+    const lng = position.coords.longitude;
+    
+    if (map) {
+      map.easeTo({
+        center: [lng, lat],
+        zoom: 15,
+        duration: 1000
+      });
+      showUserMarker(lat, lng);
+    }
+  };
+  
+  const errorCallback = (error) => {
+    console.warn("High accuracy geolocation failed, trying low accuracy fallback...", error);
+    navigator.geolocation.getCurrentPosition(
+      successCallback,
+      (fallbackError) => {
+        console.error("Lỗi định vị:", fallbackError);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  };
+  
+  navigator.geolocation.getCurrentPosition(
+    successCallback,
+    errorCallback,
+    {
+      enableHighAccuracy: true,
+      timeout: 5000,
+      maximumAge: 0
+    }
+  );
 }
 
 function formatPrice(value) {
@@ -546,6 +659,10 @@ watch(() => props.open, async (isOpen) => {
     sortBy.value = 'DEFAULT';
     showSortDropdown.value = false;
     isSidebarOpen.value = true;
+    if (userMarker) {
+      userMarker.remove();
+      userMarker = null;
+    }
     if (map) {
       map.remove();
       map = null;
