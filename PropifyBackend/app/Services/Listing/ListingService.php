@@ -7,6 +7,7 @@ use App\Models\Listing;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 interface ListingService
 {
@@ -39,6 +40,16 @@ interface ListingService
         ?float $minArea = null,
         ?float $maxArea = null
     ): LengthAwarePaginator;
+
+    public function getMapListings(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $posterType = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        ?float $minArea = null,
+        ?float $maxArea = null
+    ): Collection;
 
     public function getAllForAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 

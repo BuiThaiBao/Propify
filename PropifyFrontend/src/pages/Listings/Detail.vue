@@ -1,5 +1,5 @@
 <template>
-  <main :class="previewMode ? 'min-h-0 bg-[#f6f9fc] pb-6 pt-0' : 'min-h-screen bg-[#f6f9fc] pb-14 pt-24'">
+  <main :class="(previewMode || isEmbedded) ? 'min-h-0 bg-[#f6f9fc] pb-6 pt-0' : 'min-h-screen bg-[#f6f9fc] pb-14 pt-24'">
     <div class="toast-stack">
       <div
         v-for="toast in toasts"
@@ -22,7 +22,7 @@
     <div v-else-if="listing" :class="previewMode ? 'mx-auto w-full max-w-[1280px] px-0' : 'mx-auto w-full max-w-[1280px] px-4 lg:px-8'">
       <div class="mb-5 flex items-start justify-between gap-4">
         <div class="min-w-0">
-          <p class="flex items-center gap-2 text-xs text-slate-400">
+          <p v-if="!isEmbedded" class="flex items-center gap-2 text-xs text-slate-400">
             <button type="button" class="flex items-center gap-1 hover:text-sky-500" @click="router.back()">
               <span class="text-base leading-none">←</span>
               <span>Danh sách</span>
@@ -284,6 +284,25 @@
       @close="showAppointmentPopup = false"
       @success="showAppointmentPopup = false"
     />
+
+    <!-- Floating Save Listing Button -->
+    <div
+      v-if="listing && !loading"
+      @click="toggleFavorite(listing)"
+      class="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white border border-r-0 border-slate-200 shadow-md rounded-l-xl py-3 px-2.5 w-14 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 active:scale-[0.95] transition-all group"
+    >
+      <Heart
+        class="h-5 w-5 text-slate-400 group-hover:text-slate-600 transition-colors"
+        :class="{ 'text-red-500 fill-red-500': isFavorite(listing) }"
+        :fill="isFavorite(listing) ? 'currentColor' : 'none'"
+      />
+      <span
+        class="text-[10px] mt-1 font-semibold text-slate-500 text-center select-none"
+        :class="{ 'text-red-500': isFavorite(listing) }"
+      >
+        Lưu tin
+      </span>
+    </div>
   </main>
 </template>
 <script setup>
@@ -339,6 +358,7 @@ const props = defineProps({
   },
 });
 
+const isEmbedded = ref(false);
 const loading = ref(!props.previewMode);
 const error = ref('');
 const listing = ref(props.previewListing || {});
@@ -966,6 +986,7 @@ function initMap() {
 
 
 onMounted(() => {
+  isEmbedded.value = window.self !== window.top;
   if (props.previewMode) {
     loading.value = false;
     if (hasLatLng.value) {

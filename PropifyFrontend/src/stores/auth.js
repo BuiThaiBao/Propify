@@ -4,6 +4,7 @@ import authService from "@/services/authService";
 import { getAccessToken } from "@/utils/authCookies";
 
 const USER_CACHE_KEY = "auth_user";
+const authChannel = typeof window !== 'undefined' ? new BroadcastChannel('auth_sync') : null;
 
 function decodeJwtPayload(jwt) {
   try {
@@ -51,11 +52,21 @@ export const useAuthStore = defineStore("auth", () => {
    */
   async function initAuth() {
     const savedToken = getAccessToken();
-    if (!savedToken) return;
+    if (!savedToken) {
+      if (token.value) {
+        clearAuth();
+      }
+      return;
+    }
 
     if (roleFromToken(savedToken) === "ADMIN") {
       clearAuth();
       return;
+    }
+
+    // Nếu token thay đổi so với memory (đăng nhập mới, đổi tài khoản...), xóa cache sessionStorage
+    if (token.value !== savedToken) {
+      sessionStorage.removeItem(USER_CACHE_KEY);
     }
 
     token.value = savedToken;
@@ -86,6 +97,20 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
+  function broadcastAuthChange() {
+    if (authChannel) {
+      authChannel.postMessage({ type: 'auth-changed' });
+    }
+  }
+
+  if (authChannel) {
+    authChannel.onmessage = (event) => {
+      if (event.data?.type === 'auth-changed') {
+        initAuth();
+      }
+    };
+  }
+
   /**
    * Đăng nhập với email và password.
    *
@@ -105,6 +130,7 @@ export const useAuthStore = defineStore("auth", () => {
 
       // Fetch full user data (avatar_url, phone, ...) thay vì dùng data rút gọn từ login response
       await fetchUser();
+      broadcastAuthChange();
 
       return { success: true };
     } catch (error) {
@@ -176,6 +202,7 @@ export const useAuthStore = defineStore("auth", () => {
 
       // Fetch full user data
       await fetchUser();
+      broadcastAuthChange();
 
       return { success: true };
     } catch (error) {
@@ -218,6 +245,7 @@ export const useAuthStore = defineStore("auth", () => {
       // Kệ lỗi, vẫn clear local state
     }
     clearAuth();
+    broadcastAuthChange();
   }
 
   /**
@@ -246,6 +274,7 @@ export const useAuthStore = defineStore("auth", () => {
 
     try {
       await fetchUser();
+      broadcastAuthChange();
     } catch {
       clearAuth();
       throw new Error("Failed to fetch user after Google login");

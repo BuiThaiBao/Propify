@@ -181,6 +181,7 @@ Route::get('v1/payments/vnpay/return', VnpayReturnController::class)
 
 Route::prefix('v1/listings')->as('listings.')->group(function () {
     Route::get('/', [ListingController::class, 'index'])->name('index');
+    Route::get('/map', [ListingController::class, 'mapListings'])->name('map');
     Route::get('/{id}', [ListingController::class, 'show'])->where('id', '[0-9]+')->name('show');
 
     // View tracking — public, throttle 60/min/IP

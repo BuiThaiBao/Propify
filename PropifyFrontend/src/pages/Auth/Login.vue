@@ -15,7 +15,7 @@
 
         <!-- Close -->
         <button
-          @click="$emit('close')"
+          @click="handleClose"
           class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -176,9 +176,12 @@
 
 <script setup>
 import { ref, watch, computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import ForgotPassword from "./ForgotPassword.vue";
 
+const route = useRoute();
+const router = useRouter();
 const authStore = useAuthStore();
 const emit = defineEmits(["close", "success", "switchToRegister"]);
 
@@ -213,6 +216,13 @@ function validateForm(isSubmit = false) {
   return Object.keys(errors).length === 0;
 }
 
+function handleClose() {
+  emit("close");
+  if (route.path === '/login') {
+    router.push('/');
+  }
+}
+
 async function handleLogin() {
   if (authStore.loading) return;
 
@@ -226,6 +236,13 @@ async function handleLogin() {
 
   if (result.success) {
     emit("success");
+    if (window.parent && window.parent !== window.self) {
+      window.parent.postMessage({ type: 'auth-success' }, window.location.origin);
+    }
+    if (route.path === '/login') {
+      const redirectTo = route.query.redirect || '/';
+      router.push(redirectTo);
+    }
   } else {
     errorMessage.value = result.message;
   }

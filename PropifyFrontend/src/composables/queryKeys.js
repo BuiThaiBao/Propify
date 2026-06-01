@@ -15,6 +15,7 @@ export const listingKeys = {
       max_area: params.max_area,
     },
   ],
+  mapList: (params = {}) => [...listingKeys.all, 'map', params],
 };
 
 export const packageKeys = {
