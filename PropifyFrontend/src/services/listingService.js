@@ -9,6 +9,9 @@ const listingService = {
   getPublicListings(params = {}) {
     return api.get("/v1/listings", { params });
   },
+  getMapListings(params = {}) {
+    return api.get("/v1/listings/map", { params });
+  },
 
   getById(id) {
     return api.get(`/v1/listings/${id}`);

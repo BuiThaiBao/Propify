@@ -110,7 +110,7 @@
         <!-- Right Column: Sidebar Filters -->
         <div class="lg:col-span-4 flex flex-col gap-4">
           <!-- Tìm kiếm theo bản đồ -->
-          <div class="bg-sky-50 border border-sky-100 rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer hover:bg-sky-100 transition shadow-sm text-center">
+          <div @click="isMapOpen = true" class="bg-sky-50 border border-sky-100 rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer hover:bg-sky-100 transition shadow-sm text-center">
             <div class="bg-sky-200/50 p-2.5 rounded-full mb-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-sky-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
@@ -306,6 +306,7 @@
       </div>
     </div>
   </RentLayout>
+  <MapSearchModal :open="isMapOpen" :filters="mapFilters" @close="isMapOpen = false" />
 </template>
 
 <script setup>
@@ -320,6 +321,8 @@ import TabFilterGroup from '@/components/shared/TabFilterGroup.vue';
 import RadioFilterGroup from '@/components/shared/RadioFilterGroup.vue';
 import { useRentListings } from '@/composables/useRentListings';
 import { useFavoriteListings } from '@/composables/useFavoriteListings';
+import { computed } from 'vue';
+import MapSearchModal from '@/components/shared/MapSearchModal.vue';
 
 const {
   rentListings, rentLoading, rentTotal,
@@ -329,6 +332,8 @@ const {
   init, onSearch, goToPage,
 } = useRentListings();
 const { isFavorite, toggleFavorite, loadFavorites } = useFavoriteListings();
+const isMapOpen = ref(false);
+const mapFilters = computed(() => ({ demand_type: 'RENT', keyword: searchKeyword.value, poster_type: posterType.value, min_price: minPrice.value, max_price: maxPrice.value, min_area: minArea.value, max_area: maxArea.value }));
 
 // Custom UI Filter presets
 const selectedPricePreset = ref('all');

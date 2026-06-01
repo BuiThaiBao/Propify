@@ -10,6 +10,7 @@ use App\Models\ListingVideo;
 use App\Models\Property;
 use App\Services\Listing\Sorting\ListingSortingStrategy;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 interface ListingRepository
 {
@@ -40,6 +41,16 @@ interface ListingRepository
         ?float $minArea = null,
         ?float $maxArea = null
     ): LengthAwarePaginator;
+
+    public function getMapListings(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $posterType = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        ?float $minArea = null,
+        ?float $maxArea = null
+    ): Collection;
 
     public function paginateAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 

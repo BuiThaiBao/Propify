@@ -26,6 +26,7 @@ use App\Services\Listing\Upgrade\UpgradeEligibilityPolicy;
 use App\Services\Listing\Upgrade\UpgradeListingCommand;
 use App\Services\Listing\Verification\ListingVerificationService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -194,6 +195,36 @@ final class ListingServiceImpl implements ListingService
     public function getAllForAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
     {
         return $this->listingRepository->paginateAdmin($status, $demandType, $keyword, $perPage);
+    }
+
+    public function getMapListings(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $posterType = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        ?float $minArea = null,
+        ?float $maxArea = null
+    ): Collection {
+        $cacheKey = 'listings:public:map:'.md5(serialize([
+            'demand_type' => $demandType,
+            'keyword' => $keyword,
+            'poster_type' => $posterType,
+            'min_price' => $minPrice,
+            'max_price' => $maxPrice,
+            'min_area' => $minArea,
+            'max_area' => $maxArea,
+        ]));
+
+        return Cache::tags(['listings:public'])->remember($cacheKey, 300, fn () => $this->listingRepository->getMapListings(
+            demandType: $demandType,
+            keyword: $keyword,
+            posterType: $posterType,
+            minPrice: $minPrice,
+            maxPrice: $maxPrice,
+            minArea: $minArea,
+            maxArea: $maxArea,
+        ));
     }
 
     public function changeStatusForAdmin(int $listingId, string $status, ?string $rejectionReason = null, ?int $adminUserId = null): Listing

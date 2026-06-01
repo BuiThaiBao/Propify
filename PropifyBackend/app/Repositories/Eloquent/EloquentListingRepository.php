@@ -11,6 +11,7 @@ use App\Models\Property;
 use App\Repositories\ListingRepository;
 use App\Services\Listing\Sorting\ListingSortingStrategy;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 final class EloquentListingRepository implements ListingRepository
 {
@@ -210,6 +211,56 @@ final class EloquentListingRepository implements ListingRepository
             })
             ->orderByDesc('id')
             ->paginate($perPage);
+    }
+
+    public function getMapListings(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $posterType = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        ?float $minArea = null,
+        ?float $maxArea = null
+    ): Collection {
+        return Listing::query()
+            ->select(['id', 'property_id', 'title', 'demand_type'])
+            ->with([
+                'property:id,address_detail,price,area,poster_type,lat,lng,project_name',
+                'images:id,listing_id,image_url,is_thumbnail',
+            ])
+            ->where('status', 'ACTIVE')
+            ->when($demandType, fn ($query) => $query->where('demand_type', $demandType))
+            ->when($keyword, function ($query) use ($keyword) {
+                $query->where(function ($subQuery) use ($keyword) {
+                    $subQuery
+                        ->where('title', 'like', '%'.$keyword.'%')
+                        ->orWhereHas('property', fn ($propertyQuery) => $propertyQuery
+                            ->where('address_detail', 'like', '%'.$keyword.'%')
+                            ->orWhere('project_name', 'like', '%'.$keyword.'%'));
+                });
+            })
+            ->whereHas('property', function ($query) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
+                $query->whereNotNull('lat')
+                    ->whereNotNull('lng');
+
+                if ($posterType) {
+                    $query->where('poster_type', strtoupper($posterType));
+                }
+                if ($minPrice !== null) {
+                    $query->where('price', '>=', $minPrice);
+                }
+                if ($maxPrice !== null) {
+                    $query->where('price', '<=', $maxPrice);
+                }
+                if ($minArea !== null) {
+                    $query->where('area', '>=', $minArea);
+                }
+                if ($maxArea !== null) {
+                    $query->where('area', '<=', $maxArea);
+                }
+            })
+            ->orderByDesc('id')
+            ->get();
     }
 
     public function updateProperty(int $id, array $attributes): Property

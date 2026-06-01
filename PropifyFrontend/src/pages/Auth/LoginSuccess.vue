@@ -21,6 +21,9 @@ onMounted(async () => {
 
   try {
     await authStore.setTokenFromGoogle();
+    if (window.parent && window.parent !== window.self) {
+      window.parent.postMessage({ type: 'auth-success' }, window.location.origin);
+    }
     router.replace("/");
   } catch {
     router.replace("/login");
