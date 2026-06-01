@@ -11,9 +11,9 @@ final class ListingSortingStrategyFactory
     public static function make(?string $sortBy): ListingSortingStrategy
     {
         return match ($sortBy) {
-            'price_asc' => new PriceLowToHighSortingStrategy(),
-            'newest' => new NewestListingSortingStrategy(),
-            default => new DefaultPackageScoreSortingStrategy(),
+            'price_asc' => new PriceLowToHighSortingStrategy,
+            'newest' => new NewestListingSortingStrategy,
+            default => new DefaultPackageScoreSortingStrategy,
         };
     }
 }

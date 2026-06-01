@@ -24,11 +24,11 @@ final class AppointmentBooking extends Model
     ];
 
     protected $casts = [
-        'meet_time'        => 'datetime',
+        'meet_time' => 'datetime',
         'confirm_deadline' => 'datetime',
-        'is_deleted'       => 'boolean',
-        'is_urgent'        => 'boolean',
-        'status'           => 'string',
+        'is_deleted' => 'boolean',
+        'is_urgent' => 'boolean',
+        'status' => 'string',
     ];
 
     // ==================== Relationships ====================

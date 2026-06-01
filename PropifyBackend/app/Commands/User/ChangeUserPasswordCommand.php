@@ -16,8 +16,7 @@ final class ChangeUserPasswordCommand
     public function __construct(
         private readonly UserRepository $userRepository,
         private readonly PasswordValidationChain $passwordValidationChain,
-    ) {
-    }
+    ) {}
 
     public function execute(User $user, ChangePasswordDto $dto): void
     {

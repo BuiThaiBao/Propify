@@ -11,8 +11,7 @@ final class SendResetOtpHandler extends AbstractForgotPasswordHandler
 {
     public function __construct(
         private readonly OtpService $otpService,
-    ) {
-    }
+    ) {}
 
     public function handle(ForgotPasswordContext $context): void
     {

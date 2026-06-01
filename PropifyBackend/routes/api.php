@@ -2,6 +2,7 @@
 
 use App\Enums\ErrorCode;
 use App\Helpers\ApiResponse;
+use App\Http\Controllers\Api\V1\Admin\AdminAuditLogController;
 use App\Http\Controllers\Api\V1\Admin\AdminListingController;
 use App\Http\Controllers\Api\V1\Amenity\AmenityController;
 use App\Http\Controllers\Api\V1\Amenity\ListingAmenityController;
@@ -74,7 +75,7 @@ Route::prefix('v1/auth')->as('auth.')->group(function () {
             );
         }
 
-        return redirect(rtrim((string) config('app.frontend_url'), '/') . '/login');
+        return redirect(rtrim((string) config('app.frontend_url'), '/').'/login');
     })->name('login.redirect');
 
     Route::post('/login', [AuthController::class, 'login'])
@@ -255,9 +256,9 @@ Route::prefix('v1/packages')->as('packages.admin.')->middleware('auth:api')->gro
 
 // ==================== ADMIN ROUTES ====================
 Route::prefix('v1/admin')->as('admin.')->middleware('auth:api')->group(function () {
-    Route::get('/listings', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'index'])->name('listings.index');
-    Route::get('/listings/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'show'])->where('id', '[0-9]+')->name('listings.show');
-    Route::patch('/listings/{id}/status', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'changeStatus'])->name('listings.change-status');
-    Route::patch('/listings/{id}/verification', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'updateVerification'])->where('id', '[0-9]+')->name('listings.verification');
-    Route::get('/audit-logs', [\App\Http\Controllers\Api\V1\Admin\AdminAuditLogController::class, 'index'])->name('audit-logs.index');
+    Route::get('/listings', [AdminListingController::class, 'index'])->name('listings.index');
+    Route::get('/listings/{id}', [AdminListingController::class, 'show'])->where('id', '[0-9]+')->name('listings.show');
+    Route::patch('/listings/{id}/status', [AdminListingController::class, 'changeStatus'])->name('listings.change-status');
+    Route::patch('/listings/{id}/verification', [AdminListingController::class, 'updateVerification'])->where('id', '[0-9]+')->name('listings.verification');
+    Route::get('/audit-logs', [AdminAuditLogController::class, 'index'])->name('audit-logs.index');
 });

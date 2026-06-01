@@ -8,12 +8,11 @@ use LogicException;
 final class AuthStrategyResolver
 {
     /**
-     * @param AuthStrategy[] $strategies
+     * @param  AuthStrategy[]  $strategies
      */
     public function __construct(
         private readonly array $strategies,
-    ) {
-    }
+    ) {}
 
     public function resolve(AuthMethod $method): AuthStrategy
     {

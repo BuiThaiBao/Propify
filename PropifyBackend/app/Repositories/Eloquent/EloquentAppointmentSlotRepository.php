@@ -10,8 +10,7 @@ final class EloquentAppointmentSlotRepository implements AppointmentSlotReposito
 {
     public function __construct(
         protected readonly AppointmentSlot $model
-    ) {
-    }
+    ) {}
 
     public function getByListingId(int $listingId): Collection
     {

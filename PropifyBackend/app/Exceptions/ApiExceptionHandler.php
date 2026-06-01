@@ -26,13 +26,13 @@ final class ApiExceptionHandler
      * @var array<class-string<Throwable>, ErrorCode>
      */
     protected static array $exceptionMap = [
-        AuthenticationException::class     => ErrorCode::AuthUnauthorized,
-        AccessDeniedHttpException::class   => ErrorCode::AuthForbidden,
-        ModelNotFoundException::class      => ErrorCode::ResourceNotFound,
-        NotFoundHttpException::class       => ErrorCode::ResourceNotFound,
-        TokenExpiredException::class       => ErrorCode::AuthTokenExpired,
-        TokenInvalidException::class       => ErrorCode::AuthTokenInvalid,
-        JWTException::class                => ErrorCode::AuthTokenInvalid,
+        AuthenticationException::class => ErrorCode::AuthUnauthorized,
+        AccessDeniedHttpException::class => ErrorCode::AuthForbidden,
+        ModelNotFoundException::class => ErrorCode::ResourceNotFound,
+        NotFoundHttpException::class => ErrorCode::ResourceNotFound,
+        TokenExpiredException::class => ErrorCode::AuthTokenExpired,
+        TokenInvalidException::class => ErrorCode::AuthTokenInvalid,
+        JWTException::class => ErrorCode::AuthTokenInvalid,
     ];
 
     /**
@@ -60,7 +60,7 @@ final class ApiExceptionHandler
 
         // 3. Handle Framework Exceptions via Map
         $exceptions->render(function (Throwable $e, Request $request) {
-            if (!self::isApiRequest($request)) {
+            if (! self::isApiRequest($request)) {
                 return null;
             }
 

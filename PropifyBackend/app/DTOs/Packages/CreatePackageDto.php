@@ -2,7 +2,6 @@
 
 namespace App\DTOs\Packages;
 
-use App\Enums\PackageType;
 use App\Http\Requests\Package\CreatePackageRequest;
 
 final readonly class CreatePackageDto
@@ -18,8 +17,7 @@ final readonly class CreatePackageDto
         public ?string $badge,
         public ?string $color,
         public array $activeDurations = [],
-    ) {
-    }
+    ) {}
 
     public static function fromRequest(CreatePackageRequest $request): self
     {

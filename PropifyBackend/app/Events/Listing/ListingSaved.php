@@ -15,6 +15,5 @@ final class ListingSaved
         public readonly Listing $listing,
         public readonly ?User $user,
         public readonly string $action,
-    ) {
-    }
+    ) {}
 }

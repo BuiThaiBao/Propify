@@ -7,8 +7,9 @@ use App\Http\Requests\Listing\CreateListingRequest;
 use App\Http\Requests\Listing\GetMyListingsRequest;
 use App\Http\Requests\Listing\StoreListingReportRequest;
 use App\Http\Resources\ListingResource;
-use App\Services\Listing\Reports\ReportListingCommand;
+use App\Models\Listing;
 use App\Services\Listing\ListingService;
+use App\Services\Listing\Reports\ReportListingCommand;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -17,8 +18,7 @@ final class ListingController
     public function __construct(
         private readonly ListingService $listingService,
         private readonly ReportListingCommand $reportListingCommand,
-    ) {
-    }
+    ) {}
 
     public function store(CreateListingRequest $request): JsonResponse
     {
@@ -38,7 +38,24 @@ final class ListingController
         $sortBy = $request->input('sort');
         $demandType = $request->input('demand_type');
         $keyword = $request->input('keyword');
-        $paginator = $this->listingService->getPublicListings($sortBy, $demandType, $keyword, $perPage);
+
+        $posterType = $request->input('poster_type');
+        $minPrice = $request->has('min_price') && $request->input('min_price') !== '' ? (float) $request->input('min_price') : null;
+        $maxPrice = $request->has('max_price') && $request->input('max_price') !== '' ? (float) $request->input('max_price') : null;
+        $minArea = $request->has('min_area') && $request->input('min_area') !== '' ? (float) $request->input('min_area') : null;
+        $maxArea = $request->has('max_area') && $request->input('max_area') !== '' ? (float) $request->input('max_area') : null;
+
+        $paginator = $this->listingService->getPublicListings(
+            $sortBy,
+            $demandType,
+            $keyword,
+            $perPage,
+            $posterType,
+            $minPrice,
+            $maxPrice,
+            $minArea,
+            $maxArea
+        );
 
         return ApiResponse::success(
             data: ListingResource::collection($paginator->items()),
@@ -147,7 +164,7 @@ final class ListingController
             perPage: $perPage,
         );
 
-        $countsQuery = \App\Models\Listing::where('owner_id', $request->user()->id)
+        $countsQuery = Listing::where('owner_id', $request->user()->id)
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status')
@@ -166,5 +183,4 @@ final class ListingController
             ],
         );
     }
-
 }

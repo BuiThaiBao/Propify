@@ -14,8 +14,7 @@ final readonly class AuthResultDto
         public string $refreshToken,
         public string $tokenType,
         public int $expiresIn,
-    ) {
-    }
+    ) {}
 
     public static function fromUserAndToken(User $user, string $accessToken, string $refreshToken, int $expiresInMinutes): self
     {

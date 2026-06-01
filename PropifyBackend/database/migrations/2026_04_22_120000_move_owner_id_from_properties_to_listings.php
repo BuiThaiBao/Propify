@@ -5,11 +5,12 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('listings', function (Blueprint $table) {
-            if (!Schema::hasColumn('listings', 'owner_id')) {
+            if (! Schema::hasColumn('listings', 'owner_id')) {
                 $table->foreignId('owner_id')->nullable()->after('property_id')->constrained('users')->cascadeOnDelete();
                 $table->index('owner_id', 'idx_listings_owner_id');
             }
@@ -34,7 +35,7 @@ return new class extends Migration {
             if (Schema::hasColumn('properties', 'owner_id')) {
                 try {
                     $table->dropForeign(['owner_id']);
-                } catch (\Throwable) {
+                } catch (Throwable) {
                     // Ignore if foreign key does not exist in current DB state.
                 }
 
@@ -46,7 +47,7 @@ return new class extends Migration {
     public function down(): void
     {
         Schema::table('properties', function (Blueprint $table) {
-            if (!Schema::hasColumn('properties', 'owner_id')) {
+            if (! Schema::hasColumn('properties', 'owner_id')) {
                 $table->foreignId('owner_id')->nullable()->first()->constrained('users')->cascadeOnDelete();
                 $table->index('owner_id', 'idx_properties_owner_id');
             }
@@ -70,7 +71,7 @@ return new class extends Migration {
             if (Schema::hasColumn('listings', 'owner_id')) {
                 try {
                     $table->dropForeign(['owner_id']);
-                } catch (\Throwable) {
+                } catch (Throwable) {
                     // Ignore if foreign key does not exist in current DB state.
                 }
 

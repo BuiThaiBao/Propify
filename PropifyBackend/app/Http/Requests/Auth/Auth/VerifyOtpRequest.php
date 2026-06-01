@@ -15,7 +15,7 @@ final class VerifyOtpRequest extends FormRequest
     {
         return [
             'email' => ['required', 'email'],
-            'otp'   => ['required', 'string', 'size:6'],
+            'otp' => ['required', 'string', 'size:6'],
         ];
     }
 
@@ -23,9 +23,9 @@ final class VerifyOtpRequest extends FormRequest
     {
         return [
             'email.required' => 'Vui lòng nhập email.',
-            'email.email'    => 'Email không hợp lệ.',
-            'otp.required'   => 'Vui lòng nhập mã OTP.',
-            'otp.size'       => 'Mã OTP phải đúng 6 ký tự.',
+            'email.email' => 'Email không hợp lệ.',
+            'otp.required' => 'Vui lòng nhập mã OTP.',
+            'otp.size' => 'Mã OTP phải đúng 6 ký tự.',
         ];
     }
 }

@@ -8,9 +8,13 @@ use Illuminate\Support\Facades\Log;
 final class CloudinaryServiceImpl implements CloudinaryService
 {
     private string $cloudName;
+
     private string $apiKey;
+
     private string $apiSecret;
+
     private string $presetAvatar;
+
     private string $presetListing;
 
     public function __construct()
@@ -21,7 +25,6 @@ final class CloudinaryServiceImpl implements CloudinaryService
         $this->presetAvatar = config('cloudinary.upload_preset_avatar');
         $this->presetListing = config('cloudinary.upload_preset_listing');
     }
-
 
     public function generateSignature(string $folder, string $uploadType): array
     {
@@ -36,11 +39,11 @@ final class CloudinaryServiceImpl implements CloudinaryService
 
         // "folder=propify/avatars&timestamp=1234567890" + api_secret
         $stringToSign = collect($paramsToSign)
-            ->map(fn($value, $key) => "{$key}={$value}")
+            ->map(fn ($value, $key) => "{$key}={$value}")
             ->join('&');
 
         // ✅ Cloudinary yêu cầu SHA-1
-        $signature = sha1($stringToSign . $this->apiSecret);
+        $signature = sha1($stringToSign.$this->apiSecret);
 
         Log::info('Cloudinary signature generated', [
             'folder' => $folder,

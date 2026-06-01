@@ -34,8 +34,8 @@ final class AuthGoogleServiceImpl implements AuthGoogleService
     public function handleGoogleCallback(): RedirectResponse
     {
         try {
-            if (request()->has('error') || !request()->has('code')) {
-                return redirect(config('app.frontend_url') . "/?error=google_auth_failed");
+            if (request()->has('error') || ! request()->has('code')) {
+                return redirect(config('app.frontend_url').'/?error=google_auth_failed');
             }
 
             // Lấy user từ Google OAuth → bọc bằng Adapter
@@ -46,7 +46,7 @@ final class AuthGoogleServiceImpl implements AuthGoogleService
                 ->resolve(AuthMethod::GoogleOAuth)
                 ->authenticate(new SocialAuthPayload($adapted));
 
-            $response = redirect(config('app.frontend_url') . "/login-success");
+            $response = redirect(config('app.frontend_url').'/login-success');
             foreach (AuthCookieFactory::makeAuthCookies($result, AuthCookieFactory::CLIENT_USER) as $cookie) {
                 $response->withCookie($cookie);
             }
@@ -56,21 +56,21 @@ final class AuthGoogleServiceImpl implements AuthGoogleService
             if ($e->getErrorCode() === ErrorCode::AuthAdminNotAllowed) {
                 Log::warning('Admin user attempted Google login on client site');
 
-                return redirect(config('app.frontend_url') . "/?error=admin_not_allowed");
+                return redirect(config('app.frontend_url').'/?error=admin_not_allowed');
             }
 
             Log::error('Google Auth Error', [
                 'message' => $e->getMessage(),
             ]);
 
-            return redirect(config('app.frontend_url') . "/?error=google_auth_failed");
+            return redirect(config('app.frontend_url').'/?error=google_auth_failed');
         } catch (\Exception $e) {
             Log::error('Google Auth Error', [
                 'message' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return redirect(config('app.frontend_url') . "/?error=google_auth_failed");
+            return redirect(config('app.frontend_url').'/?error=google_auth_failed');
         }
     }
 }

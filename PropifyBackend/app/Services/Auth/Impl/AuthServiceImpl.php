@@ -7,11 +7,11 @@ use App\DTOs\Auth\EmailPasswordAuthPayload;
 use App\DTOs\Auth\LoginCredentialsDto;
 use App\DTOs\Auth\RegisterUserDto;
 use App\Enums\AuthMethod;
+use App\Enums\ErrorCode;
 use App\Enums\OtpContext;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Events\Auth\UserRegistered;
-use App\Enums\ErrorCode;
 use App\Exceptions\BusinessException;
 use App\Models\User;
 use App\Repositories\UserRepository;
@@ -22,20 +22,21 @@ use App\Services\Auth\ForgotPassword\ForgotPasswordChain;
 use App\Services\Auth\ForgotPassword\RequestPasswordResetCommand;
 use App\Services\Auth\ForgotPassword\ResetPasswordCommand;
 use App\Services\Auth\Registration\RegisterUserCommand;
-use App\Services\Otp\OtpService;
 use App\Services\Auth\TokenProcessService;
+use App\Services\Otp\OtpService;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Support\Facades\Log;
-use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\JWTGuard;
 
 final class AuthServiceImpl implements AuthService
 {
     public function __construct(
-        private readonly UserRepository     $userRepository,
-        private readonly AuthFactory        $authFactory,
+        private readonly UserRepository $userRepository,
+        private readonly AuthFactory $authFactory,
         private readonly TokenProcessService $tokenProcessService,
-        private readonly OtpService         $otpService,
+        private readonly OtpService $otpService,
         private readonly AuthStrategyResolver $authStrategyResolver,
         private readonly AuthTokenIssuer $tokenIssuer,
         private readonly ForgotPasswordChain $forgotPasswordChain,
@@ -63,10 +64,11 @@ final class AuthServiceImpl implements AuthService
     public function resendRegisterOtp(string $email): void
     {
         $user = $this->userRepository->findByEmail($email);
-        
+
         // Nếu user không tồn tại hoặc đã Active thì không cho resend OTP đăng ký (bảo mật)
-        if (!$user || $user->status !== UserStatus::Pending) {
+        if (! $user || $user->status !== UserStatus::Pending) {
             Log::warning('Resend register OTP failed (user not found or active)', ['email' => $email]);
+
             return;
         }
 
@@ -84,7 +86,7 @@ final class AuthServiceImpl implements AuthService
         /** @var User|null $user */
         $user = $this->userRepository->findByEmail($email);
 
-        if (!$user || !$this->otpService->verify($user, $otp, OtpContext::REGISTER)) {
+        if (! $user || ! $this->otpService->verify($user, $otp, OtpContext::REGISTER)) {
             throw new BusinessException(ErrorCode::AuthOtpInvalid);
         }
 
@@ -93,7 +95,7 @@ final class AuthServiceImpl implements AuthService
 
         Log::info('User OTP verified, account activated', ['user_id' => $user->id]);
         UserRegistered::dispatch($user);
- 
+
         if ($user->role === UserRole::Admin) {
             Log::warning('Admin user attempted to verify OTP on client site', ['user_id' => $user->id]);
             throw new BusinessException(ErrorCode::AuthAdminNotAllowed);
@@ -120,7 +122,7 @@ final class AuthServiceImpl implements AuthService
     {
         $user = $this->userRepository->findByEmail($email);
 
-        if (!$user || !$this->otpService->peek($user, $otp, OtpContext::RESET_PASSWORD)) {
+        if (! $user || ! $this->otpService->peek($user, $otp, OtpContext::RESET_PASSWORD)) {
             throw new BusinessException(ErrorCode::AuthOtpInvalid);
         }
     }
@@ -137,7 +139,7 @@ final class AuthServiceImpl implements AuthService
 
     public function logout(?string $refreshToken = null): void
     {
-        /** @var \Tymon\JWTAuth\JWTGuard $guard */
+        /** @var JWTGuard $guard */
         $guard = $this->authFactory->guard('api');
         /** @var User $user */
         $user = $guard->user();
@@ -157,7 +159,7 @@ final class AuthServiceImpl implements AuthService
 
             /** @var User $user */
             $user = JWTAuth::setToken($refreshToken)->authenticate();
-            if (!$user || $user->status !== UserStatus::Active) {
+            if (! $user || $user->status !== UserStatus::Active) {
                 throw new JWTException('Invalid refresh subject.');
             }
 
@@ -172,7 +174,7 @@ final class AuthServiceImpl implements AuthService
 
     public function me(): ?User
     {
-        /** @var \Tymon\JWTAuth\JWTGuard $guard */
+        /** @var JWTGuard $guard */
         return $this->authFactory->guard('api')->user();
     }
 
@@ -181,7 +183,7 @@ final class AuthServiceImpl implements AuthService
         $token = JWTAuth::getToken();
         if ($token) {
             $payload = JWTAuth::getPayload($token);
-            $ttl     = max(0, $payload->get('exp') - time());
+            $ttl = max(0, $payload->get('exp') - time());
             if ($ttl > 0) {
                 $this->tokenProcessService->addTokenToBlacklist((string) $token, $ttl);
             }
@@ -190,7 +192,7 @@ final class AuthServiceImpl implements AuthService
 
     private function invalidateToken(?string $token): void
     {
-        if (!$token) {
+        if (! $token) {
             return;
         }
 

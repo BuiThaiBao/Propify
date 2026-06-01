@@ -19,7 +19,7 @@ final class Message extends Model
     ];
 
     protected $casts = [
-        'type'       => MessageType::class,
+        'type' => MessageType::class,
         'is_deleted' => 'boolean',
     ];
 

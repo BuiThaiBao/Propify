@@ -17,8 +17,7 @@ final readonly class SendMessageDto
         public readonly MessageType $type,
         public readonly ?string $body = null,
         public readonly ?string $fileUrl = null,
-    ) {
-    }
+    ) {}
 
     public static function fromRequest(SendMessageRequest $request, int $conversationId, int $senderId): self
     {

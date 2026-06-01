@@ -17,15 +17,14 @@ final class UnlistListingCommand
     public function __construct(
         private readonly ListingRepository $listingRepository,
         private readonly ListingStatusStateFactory $statusStateFactory,
-    ) {
-    }
+    ) {}
 
     public function handle(User $user, int $listingId): Listing
     {
         return DB::transaction(function () use ($user, $listingId) {
             $listing = Listing::query()->lockForUpdate()->find($listingId);
 
-            if (!$listing) {
+            if (! $listing) {
                 throw new BusinessException(ErrorCode::ListingNotFound);
             }
 
@@ -37,7 +36,7 @@ final class UnlistListingCommand
                 throw new BusinessException(ErrorCode::BadRequest, 'Tin dang da duoc go truoc do.');
             }
 
-            if (!$this->statusStateFactory->make($listing->status)->canTransitionTo('UNLISTED')) {
+            if (! $this->statusStateFactory->make($listing->status)->canTransitionTo('UNLISTED')) {
                 throw new BusinessException(ErrorCode::BadRequest, 'Khong cho phep go tin nay.');
             }
 

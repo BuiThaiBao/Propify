@@ -27,8 +27,7 @@ final class MessageSent implements ShouldBroadcastNow
 
     public function __construct(
         public readonly Message $message,
-    ) {
-    }
+    ) {}
 
     /**
      * Private channel — chỉ 2 participant mới có thể subscribe.
@@ -38,7 +37,7 @@ final class MessageSent implements ShouldBroadcastNow
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('conversation.' . $this->message->conversation_id),
+            new PrivateChannel('conversation.'.$this->message->conversation_id),
         ];
     }
 

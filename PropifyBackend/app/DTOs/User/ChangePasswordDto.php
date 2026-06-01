@@ -9,8 +9,7 @@ final readonly class ChangePasswordDto
     public function __construct(
         public string $currentPassword,
         public string $newPassword,
-    ) {
-    }
+    ) {}
 
     public static function fromRequest(Request $request): self
     {

@@ -28,7 +28,7 @@ final class VnpayService
             'vnp_Amount' => $amount,
             'vnp_CurrCode' => 'VND',
             'vnp_TxnRef' => $txnRef,
-            'vnp_OrderInfo' => 'Thanh toan goi tin Propify #' . $transaction->id,
+            'vnp_OrderInfo' => 'Thanh toan goi tin Propify #'.$transaction->id,
             'vnp_OrderType' => 'billpayment',
             'vnp_Locale' => 'vn',
             'vnp_ReturnUrl' => (string) config('vnpay.return_url'),
@@ -46,7 +46,7 @@ final class VnpayService
         $query = http_build_query($params, '', '&', PHP_QUERY_RFC1738);
         $secureHash = hash_hmac('sha512', $query, $hashSecret);
 
-        return $paymentUrl . '?' . $query . '&vnp_SecureHash=' . $secureHash;
+        return $paymentUrl.'?'.$query.'&vnp_SecureHash='.$secureHash;
     }
 
     public function isValidReturn(Request $request): bool
@@ -74,6 +74,6 @@ final class VnpayService
 
     private function txnRef(Transaction $transaction): string
     {
-        return 'PFY' . $transaction->id;
+        return 'PFY'.$transaction->id;
     }
 }

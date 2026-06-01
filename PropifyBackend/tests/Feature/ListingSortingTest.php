@@ -73,7 +73,7 @@ class ListingSortingTest extends TestCase
             'property_id' => $property->id,
             'owner_id' => $ownerId,
             'demand_type' => 'SALE',
-            'title' => 'Listing ' . uniqid(),
+            'title' => 'Listing '.uniqid(),
             'description' => 'Test listing',
             'status' => 'ACTIVE',
             'package_id' => $packageId,

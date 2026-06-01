@@ -7,8 +7,7 @@ final class ListingSubmissionValidationPipeline
     public function __construct(
         private readonly UserPhoneVerifiedHandler $userPhoneVerifiedHandler,
         private readonly VerificationDocumentsHandler $verificationDocumentsHandler,
-    ) {
-    }
+    ) {}
 
     public function validate(ListingSubmissionValidationContext $context): void
     {

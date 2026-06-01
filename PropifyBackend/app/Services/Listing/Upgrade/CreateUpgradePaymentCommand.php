@@ -2,12 +2,12 @@
 
 namespace App\Services\Listing\Upgrade;
 
+use App\Jobs\ExpirePendingTransactionJob;
 use App\Models\Listing;
 use App\Models\Package;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Services\Payment\VnpayService;
-use App\Jobs\ExpirePendingTransactionJob;
 
 final class CreateUpgradePaymentCommand
 {
@@ -37,7 +37,7 @@ final class CreateUpgradePaymentCommand
             'expires_at' => $paymentExpiresAt,
         ]);
 
-        $transaction->update(['vnp_txn_ref' => 'PFY' . $transaction->id]);
+        $transaction->update(['vnp_txn_ref' => 'PFY'.$transaction->id]);
         ExpirePendingTransactionJob::dispatch($transaction->id)->delay($paymentExpiresAt);
 
         return $this->vnpayService->createPaymentUrl($transaction->fresh(), $clientIp);

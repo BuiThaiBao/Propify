@@ -10,16 +10,16 @@ use App\Jobs\AutoCancelExpiredBookingJob;
 use App\Models\AppointmentBooking;
 use App\Models\AppointmentSlot;
 use App\Repositories\AppointmentBookingRepository;
+use App\Services\Appointment\AppointmentBookingService;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 
-final class AppointmentBookingServiceImpl implements \App\Services\Appointment\AppointmentBookingService
+final class AppointmentBookingServiceImpl implements AppointmentBookingService
 {
     public function __construct(
         private readonly AppointmentBookingRepository $bookingRepository,
-    ) {
-    }
+    ) {}
 
     public function createBooking(CreateBookingDto $dto): AppointmentBooking
     {
@@ -29,12 +29,12 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
             ->where('is_active', true)
             ->first();
 
-        if (!$slot) {
+        if (! $slot) {
             throw new BusinessException(ErrorCode::BookingSlotNotFound);
         }
 
         // 1.1 Kiểm tra Listing phải đang ACTIVE
-        if (!$slot->listing || $slot->listing->status !== 'ACTIVE') {
+        if (! $slot->listing || $slot->listing->status !== 'ACTIVE') {
             throw new BusinessException(ErrorCode::ListingNotActive);
         }
 
@@ -44,7 +44,7 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
         }
 
         // 3. Tính meet_time = date + start_time của slot
-        $meetTime = Carbon::parse($dto->date . ' ' . $slot->start_time);
+        $meetTime = Carbon::parse($dto->date.' '.$slot->start_time);
         $now = CarbonImmutable::now();
         $today = CarbonImmutable::today();
 
@@ -146,13 +146,13 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
             ->where('is_deleted', false)
             ->first();
 
-        if (!$booking) {
+        if (! $booking) {
             throw new BusinessException(ErrorCode::BookingNotFound);
         }
 
         // 2. Kiểm tra người gọi API phải là poster (chủ nhà) của slot
         $slot = AppointmentSlot::find($booking->slot_id);
-        if (!$slot || $slot->poster_id !== $posterId) {
+        if (! $slot || $slot->poster_id !== $posterId) {
             throw new BusinessException(ErrorCode::BookingNotOwner);
         }
 
@@ -165,8 +165,8 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
         $updateData = ['status' => $status];
 
         if ($status === BookingStatus::CANCELLED_BY_POSTER->value && $note) {
-            $existingNote = $booking->note ? $booking->note . ' | ' : '';
-            $updateData['note'] = $existingNote . '[Chủ nhà từ chối] ' . $note;
+            $existingNote = $booking->note ? $booking->note.' | ' : '';
+            $updateData['note'] = $existingNote.'[Chủ nhà từ chối] '.$note;
         }
 
         $booking->update($updateData);
@@ -185,7 +185,7 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
             ->where('is_deleted', false)
             ->first();
 
-        if (!$booking) {
+        if (! $booking) {
             throw new BusinessException(ErrorCode::BookingNotFound);
         }
 
@@ -194,12 +194,12 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
         $isViewer = ($booking->viewer_id === $userId);
         $isPoster = ($slot && $slot->poster_id === $userId);
 
-        if (!$isViewer && !$isPoster) {
+        if (! $isViewer && ! $isPoster) {
             throw new BusinessException(ErrorCode::BookingNotOwner);
         }
 
         // 3. Kiểm tra trạng thái: chỉ cho hủy khi đang PENDING hoặc APPROVED
-        if (!in_array($booking->status, [BookingStatus::PENDING->value, BookingStatus::APPROVED->value])) {
+        if (! in_array($booking->status, [BookingStatus::PENDING->value, BookingStatus::APPROVED->value])) {
             throw new BusinessException(ErrorCode::BookingNotPending); // Hoặc tạo mã lỗi riêng nếu cần
         }
 
@@ -212,13 +212,13 @@ final class AppointmentBookingServiceImpl implements \App\Services\Appointment\A
 
         // 5. Cập nhật trạng thái và note
         $roleLabel = $isViewer ? 'Khách thuê' : 'Chủ nhà';
-        $existingNote = $booking->note ? $booking->note . ' | ' : '';
+        $existingNote = $booking->note ? $booking->note.' | ' : '';
 
         $status = $isViewer ? BookingStatus::CANCELLED_BY_VIEWER->value : BookingStatus::CANCELLED_BY_POSTER->value;
 
         $booking->update([
             'status' => $status,
-            'note' => $existingNote . "[{$roleLabel} hủy] " . $reason,
+            'note' => $existingNote."[{$roleLabel} hủy] ".$reason,
         ]);
 
         $booking->load('slot.listing');

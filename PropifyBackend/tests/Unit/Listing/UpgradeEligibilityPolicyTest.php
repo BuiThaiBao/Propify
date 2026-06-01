@@ -95,8 +95,8 @@ final class UpgradeEligibilityPolicyTest extends TestCase
     private function policy(): UpgradeEligibilityPolicy
     {
         return new UpgradeEligibilityPolicy(
-            new CanRenewSpecification(),
-            new CanUpgradeSpecification(),
+            new CanRenewSpecification,
+            new CanUpgradeSpecification,
         );
     }
 
@@ -108,24 +108,24 @@ final class UpgradeEligibilityPolicyTest extends TestCase
         int $newPackagePriority = 2,
         bool $newPackageActive = true,
     ): UpgradeContext {
-        $user = new User();
+        $user = new User;
         $user->id = 1;
 
-        $listing = new Listing();
+        $listing = new Listing;
         $listing->owner_id = $listingOwnerId;
         $listing->status = 'ACTIVE';
         $listing->package_id = $listingPackageId;
 
-        $currentPackage = new Package();
+        $currentPackage = new Package;
         $currentPackage->id = $listingPackageId;
         $currentPackage->priority = $currentPackagePriority;
 
-        $newPackage = new Package();
+        $newPackage = new Package;
         $newPackage->id = $newPackageId;
         $newPackage->priority = $newPackagePriority;
         $newPackage->is_active = $newPackageActive;
 
-        $pricing = new PackagePricing();
+        $pricing = new PackagePricing;
         $pricing->duration_days = 7;
         $pricing->price = '7000.00';
 

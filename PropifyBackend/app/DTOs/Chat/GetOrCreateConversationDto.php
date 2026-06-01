@@ -14,8 +14,7 @@ final readonly class GetOrCreateConversationDto
         public readonly int $currentUserId,
         public readonly int $otherUserId,
         public readonly ?int $listingId = null,
-    ) {
-    }
+    ) {}
 
     public static function fromRequest(GetOrCreateConversationRequest $request, int $currentUserId): self
     {

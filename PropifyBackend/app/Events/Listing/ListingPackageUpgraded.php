@@ -22,6 +22,5 @@ final class ListingPackageUpgraded
         public readonly string $amount,
         public readonly CarbonInterface $expiresAt,
         public readonly bool $isRenewal,
-    ) {
-    }
+    ) {}
 }

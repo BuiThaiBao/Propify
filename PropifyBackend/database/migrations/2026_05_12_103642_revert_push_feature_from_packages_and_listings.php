@@ -16,7 +16,8 @@ return new class extends Migration
                 Schema::table('packages', function (Blueprint $table) {
                     $table->renameColumn('push_price', 'price');
                 });
-            } catch (\Exception $e) {}
+            } catch (Exception $e) {
+            }
         }
 
         if (Schema::hasColumn('listings', 'pushed_at')) {
@@ -25,7 +26,8 @@ return new class extends Migration
                     $table->dropIndex(['pushed_at']);
                     $table->dropColumn('pushed_at');
                 });
-            } catch (\Exception $e) {}
+            } catch (Exception $e) {
+            }
         }
     }
 
@@ -39,16 +41,18 @@ return new class extends Migration
                 Schema::table('packages', function (Blueprint $table) {
                     $table->renameColumn('price', 'push_price');
                 });
-            } catch (\Exception $e) {}
+            } catch (Exception $e) {
+            }
         }
 
-        if (!Schema::hasColumn('listings', 'pushed_at')) {
+        if (! Schema::hasColumn('listings', 'pushed_at')) {
             try {
                 Schema::table('listings', function (Blueprint $table) {
                     $table->timestamp('pushed_at')->nullable()->after('package_expires_at');
                     $table->index('pushed_at');
                 });
-            } catch (\Exception $e) {}
+            } catch (Exception $e) {
+            }
         }
     }
 };

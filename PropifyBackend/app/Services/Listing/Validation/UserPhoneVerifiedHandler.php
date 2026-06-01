@@ -9,7 +9,7 @@ final class UserPhoneVerifiedHandler extends AbstractListingSubmissionValidation
 {
     protected function validate(ListingSubmissionValidationContext $context): void
     {
-        if (!$context->user->phone || trim((string) $context->user->phone) === '') {
+        if (! $context->user->phone || trim((string) $context->user->phone) === '') {
             throw new BusinessException(ErrorCode::AuthPhoneNotVerified);
         }
     }

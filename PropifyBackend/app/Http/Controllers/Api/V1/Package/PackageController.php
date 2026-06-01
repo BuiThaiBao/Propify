@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Package;
 
 use App\DTOs\Packages\CreatePackageDto;
+use App\DTOs\Packages\UpdatePackageDto;
 use App\Enums\UserRole;
 use App\Helpers\ApiResponse;
 use App\Http\Requests\Package\CreatePackageRequest;
+use App\Http\Requests\Package\UpdatePackageRequest;
 use App\Services\Packages\PackageService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +28,7 @@ final class PackageController
             message: 'Tạo gói tin thành công.'
         );
     }
+
     public function index(Request $request): JsonResponse
     {
         $includeInactive = $request->boolean('include_inactive')
@@ -36,7 +39,7 @@ final class PackageController
             status: $request->input('status'),
             includeInactive: $includeInactive,
         );
-        
+
         return ApiResponse::success(
             data: $packages,
             message: 'Lấy danh sách gói tin thành công.'
@@ -53,9 +56,9 @@ final class PackageController
         );
     }
 
-    public function update(\App\Http\Requests\Package\UpdatePackageRequest $request, int $id): JsonResponse
+    public function update(UpdatePackageRequest $request, int $id): JsonResponse
     {
-        $dto = \App\DTOs\Packages\UpdatePackageDto::fromRequest($request);
+        $dto = UpdatePackageDto::fromRequest($request);
         $package = $this->packageService->update($id, $dto);
 
         return ApiResponse::success(

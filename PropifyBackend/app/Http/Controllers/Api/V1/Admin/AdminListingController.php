@@ -17,8 +17,7 @@ final class AdminListingController extends Controller
 {
     public function __construct(
         private readonly ListingService $listingService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -47,7 +46,7 @@ final class AdminListingController extends Controller
 
     public function changeStatus(Request $request, int $id): JsonResponse
     {
-        if ($request->user()->role !== \App\Enums\UserRole::Admin) {
+        if ($request->user()->role !== UserRole::Admin) {
             throw new BusinessException(ErrorCode::AuthForbidden);
         }
 

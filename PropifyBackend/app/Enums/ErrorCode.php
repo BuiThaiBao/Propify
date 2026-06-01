@@ -20,7 +20,6 @@ enum ErrorCode: int
     case AuthPhoneNotVerified = 1011;
     case AuthAdminNotAllowed = 1012;
 
-
     // ==================== Validation (2xxx) ====================
     case ValidationError = 2001;
     case BadRequest = 2002;
@@ -72,9 +71,6 @@ enum ErrorCode: int
     case ListingNotOwned = 8005;
     case PackagePricingNotFound = 8006;
 
-
-
-
     public function message(): string
     {
         return match ($this) {
@@ -121,12 +117,12 @@ enum ErrorCode: int
             self::ListingNotActive => 'Bài đăng hiện không khả dụng để đặt lịch',
             self::ServerError => 'Lỗi hệ thống',
             self::ServiceUnavailable => 'Dịch vụ tạm thời không khả dụng',
-            self::PackageAlreadyExists => "Gói tin đã tồn tại",
-            self::PackageNotFound => "Không tìm thấy gói tin",
-            self::PackageInactive => "Gói tin đã bị vô hiệu hóa",
-            self::ListingUpgradeNotAllowed => "Không thể nâng cấp gói tin. Chỉ cho phép nâng cấp lên gói cao hơn.",
-            self::ListingNotOwned => "Bạn không phải chủ sở hữu tin đăng này",
-            self::PackagePricingNotFound => "Không tìm thấy giá cho thời hạn đã chọn. Vui lòng liên hệ quản trị.",
+            self::PackageAlreadyExists => 'Gói tin đã tồn tại',
+            self::PackageNotFound => 'Không tìm thấy gói tin',
+            self::PackageInactive => 'Gói tin đã bị vô hiệu hóa',
+            self::ListingUpgradeNotAllowed => 'Không thể nâng cấp gói tin. Chỉ cho phép nâng cấp lên gói cao hơn.',
+            self::ListingNotOwned => 'Bạn không phải chủ sở hữu tin đăng này',
+            self::PackagePricingNotFound => 'Không tìm thấy giá cho thời hạn đã chọn. Vui lòng liên hệ quản trị.',
         };
     }
 

@@ -18,8 +18,7 @@ final readonly class UpgradeContext
         public int $durationDays,
         public ?Package $currentPackage,
         public CarbonInterface $now,
-    ) {
-    }
+    ) {}
 
     public function isRenewal(): bool
     {

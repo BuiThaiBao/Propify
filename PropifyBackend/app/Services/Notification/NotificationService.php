@@ -11,7 +11,7 @@ interface NotificationService
     /**
      * Gửi thông báo tới user qua một hoặc nhiều channel.
      *
-     * @param NotificationChanelType[] $channels
+     * @param  NotificationChanelType[]  $channels
      */
     public function send(
         User $user,

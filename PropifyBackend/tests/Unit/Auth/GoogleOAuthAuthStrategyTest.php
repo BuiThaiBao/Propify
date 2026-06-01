@@ -28,7 +28,8 @@ final class GoogleOAuthAuthStrategyTest extends TestCase
             'status' => UserStatus::Active->value,
         ]);
 
-        $socialUser = new class implements SocialUserAdapter {
+        $socialUser = new class implements SocialUserAdapter
+        {
             public function getProviderName(): string
             {
                 return 'google';

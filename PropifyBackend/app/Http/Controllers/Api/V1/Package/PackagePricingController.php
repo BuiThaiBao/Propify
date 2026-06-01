@@ -37,16 +37,16 @@ final class PackagePricingController
 
         $validated = $request->validate([
             'duration_days' => ['required', 'integer', 'min:1', 'max:3650'],
-            'price'         => ['required', 'numeric', 'min:0'],
-            'label'         => ['required', 'string', 'max:50'],
-            'is_active'     => ['sometimes', 'boolean'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'label' => ['required', 'string', 'max:50'],
+            'is_active' => ['sometimes', 'boolean'],
         ], [
             'duration_days.required' => 'Vui lòng chọn số ngày.',
-            'duration_days.min'      => 'Số ngày phải lớn hơn hoặc bằng 1.',
-            'duration_days.max'      => 'Số ngày không được vượt quá 3650.',
-            'price.required'         => 'Vui lòng nhập giá.',
-            'price.min'              => 'Giá phải lớn hơn hoặc bằng 0.',
-            'label.required'         => 'Vui lòng nhập nhãn hiển thị.',
+            'duration_days.min' => 'Số ngày phải lớn hơn hoặc bằng 1.',
+            'duration_days.max' => 'Số ngày không được vượt quá 3650.',
+            'price.required' => 'Vui lòng nhập giá.',
+            'price.min' => 'Giá phải lớn hơn hoặc bằng 0.',
+            'label.required' => 'Vui lòng nhập nhãn hiển thị.',
         ]);
 
         // Check duplicate
@@ -79,8 +79,8 @@ final class PackagePricingController
             ->findOrFail($pricingId);
 
         $validated = $request->validate([
-            'price'     => ['sometimes', 'numeric', 'min:0'],
-            'label'     => ['sometimes', 'string', 'max:50'],
+            'price' => ['sometimes', 'numeric', 'min:0'],
+            'label' => ['sometimes', 'string', 'max:50'],
             'is_active' => ['sometimes', 'boolean'],
         ]);
 

@@ -28,7 +28,17 @@ interface ListingService
 
     public function unlist(User $user, int $id): Listing;
 
-    public function getPublicListings(?string $sortBy, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
+    public function getPublicListings(
+        ?string $sortBy,
+        ?string $demandType,
+        ?string $keyword,
+        int $perPage,
+        ?string $posterType = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        ?float $minArea = null,
+        ?float $maxArea = null
+    ): LengthAwarePaginator;
 
     public function getAllForAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 
@@ -41,5 +51,4 @@ interface ListingService
     public function createUpgradePayment(User $user, int $listingId, int $packageId, int $durationDays, string $clientIp): string;
 
     public function completePaidUpgrade(Transaction $transaction): Listing;
-
 }

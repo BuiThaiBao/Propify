@@ -13,8 +13,7 @@ final class UpgradeEligibilityPolicy
     public function __construct(
         private readonly CanRenewSpecification $canRenew,
         private readonly CanUpgradeSpecification $canUpgrade,
-    ) {
-    }
+    ) {}
 
     public function assertEligible(UpgradeContext $context): void
     {
@@ -26,11 +25,11 @@ final class UpgradeEligibilityPolicy
             throw new BusinessException(ErrorCode::ListingUpgradeNotAllowed);
         }
 
-        if (!$context->newPackage->is_active) {
+        if (! $context->newPackage->is_active) {
             throw new BusinessException(ErrorCode::PackageInactive);
         }
 
-        if (!$this->canRenew->isSatisfiedBy($context) && !$this->canUpgrade->isSatisfiedBy($context)) {
+        if (! $this->canRenew->isSatisfiedBy($context) && ! $this->canUpgrade->isSatisfiedBy($context)) {
             throw new BusinessException(ErrorCode::ListingUpgradeNotAllowed);
         }
     }

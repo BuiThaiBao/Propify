@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\AppointmentBooking;
+use Illuminate\Database\Eloquent\Collection;
 
 interface AppointmentBookingRepository
 {
@@ -14,10 +15,10 @@ interface AppointmentBookingRepository
     /**
      * Lấy danh sách booking của một viewer theo thứ tự status PENDING, APPROVED, CANCELLED.
      */
-    public function getByViewerId(int $viewerId): \Illuminate\Database\Eloquent\Collection;
+    public function getByViewerId(int $viewerId): Collection;
 
     /**
      * Lấy danh sách booking của các khách hàng đã đặt cho lịch của chủ nhà (poster).
      */
-    public function getByPosterId(int $posterId): \Illuminate\Database\Eloquent\Collection;
+    public function getByPosterId(int $posterId): Collection;
 }
