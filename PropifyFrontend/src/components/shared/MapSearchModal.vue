@@ -49,6 +49,7 @@ defineEmits(['close']);
 const mapEl = ref(null);
 let map = null;
 let activeMarkers = [];
+let activePopups = [];
 let items = [];
 const selectedListing = ref(null);
 
@@ -139,6 +140,10 @@ function clearMarkers() {
     marker.remove();
   }
   activeMarkers = [];
+  for (const popup of activePopups) {
+    popup.remove();
+  }
+  activePopups = [];
 }
 
 function renderMarkers() {
@@ -181,6 +186,8 @@ function renderMarkers() {
         maxWidth: '300px',
       }).setHTML(popupHtml(point));
 
+      activePopups.push(popup);
+
       el.addEventListener('mouseenter', () => {
         popup.setLngLat([point.longitude, point.latitude]).addTo(map);
       });
@@ -218,9 +225,9 @@ watch(() => props.open, async (isOpen) => {
     map = new maplibregl.Map({
       container: mapEl.value,
       style: buildMapStyle(),
-      center: [108.2068, 16.0471],
-      zoom: 6,
-      minZoom: 5,
+      center: [106.4, 16.5],
+      zoom: 5.3,
+      minZoom: 4.5,
       maxZoom: 20,
     });
     map.on('zoomend', renderMarkers);
