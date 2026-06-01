@@ -573,52 +573,274 @@
       </section>
 
       <!-- ===== FAVORITES TAB ===== -->
-      <section v-if="activeTab === 'favorites'" class="bg-white rounded-xl shadow-sm p-8">
-        <h2 class="text-xl font-bold text-slate-800 mb-6">Tin đăng yêu thích</h2>
+      <section v-if="activeTab === 'favorites'" class="bg-white rounded-xl shadow-sm p-6">
+        <!-- Breadcrumb & Title -->
+        <div class="mb-5 flex flex-col gap-1">
+          <p class="text-xs text-slate-400">
+            <span class="hover:text-sky-500 cursor-pointer" @click="router.push('/')">Trang chủ</span>
+            <span class="mx-1.5">&gt;</span>
+            <span class="text-slate-600 font-medium">Tin đăng yêu thích</span>
+          </p>
+          <h1 class="text-[22px] font-bold text-slate-800">Tin đăng yêu thích</h1>
+        </div>
+
+        <!-- Filters & Search Row -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <!-- Type Filter Tabs -->
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="px-4 py-2 rounded-full border text-[0.85rem] font-medium transition-colors flex items-center gap-1.5"
+              :class="favoriteDemandType === ''
+                ? 'border-sky-300 bg-sky-50 text-sky-600'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
+              @click="favoriteDemandType = ''; favoriteCurrentPage = 1"
+            >
+              Tất cả {{ favoriteCounts.all }}
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 rounded-full border text-[0.85rem] font-medium transition-colors flex items-center gap-1.5"
+              :class="favoriteDemandType === 'RENT'
+                ? 'border-emerald-300 bg-emerald-50 text-emerald-600'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
+              @click="favoriteDemandType = 'RENT'; favoriteCurrentPage = 1"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Cho thuê {{ favoriteCounts.rent }}
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 rounded-full border text-[0.85rem] font-medium transition-colors flex items-center gap-1.5"
+              :class="favoriteDemandType === 'SALE'
+                ? 'border-blue-300 bg-blue-50 text-blue-600'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
+              @click="favoriteDemandType = 'SALE'; favoriteCurrentPage = 1"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              Bán {{ favoriteCounts.sale }}
+            </button>
+          </div>
+
+          <!-- Search Bar -->
+          <div class="relative w-full md:w-[320px]">
+            <input
+              v-model="favoriteSearchQuery"
+              type="text"
+              class="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none transition focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20"
+              placeholder="Nhập giá trị tìm kiếm..."
+              @input="favoriteCurrentPage = 1"
+            />
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+          </div>
+        </div>
 
         <div v-if="favoritesLoading" class="py-8 text-center text-sm text-slate-400">
           Đang tải dữ liệu...
         </div>
 
-        <div v-else-if="favoriteListings.length === 0" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
-          Bạn chưa có tin đăng yêu thích nào.
+        <div v-else-if="filteredFavoriteListings.length === 0" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
+          Không tìm thấy tin đăng yêu thích nào.
         </div>
 
-        <div v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div v-else class="space-y-4">
           <article
-            v-for="item in favoriteListings"
+            v-for="item in paginatedFavoriteListings"
             :key="item.id"
-            class="group overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-sky-200 hover:shadow-md"
+            class="group overflow-hidden rounded-xl border border-slate-100 bg-white transition hover:shadow-md flex flex-col md:flex-row relative"
           >
-            <div class="flex gap-4 p-3">
-              <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-24 w-28 rounded-lg object-cover" />
-              <div v-else class="h-24 w-28 rounded-lg bg-slate-100"></div>
+            <!-- Left Side: Image section -->
+            <div class="relative w-full md:w-[260px] lg:w-[280px] shrink-0 bg-slate-50 overflow-hidden">
+              <img
+                :src="item.thumbnail || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60'"
+                alt="thumb"
+                class="w-full h-48 md:h-full min-h-[200px] object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              
+              <!-- Floating Package Badge -->
+              <div v-if="item.package && item.package.priority > 0" class="absolute left-3 top-3 z-10">
+                <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm', packageBadgeColor(item.package)]">
+                  ★ {{ item.package.badge || item.package.name }}
+                </span>
+              </div>
 
-              <div class="min-w-0 flex-1">
-                <button class="line-clamp-2 text-left text-sm font-bold text-slate-800 group-hover:text-sky-600" @click="router.push('/listings/' + item.id)">
+              <!-- Floating Favorite Heart Button -->
+              <button
+                type="button"
+                class="absolute right-3 top-3 z-10 rounded-full p-2 bg-rose-500 text-white shadow hover:bg-rose-600 transition animate-pulse"
+                aria-label="Bỏ yêu thích"
+                @click.stop="removeFavorite(item)"
+              >
+                <Heart class="h-4 w-4" fill="currentColor" />
+              </button>
+
+              <!-- Image count indicator -->
+              <div class="absolute bottom-3 right-3 rounded-md bg-slate-900/60 px-2 py-0.5 text-[10px] font-semibold text-white">
+                1/{{ item.images?.length || 1 }}
+              </div>
+
+              <!-- Dot indicators at bottom center -->
+              <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                <span v-for="n in Math.min(3, (item.images?.length || 1) - 1)" :key="n" class="w-1.5 h-1.5 rounded-full bg-white/50"></span>
+              </div>
+            </div>
+
+            <!-- Right Side: Details section -->
+            <div class="flex-1 p-4 lg:p-5 flex flex-col justify-between min-w-0">
+              <div class="relative">
+                <!-- Top Row: Tags & Score -->
+                <div class="flex items-center justify-between gap-4 mb-2">
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700">
+                      {{ propertyTypeLabel(item.property?.type) }}
+                    </span>
+                    <span v-if="item.isVerified" class="rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-600 flex items-center gap-0.5">
+                      ✓ Xác thực
+                    </span>
+                  </div>
+
+                  <!-- Score badge -->
+                  <div class="rounded-full bg-[#ebf8ff] text-[#0086ff] h-8 w-8 min-w-[2rem] flex items-center justify-center font-bold text-xs border border-[#bee3f8] shadow-sm">
+                    {{ item.score }}
+                  </div>
+                </div>
+
+                <!-- Title -->
+                <h3 class="text-base font-bold text-slate-800 leading-snug line-clamp-1 group-hover:text-sky-600 transition-colors cursor-pointer" @click="router.push('/listings/' + item.id)">
                   {{ item.title }}
-                </button>
-                <p class="mt-1 line-clamp-2 text-xs text-slate-500">{{ item.address }}</p>
-                <p class="mt-2 text-sm font-bold text-sky-600">{{ item.price }}</p>
-                <div class="mt-3 flex items-center gap-2">
-                  <button
-                    type="button"
-                    class="rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-600"
-                    @click="router.push('/listings/' + item.id)"
+                </h3>
+
+                <!-- Location & Time -->
+                <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                  <span class="flex items-center gap-1">
+                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
+                    </svg>
+                    {{ item.address }}
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    {{ timeAgo(item.submittedAt) }}
+                  </span>
+                </div>
+
+                <!-- Price -->
+                <p class="mt-3 text-lg font-bold text-sky-500">
+                  {{ item.price }}
+                  <span v-if="item.demandType === 'RENT'" class="text-xs font-normal text-slate-500">/tháng</span>
+                </p>
+
+                <!-- Amenities / Specs -->
+                <div class="mt-3 flex flex-wrap items-center gap-2">
+                  <span class="inline-flex items-center gap-1 rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-xs text-slate-600">
+                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 3H3v18h18V3Z"/><path d="M21 9H3"/><path d="M21 15H3"/><path d="M12 3v18"/>
+                    </svg>
+                    {{ item.property?.area || 0 }} m²
+                  </span>
+                  <span class="inline-flex items-center gap-1 rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-xs text-slate-600">
+                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/>
+                    </svg>
+                    {{ item.property?.bedrooms || 0 }} PN
+                  </span>
+                  <span class="inline-flex items-center gap-1 rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-xs text-slate-600">
+                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-2.1 0l-.8.8a1.5 1.5 0 0 0 0 2.1L6 9"/><path d="M4 14h16v7H4v-7Z"/><path d="M2 17h20"/><circle cx="7" cy="11" r="1"/><circle cx="17" cy="11" r="1"/>
+                    </svg>
+                    {{ item.property?.bathrooms || 0 }} WC
+                  </span>
+                </div>
+              </div>
+
+              <!-- Owner Info & Contact Button Row -->
+              <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <div class="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs shrink-0 uppercase">
+                    {{ (item.owner?.full_name || item.property?.contact_name || 'U').charAt(0) }}
+                  </div>
+                  <div class="min-w-0 leading-none">
+                    <p class="text-xs font-bold text-slate-700 truncate mb-0.5">
+                      {{ item.property?.contact_name || item.owner?.full_name || 'Người dùng' }}
+                    </p>
+                    <p class="text-[10px] text-slate-400">
+                      {{ item.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới' }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 shrink-0">
+                  <!-- Views count -->
+                  <span class="inline-flex items-center gap-1 text-xs text-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    {{ item.views }}
+                  </span>
+
+                  <!-- Contact Button -->
+                  <a
+                    v-if="item.property?.contact_phone || item.owner?.phone"
+                    :href="`tel:${item.property?.contact_phone || item.owner?.phone}`"
+                    class="rounded-full bg-sky-500 hover:bg-sky-600 px-4 py-1.5 text-xs font-semibold text-white flex items-center gap-1 shadow-sm transition"
                   >
-                    Xem chi tiết
-                  </button>
-                  <button
-                    type="button"
-                    class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-100"
-                    @click="removeFavorite(item)"
-                  >
-                    Bỏ yêu thích
-                  </button>
+                    <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                    Liên hệ
+                  </a>
                 </div>
               </div>
             </div>
           </article>
+
+          <!-- Frontend Pagination -->
+          <div class="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+            <p>Tất cả {{ favoritePagination.total }} dòng</p>
+            
+            <div class="flex items-center gap-3">
+              <!-- Back Button -->
+              <button
+                type="button"
+                class="rounded-lg border border-slate-200 w-8 h-8 flex items-center justify-center hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                :disabled="favoriteCurrentPage <= 1"
+                @click="favoriteCurrentPage--"
+              >
+                ‹
+              </button>
+              
+              <!-- Current page number input display -->
+              <input
+                v-model.number="favoriteCurrentPage"
+                type="text"
+                class="w-10 h-8 text-center rounded-lg border border-slate-200 text-sm outline-none transition focus:border-sky-400"
+              />
+              
+              <!-- Next Button -->
+              <button
+                type="button"
+                class="rounded-lg border border-slate-200 w-8 h-8 flex items-center justify-center hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                :disabled="favoriteCurrentPage >= favoritePagination.lastPage"
+                @click="favoriteCurrentPage++"
+              >
+                ›
+              </button>
+
+              <!-- Page Size Select -->
+              <select
+                v-model="favoritePageSize"
+                class="h-8 rounded-lg border border-slate-200 px-2 text-xs outline-none focus:border-sky-400"
+                @change="favoriteCurrentPage = 1"
+              >
+                <option :value="10">10</option>
+                <option :value="25">25</option>
+                <option :value="50">50</option>
+              </select>
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -670,6 +892,7 @@ import PackageUpgradeModal from '@/components/shared/PackageUpgradeModal.vue';
 import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
 import AppointmentManagement from '@/components/appointments/AppointmentManagement.vue';
 import { buildPropertyAddress, hydrateListingAddresses } from '@/utils/addressFormatter';
+import { Heart } from 'lucide-vue-next';
 
 const authStore = useAuthStore();
 const route = useRoute();
@@ -1009,10 +1232,99 @@ function normalizeFavoriteListings(items) {
       id: item.id,
       title: item.title || '(Không tiêu đề)',
       thumbnail,
+      images: item.images || [],
       address: buildAddress(item.property),
       price: formatCurrency(item?.property?.price),
+      property: item.property || {},
+      owner: item.owner || {},
+      demandType: item.demand_type,
+      submittedAt: item.submitted_at || item.created_at,
+      views: item.views ?? 0,
+      isVerified: Boolean(item.is_verified),
+      package: item.package || null,
+      score: item.score ?? 8.0,
     };
   });
+}
+
+// ── Client-side search, filter and pagination for Favorites ──
+const favoriteSearchQuery = ref('');
+const favoriteDemandType = ref('');
+const favoritePageSize = ref(25);
+const favoriteCurrentPage = ref(1);
+
+const favoriteCounts = computed(() => {
+  const all = favoriteListings.value.length;
+  const rent = favoriteListings.value.filter(item => item.demandType === 'RENT').length;
+  const sale = favoriteListings.value.filter(item => item.demandType === 'SALE').length;
+  return { all, rent, sale };
+});
+
+const filteredFavoriteListings = computed(() => {
+  return favoriteListings.value.filter((item) => {
+    if (favoriteDemandType.value && item.demandType !== favoriteDemandType.value) {
+      return false;
+    }
+    if (favoriteSearchQuery.value.trim()) {
+      const q = favoriteSearchQuery.value.toLowerCase().trim();
+      const matchTitle = item.title.toLowerCase().includes(q);
+      const matchAddress = item.address.toLowerCase().includes(q);
+      const matchPrice = item.price.toLowerCase().includes(q);
+      return matchTitle || matchAddress || matchPrice;
+    }
+    return true;
+  });
+});
+
+const favoritePagination = computed(() => {
+  const total = filteredFavoriteListings.value.length;
+  const lastPage = Math.ceil(total / favoritePageSize.value) || 1;
+  return {
+    total,
+    lastPage,
+  };
+});
+
+const paginatedFavoriteListings = computed(() => {
+  const start = (favoriteCurrentPage.value - 1) * favoritePageSize.value;
+  const end = start + favoritePageSize.value;
+  return filteredFavoriteListings.value.slice(start, end);
+});
+
+function propertyTypeLabel(type) {
+  const map = {
+    APARTMENT: 'Căn hộ chung cư',
+    PRIVATE_HOUSE: 'Nhà riêng',
+    STREET_HOUSE: 'Nhà mặt phố',
+    VILLA_TOWNHOUSE: 'Biệt thự liền kề',
+    SHOPHOUSE: 'Shophouse',
+    RENT_ROOM: 'Phòng trọ',
+    OFFICE: 'Văn phòng',
+  };
+  return map[type] || type || 'BĐS';
+}
+
+function packageBadgeColor(pkg) {
+  const priority = Number(pkg?.priority || 0);
+  if (priority === 4) return 'bg-[#3b82f6]'; // Blue for Diamond
+  if (priority === 3) return 'bg-[#dc2626]'; // Red for Premium/Ruby
+  if (priority === 2) return 'bg-[#d97706]'; // Orange for Gold
+  if (priority === 1) return 'bg-indigo-500';
+  return 'bg-slate-500';
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const now = new Date();
+  const d = new Date(dateStr);
+  const diffMs = now - d;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 60) return `${diffMins} phút trước`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 30) return `${diffDays} ngày trước`;
+  return d.toLocaleDateString('vi-VN');
 }
 
 // ==================== Package Upgrade ====================
@@ -1185,7 +1497,9 @@ async function loadFavorites() {
   favoritesLoading.value = true;
   try {
     const response = await favoriteService.getFavorites();
-    favoriteListings.value = normalizeFavoriteListings(response?.data?.data || []);
+    const data = response?.data?.data || [];
+    await hydrateListingAddresses(data);
+    favoriteListings.value = normalizeFavoriteListings(data);
     favoritesLoaded.value = true;
   } catch {
     favoriteListings.value = [];
