@@ -13,7 +13,9 @@ final class Property extends Model
     protected $fillable = [
         'type',
         'province_code',
+        'province',
         'ward_code',
+        'ward',
         'street_code',
         'project_name',
         'address_detail',

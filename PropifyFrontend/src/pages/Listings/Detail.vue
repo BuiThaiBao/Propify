@@ -59,13 +59,19 @@
 
           <section v-if="displayImages.length" class="mb-3">
             <div class="relative overflow-hidden rounded-[14px] bg-slate-200">
-              <img v-if="activeImage" :src="activeImage" class="aspect-[16/10] w-full object-cover" alt="Listing image" />
+              <img
+                v-if="activeImage"
+                :src="activeImage"
+                class="aspect-[16/10] w-full cursor-zoom-in object-cover"
+                alt="Listing image"
+                @click="openImageLightbox(activeImageIndex)"
+              />
               <div class="absolute left-3 top-3 flex gap-2">
                 <span v-if="listing.is_verified" class="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">Đã xác thực</span>
                 <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
               </div>
-              <button v-if="displayImages.length > 1" class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click="prevImage">‹</button>
-              <button v-if="displayImages.length > 1" class="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click="nextImage">›</button>
+              <button v-if="displayImages.length > 1" class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click.stop="prevImage">‹</button>
+              <button v-if="displayImages.length > 1" class="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click.stop="nextImage">›</button>
               <div class="absolute bottom-3 left-3 rounded-full bg-slate-900/70 px-3 py-1 text-xs font-semibold text-white">
                 Hình ảnh {{ activeImageIndex + 1 }}/{{ displayImages.length }}
               </div>
@@ -83,8 +89,6 @@
             </div>
           </section>
 
-          <!-- Contact & Price details when embedded from map -->
-          <section v-if="isEmbedded" class="mb-4 rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
           <section v-if="listing.description?.trim()" class="detail-card">
             <h2 class="detail-title">
               <img :src="descriptionIcon" class="detail-title-icon" alt="" />
@@ -165,14 +169,6 @@
                 Đặt lịch xem nhà
               </button>
             </div>
-          </section>
-
-          <section v-if="listing.description?.trim()" class="detail-card">
-            <h2 class="detail-title">
-              <img :src="descriptionIcon" class="detail-title-icon" alt="" />
-              Mô tả tin đăng
-            </h2>
-            <p class="whitespace-pre-wrap text-sm leading-6 text-slate-600">{{ listing.description }}</p>
           </section>
 
           <section class="detail-card">
@@ -356,6 +352,36 @@
       @success="showAppointmentPopup = false"
     />
 
+    <Teleport to="body">
+      <div
+        v-if="imageLightboxOpen"
+        class="image-lightbox"
+        role="dialog"
+        aria-modal="true"
+        @click.self="closeImageLightbox"
+      >
+        <button type="button" class="image-lightbox-close" aria-label="Đóng ảnh" @click="closeImageLightbox"></button>
+        <button
+          v-if="displayImages.length > 1"
+          type="button"
+          class="image-lightbox-nav image-lightbox-prev"
+          aria-label="Ảnh trước"
+          @click.stop="prevImage"
+        ></button>
+        <img v-if="activeImage" :src="activeImage" class="image-lightbox-img" alt="Listing image zoomed" />
+        <button
+          v-if="displayImages.length > 1"
+          type="button"
+          class="image-lightbox-nav image-lightbox-next"
+          aria-label="Ảnh sau"
+          @click.stop="nextImage"
+        ></button>
+        <div class="image-lightbox-counter">
+          Hình ảnh {{ activeImageIndex + 1 }}/{{ displayImages.length }}
+        </div>
+      </div>
+    </Teleport>
+
     <!-- Floating Save Listing Button -->
     <div
       v-if="listing && !loading"
@@ -436,6 +462,7 @@ const error = ref('');
 const listing = ref(props.previewListing || {});
 
 const activeImageIndex = ref(0);
+const imageLightboxOpen = ref(false);
 const descriptionElement = ref(null);
 const descriptionExpanded = ref(false);
 const descriptionCanToggle = ref(false);
@@ -619,6 +646,17 @@ function nextImage() {
   }
 }
 
+function openImageLightbox(index = activeImageIndex.value) {
+  activeImageIndex.value = index;
+  imageLightboxOpen.value = true;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeImageLightbox() {
+  imageLightboxOpen.value = false;
+  document.body.style.overflow = '';
+}
+
 function pushToast(message, type = 'info', duration = 2500) {
   const id = toastIdCounter++;
   toasts.value = [...toasts.value, { id, message, type }];
@@ -769,6 +807,8 @@ watch(
       map.remove();
       map = null;
     }
+
+    closeImageLightbox();
 
     descriptionExpanded.value = false;
     await updateDescriptionToggle();
@@ -1170,6 +1210,7 @@ onUnmounted(() => {
     map.remove();
     map = null;
   }
+  document.body.style.overflow = '';
 });
 </script>
 
@@ -1217,6 +1258,122 @@ onUnmounted(() => {
   background: #fef2f2;
   color: #b91c1c;
   border-color: #fecaca;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.88);
+  padding: 34px 76px;
+}
+
+.image-lightbox-img {
+  width: min(92vw, 1440px);
+  max-height: calc(100vh - 68px);
+  border-radius: 14px;
+  object-fit: contain;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.image-lightbox-close,
+.image-lightbox-nav {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.image-lightbox-close:hover,
+.image-lightbox-nav:hover {
+  background: rgba(15, 23, 42, 0.78);
+  transform: translateY(-1px);
+}
+
+.image-lightbox-close {
+  top: 22px;
+  right: 24px;
+  height: 50px;
+  width: 50px;
+  padding: 0;
+}
+
+.image-lightbox-close::before,
+.image-lightbox-close::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 3px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.image-lightbox-close::before {
+  transform: rotate(45deg);
+}
+
+.image-lightbox-close::after {
+  transform: rotate(-45deg);
+}
+
+.image-lightbox-nav {
+  top: 50%;
+  height: 52px;
+  width: 52px;
+  padding: 0;
+  transform: translateY(-50%);
+}
+
+.image-lightbox-nav:hover {
+  transform: translateY(-50%) scale(1.03);
+}
+
+.image-lightbox-prev {
+  left: 24px;
+}
+
+.image-lightbox-next {
+  right: 24px;
+}
+
+.image-lightbox-prev::before,
+.image-lightbox-next::before {
+  content: "";
+  width: 15px;
+  height: 15px;
+  border-top: 4px solid currentColor;
+  border-right: 4px solid currentColor;
+  border-radius: 2px;
+}
+
+.image-lightbox-prev::before {
+  transform: translateX(3px) rotate(-135deg);
+}
+
+.image-lightbox-next::before {
+  transform: translateX(-3px) rotate(45deg);
+}
+
+.image-lightbox-counter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.68);
+  padding: 8px 14px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .detail-card {

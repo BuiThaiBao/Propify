@@ -16,7 +16,10 @@ function getListingImage(item) {
 }
 
 function shortPropertyAddress(property) {
-  return [property?.ward_name, property?.province_name].filter(Boolean).join(', ');
+  return [
+    property?.ward_name || property?.ward,
+    property?.province_name || property?.province,
+  ].filter(Boolean).join(', ');
 }
 
 function coordinateDistanceKm(source, target) {

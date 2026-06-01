@@ -78,7 +78,9 @@ final class UpdateListingCommand
         return [
             'type' => $dto->propertyType,
             'province_code' => $dto->provinceCode,
+            'province' => $dto->province,
             'ward_code' => $dto->wardCode,
+            'ward' => $dto->ward,
             'street_code' => $dto->streetCode,
             'project_name' => $dto->projectName,
             'address_detail' => $dto->addressDetail,
