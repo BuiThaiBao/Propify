@@ -127,6 +127,9 @@
                 <p class="truncate text-sm font-semibold text-slate-800">{{ listing.property?.contact_name || listing.owner?.full_name }}</p>
                 <p class="text-xs text-slate-500">{{ listing.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới' }}</p>
               </div>
+              <button class="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-sky-100" aria-label="Nhắn tin chủ nhà">
+                <img :src="chatIcon" class="h-4 w-4" alt="" />
+              </button>
             </div>
 
             <div class="space-y-2">
