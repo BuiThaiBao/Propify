@@ -59,13 +59,19 @@
 
           <section v-if="displayImages.length" class="mb-3">
             <div class="relative overflow-hidden rounded-[14px] bg-slate-200">
-              <img v-if="activeImage" :src="activeImage" class="aspect-[16/10] w-full object-cover" alt="Listing image" />
+              <img
+                v-if="activeImage"
+                :src="activeImage"
+                class="aspect-[16/10] w-full cursor-zoom-in object-cover"
+                alt="Listing image"
+                @click="openImageLightbox(activeImageIndex)"
+              />
               <div class="absolute left-3 top-3 flex gap-2">
                 <span v-if="listing.is_verified" class="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">Đã xác thực</span>
                 <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
               </div>
-              <button v-if="displayImages.length > 1" class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click="prevImage">‹</button>
-              <button v-if="displayImages.length > 1" class="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click="nextImage">›</button>
+              <button v-if="displayImages.length > 1" class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click.stop="prevImage">‹</button>
+              <button v-if="displayImages.length > 1" class="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click.stop="nextImage">›</button>
               <div class="absolute bottom-3 left-3 rounded-full bg-slate-900/70 px-3 py-1 text-xs font-semibold text-white">
                 Hình ảnh {{ activeImageIndex + 1 }}/{{ displayImages.length }}
               </div>
@@ -83,8 +89,32 @@
             </div>
           </section>
 
-          <!-- Contact & Price details when embedded from map -->
-          <section v-if="isEmbedded" class="mb-4 rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+          <section v-if="listing.description?.trim()" class="detail-card">
+            <h2 class="detail-title">
+              <img :src="descriptionIcon" class="detail-title-icon" alt="" />
+              Mô tả tin đăng
+            </h2>
+            <p
+              ref="descriptionElement"
+              class="whitespace-pre-wrap text-sm leading-6 text-slate-600"
+              :class="{ 'description-collapsed': !descriptionExpanded }"
+            >
+              {{ listing.description }}
+            </p>
+            <div v-if="descriptionCanToggle" class="mt-3 flex justify-center">
+              <button
+                type="button"
+                class="detail-toggle-button"
+                :aria-label="descriptionExpanded ? 'Thu gọn mô tả' : 'Xem thêm mô tả'"
+                @click="descriptionExpanded = !descriptionExpanded"
+              >
+                <span>{{ descriptionExpanded ? 'Thu gọn' : 'Xem thêm' }}</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- Contact & Price details immediately after description when embedded from map -->
+          <section v-if="isEmbedded" class="mt-[18px] rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
             <div class="border-b border-slate-100 pb-4">
               <h2 class="text-[26px] font-extrabold text-sky-500">
                 {{ formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT'" class="text-sm font-medium text-slate-500">/tháng</span>
@@ -142,14 +172,6 @@
                 Đặt lịch xem nhà
               </button>
             </div>
-          </section>
-
-          <section v-if="listing.description?.trim()" class="detail-card">
-            <h2 class="detail-title">
-              <img :src="descriptionIcon" class="detail-title-icon" alt="" />
-              Mô tả tin đăng
-            </h2>
-            <p class="whitespace-pre-wrap text-sm leading-6 text-slate-600">{{ listing.description }}</p>
           </section>
 
           <section class="detail-card">
@@ -305,27 +327,18 @@
           <section v-if="relatedListings.length" class="rounded-[14px] border border-slate-200 bg-white p-5">
             <h2 class="mb-4 text-lg font-bold text-slate-800">Tin đăng liên quan</h2>
             <div class="space-y-4">
-              <article v-for="item in relatedListings" :key="item.id" class="flex gap-3">
-                <img :src="item.image" class="h-[86px] w-[116px] rounded-lg object-cover" alt="" />
+              <article
+                v-for="item in relatedListings"
+                :key="item.id"
+                class="group flex cursor-pointer gap-3 rounded-xl p-1.5 transition hover:bg-sky-50"
+                @click="router.push(`/listings/${item.id}`)"
+              >
+                <img v-if="item.image" :src="item.image" class="h-[86px] w-[116px] rounded-lg object-cover" alt="" />
+                <div v-else class="h-[86px] w-[116px] shrink-0 rounded-lg bg-slate-100"></div>
                 <div class="min-w-0 flex-1">
-                  <h3 class="line-clamp-2 text-sm font-bold text-slate-800">{{ item.title }}</h3>
+                  <h3 class="line-clamp-2 text-sm font-bold text-slate-800 group-hover:text-sky-600">{{ item.title }}</h3>
                   <p class="mt-1 text-xs text-slate-500">{{ item.address }}</p>
-                  <div class="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
-                    <span class="flex items-center gap-1">
-                      <img :src="bedIcon" class="h-3 w-3 object-contain opacity-70" alt="" />
-                      {{ item.bedrooms }} PN
-                    </span>
-                    <span class="flex items-center gap-1">
-                      <img :src="bathIcon" class="h-3 w-3 object-contain opacity-70" alt="" />
-                      {{ item.bathrooms }} WC
-                    </span>
-                    <span class="flex items-center gap-1">
-                      <img :src="areaIcon" class="h-3 w-3 object-contain opacity-70" alt="" />
-                      {{ item.area }} m²
-                    </span>
-                  </div>
                   <p class="mt-1 text-sm font-bold text-sky-500">{{ item.price }}</p>
-                  <p class="mt-1 text-xs text-slate-500">{{ item.owner }}</p>
                 </div>
               </article>
             </div>
@@ -341,6 +354,36 @@
       @close="showAppointmentPopup = false"
       @success="showAppointmentPopup = false"
     />
+
+    <Teleport to="body">
+      <div
+        v-if="imageLightboxOpen"
+        class="image-lightbox"
+        role="dialog"
+        aria-modal="true"
+        @click.self="closeImageLightbox"
+      >
+        <button type="button" class="image-lightbox-close" aria-label="Đóng ảnh" @click="closeImageLightbox"></button>
+        <button
+          v-if="displayImages.length > 1"
+          type="button"
+          class="image-lightbox-nav image-lightbox-prev"
+          aria-label="Ảnh trước"
+          @click.stop="prevImage"
+        ></button>
+        <img v-if="activeImage" :src="activeImage" class="image-lightbox-img" alt="Listing image zoomed" />
+        <button
+          v-if="displayImages.length > 1"
+          type="button"
+          class="image-lightbox-nav image-lightbox-next"
+          aria-label="Ảnh sau"
+          @click.stop="nextImage"
+        ></button>
+        <div class="image-lightbox-counter">
+          Hình ảnh {{ activeImageIndex + 1 }}/{{ displayImages.length }}
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Floating Save Listing Button -->
     <div
@@ -370,7 +413,8 @@ import { useFavoriteListings } from '@/composables/useFavoriteListings';
 import { Heart } from 'lucide-vue-next';
 import listingService from '@/services/listingService';
 import AppointmentBookingPopup from '@/components/appointments/AppointmentBookingPopup.vue';
-import { buildPropertyAddress, hydratePropertyAddress } from '@/utils/addressFormatter';
+import { buildPropertyAddress, hydrateListingAddresses, hydratePropertyAddress } from '@/utils/addressFormatter';
+import { selectRelatedListings } from '@/utils/relatedListingStrategies';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import maplibregl from 'maplibre-gl';
@@ -421,12 +465,17 @@ const error = ref('');
 const listing = ref(props.previewListing || {});
 
 const activeImageIndex = ref(0);
+const imageLightboxOpen = ref(false);
+const descriptionElement = ref(null);
+const descriptionExpanded = ref(false);
+const descriptionCanToggle = ref(false);
 const mapElement = ref(null);
 const showAppointmentPopup = ref(false);
 const mapMode = ref('standard');
 const isMap3dEnabled = ref(false);
 const selectedReportReasons = ref([]);
 const reportSubmitting = ref(false);
+const relatedListings = ref([]);
 const toasts = ref([]);
 let toastIdCounter = 1;
 let map = null;
@@ -559,22 +608,30 @@ const reportOptions = [
   { value: 'DUPLICATE_LISTING', label: 'Trùng với tin rao khác' },
 ];
 
-const relatedListings = computed(() => {
-  if (!displayImages.value.length) return [];
-  const image = displayImages.value[0]?.url;
+async function loadRelatedListings() {
+  const current = listing.value;
+  if (!current?.id || !current?.demand_type || !current?.property?.province_code) {
+    relatedListings.value = [];
+    return;
+  }
 
-  return Array.from({ length: 4 }, (_, index) => ({
-    id: `${listing.value?.id || 'preview'}-${index}`,
-    image,
-    title: listing.value?.title || 'Tin đăng liên quan',
-    address: fullAddress.value || 'Khu vực lân cận',
-    price: formatPrice(listing.value?.property?.price),
-    owner: listing.value?.owner?.full_name || listing.value?.property?.contact_name || 'Người đăng',
-    bedrooms: listing.value?.property?.bedrooms || 0,
-    bathrooms: listing.value?.property?.bathrooms || 0,
-    area: listing.value?.property?.area || 0,
-  }));
-});
+  try {
+    const response = await listingService.getPublicListings({
+      demand_type: current.demand_type,
+      per_page: 24,
+    });
+    const items = response.data?.data || [];
+    await hydrateListingAddresses(items);
+
+    relatedListings.value = selectRelatedListings(current, items, {
+      limit: 4,
+      formatPrice,
+    });
+  } catch (err) {
+    console.error('Failed to load related listings:', err);
+    relatedListings.value = [];
+  }
+}
 
 function prevImage() {
   if (activeImageIndex.value > 0) {
@@ -592,12 +649,30 @@ function nextImage() {
   }
 }
 
+function openImageLightbox(index = activeImageIndex.value) {
+  activeImageIndex.value = index;
+  imageLightboxOpen.value = true;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeImageLightbox() {
+  imageLightboxOpen.value = false;
+  document.body.style.overflow = '';
+}
+
 function pushToast(message, type = 'info', duration = 2500) {
   const id = toastIdCounter++;
   toasts.value = [...toasts.value, { id, message, type }];
   setTimeout(() => {
     toasts.value = toasts.value.filter((item) => item.id !== id);
   }, duration);
+}
+
+async function updateDescriptionToggle() {
+  await nextTick();
+  const text = String(listing.value?.description || '').trim();
+  const lineCount = text.split(/\r?\n/).filter(Boolean).length;
+  descriptionCanToggle.value = lineCount > 3 || text.length > 180;
 }
 
 async function submitListingReport() {
@@ -699,6 +774,9 @@ async function loadListing() {
     const data = response.data.data;
     await hydratePropertyAddress(data?.property);
     listing.value = data;
+    descriptionExpanded.value = false;
+    await updateDescriptionToggle();
+    await loadRelatedListings();
   } catch (err) {
     console.error(err);
     error.value = 'Không tìm thấy tin đăng hoặc đã bị xóa.';
@@ -723,6 +801,7 @@ watch(
   async (value) => {
     if (!props.previewMode) return;
     listing.value = value || {};
+    relatedListings.value = [];
     loading.value = false;
     error.value = '';
     activeImageIndex.value = 0;
@@ -732,12 +811,42 @@ watch(
       map = null;
     }
 
+    closeImageLightbox();
+
+    descriptionExpanded.value = false;
+    await updateDescriptionToggle();
+
     if (hasLatLng.value) {
       await nextTick();
       setTimeout(() => initMap(), 200);
     }
   },
   { deep: true, immediate: true },
+);
+
+watch(
+  () => listing.value?.description,
+  () => {
+    descriptionExpanded.value = false;
+    updateDescriptionToggle();
+  },
+  { flush: 'post' },
+);
+
+watch(
+  () => route.params.id,
+  async (id, previousId) => {
+    if (props.previewMode || !id || id === previousId) return;
+    activeImageIndex.value = 0;
+    relatedListings.value = [];
+
+    if (map) {
+      map.remove();
+      map = null;
+    }
+
+    await loadListing();
+  },
 );
 
 
@@ -1075,8 +1184,10 @@ function initMap() {
 
 onMounted(() => {
   isEmbedded.value = window.self !== window.top;
+  window.addEventListener('resize', updateDescriptionToggle);
   if (props.previewMode) {
     loading.value = false;
+    updateDescriptionToggle();
     if (hasLatLng.value) {
       nextTick(() => setTimeout(() => initMap(), 200));
     }
@@ -1097,10 +1208,12 @@ watch(
 );
 
 onUnmounted(() => {
+  window.removeEventListener('resize', updateDescriptionToggle);
   if (map) {
     map.remove();
     map = null;
   }
+  document.body.style.overflow = '';
 });
 </script>
 
@@ -1148,6 +1261,122 @@ onUnmounted(() => {
   background: #fef2f2;
   color: #b91c1c;
   border-color: #fecaca;
+}
+
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.88);
+  padding: 34px 76px;
+}
+
+.image-lightbox-img {
+  width: min(92vw, 1440px);
+  max-height: calc(100vh - 68px);
+  border-radius: 14px;
+  object-fit: contain;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.image-lightbox-close,
+.image-lightbox-nav {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.image-lightbox-close:hover,
+.image-lightbox-nav:hover {
+  background: rgba(15, 23, 42, 0.78);
+  transform: translateY(-1px);
+}
+
+.image-lightbox-close {
+  top: 22px;
+  right: 24px;
+  height: 50px;
+  width: 50px;
+  padding: 0;
+}
+
+.image-lightbox-close::before,
+.image-lightbox-close::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 3px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.image-lightbox-close::before {
+  transform: rotate(45deg);
+}
+
+.image-lightbox-close::after {
+  transform: rotate(-45deg);
+}
+
+.image-lightbox-nav {
+  top: 50%;
+  height: 52px;
+  width: 52px;
+  padding: 0;
+  transform: translateY(-50%);
+}
+
+.image-lightbox-nav:hover {
+  transform: translateY(-50%) scale(1.03);
+}
+
+.image-lightbox-prev {
+  left: 24px;
+}
+
+.image-lightbox-next {
+  right: 24px;
+}
+
+.image-lightbox-prev::before,
+.image-lightbox-next::before {
+  content: "";
+  width: 15px;
+  height: 15px;
+  border-top: 4px solid currentColor;
+  border-right: 4px solid currentColor;
+  border-radius: 2px;
+}
+
+.image-lightbox-prev::before {
+  transform: translateX(3px) rotate(-135deg);
+}
+
+.image-lightbox-next::before {
+  transform: translateX(-3px) rotate(45deg);
+}
+
+.image-lightbox-counter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.68);
+  padding: 8px 14px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .detail-card {
@@ -1220,6 +1449,31 @@ onUnmounted(() => {
 
 .detail-action-icon {
   filter: brightness(0) invert(1);
+}
+
+.detail-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  background: transparent;
+  padding: 2px 4px;
+  color: #0ea5e9;
+  font-size: 13px;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+
+.detail-toggle-button:hover {
+  color: #0284c7;
+}
+
+.description-collapsed {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
 /* Custom styled scrollbars for the image strip */

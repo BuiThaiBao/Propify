@@ -920,8 +920,10 @@ function createInitialState() {
     description: "",
     propertyType: "APARTMENT",
     provinceCode: "",
+    province: "",
     districtCode: "",
     wardCode: "",
+    ward: "",
     streetCode: "",
     projectName: "",
     addressDetail: "",
@@ -1285,6 +1287,14 @@ const selectedWardName = computed(() => {
   return item?.name || "";
 });
 
+watch(selectedProvinceName, (name) => {
+  form.province = name;
+}, { immediate: true });
+
+watch(selectedWardName, (name) => {
+  form.ward = name;
+}, { immediate: true });
+
 const previewListing = computed(() => buildListingPreview({
   form,
   imagePreviews: imagePreviews.value,
@@ -1392,8 +1402,10 @@ async function loadListingForEdit() {
     form.description = data.description || '';
     form.propertyType = p.type || 'APARTMENT';
     form.provinceCode = p.province_code ? String(p.province_code) : '';
+    form.province = p.province || p.province_name || '';
     form.districtCode = p.district_code ? String(p.district_code) : '';
     form.wardCode = p.ward_code ? String(p.ward_code) : '';
+    form.ward = p.ward || p.ward_name || '';
     form.streetCode = p.street_code || '';
     form.projectName = p.project_name || '';
     form.addressDetail = p.address_detail || '';
@@ -2363,6 +2375,8 @@ function normalizeFormTextFields() {
   form.addressDetail = normalizeSingleLineText(form.addressDetail);
   form.contactName = normalizeSingleLineText(form.contactName);
   form.contactEmail = normalizeSingleLineText(form.contactEmail).toLowerCase();
+  form.province = selectedProvinceName.value;
+  form.ward = selectedWardName.value;
   locationSearchText.value = normalizeSingleLineText(locationSearchText.value);
 }
 
