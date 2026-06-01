@@ -171,6 +171,7 @@ final class ListingServiceImpl implements ListingService
         $strategy = ListingSortingStrategyFactory::make($sortBy);
         $page = request()->input('page', 1);
         $cacheKey = 'listings:public:'.md5(serialize([
+            'version' => 2,
             'sort' => $sortBy,
             'demand_type' => $demandType,
             'keyword' => $keyword,
