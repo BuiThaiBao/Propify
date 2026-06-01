@@ -83,12 +83,12 @@
             </div>
           </section>
 
-          <section class="detail-card">
+          <section v-if="listing.description?.trim()" class="detail-card">
             <h2 class="detail-title">
               <img :src="descriptionIcon" class="detail-title-icon" alt="" />
               Mô tả tin đăng
             </h2>
-            <p class="whitespace-pre-wrap text-sm leading-6 text-slate-600">{{ listing.description || 'Chưa có mô tả.' }}</p>
+            <p class="whitespace-pre-wrap text-sm leading-6 text-slate-600">{{ listing.description }}</p>
           </section>
 
           <!-- Contact & Price details immediately after description when embedded from map -->
@@ -162,7 +162,7 @@
               Thông tin chi tiết
             </h2>
             <div class="space-y-0">
-              <div v-for="row in detailRowPairs" :key="row[0].label" class="grid gap-x-10 sm:grid-cols-2">
+              <div v-for="row in detailRowPairs" :key="row.map((item) => item.label).join('-')" class="grid gap-x-10 sm:grid-cols-2">
                 <div
                   v-for="item in row"
                   :key="item.label || 'empty-detail-cell'"
@@ -181,14 +181,14 @@
             </div>
           </section>
 
-          <section v-if="listing.property?.amenities?.length" class="detail-card">
+          <section v-if="amenities.length" class="detail-card">
             <h2 class="detail-title">
               <img :src="amenitiesIcon" class="detail-title-icon" alt="" />
               Tiện ích
             </h2>
             <div class="flex flex-wrap gap-2">
               <span
-                v-for="amenity in listing.property.amenities"
+                v-for="amenity in amenities"
                 :key="amenity"
                 class="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-500"
               >
@@ -198,12 +198,12 @@
             </div>
           </section>
 
-          <section class="detail-card">
+          <section v-if="fullAddress || hasLatLng" class="detail-card">
             <h2 class="detail-title">
               <img :src="mapSectionIcon" class="detail-title-icon" alt="" />
               Vị trí bản đồ
             </h2>
-            <p class="mb-3 flex items-center gap-1.5 text-xs text-slate-500">
+            <p v-if="fullAddress" class="mb-3 flex items-center gap-1.5 text-xs text-slate-500">
               <img :src="pointIcon" class="h-3.5 w-3.5 object-contain" alt="" />
               {{ fullAddress }}
             </p>
@@ -251,18 +251,18 @@
               <h2 class="text-[26px] font-extrabold text-sky-500">
                 {{ formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT'" class="text-sm font-medium text-slate-500">/tháng</span>
               </h2>
-              <div class="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                <span class="flex items-center gap-1.5">
+              <div v-if="summaryStats.length" class="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                <span v-if="hasPositiveValue(listing.property?.bedrooms)" class="flex items-center gap-1.5">
                   <img :src="bedIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
-                  {{ listing.property?.bedrooms || 0 }} PN
+                  {{ listing.property.bedrooms }} PN
                 </span>
-                <span class="flex items-center gap-1.5">
+                <span v-if="hasPositiveValue(listing.property?.bathrooms)" class="flex items-center gap-1.5">
                   <img :src="bathIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
-                  {{ listing.property?.bathrooms || 0 }} WC
+                  {{ listing.property.bathrooms }} WC
                 </span>
-                <span class="flex items-center gap-1.5">
+                <span v-if="hasPositiveValue(listing.property?.area)" class="flex items-center gap-1.5">
                   <img :src="areaIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
-                  {{ listing.property?.area || 0 }} m²
+                  {{ listing.property.area }} m²
                 </span>
               </div>
             </div>
@@ -270,13 +270,13 @@
             <div class="py-4 text-xs">
               <p class="mb-3 font-semibold text-slate-800">Thông tin của bất động sản</p>
               <div class="space-y-3">
-                <div class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
+                <div v-if="listing.property?.type" class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
                   <span class="whitespace-nowrap text-slate-400">Loại BĐS</span>
                   <span class="truncate text-right text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
                 </div>
-                <div class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
+                <div v-if="fullAddress" class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
                   <span class="whitespace-nowrap text-slate-400">Địa chỉ</span>
-                  <span class="truncate text-right text-sky-500">{{ fullAddress }}</span>
+                  <span class="truncate text-right text-sky-500" :title="fullAddress">{{ fullAddress }}</span>
                 </div>
               </div>
             </div>
@@ -302,10 +302,6 @@
               <button v-if="!previewMode" class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600" @click="showAppointmentPopup = true">
                 <img :src="calendarIcon" class="mr-2 h-3.5 w-3.5" alt="" />
                 Đặt lịch xem nhà
-              </button>
-              <button class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600">
-                <img :src="messagesIcon" class="mr-2 h-3.5 w-3.5" alt="" />
-                Nhắn tin
               </button>
             </div>
           </section>
@@ -488,43 +484,74 @@ const contactPhone = computed(() => (
   listing.value?.property?.contact_phone || listing.value?.owner?.phone || ''
 ));
 
+const amenities = computed(() => {
+  const values = listing.value?.property?.amenities;
+  if (!Array.isArray(values)) return [];
+
+  return values
+    .map((amenity) => {
+      if (typeof amenity === 'string') return amenity.trim();
+      return amenity?.name || amenity?.label || '';
+    })
+    .filter(Boolean);
+});
+
+function hasPositiveValue(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0;
+}
+
+const summaryStats = computed(() => {
+  const property = listing.value?.property || {};
+  return [property.bedrooms, property.bathrooms, property.area].filter(hasPositiveValue);
+});
+
 function hasDetailValue(value) {
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (typeof value === 'number') return value > 0;
   return value !== null && value !== undefined && value !== '';
 }
 
 function detailText(value, suffix = '') {
-  if (!hasDetailValue(value)) return '-';
   return suffix ? `${value}${suffix}` : value;
+}
+
+function detailItem(label, value, icon, formatter = detailText) {
+  if (!hasDetailValue(value)) return null;
+  return {
+    label,
+    value: formatter(value),
+    icon,
+  };
+}
+
+function pairDetailItems(items) {
+  const filtered = items.filter(Boolean);
+  const rows = [];
+
+  for (let i = 0; i < filtered.length; i += 2) {
+    rows.push(filtered.slice(i, i + 2));
+  }
+
+  return rows;
 }
 
 const detailRowPairs = computed(() => {
   const property = listing.value?.property || {};
-  return [
-    [
-      { label: 'Loại BĐS', value: property.type ? propertyTypeLabel(property.type) : '-', icon: propertyIcon },
-      { label: 'Diện tích', value: detailText(property.area, ' m²'), icon: areaIcon },
-    ],
-    [
-      { label: 'Phòng ngủ', value: detailText(property.bedrooms, ' PN'), icon: bedIcon },
-      { label: 'Phòng tắm', value: detailText(property.bathrooms, ' WC'), icon: bathIcon },
-    ],
-    [
-      { label: 'Hướng nhà', value: property.direction_code ? directionLabel(property.direction_code) : '-', icon: directionIcon },
-      { label: 'Hướng ban công', value: property.balcony_direction_code ? directionLabel(property.balcony_direction_code) : '-', icon: directionIcon },
-    ],
-    [
-      { label: 'Nội thất', value: property.furniture_status ? furnitureLabel(property.furniture_status) : '-', icon: interiorIcon },
-      { label: 'Pháp lý', value: property.legal_paper_types?.length ? property.legal_paper_types.map((v) => legalPaperLabel(v)).join(', ') : '-', icon: legalIcon },
-    ],
-    [
-      { label: 'Chiều sâu', value: detailText(property.depth, ' m'), icon: roadIcon },
-      { label: 'Mặt tiền', value: detailText(property.facade_width, ' m'), icon: roadIcon },
-    ],
-    [
-      { label: 'Số tầng', value: detailText(property.floors), icon: floorIcon },
-      { label: '', value: '', icon: null, empty: true },
-    ],
-  ];
+  return pairDetailItems([
+    detailItem('Loại BĐS', property.type, propertyIcon, propertyTypeLabel),
+    detailItem('Diện tích', property.area, areaIcon, (value) => detailText(value, ' m²')),
+    detailItem('Phòng ngủ', property.bedrooms, bedIcon, (value) => detailText(value, ' PN')),
+    detailItem('Phòng tắm', property.bathrooms, bathIcon, (value) => detailText(value, ' WC')),
+    detailItem('Hướng nhà', property.direction_code, directionIcon, directionLabel),
+    detailItem('Hướng ban công', property.balcony_direction_code, directionIcon, directionLabel),
+    detailItem('Nội thất', property.furniture_status, interiorIcon, furnitureLabel),
+    detailItem('Pháp lý', property.legal_paper_types, legalIcon, (values) => values.map((value) => legalPaperLabel(value)).join(', ')),
+    detailItem('Chiều sâu', property.depth, roadIcon, (value) => detailText(value, ' m')),
+    detailItem('Mặt tiền', property.facade_width, roadIcon, (value) => detailText(value, ' m')),
+    detailItem('Số tầng', property.floors, floorIcon),
+  ]);
 });
 
 const reportOptions = [

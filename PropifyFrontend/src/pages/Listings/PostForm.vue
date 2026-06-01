@@ -393,11 +393,29 @@
             <div class="grid gap-4 md:grid-cols-2">
               <label>
                 <span class="field-label">Tầng thứ</span>
-                <input v-model="form.floorNumber" class="input mt-2" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floorNumber', false)" />
+                <input
+                  v-model="form.floorNumber"
+                  :class="['input mt-2', fieldError('floorNumber') && 'input-error']"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="Nhập số"
+                  @input="onNumberInput($event, 'floorNumber', false)"
+                  @blur="touchField('floorNumber')"
+                />
+                <p v-if="fieldError('floorNumber')" class="field-error">{{ fieldErrorMessage('floorNumber') }}</p>
               </label>
               <label>
                 <span class="field-label">Số tầng</span>
-                <input v-model="form.floors" class="input mt-2" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floors', false)" />
+                <input
+                  v-model="form.floors"
+                  :class="['input mt-2', fieldError('floors') && 'input-error']"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="Nhập số"
+                  @input="onNumberInput($event, 'floors', false)"
+                  @blur="touchField('floors')"
+                />
+                <p v-if="fieldError('floors')" class="field-error">{{ fieldErrorMessage('floors') }}</p>
               </label>
             </div>
 
@@ -2428,6 +2446,14 @@ function fieldErrorMessage(field) {
     return '';
   }
 
+  if (field === 'floorNumber' || field === 'floors') {
+    if (!value) return '';
+    const parsed = Number(value);
+    const label = field === 'floorNumber' ? 'Tầng thứ' : 'Số tầng';
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > 99) return `${label} không được vượt quá 99`;
+    return '';
+  }
+
   if (field === 'contactName') {
     if (!value || !String(value).trim()) return 'Tên người liên hệ không được để trống';
     if (!/^[\p{L}\s'.-]+$/u.test(String(value).trim())) return 'Tên người liên hệ không hợp lệ';
@@ -2625,12 +2651,12 @@ async function useAccountContactInfo() {
 }
 
 function touchAllRequired() {
-  const required = ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail'];
+  const required = ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail', 'floorNumber', 'floors'];
   required.forEach((f) => touchField(f));
 }
 
 function hasRequiredErrors() {
-  const base = ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail'];
+  const base = ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail', 'floorNumber', 'floors'];
 
   const hasError = base.some((f) => {
     touchedFields[f] = true;
