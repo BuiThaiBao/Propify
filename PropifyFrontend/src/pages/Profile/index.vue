@@ -359,6 +359,7 @@
                 <th class="px-3 py-4 whitespace-nowrap">Mã tin đăng</th>
                 <th class="px-3 py-4 min-w-[200px]">Tin đăng</th>
                 <th class="px-3 py-4 whitespace-nowrap">Ngày tạo</th>
+                <th class="px-3 py-4 whitespace-nowrap">Ngày đăng</th>
                 <th class="px-3 py-4 min-w-[180px]">Địa chỉ</th>
                 <th class="px-3 py-4 whitespace-nowrap">Giá</th>
                 <th class="px-3 py-4 whitespace-nowrap">Gói tin</th>
@@ -370,10 +371,10 @@
             </thead>
             <tbody>
               <tr v-if="listingsLoading">
-                <td class="px-3 py-6 text-center text-slate-400" colspan="12">Đang tải dữ liệu...</td>
+                <td class="px-3 py-6 text-center text-slate-400" colspan="13">Đang tải dữ liệu...</td>
               </tr>
               <tr v-else-if="myListings.length === 0">
-                <td class="px-3 py-6 text-center text-slate-400" colspan="12">Bạn chưa có tin đăng nào.</td>
+                <td class="px-3 py-6 text-center text-slate-400" colspan="13">Bạn chưa có tin đăng nào.</td>
               </tr>
               <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="openListingEdit(item)">
                 <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap col-sticky-id">{{ item.id }}</td>
@@ -384,6 +385,7 @@
                 <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.code }}</td>
                 <td class="px-3 py-4 font-semibold text-slate-700 group-hover:text-sky-600">{{ item.title }}</td>
                 <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.createdAt }}</td>
+                <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.publishedAt }}</td>
                 <td class="px-3 py-4 text-slate-500">{{ item.address }}</td>
                 <td class="px-3 py-4 font-semibold text-slate-700 whitespace-nowrap">{{ item.price }}</td>
                 <td class="px-3 py-4 whitespace-nowrap">
@@ -1124,7 +1126,8 @@ function normalizeListings(items) {
       code: toListingCode(item.id),
       title: item.title || '(Không tiêu đề)',
       thumbnail,
-      createdAt: formatListingDate(item.published_at || item.submitted_at || item.created_at),
+      createdAt: formatListingDate(item.created_at),
+      publishedAt: item.published_at ? formatListingDate(item.published_at) : '--',
       address: buildAddress(item.property),
       price: formatCurrency(item?.property?.price),
       status: item.status,
