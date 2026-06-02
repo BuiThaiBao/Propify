@@ -167,6 +167,20 @@ export function useRentListings() {
   async function onSearch(value) {
     searchKeyword.value = value || '';
     currentPage.value = 1;
+    const normalizedNextQuery = searchKeyword.value.trim();
+    const currentQuery = String(route?.query?.q || '');
+    if (currentQuery !== normalizedNextQuery) {
+      const nextQuery = { ...route.query };
+      if (normalizedNextQuery) {
+        nextQuery.q = normalizedNextQuery;
+      } else {
+        delete nextQuery.q;
+      }
+
+      router.replace({
+        query: nextQuery,
+      }).catch(() => {});
+    }
   }
 
   async function goToPage(page) {

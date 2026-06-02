@@ -12,6 +12,8 @@ use App\Repositories\ListingRepository;
 use App\Services\Listing\Sorting\ListingSortingStrategy;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 final class EloquentListingRepository implements ListingRepository
 {
@@ -65,14 +67,24 @@ final class EloquentListingRepository implements ListingRepository
                 $query->where('demand_type', $demandType);
             })
             ->when($keyword, function ($query) use ($keyword) {
-                $query->where(function ($subQuery) use ($keyword) {
+                $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
+
+                if ($normalizedKeyword === null) {
+                    return;
+                }
+
+                $like = '%'.$normalizedKeyword.'%';
+
+                $query->where(function ($subQuery) use ($like) {
                     $subQuery
-                        ->where('title', 'like', '%'.$keyword.'%')
-                        ->orWhere('description', 'like', '%'.$keyword.'%')
-                        ->orWhereHas('property', function ($propertyQuery) use ($keyword) {
+                        ->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like])
+                        ->orWhereRaw($this->normalizeSearchExpression('description').' LIKE ?', [$like])
+                        ->orWhereHas('property', function ($propertyQuery) use ($like) {
                             $propertyQuery
-                                ->where('address_detail', 'like', '%'.$keyword.'%')
-                                ->orWhere('project_name', 'like', '%'.$keyword.'%');
+                                ->whereRaw($this->normalizeSearchExpression('address_detail').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('project_name').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('province').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('ward').' LIKE ?', [$like]);
                         });
                 });
             })
@@ -129,14 +141,24 @@ final class EloquentListingRepository implements ListingRepository
                 $query->where('listings.demand_type', $demandType);
             })
             ->when($keyword, function ($query) use ($keyword) {
-                $query->where(function ($subQuery) use ($keyword) {
+                $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
+
+                if ($normalizedKeyword === null) {
+                    return;
+                }
+
+                $like = '%'.$normalizedKeyword.'%';
+
+                $query->where(function ($subQuery) use ($like) {
                     $subQuery
-                        ->where('listings.title', 'like', '%'.$keyword.'%')
-                        ->orWhere('listings.description', 'like', '%'.$keyword.'%')
-                        ->orWhereHas('property', function ($propertyQuery) use ($keyword) {
+                        ->whereRaw($this->normalizeSearchExpression('listings.title').' LIKE ?', [$like])
+                        ->orWhereRaw($this->normalizeSearchExpression('listings.description').' LIKE ?', [$like])
+                        ->orWhereHas('property', function ($propertyQuery) use ($like) {
                             $propertyQuery
-                                ->where('address_detail', 'like', '%'.$keyword.'%')
-                                ->orWhere('project_name', 'like', '%'.$keyword.'%');
+                                ->whereRaw($this->normalizeSearchExpression('address_detail').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('project_name').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('province').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('ward').' LIKE ?', [$like]);
                         });
                 });
             })
@@ -188,17 +210,25 @@ final class EloquentListingRepository implements ListingRepository
                 $query->where('demand_type', strtoupper($demandType));
             })
             ->when($keyword, function ($query) use ($keyword) {
-                $keywordLower = mb_strtolower($keyword, 'UTF-8');
-                $isRent = str_contains($keywordLower, 'cho') || str_contains($keywordLower, 'thuê');
-                $isSale = str_contains($keywordLower, 'mua') || str_contains($keywordLower, 'bán');
+                $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
 
-                $query->where(function ($subQuery) use ($keyword, $isRent, $isSale) {
+                if ($normalizedKeyword === null) {
+                    return;
+                }
+
+                $isRent = str_contains($normalizedKeyword, 'cho') || str_contains($normalizedKeyword, 'thue');
+                $isSale = str_contains($normalizedKeyword, 'mua') || str_contains($normalizedKeyword, 'ban');
+                $like = '%'.$normalizedKeyword.'%';
+
+                $query->where(function ($subQuery) use ($like, $isRent, $isSale) {
                     $subQuery
-                        ->where('title', 'like', '%'.$keyword.'%')
-                        ->orWhereHas('property', function ($propertyQuery) use ($keyword) {
+                        ->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like])
+                        ->orWhereHas('property', function ($propertyQuery) use ($like) {
                             $propertyQuery
-                                ->where('address_detail', 'like', '%'.$keyword.'%')
-                                ->orWhere('project_name', 'like', '%'.$keyword.'%');
+                                ->whereRaw($this->normalizeSearchExpression('address_detail').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('project_name').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('province').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('ward').' LIKE ?', [$like]);
                         });
 
                     if ($isRent) {
@@ -222,6 +252,9 @@ final class EloquentListingRepository implements ListingRepository
         ?float $minArea = null,
         ?float $maxArea = null
     ): Collection {
+        $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
+        $like = $normalizedKeyword !== null ? '%'.$normalizedKeyword.'%' : null;
+
         return Listing::query()
             ->select(['id', 'property_id', 'title', 'demand_type'])
             ->with([
@@ -230,13 +263,15 @@ final class EloquentListingRepository implements ListingRepository
             ])
             ->where('status', 'ACTIVE')
             ->when($demandType, fn ($query) => $query->where('demand_type', $demandType))
-            ->when($keyword, function ($query) use ($keyword) {
-                $query->where(function ($subQuery) use ($keyword) {
+            ->when($like, function ($query) use ($like) {
+                $query->where(function ($subQuery) use ($like) {
                     $subQuery
-                        ->where('title', 'like', '%'.$keyword.'%')
+                        ->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like])
                         ->orWhereHas('property', fn ($propertyQuery) => $propertyQuery
-                            ->where('address_detail', 'like', '%'.$keyword.'%')
-                            ->orWhere('project_name', 'like', '%'.$keyword.'%'));
+                            ->whereRaw($this->normalizeSearchExpression('address_detail').' LIKE ?', [$like])
+                            ->orWhereRaw($this->normalizeSearchExpression('project_name').' LIKE ?', [$like])
+                            ->orWhereRaw($this->normalizeSearchExpression('province').' LIKE ?', [$like])
+                            ->orWhereRaw($this->normalizeSearchExpression('ward').' LIKE ?', [$like]));
                 });
             })
             ->whereHas('property', function ($query) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
@@ -292,5 +327,30 @@ final class EloquentListingRepository implements ListingRepository
     public function deleteVerificationDocuments(int $listingId): void
     {
         ListingVerificationDocument::where('listing_id', $listingId)->delete();
+    }
+
+    private function normalizeSearchKeyword(?string $keyword): ?string
+    {
+        $normalized = trim((string) $keyword);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        $normalized = Str::ascii(mb_strtolower($normalized, 'UTF-8'));
+        $normalized = preg_replace('/\s+/u', ' ', $normalized) ?: $normalized;
+
+        return $normalized;
+    }
+
+    private function normalizeSearchExpression(string $column): string
+    {
+        $driver = DB::connection()->getDriverName();
+
+        return match ($driver) {
+            'sqlite' => "normalize_text($column)",
+            'mysql', 'mariadb' => "LOWER(CONVERT($column USING utf8mb4)) COLLATE utf8mb4_unicode_ci",
+            default => "LOWER($column)",
+        };
     }
 }
