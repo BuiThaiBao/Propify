@@ -21,6 +21,7 @@ use Illuminate\Support\Facades\Mail;
 final class NotifyExpiringPackages extends Command
 {
     protected $signature = 'packages:notify-expiring';
+
     protected $description = 'Send daily email to owners of listings with packages expiring within 7 days';
 
     public function handle(): int
@@ -36,6 +37,7 @@ final class NotifyExpiringPackages extends Command
 
         if ($listings->isEmpty()) {
             $this->line('No expiring packages to notify.');
+
             return self::SUCCESS;
         }
 
@@ -44,7 +46,7 @@ final class NotifyExpiringPackages extends Command
         foreach ($listings as $listing) {
             $owner = $listing->owner;
 
-            if (!$owner?->email) {
+            if (! $owner?->email) {
                 continue;
             }
 
@@ -69,20 +71,20 @@ final class NotifyExpiringPackages extends Command
 
                 Log::debug('[NotifyExpiringPackages] Email queued', [
                     'listing_id' => $listing->id,
-                    'owner_id'   => $owner->id,
-                    'days_left'  => $daysLeft,
+                    'owner_id' => $owner->id,
+                    'days_left' => $daysLeft,
                 ]);
             } catch (\Throwable $e) {
                 Log::error('[NotifyExpiringPackages] Failed to send email', [
                     'listing_id' => $listing->id,
-                    'error'      => $e->getMessage(),
+                    'error' => $e->getMessage(),
                 ]);
             }
         }
 
         Log::info('[NotifyExpiringPackages] Completed', [
             'total_listings' => $listings->count(),
-            'emails_sent'    => $sentCount,
+            'emails_sent' => $sentCount,
         ]);
 
         $this->info(sprintf('Queued %d expiration notification emails.', $sentCount));

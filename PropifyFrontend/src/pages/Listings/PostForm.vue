@@ -11,11 +11,10 @@
     </div>
 
     <div class="mx-auto w-full max-w-[1240px] px-4 lg:px-6">
-      <p class="text-xs text-slate-500">
-        <router-link to="/" class="hover:text-sky-600 hover:underline">Trang chủ</router-link>
-        <span> &gt; </span>
-        <span>{{ pageBreadcrumb }}</span>
-      </p>
+      <Breadcrumb :crumbs="[
+        { label: 'Trang chủ', to: '/' },
+        { label: pageBreadcrumb }
+      ]" />
       <h1 class="mt-2 text-[24px] font-extrabold tracking-tight text-slate-900">{{ pageTitle }}</h1>
 
       <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,760px)_330px] lg:justify-center">
@@ -393,11 +392,29 @@
             <div class="grid gap-4 md:grid-cols-2">
               <label>
                 <span class="field-label">Tầng thứ</span>
-                <input v-model="form.floorNumber" class="input mt-2" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floorNumber', false)" />
+                <input
+                  v-model="form.floorNumber"
+                  :class="['input mt-2', fieldError('floorNumber') && 'input-error']"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="Nhập số"
+                  @input="onNumberInput($event, 'floorNumber', false)"
+                  @blur="touchField('floorNumber')"
+                />
+                <p v-if="fieldError('floorNumber')" class="field-error">{{ fieldErrorMessage('floorNumber') }}</p>
               </label>
               <label>
                 <span class="field-label">Số tầng</span>
-                <input v-model="form.floors" class="input mt-2" type="text" inputmode="numeric" placeholder="Nhập số" @input="onNumberInput($event, 'floors', false)" />
+                <input
+                  v-model="form.floors"
+                  :class="['input mt-2', fieldError('floors') && 'input-error']"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="Nhập số"
+                  @input="onNumberInput($event, 'floors', false)"
+                  @blur="touchField('floors')"
+                />
+                <p v-if="fieldError('floors')" class="field-error">{{ fieldErrorMessage('floors') }}</p>
               </label>
             </div>
 
@@ -810,6 +827,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import Breadcrumb from "@/components/shared/Breadcrumb.vue";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import listingService from "@/services/listingService";
@@ -902,8 +920,10 @@ function createInitialState() {
     description: "",
     propertyType: "APARTMENT",
     provinceCode: "",
+    province: "",
     districtCode: "",
     wardCode: "",
+    ward: "",
     streetCode: "",
     projectName: "",
     addressDetail: "",
@@ -1267,6 +1287,14 @@ const selectedWardName = computed(() => {
   return item?.name || "";
 });
 
+watch(selectedProvinceName, (name) => {
+  form.province = name;
+}, { immediate: true });
+
+watch(selectedWardName, (name) => {
+  form.ward = name;
+}, { immediate: true });
+
 const previewListing = computed(() => buildListingPreview({
   form,
   imagePreviews: imagePreviews.value,
@@ -1374,8 +1402,10 @@ async function loadListingForEdit() {
     form.description = data.description || '';
     form.propertyType = p.type || 'APARTMENT';
     form.provinceCode = p.province_code ? String(p.province_code) : '';
+    form.province = p.province || p.province_name || '';
     form.districtCode = p.district_code ? String(p.district_code) : '';
     form.wardCode = p.ward_code ? String(p.ward_code) : '';
+    form.ward = p.ward || p.ward_name || '';
     form.streetCode = p.street_code || '';
     form.projectName = p.project_name || '';
     form.addressDetail = p.address_detail || '';
@@ -2345,6 +2375,8 @@ function normalizeFormTextFields() {
   form.addressDetail = normalizeSingleLineText(form.addressDetail);
   form.contactName = normalizeSingleLineText(form.contactName);
   form.contactEmail = normalizeSingleLineText(form.contactEmail).toLowerCase();
+  form.province = selectedProvinceName.value;
+  form.ward = selectedWardName.value;
   locationSearchText.value = normalizeSingleLineText(locationSearchText.value);
 }
 
@@ -2425,6 +2457,14 @@ function fieldErrorMessage(field) {
     if (!value) return 'Diện tích không hợp lệ hoặc vượt giới hạn';
     const parsed = Number(value);
     if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 1000000) return 'Diện tích không hợp lệ hoặc vượt giới hạn';
+    return '';
+  }
+
+  if (field === 'floorNumber' || field === 'floors') {
+    if (!value) return '';
+    const parsed = Number(value);
+    const label = field === 'floorNumber' ? 'Tầng thứ' : 'Số tầng';
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > 99) return `${label} không được vượt quá 99`;
     return '';
   }
 
@@ -2625,12 +2665,12 @@ async function useAccountContactInfo() {
 }
 
 function touchAllRequired() {
-  const required = ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail'];
+  const required = ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail', 'floorNumber', 'floors'];
   required.forEach((f) => touchField(f));
 }
 
 function hasRequiredErrors() {
-  const base = ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail'];
+  const base = ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail', 'floorNumber', 'floors'];
 
   const hasError = base.some((f) => {
     touchedFields[f] = true;

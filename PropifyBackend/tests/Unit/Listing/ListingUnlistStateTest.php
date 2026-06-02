@@ -10,14 +10,14 @@ final class ListingUnlistStateTest extends TestCase
 {
     public function test_active_listing_can_transition_to_unlisted(): void
     {
-        $factory = new ListingStatusStateFactory();
+        $factory = new ListingStatusStateFactory;
 
         $this->assertTrue($factory->make('ACTIVE')->canTransitionTo('UNLISTED'));
     }
 
     public function test_non_active_listing_cannot_transition_to_unlisted(): void
     {
-        $factory = new ListingStatusStateFactory();
+        $factory = new ListingStatusStateFactory;
 
         $this->assertFalse($factory->make('DRAFT')->canTransitionTo('UNLISTED'));
         $this->assertFalse($factory->make('PENDING')->canTransitionTo('UNLISTED'));
@@ -27,7 +27,7 @@ final class ListingUnlistStateTest extends TestCase
 
     public function test_unlisted_listing_has_no_next_transition(): void
     {
-        $factory = new ListingStatusStateFactory();
+        $factory = new ListingStatusStateFactory;
 
         $this->assertFalse($factory->make('UNLISTED')->canTransitionTo('ACTIVE'));
         $this->assertFalse($factory->make('UNLISTED')->canTransitionTo('LOCKED'));
@@ -38,6 +38,6 @@ final class ListingUnlistStateTest extends TestCase
         $this->expectException(BusinessException::class);
         $this->expectExceptionMessage('Trang thai listing UNKNOWN khong hop le.');
 
-        (new ListingStatusStateFactory())->make('UNKNOWN');
+        (new ListingStatusStateFactory)->make('UNKNOWN');
     }
 }

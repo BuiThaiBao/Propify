@@ -10,8 +10,7 @@ final class PackageBenefitStrategyFactory
 {
     public function __construct(
         private readonly DataDrivenBenefitStrategy $dataDrivenBenefitStrategy,
-    ) {
-    }
+    ) {}
 
     public function make(Package $package): PackageBenefitStrategy
     {

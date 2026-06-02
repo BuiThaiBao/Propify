@@ -47,7 +47,7 @@ final class UpdateUserProfileCommandTest extends TestCase
             ])
             ->andReturn($updatedUser);
 
-        $command = new UpdateUserProfileCommand($repository, new ProfileValidationChain());
+        $command = new UpdateUserProfileCommand($repository, new ProfileValidationChain);
 
         $result = $command->execute(
             $user,

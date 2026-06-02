@@ -11,6 +11,9 @@ final class EloquentFavoriteRepository implements FavoriteRepository
     public function findByUser(int $userId, string $type = 'FAVORITE'): Collection
     {
         return UserFavorite::query()
+            ->whereHas('listing', function ($query) {
+                $query->where('status', 'ACTIVE');
+            })
             ->with([
                 'listing.property.attributes.group',
                 'listing.images',
@@ -23,13 +26,16 @@ final class EloquentFavoriteRepository implements FavoriteRepository
             ])
             ->where('user_id', $userId)
             ->where('type', $type)
-            ->latest()
+            ->latest('updated_at')
             ->get();
     }
 
     public function findIdsByUser(int $userId, string $type = 'FAVORITE'): Collection
     {
         return UserFavorite::query()
+            ->whereHas('listing', function ($query) {
+                $query->where('status', 'ACTIVE');
+            })
             ->where('user_id', $userId)
             ->where('type', $type)
             ->pluck('listing_id')

@@ -14,8 +14,7 @@ final class SubmitListingVerificationCommand
 {
     public function __construct(
         private readonly ListingRepository $listingRepository,
-    ) {
-    }
+    ) {}
 
     public function handle(User $user, int $id, array $payload): Listing
     {

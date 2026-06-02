@@ -20,8 +20,8 @@ final class EmailChannel implements NotificationChannel
     public function send(User $user, MailType $mailType, array $data = []): void
     {
         $mailable = match ($mailType) {
-            MailType::WELCOME        => new WelcomeMail($user, $data),
-            MailType::VERIFY_EMAIL   => new VerifyEmailMail($user, $data),
+            MailType::WELCOME => new WelcomeMail($user, $data),
+            MailType::VERIFY_EMAIL => new VerifyEmailMail($user, $data),
             MailType::FORGOT_PASSWORD => new ForgotPasswordMail($user, $data),
             default => throw new \InvalidArgumentException("Unsupported mail template: {$mailType->value}"),
         };

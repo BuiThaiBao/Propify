@@ -21,9 +21,9 @@ final class AppointmentSlot extends Model
 
     protected $casts = [
         'day_of_week' => 'integer',
-        'start_time'  => 'string',
-        'end_time'    => 'string',
-        'is_active'   => 'boolean',
+        'start_time' => 'string',
+        'end_time' => 'string',
+        'is_active' => 'boolean',
     ];
 
     // ==================== Relationships ====================

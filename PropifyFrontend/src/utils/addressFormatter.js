@@ -29,8 +29,8 @@ export function buildPropertyAddress(property) {
     property.address_detail,
     property.project_name,
     property.street_code,
-    property.ward_name,
-    property.province_name,
+    property.ward_name || property.ward,
+    property.province_name || property.province,
   ]).join(', ');
 }
 
@@ -100,14 +100,21 @@ async function resolveWardName(provinceCode, wardCode) {
 export async function hydratePropertyAddress(property) {
   if (!property) return property;
 
+  if (property.province || property.ward) {
+    property.province_name = property.province || property.province_name || '';
+    property.ward_name = property.ward || property.ward_name || '';
+    property.full_address = buildPropertyAddress(property);
+    return property;
+  }
+
   try {
     const [provinceName, wardName] = await Promise.all([
       resolveProvinceName(property.province_code),
       resolveWardName(property.province_code, property.ward_code),
     ]);
 
-    property.province_name = provinceName;
-    property.ward_name = wardName;
+    property.province_name = provinceName || property.province || '';
+    property.ward_name = wardName || property.ward || '';
     property.full_address = buildPropertyAddress(property);
   } catch {
     property.full_address = buildPropertyAddress(property);

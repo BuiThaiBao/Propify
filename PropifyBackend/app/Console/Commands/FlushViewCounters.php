@@ -11,20 +11,26 @@ use Illuminate\Support\Facades\Redis;
 final class FlushViewCounters extends Command
 {
     protected $signature = 'views:flush';
+
     protected $description = 'Flush Redis view counters to MySQL (batch update listings.views)';
 
     private const COUNTER_PREFIX = 'listing:views:';
+
     private const DIRTY_SET_KEY = 'listing:views:dirty';
+
     private const LOCK_TTL = 25;
+
     private const MAX_RETRIES = 3;
+
     private const CHUNK_SIZE = 100;
 
     public function handle(): int
     {
         $lock = Cache::lock('views_flush_lock', self::LOCK_TTL);
 
-        if (!$lock->get()) {
+        if (! $lock->get()) {
             $this->line('Another flush is running. Skipping.');
+
             return self::SUCCESS;
         }
 
@@ -33,6 +39,7 @@ final class FlushViewCounters extends Command
 
             if ($counters === []) {
                 $this->line('No pending view counters.');
+
                 return self::SUCCESS;
             }
 
@@ -83,7 +90,7 @@ LUA;
 
         $results = Redis::pipeline(function ($pipe) use ($listingIds, $luaScript) {
             foreach ($listingIds as $listingId) {
-                $pipe->eval($luaScript, 1, self::COUNTER_PREFIX . $listingId);
+                $pipe->eval($luaScript, 1, self::COUNTER_PREFIX.$listingId);
             }
         });
 
@@ -95,6 +102,7 @@ LUA;
 
             if ($count > 0) {
                 $counters[$listingId] = $count;
+
                 continue;
             }
 
@@ -160,7 +168,7 @@ LUA;
         try {
             Redis::pipeline(function ($pipe) use ($chunk) {
                 foreach ($chunk as $listingId => $views) {
-                    $pipe->incrBy(self::COUNTER_PREFIX . $listingId, $views);
+                    $pipe->incrBy(self::COUNTER_PREFIX.$listingId, $views);
                     $pipe->sadd(self::DIRTY_SET_KEY, (string) $listingId);
                 }
             });

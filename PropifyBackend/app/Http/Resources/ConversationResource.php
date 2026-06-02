@@ -34,23 +34,23 @@ final class ConversationResource extends JsonResource
         }
 
         return [
-            'id'         => $this->id,
+            'id' => $this->id,
             'listing_id' => $this->listing_id,
             'other_user' => $otherUser ? [
-                'id'         => $otherUser->id,
-                'full_name'  => $otherUser->full_name,
+                'id' => $otherUser->id,
+                'full_name' => $otherUser->full_name,
                 'avatar_url' => $otherUser->avatar_url,
             ] : null,
             'last_message' => $lastMessage ? [
-                'body'        => $lastMessage->body,
-                'type'        => $lastMessage->type?->value ?? $lastMessage->type,
-                'sender_id'   => $lastMessage->sender_id,
+                'body' => $lastMessage->body,
+                'type' => $lastMessage->type?->value ?? $lastMessage->type,
+                'sender_id' => $lastMessage->sender_id,
                 'sender_name' => $lastMessage->sender?->full_name,
-                'created_at'  => $lastMessage->created_at?->toIso8601String(),
+                'created_at' => $lastMessage->created_at?->toIso8601String(),
             ] : null,
             'unread_count' => $unreadCount,
-            'created_at'   => $this->created_at?->toIso8601String(),
-            'updated_at'   => $this->updated_at?->toIso8601String(),
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
         ];
     }
 }

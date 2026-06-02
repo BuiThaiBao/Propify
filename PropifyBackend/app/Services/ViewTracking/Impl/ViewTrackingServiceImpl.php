@@ -3,12 +3,16 @@
 namespace App\Services\ViewTracking\Impl;
 
 use App\Models\Listing;
+use App\Services\Listing\Favorite\FavoriteService;
 use App\Services\ViewTracking\ViewTrackingService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 
 final class ViewTrackingServiceImpl implements ViewTrackingService
 {
+    public function __construct(
+        private readonly FavoriteService $favoriteService,
+    ) {}
     /** Redis key prefix cho dedup */
     private const DEDUP_PREFIX = 'view:listing:';
 
@@ -34,18 +38,18 @@ final class ViewTrackingServiceImpl implements ViewTrackingService
     ];
 
     public function trackView(
-        int     $listingId,
-        ?int    $userId,
-        string  $ip,
-        string  $userAgent,
+        int $listingId,
+        ?int $userId,
+        string $ip,
+        string $userAgent,
         ?string $anonCookie = null,
     ): array {
         // 1. Bot / suspicious detection
         if ($this->isSuspicious($userAgent)) {
             Log::debug('ViewTracking: bot/suspicious rejected', [
                 'listing_id' => $listingId,
-                'ip'         => $ip,
-                'ua'         => mb_substr($userAgent, 0, 100),
+                'ip' => $ip,
+                'ua' => mb_substr($userAgent, 0, 100),
             ]);
 
             return ['counted' => false, 'reason' => 'bot_detected'];
@@ -56,8 +60,21 @@ final class ViewTrackingServiceImpl implements ViewTrackingService
             ->where('status', 'ACTIVE')
             ->exists();
 
-        if (!$exists) {
+        if (! $exists) {
             return ['counted' => false, 'reason' => 'invalid_listing'];
+        }
+
+        // Record history for logged in user
+        if ($userId !== null) {
+            try {
+                $this->favoriteService->trackView($userId, $listingId);
+            } catch (\Throwable $e) {
+                Log::error('ViewTracking: failed to track user viewed history', [
+                    'listing_id' => $listingId,
+                    'user_id' => $userId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         // 3. Build dedup key
@@ -67,12 +84,12 @@ final class ViewTrackingServiceImpl implements ViewTrackingService
         //    Returns true nếu key mới được set (= view mới), false nếu đã tồn tại
         $isNew = Redis::set($dedupKey, '1', 'EX', self::DEDUP_TTL, 'NX');
 
-        if (!$isNew) {
+        if (! $isNew) {
             return ['counted' => false, 'reason' => 'duplicated_view'];
         }
 
         // 5. Atomic increment counter
-        $counterKey = self::COUNTER_PREFIX . $listingId;
+        $counterKey = self::COUNTER_PREFIX.$listingId;
         Redis::pipeline(function ($pipe) use ($counterKey, $listingId) {
             $pipe->incr($counterKey);
             $pipe->sadd(self::DIRTY_SET_KEY, (string) $listingId);
@@ -80,8 +97,8 @@ final class ViewTrackingServiceImpl implements ViewTrackingService
 
         Log::debug('ViewTracking: view counted', [
             'listing_id' => $listingId,
-            'user_id'    => $userId,
-            'ip'         => $ip,
+            'user_id' => $userId,
+            'ip' => $ip,
         ]);
 
         return ['counted' => true, 'reason' => 'view_counted'];
@@ -96,20 +113,20 @@ final class ViewTrackingServiceImpl implements ViewTrackingService
      * Thêm anonCookie để giảm collision khi nhiều user cùng IP (NAT, trường học, công ty).
      */
     private function buildDedupKey(
-        int     $listingId,
-        ?int    $userId,
-        string  $ip,
-        string  $userAgent,
+        int $listingId,
+        ?int $userId,
+        string $ip,
+        string $userAgent,
         ?string $anonCookie,
     ): string {
         if ($userId !== null) {
-            return self::DEDUP_PREFIX . "{$listingId}:user:{$userId}";
+            return self::DEDUP_PREFIX."{$listingId}:user:{$userId}";
         }
 
         // Guest fingerprint: ip + ua + anonCookie để giảm NAT collision
-        $fingerprint = hash('sha256', $ip . '|' . $userAgent . '|' . ($anonCookie ?? ''));
+        $fingerprint = hash('sha256', $ip.'|'.$userAgent.'|'.($anonCookie ?? ''));
 
-        return self::DEDUP_PREFIX . "{$listingId}:guest:{$fingerprint}";
+        return self::DEDUP_PREFIX."{$listingId}:guest:{$fingerprint}";
     }
 
     /**
@@ -123,6 +140,7 @@ final class ViewTrackingServiceImpl implements ViewTrackingService
         // Empty UA: cho qua nhưng log (không reject cứng)
         if (trim($userAgent) === '') {
             Log::info('ViewTracking: empty User-Agent detected (allowing)');
+
             return false;
         }
 

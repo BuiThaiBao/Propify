@@ -6,7 +6,10 @@ use Illuminate\Foundation\Http\FormRequest;
 
 final class ForgotPasswordRequest extends FormRequest
 {
-    public function authorize(): bool { return true; }
+    public function authorize(): bool
+    {
+        return true;
+    }
 
     public function rules(): array
     {
@@ -19,8 +22,8 @@ final class ForgotPasswordRequest extends FormRequest
     {
         return [
             'email.required' => 'Vui lòng nhập email.',
-            'email.email'    => 'Email không hợp lệ.',
-            'email.exists'   => 'Email này chưa được đăng ký.',
+            'email.email' => 'Email không hợp lệ.',
+            'email.exists' => 'Email này chưa được đăng ký.',
         ];
     }
 }

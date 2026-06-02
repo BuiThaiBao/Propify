@@ -9,8 +9,7 @@ final class GoogleController
 {
     public function __construct(
         private readonly AuthGoogleService $authGoogleService
-    ) {
-    }
+    ) {}
 
     public function redirectToGoogle(): RedirectResponse
     {

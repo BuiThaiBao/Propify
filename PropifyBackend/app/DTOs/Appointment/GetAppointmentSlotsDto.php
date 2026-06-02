@@ -6,6 +6,5 @@ readonly class GetAppointmentSlotsDto
 {
     public function __construct(
         public int $listingId
-    ) {
-    }
+    ) {}
 }

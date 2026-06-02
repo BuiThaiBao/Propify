@@ -6,17 +6,17 @@ use App\DTOs\Auth\AuthResultDto;
 use App\Models\User;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\JWTGuard;
 
 final class AuthTokenIssuer
 {
     public function __construct(
         private readonly AuthFactory $authFactory,
-    ) {
-    }
+    ) {}
 
     public function issueFor(User $user): AuthResultDto
     {
-        /** @var \Tymon\JWTAuth\JWTGuard $guard */
+        /** @var JWTGuard $guard */
         $guard = $this->authFactory->guard('api');
         $accessToken = $guard->login($user);
 

@@ -23,7 +23,7 @@ interface AppointmentSlotService
      * Tạo nhiều khung giờ hẹn cùng lúc (bulk create).
      * Kiểm tra không trùng day_of_week + start_time + end_time.
      *
-     * @return Collection<int, \App\Models\AppointmentSlot>
+     * @return Collection<int, AppointmentSlot>
      */
     public function createSlots(CreateSlotsDto $dto): Collection;
 
@@ -43,4 +43,3 @@ interface AppointmentSlotService
      */
     public function disableSlot(int $slotId, int $posterId): bool;
 }
-

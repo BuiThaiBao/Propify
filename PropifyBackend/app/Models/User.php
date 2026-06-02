@@ -116,8 +116,8 @@ final class User extends Authenticatable implements JWTSubject
     public function conversations(): BelongsToMany
     {
         return $this->belongsToMany(Conversation::class, 'conversation_participants', 'user_id', 'conversation_id')
-                    ->withPivot(['last_read_at', 'last_seen_at'])
-                    ->withTimestamps();
+            ->withPivot(['last_read_at', 'last_seen_at'])
+            ->withTimestamps();
     }
 
     /** Các message mà user đã gửi */

@@ -2,6 +2,7 @@
 
 use App\Enums\ErrorCode;
 use App\Helpers\ApiResponse;
+use App\Http\Controllers\Api\V1\Admin\AdminAuditLogController;
 use App\Http\Controllers\Api\V1\Admin\AdminListingController;
 use App\Http\Controllers\Api\V1\Amenity\AmenityController;
 use App\Http\Controllers\Api\V1\Amenity\ListingAmenityController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\Api\V1\Geocoding\GeocodingController;
 use App\Http\Controllers\Api\V1\Listing\FavoriteController;
 use App\Http\Controllers\Api\V1\Listing\ListingController;
 use App\Http\Controllers\Api\V1\Listing\ListingUpgradeController;
+use App\Http\Controllers\Api\V1\Listing\RecentlyViewedController;
 use App\Http\Controllers\Api\V1\Listing\ViewTrackingController;
 use App\Http\Controllers\Api\V1\Package\PackageController;
 use App\Http\Controllers\Api\V1\Package\PackageDurationOptionController;
@@ -74,7 +76,7 @@ Route::prefix('v1/auth')->as('auth.')->group(function () {
             );
         }
 
-        return redirect(rtrim((string) config('app.frontend_url'), '/') . '/login');
+        return redirect(rtrim((string) config('app.frontend_url'), '/').'/login');
     })->name('login.redirect');
 
     Route::post('/login', [AuthController::class, 'login'])
@@ -180,6 +182,7 @@ Route::get('v1/payments/vnpay/return', VnpayReturnController::class)
 
 Route::prefix('v1/listings')->as('listings.')->group(function () {
     Route::get('/', [ListingController::class, 'index'])->name('index');
+    Route::get('/map', [ListingController::class, 'mapListings'])->name('map');
     Route::get('/{id}', [ListingController::class, 'show'])->where('id', '[0-9]+')->name('show');
 
     // View tracking — public, throttle 60/min/IP
@@ -224,6 +227,10 @@ Route::prefix('v1/favorites')->as('favorites.')->middleware('auth:api')->group(f
     Route::post('/{listingId}', [FavoriteController::class, 'toggle'])->where('listingId', '[0-9]+')->name('toggle');
 });
 
+Route::prefix('v1/recently-viewed')->as('recently-viewed.')->middleware('auth:api')->group(function () {
+    Route::get('/', [RecentlyViewedController::class, 'index'])->name('index');
+});
+
 // ==================== PACKAGES: PUBLIC ROUTES ====================
 Route::prefix('v1/packages')->as('packages.')->group(function () {
     Route::get('/', [PackageController::class, 'index'])->name('index');
@@ -255,9 +262,9 @@ Route::prefix('v1/packages')->as('packages.admin.')->middleware('auth:api')->gro
 
 // ==================== ADMIN ROUTES ====================
 Route::prefix('v1/admin')->as('admin.')->middleware('auth:api')->group(function () {
-    Route::get('/listings', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'index'])->name('listings.index');
-    Route::get('/listings/{id}', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'show'])->where('id', '[0-9]+')->name('listings.show');
-    Route::patch('/listings/{id}/status', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'changeStatus'])->name('listings.change-status');
-    Route::patch('/listings/{id}/verification', [\App\Http\Controllers\Api\V1\Admin\AdminListingController::class, 'updateVerification'])->where('id', '[0-9]+')->name('listings.verification');
-    Route::get('/audit-logs', [\App\Http\Controllers\Api\V1\Admin\AdminAuditLogController::class, 'index'])->name('audit-logs.index');
+    Route::get('/listings', [AdminListingController::class, 'index'])->name('listings.index');
+    Route::get('/listings/{id}', [AdminListingController::class, 'show'])->where('id', '[0-9]+')->name('listings.show');
+    Route::patch('/listings/{id}/status', [AdminListingController::class, 'changeStatus'])->name('listings.change-status');
+    Route::patch('/listings/{id}/verification', [AdminListingController::class, 'updateVerification'])->where('id', '[0-9]+')->name('listings.verification');
+    Route::get('/audit-logs', [AdminAuditLogController::class, 'index'])->name('audit-logs.index');
 });

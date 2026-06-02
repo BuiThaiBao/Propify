@@ -2,11 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRole;
+use App\Enums\UserStatus;
 use App\Models\Listing;
 use App\Models\Property;
 use App\Models\User;
-use App\Enums\UserRole;
-use App\Enums\UserStatus;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -29,7 +29,7 @@ class PendingListingSeeder extends Seeder
                     'password' => Hash::make('password'),
                     'role' => UserRole::User,
                     'status' => UserStatus::Active,
-                    'phone' => '012345678' . $id,
+                    'phone' => '012345678'.$id,
                 ]
             );
 
@@ -39,8 +39,8 @@ class PendingListingSeeder extends Seeder
                     'type' => $i % 2 == 0 ? 'APARTMENT' : 'HOUSE',
                     'province_code' => '79', // TP.HCM
                     'ward_code' => '26743',
-                    'street_code' => 'Đường số ' . $i,
-                    'project_name' => 'Dự án Meyland ' . $id,
+                    'street_code' => 'Đường số '.$i,
+                    'project_name' => 'Dự án Meyland '.$id,
                     'address_detail' => "$i/2$id Đường số $i, Phường ABC, Quận XYZ",
                     'area' => 50 + ($id * 10) + ($i * 5),
                     'price' => 2000000000 + ($id * 500000000) + ($i * 100000000),
@@ -63,8 +63,8 @@ class PendingListingSeeder extends Seeder
                     'property_id' => $property->id,
                     'owner_id' => $user->id,
                     'demand_type' => $i % 2 == 0 ? 'RENT' : 'SALE',
-                    'title' => ($i % 2 == 0 ? 'Cho thuê ' : 'Bán ') . ($property->type == 'APARTMENT' ? 'căn hộ ' : 'nhà phố ') . $property->project_name,
-                    'description' => "Mô tả chi tiết cho tin đăng số $i của user $id. Bất động sản tọa lạc tại vị trí đắc địa, đầy đủ tiện ích xung quanh. Cần " . ($i % 2 == 0 ? 'cho thuê' : 'bán') . " gấp.",
+                    'title' => ($i % 2 == 0 ? 'Cho thuê ' : 'Bán ').($property->type == 'APARTMENT' ? 'căn hộ ' : 'nhà phố ').$property->project_name,
+                    'description' => "Mô tả chi tiết cho tin đăng số $i của user $id. Bất động sản tọa lạc tại vị trí đắc địa, đầy đủ tiện ích xung quanh. Cần ".($i % 2 == 0 ? 'cho thuê' : 'bán').' gấp.',
                     'status' => 'PENDING',
                     'submitted_at' => now(),
                     'views' => 0,

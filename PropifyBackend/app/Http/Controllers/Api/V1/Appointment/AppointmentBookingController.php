@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Appointment;
 
 use App\Helpers\ApiResponse;
+use App\Http\Requests\Appointment\CancelBookingRequest;
 use App\Http\Requests\Appointment\CreateBookingRequest;
 use App\Http\Requests\Appointment\UpdateBookingStatusRequest;
-use App\Http\Requests\Appointment\CancelBookingRequest;
 use App\Http\Resources\AppointmentBookingResource;
 use App\Http\Resources\ViewerBookingResource;
 use App\Services\Appointment\AppointmentBookingService;
@@ -15,8 +15,7 @@ final class AppointmentBookingController
 {
     public function __construct(
         private readonly AppointmentBookingService $bookingService
-    ) {
-    }
+    ) {}
 
     /**
      * Đặt lịch hẹn xem nhà.
@@ -69,9 +68,9 @@ final class AppointmentBookingController
     {
         $booking = $this->bookingService->updateBookingStatus(
             bookingId: (int) $request->input('booking_id'),
-            posterId:  (int) auth('api')->id(),
-            status:    $request->input('status'),
-            note:      $request->input('note'),
+            posterId: (int) auth('api')->id(),
+            status: $request->input('status'),
+            note: $request->input('note'),
         );
 
         return ApiResponse::success(
@@ -87,8 +86,8 @@ final class AppointmentBookingController
     {
         $booking = $this->bookingService->cancelBooking(
             bookingId: (int) $request->input('booking_id'),
-            userId:    (int) auth('api')->id(),
-            reason:    $request->input('reason'),
+            userId: (int) auth('api')->id(),
+            reason: $request->input('reason'),
         );
 
         return ApiResponse::success(

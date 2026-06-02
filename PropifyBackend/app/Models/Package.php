@@ -25,12 +25,12 @@ final class Package extends Model
     ];
 
     protected $casts = [
-        'price'       => 'decimal:2',
-        'priority'    => 'integer',
-        'multiplier'  => 'float',
+        'price' => 'decimal:2',
+        'priority' => 'integer',
+        'multiplier' => 'float',
         'daily_quota' => 'integer',
-        'decay_rate'  => 'float',
-        'is_active'   => 'boolean',
+        'decay_rate' => 'float',
+        'is_active' => 'boolean',
     ];
 
     // ==================== Scopes ====================

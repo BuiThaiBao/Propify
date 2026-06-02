@@ -1,12 +1,14 @@
 <?php
+
 // Cập nhật content_score cho tất cả listings hiện có
 
-require __DIR__ . '/../vendor/autoload.php';
-$app = require_once __DIR__ . '/../bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+require __DIR__.'/../vendor/autoload.php';
+$app = require_once __DIR__.'/../bootstrap/app.php';
+$kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
 
 use App\Models\Listing;
+use Illuminate\Contracts\Console\Kernel;
 
 $count = 0;
 
@@ -15,12 +17,12 @@ Listing::with(['property', 'images'])->chunk(50, function ($listings) use (&$cou
         $score = 0;
 
         // Title rõ ràng
-        if (!empty($listing->title) && mb_strlen($listing->title) >= 10) {
+        if (! empty($listing->title) && mb_strlen($listing->title) >= 10) {
             $score += 10;
         }
 
         // Có description
-        if (!empty($listing->description) && mb_strlen($listing->description) >= 20) {
+        if (! empty($listing->description) && mb_strlen($listing->description) >= 20) {
             $score += 10;
         }
 
@@ -36,7 +38,7 @@ Listing::with(['property', 'images'])->chunk(50, function ($listings) use (&$cou
 
         // Thông tin đầy đủ
         $p = $listing->property;
-        if ($p && $p->price > 0 && $p->area > 0 && (!empty($p->address_detail) || !empty($p->project_name))) {
+        if ($p && $p->price > 0 && $p->area > 0 && (! empty($p->address_detail) || ! empty($p->project_name))) {
             $score += 20;
         }
 

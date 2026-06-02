@@ -17,8 +17,7 @@ final class UpdateListingCommand
     public function __construct(
         private readonly ListingRepository $listingRepository,
         private readonly ListingStatusStateFactory $statusStateFactory,
-    ) {
-    }
+    ) {}
 
     public function handle(User $user, int $id, CreateListingDto $dto): Listing
     {
@@ -79,7 +78,9 @@ final class UpdateListingCommand
         return [
             'type' => $dto->propertyType,
             'province_code' => $dto->provinceCode,
+            'province' => $dto->province,
             'ward_code' => $dto->wardCode,
+            'ward' => $dto->ward,
             'street_code' => $dto->streetCode,
             'project_name' => $dto->projectName,
             'address_detail' => $dto->addressDetail,
@@ -142,7 +143,7 @@ final class UpdateListingCommand
 
     private function replaceVerificationDocuments(Listing $listing, CreateListingDto $dto): void
     {
-        if (!$dto->requestVerification) {
+        if (! $dto->requestVerification) {
             return;
         }
 

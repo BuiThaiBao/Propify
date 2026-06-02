@@ -15,7 +15,7 @@ final class GetOrCreateConversationRequest extends FormRequest
     {
         return [
             'other_user_id' => ['required', 'integer', 'exists:users,id'],
-            'listing_id'    => ['nullable', 'integer', 'exists:listings,id'],
+            'listing_id' => ['nullable', 'integer', 'exists:listings,id'],
         ];
     }
 
@@ -23,8 +23,8 @@ final class GetOrCreateConversationRequest extends FormRequest
     {
         return [
             'other_user_id.required' => 'Vui lòng chỉ định người dùng muốn liên hệ.',
-            'other_user_id.exists'   => 'Người dùng không tồn tại.',
-            'listing_id.exists'      => 'Bài đăng không tồn tại.',
+            'other_user_id.exists' => 'Người dùng không tồn tại.',
+            'listing_id.exists' => 'Bài đăng không tồn tại.',
         ];
     }
 }

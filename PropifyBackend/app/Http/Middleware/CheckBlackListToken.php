@@ -18,14 +18,13 @@ final class CheckBlackListToken
      */
     public function __construct(
         private readonly TokenProcessService $tokenProcessService
-    ) {
-    }
+    ) {}
 
     public function handle(Request $request, Closure $next): Response
     {
         $token = JWTAuth::getToken();
 
-        if (!$token) {
+        if (! $token) {
             return ApiResponse::unauthorized('Không tìm thấy token');
         }
 

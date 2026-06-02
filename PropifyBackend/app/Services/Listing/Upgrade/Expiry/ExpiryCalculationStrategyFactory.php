@@ -9,8 +9,7 @@ final class ExpiryCalculationStrategyFactory
     public function __construct(
         private readonly FreshPurchaseExpiryStrategy $freshPurchaseStrategy,
         private readonly RenewalExpiryStrategy $renewalStrategy,
-    ) {
-    }
+    ) {}
 
     public function make(UpgradeContext $context): ExpiryCalculationStrategy
     {

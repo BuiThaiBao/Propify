@@ -12,6 +12,5 @@ final readonly class ListingReportContext
         public User $reporter,
         public array $reasons,
         public ?string $description,
-    ) {
-    }
+    ) {}
 }

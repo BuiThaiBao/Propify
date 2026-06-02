@@ -8,8 +8,7 @@ final readonly class ListingReportValidationChain
 {
     public function __construct(
         private ListingReportValidationHandler $firstHandler,
-    ) {
-    }
+    ) {}
 
     public function validate(ListingReportContext $context): void
     {

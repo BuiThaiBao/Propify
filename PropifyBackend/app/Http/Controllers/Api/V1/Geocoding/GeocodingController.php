@@ -18,7 +18,7 @@ final class GeocodingController
         $lat = $request->query('lat');
         $lng = $request->query('lng');
 
-        if (!$lat || !$lng) {
+        if (! $lat || ! $lng) {
             return response()->json(['error' => 'lat và lng là bắt buộc'], 422);
         }
 
@@ -31,19 +31,19 @@ final class GeocodingController
 
         try {
             $response = Http::withHeaders([
-                'User-Agent'      => 'Propify/1.0 (contact@propify.vn)',
-                'Accept'          => 'application/json',
+                'User-Agent' => 'Propify/1.0 (contact@propify.vn)',
+                'Accept' => 'application/json',
                 'Accept-Language' => 'vi,en;q=0.9',
             ])->timeout(8)->get('https://nominatim.openstreetmap.org/reverse', [
-                'lat'            => $lat,
-                'lon'            => $lng,
-                'format'         => 'json',
+                'lat' => $lat,
+                'lon' => $lng,
+                'format' => 'json',
                 'addressdetails' => 1,
-                'zoom'           => 18,
+                'zoom' => 18,
                 'accept-language' => 'vi',
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return response()->json(['error' => 'Nominatim không phản hồi'], 502);
             }
 
@@ -60,25 +60,25 @@ final class GeocodingController
     {
         $query = $request->query('q');
 
-        if (!$query) {
+        if (! $query) {
             return response()->json(['error' => 'q là bắt buộc'], 422);
         }
 
         try {
             $response = Http::withHeaders([
-                'User-Agent'      => 'Propify/1.0 (contact@propify.vn)',
-                'Accept'          => 'application/json',
+                'User-Agent' => 'Propify/1.0 (contact@propify.vn)',
+                'Accept' => 'application/json',
                 'Accept-Language' => 'vi,en;q=0.9',
             ])->timeout(8)->get('https://nominatim.openstreetmap.org/search', [
-                'q'               => $query,
-                'format'          => 'json',
-                'addressdetails'  => 1,
-                'limit'           => 1,
-                'countrycodes'    => 'vn',
+                'q' => $query,
+                'format' => 'json',
+                'addressdetails' => 1,
+                'limit' => 1,
+                'countrycodes' => 'vn',
                 'accept-language' => 'vi',
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return response()->json(['error' => 'Nominatim không phản hồi'], 502);
             }
 

@@ -12,7 +12,7 @@ final class PackageBenefitStrategyFactoryTest extends TestCase
 {
     public function test_returns_data_driven_strategy_for_default_key(): void
     {
-        $package = new Package();
+        $package = new Package;
         $package->benefit_strategy_key = 'data_driven';
 
         $strategy = $this->factory()->make($package);
@@ -22,7 +22,7 @@ final class PackageBenefitStrategyFactoryTest extends TestCase
 
     public function test_rejects_unknown_strategy_key(): void
     {
-        $package = new Package();
+        $package = new Package;
         $package->benefit_strategy_key = 'unknown';
 
         $this->expectException(BusinessException::class);
@@ -32,6 +32,6 @@ final class PackageBenefitStrategyFactoryTest extends TestCase
 
     private function factory(): PackageBenefitStrategyFactory
     {
-        return new PackageBenefitStrategyFactory(new DataDrivenBenefitStrategy());
+        return new PackageBenefitStrategyFactory(new DataDrivenBenefitStrategy);
     }
 }

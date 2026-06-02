@@ -32,7 +32,7 @@ final class OtpServiceImpl implements OtpService
         $this->storage->store($key, $otp, self::OTP_TTL_SECONDS);
 
         $mailType = match ($context) {
-            OtpContext::REGISTER       => MailType::VERIFY_EMAIL,
+            OtpContext::REGISTER => MailType::VERIFY_EMAIL,
             OtpContext::RESET_PASSWORD => MailType::FORGOT_PASSWORD,
         };
 
@@ -50,7 +50,7 @@ final class OtpServiceImpl implements OtpService
     {
         $stored = $this->storage->retrieve($this->storageKey($user, $context));
 
-        if (!$stored || !hash_equals($stored, $otp)) {
+        if (! $stored || ! hash_equals($stored, $otp)) {
             return false;
         }
 

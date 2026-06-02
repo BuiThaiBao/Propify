@@ -43,9 +43,9 @@ class AuthControllerTest extends TestCase
     public function test_register_returns_202_and_creates_pending_user()
     {
         $payload = [
-            'full_name'             => 'Test User',
-            'email'                 => 'test@example.com',
-            'password'              => 'Password123',
+            'full_name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'Password123',
             'password_confirmation' => 'Password123',
         ];
 
@@ -59,19 +59,19 @@ class AuthControllerTest extends TestCase
 
         $this->assertDatabaseHas('users', [
             'email' => 'test@example.com',
-            'role'  => UserRole::User->value,
-            'status'=> UserStatus::Pending->value,
+            'role' => UserRole::User->value,
+            'status' => UserStatus::Pending->value,
         ]);
     }
 
     public function test_register_with_status_field_ignores_it()
     {
         $payload = [
-            'full_name'             => 'Hacker',
-            'email'                 => 'hacker@example.com',
-            'password'              => 'Password123',
+            'full_name' => 'Hacker',
+            'email' => 'hacker@example.com',
+            'password' => 'Password123',
             'password_confirmation' => 'Password123',
-            'status'                => UserStatus::Banned->value, // Try to ban oneself or something
+            'status' => UserStatus::Banned->value, // Try to ban oneself or something
         ];
 
         $response = $this->postJson('/api/v1/auth/register', $payload);
@@ -80,7 +80,7 @@ class AuthControllerTest extends TestCase
 
         // Security check: Must be Pending, ignoring the input
         $this->assertDatabaseHas('users', [
-            'email'  => 'hacker@example.com',
+            'email' => 'hacker@example.com',
             'status' => UserStatus::Pending->value,
         ]);
     }
@@ -90,14 +90,14 @@ class AuthControllerTest extends TestCase
         $user = $this->createUser();
 
         $response = $this->postJson('/api/v1/auth/login', [
-            'email'    => $user->email,
+            'email' => $user->email,
             'password' => 'Password123',
         ]);
 
         $response->assertStatus(200)
             ->assertJsonPath('status', true)
             ->assertJsonStructure([
-                'data' => ['user', 'token_type', 'expires_in']
+                'data' => ['user', 'token_type', 'expires_in'],
             ])
             ->assertCookie(AuthCookieFactory::accessCookieName())
             ->assertCookie(AuthCookieFactory::refreshCookieName());
@@ -108,7 +108,7 @@ class AuthControllerTest extends TestCase
         $user = $this->createUser();
 
         $response = $this->postJson('/api/v1/auth/login', [
-            'email'    => $user->email,
+            'email' => $user->email,
             'password' => 'wrongpassword',
         ]);
 

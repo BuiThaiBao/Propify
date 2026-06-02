@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasColumn('properties', 'district_code')) {
+        if (! Schema::hasColumn('properties', 'district_code')) {
             return;
         }
 
@@ -16,7 +16,7 @@ return new class extends Migration
             // Composite index was created in create_properties_table migration.
             try {
                 $table->dropIndex('idx_properties_region');
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 // Ignore when index does not exist.
             }
 
@@ -33,7 +33,7 @@ return new class extends Migration
         Schema::table('properties', function (Blueprint $table): void {
             try {
                 $table->dropIndex('idx_properties_region');
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 // Ignore when index does not exist.
             }
 

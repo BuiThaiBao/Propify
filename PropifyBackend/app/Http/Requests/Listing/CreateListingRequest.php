@@ -26,7 +26,9 @@ final class CreateListingRequest extends FormRequest
             'description' => $isDraft ? ['nullable', 'string', 'max:5000'] : ['required', 'string', 'min:20', 'max:5000'],
             'property_type' => [$required, 'string', 'max:50'],
             'province_code' => [$required, 'string', 'max:20'],
+            'province' => ['nullable', 'string', 'max:255'],
             'ward_code' => [$required, 'string', 'max:20'],
+            'ward' => ['nullable', 'string', 'max:255'],
             'street_code' => [$required, 'string', 'max:255'],
             'project_name' => ['nullable', 'string', 'max:255'],
             'address_detail' => [$required, 'string', 'max:255'],
@@ -122,7 +124,7 @@ final class CreateListingRequest extends FormRequest
             $isNegotiable = filter_var($this->input('is_negotiable', false), FILTER_VALIDATE_BOOLEAN);
             $price = $this->input('price');
 
-            if (!$isNegotiable) {
+            if (! $isNegotiable) {
                 if ($price === null || $price === '') {
                     $validator->errors()->add('price', 'Gia bat buoc nhap neu tin dang khong de o che do thuong luong.');
                 } elseif ((float) $price <= 0) {
@@ -133,11 +135,11 @@ final class CreateListingRequest extends FormRequest
             $requestVerification = filter_var($this->input('request_verification', false), FILTER_VALIDATE_BOOLEAN);
 
             if ($requestVerification) {
-                if (!$this->input('identity_card_front')) {
+                if (! $this->input('identity_card_front')) {
                     $validator->errors()->add('identity_card_front', 'Can tai len anh CCCD mat truoc de gui yeu cau xac thuc.');
                 }
 
-                if (!$this->input('identity_card_back')) {
+                if (! $this->input('identity_card_back')) {
                     $validator->errors()->add('identity_card_back', 'Can tai len anh CCCD mat sau de gui yeu cau xac thuc.');
                 }
             }
@@ -155,7 +157,9 @@ final class CreateListingRequest extends FormRequest
             description: trim($validated['description'] ?? ''),
             propertyType: $validated['property_type'] ?? 'APARTMENT',
             provinceCode: $validated['province_code'] ?? '0',
+            province: isset($validated['province']) ? trim($validated['province']) : null,
             wardCode: $validated['ward_code'] ?? null,
+            ward: isset($validated['ward']) ? trim($validated['ward']) : null,
             streetCode: $validated['street_code'] ?? null,
             projectName: isset($validated['project_name']) ? trim($validated['project_name']) : null,
             addressDetail: isset($validated['address_detail']) ? trim($validated['address_detail']) : null,

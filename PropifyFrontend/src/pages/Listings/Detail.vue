@@ -1,5 +1,5 @@
 <template>
-  <main :class="previewMode ? 'min-h-0 bg-[#f6f9fc] pb-6 pt-0' : 'min-h-screen bg-[#f6f9fc] pb-14 pt-24'">
+  <main :class="(previewMode || isEmbedded) ? 'min-h-0 bg-[#f6f9fc] pb-6 pt-0' : 'min-h-screen bg-[#f6f9fc] pb-14 pt-24'">
     <div class="toast-stack">
       <div
         v-for="toast in toasts"
@@ -22,26 +22,24 @@
     <div v-else-if="listing" :class="previewMode ? 'mx-auto w-full max-w-[1280px] px-0' : 'mx-auto w-full max-w-[1280px] px-4 lg:px-8'">
       <div class="mb-5 flex items-start justify-between gap-4">
         <div class="min-w-0">
-          <p class="flex items-center gap-2 text-xs text-slate-400">
-            <button type="button" class="flex items-center gap-1 hover:text-sky-500" @click="router.back()">
-              <span class="text-base leading-none">←</span>
-              <span>Danh sách</span>
-            </button>
-            <span>/</span>
-            <span class="truncate text-slate-600">{{ listing.title }}</span>
-          </p>
+          <Breadcrumb v-if="!isEmbedded" :crumbs="detailCrumbs" />
           <h1 class="mt-3 text-[24px] font-extrabold leading-tight text-slate-900">{{ listing.title }}</h1>
           <p class="mt-1 flex items-center gap-2 text-xs text-slate-500">
             <span class="inline-flex items-center gap-1.5">
               <img :src="calendarIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
-              Ngày đăng: {{ formatDate(listing.submitted_at || listing.created_at) }}
+              Ngày đăng: {{ formatDate(listing.published_at || listing.submitted_at || listing.created_at) }}
             </span>
             <span v-if="listing.views != null">• {{ listing.views }} lượt xem</span>
           </p>
         </div>
         <div class="hidden shrink-0 items-center gap-2 sm:flex">
-          <button class="detail-icon-button" aria-label="Yêu thích">
-            <img :src="favoriteIcon" class="h-4 w-4" alt="" />
+          <button
+            class="detail-icon-button"
+            :class="{ 'is-active': isFavorite(listing) }"
+            aria-label="Yêu thích"
+            @click="toggleFavorite(listing)"
+          >
+            <Heart class="h-4 w-4" :fill="isFavorite(listing) ? 'currentColor' : 'none'" />
           </button>
           <button class="detail-icon-button" aria-label="Chia sẻ">
             <img :src="shareIcon" class="h-4 w-4" alt="" />
@@ -52,20 +50,26 @@
       <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,820px)_360px] xl:grid-cols-[minmax(0,860px)_370px]">
         <div class="min-w-0">
 
-          <section v-if="displayImages.length" class="mb-3">
-            <div class="relative overflow-hidden rounded-[14px] bg-slate-200">
-              <img v-if="activeImage" :src="activeImage" class="aspect-[16/10] w-full object-cover" alt="Listing image" />
+          <section v-if="displayImages.length" class="detail-card !p-0 border-slate-200/60 overflow-hidden mb-3">
+            <div class="relative overflow-hidden bg-slate-200">
+              <img
+                v-if="activeImage"
+                :src="activeImage"
+                class="aspect-[16/10] w-full cursor-zoom-in object-cover"
+                alt="Listing image"
+                @click="openImageLightbox(activeImageIndex)"
+              />
               <div class="absolute left-3 top-3 flex gap-2">
                 <span v-if="listing.is_verified" class="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">Đã xác thực</span>
                 <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
               </div>
-              <button v-if="displayImages.length > 1" class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click="prevImage">‹</button>
-              <button v-if="displayImages.length > 1" class="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click="nextImage">›</button>
+              <button v-if="displayImages.length > 1" class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click.stop="prevImage">‹</button>
+              <button v-if="displayImages.length > 1" class="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click.stop="nextImage">›</button>
               <div class="absolute bottom-3 left-3 rounded-full bg-slate-900/70 px-3 py-1 text-xs font-semibold text-white">
                 Hình ảnh {{ activeImageIndex + 1 }}/{{ displayImages.length }}
               </div>
             </div>
-            <div class="mt-2 flex gap-2 overflow-x-auto pb-1">
+            <div class="p-4 flex gap-2 overflow-x-auto pb-2">
               <button
                 v-for="(img, idx) in displayImages"
                 :key="idx"
@@ -78,105 +82,32 @@
             </div>
           </section>
 
-          <section class="detail-card">
+          <section v-if="listing.description?.trim()" class="detail-card">
             <h2 class="detail-title">
               <img :src="descriptionIcon" class="detail-title-icon" alt="" />
               Mô tả tin đăng
             </h2>
-            <p class="whitespace-pre-wrap text-sm leading-6 text-slate-600">{{ listing.description || 'Chưa có mô tả.' }}</p>
-          </section>
-
-          <section class="detail-card">
-            <h2 class="detail-title">
-              <img :src="detailInfoIcon" class="detail-title-icon" alt="" />
-              Thông tin chi tiết
-            </h2>
-            <div class="space-y-0">
-              <div v-for="row in detailRowPairs" :key="row[0].label" class="grid gap-x-10 sm:grid-cols-2">
-                <div
-                  v-for="item in row"
-                  :key="item.label || 'empty-detail-cell'"
-                  class="grid grid-cols-[minmax(120px,0.95fr)_minmax(0,1.15fr)] items-start gap-3 border-b border-slate-100 py-3 text-sm"
-                  :class="item.empty && 'hidden sm:block'"
-                >
-                  <template v-if="!item.empty">
-                  <span class="flex min-w-0 items-center gap-2 text-slate-500">
-                    <img :src="item.icon" class="h-4 w-4 shrink-0 object-contain opacity-75" alt="" />
-                    <span class="leading-5">{{ item.label }}</span>
-                  </span>
-                  <span class="text-right font-medium leading-5 text-slate-800">{{ item.value }}</span>
-                  </template>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section v-if="listing.property?.amenities?.length" class="detail-card">
-            <h2 class="detail-title">
-              <img :src="amenitiesIcon" class="detail-title-icon" alt="" />
-              Tiện ích
-            </h2>
-            <div class="flex flex-wrap gap-2">
-              <span
-                v-for="amenity in listing.property.amenities"
-                :key="amenity"
-                class="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-500"
-              >
-                <img :src="amenityCheckIcon" class="h-3.5 w-3.5 object-contain" alt="" />
-                {{ amenity }}
-              </span>
-            </div>
-          </section>
-
-          <section class="detail-card">
-            <h2 class="detail-title">
-              <img :src="mapSectionIcon" class="detail-title-icon" alt="" />
-              Vị trí bản đồ
-            </h2>
-            <p class="mb-3 flex items-center gap-1.5 text-xs text-slate-500">
-              <img :src="pointIcon" class="h-3.5 w-3.5 object-contain" alt="" />
-              {{ fullAddress }}
+            <p
+              ref="descriptionElement"
+              class="whitespace-pre-wrap text-sm leading-6 text-slate-600"
+              :class="{ 'description-collapsed': !descriptionExpanded }"
+            >
+              {{ listing.description }}
             </p>
-            <div class="relative h-[360px] w-full overflow-hidden rounded-xl bg-slate-100">
-              <button v-if="hasLatLng" type="button" class="absolute left-3 top-3 z-10 rounded-lg border border-white/70 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm" @click.stop="toggleMapMode">
-                {{ mapMode === 'satellite' ? 'Bản đồ' : 'Vệ tinh' }}
+            <div v-if="descriptionCanToggle" class="mt-3 flex justify-center">
+              <button
+                type="button"
+                class="detail-toggle-button"
+                :aria-label="descriptionExpanded ? 'Thu gọn mô tả' : 'Xem thêm mô tả'"
+                @click="descriptionExpanded = !descriptionExpanded"
+              >
+                <span>{{ descriptionExpanded ? 'Thu gọn' : 'Xem thêm' }}</span>
               </button>
-              <button v-if="hasLatLng" type="button" class="absolute left-3 top-[52px] z-10 rounded-lg border border-white/70 px-3 py-2 text-xs font-semibold shadow-sm" :class="isMap3dEnabled ? 'bg-sky-500/95 text-white' : 'bg-white/95 text-slate-700'" @click.stop="toggleMap3d">
-                {{ isMap3dEnabled ? '2D' : '3D' }}
-              </button>
-              <div v-show="hasLatLng" ref="mapElement" class="h-full w-full"></div>
-              <div v-if="!hasLatLng" class="flex h-full w-full flex-col items-center justify-center text-sm text-slate-400">
-                <div class="mb-2 text-4xl">⌖</div>
-                Bản đồ sẽ hiển thị tại đây
-              </div>
             </div>
           </section>
 
-          <section class="detail-card">
-            <h2 class="detail-title">
-              <img :src="flagIcon" class="detail-title-icon" alt="" />
-              Báo cáo tin đăng
-            </h2>
-            <form @submit.prevent="submitListingReport">
-              <div class="grid gap-3 sm:grid-cols-2">
-                <label v-for="option in reportOptions" :key="option.value" class="flex items-center gap-2 text-xs text-slate-500">
-                  <input v-model="selectedReportReasons" type="checkbox" name="listing-report" :value="option.value" class="h-3.5 w-3.5 rounded border-slate-300 accent-sky-500" />
-                  <span>{{ option.label }}</span>
-                </label>
-              </div>
-              <button
-                type="submit"
-                class="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                :disabled="reportSubmitting || selectedReportReasons.length === 0"
-              >
-                {{ reportSubmitting ? 'Đang gửi...' : 'Gửi phản ánh' }}
-              </button>
-            </form>
-          </section>
-        </div>
-
-        <aside class="space-y-5 lg:sticky lg:top-24">
-          <section class="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+          <!-- Contact & Price details immediately after description when embedded from map -->
+          <section v-if="isEmbedded" class="mt-[18px] rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
             <div class="border-b border-slate-100 pb-4">
               <h2 class="text-[26px] font-extrabold text-sky-500">
                 {{ formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT'" class="text-sm font-medium text-slate-500">/tháng</span>
@@ -233,9 +164,155 @@
                 <img :src="calendarIcon" class="mr-2 h-3.5 w-3.5" alt="" />
                 Đặt lịch xem nhà
               </button>
-              <button class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600">
-                <img :src="messagesIcon" class="mr-2 h-3.5 w-3.5" alt="" />
-                Nhắn tin
+            </div>
+          </section>
+
+          <section class="detail-card">
+            <h2 class="detail-title">
+              <img :src="detailInfoIcon" class="detail-title-icon" alt="" />
+              Thông tin chi tiết
+            </h2>
+            <div class="space-y-0">
+              <div v-for="row in detailRowPairs" :key="row.map((item) => item.label).join('-')" class="grid gap-x-10 sm:grid-cols-2">
+                <div
+                  v-for="item in row"
+                  :key="item.label || 'empty-detail-cell'"
+                  class="grid grid-cols-[minmax(120px,0.95fr)_minmax(0,1.15fr)] items-start gap-3 border-b border-slate-100 py-3 text-sm"
+                  :class="item.empty && 'hidden sm:block'"
+                >
+                  <template v-if="!item.empty">
+                  <span class="flex min-w-0 items-center gap-2 text-slate-500">
+                    <img :src="item.icon" class="h-4 w-4 shrink-0 object-contain opacity-75" alt="" />
+                    <span class="leading-5">{{ item.label }}</span>
+                  </span>
+                  <span class="text-right font-medium leading-5 text-slate-800">{{ item.value }}</span>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section v-if="amenities.length" class="detail-card">
+            <h2 class="detail-title">
+              <img :src="amenitiesIcon" class="detail-title-icon" alt="" />
+              Tiện ích
+            </h2>
+            <div class="flex flex-wrap gap-2">
+              <span
+                v-for="amenity in amenities"
+                :key="amenity"
+                class="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-500"
+              >
+                <img :src="amenityCheckIcon" class="h-3.5 w-3.5 object-contain" alt="" />
+                {{ amenity }}
+              </span>
+            </div>
+          </section>
+
+          <section v-if="fullAddress || hasLatLng" class="detail-card">
+            <h2 class="detail-title">
+              <img :src="mapSectionIcon" class="detail-title-icon" alt="" />
+              Vị trí bản đồ
+            </h2>
+            <p v-if="fullAddress" class="mb-3 flex items-center gap-1.5 text-xs text-slate-500">
+              <img :src="pointIcon" class="h-3.5 w-3.5 object-contain" alt="" />
+              {{ fullAddress }}
+            </p>
+            <div class="relative h-[360px] w-full overflow-hidden rounded-xl bg-slate-100">
+              <button v-if="hasLatLng" type="button" class="absolute left-3 top-3 z-10 rounded-lg border border-white/70 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm" @click.stop="toggleMapMode">
+                {{ mapMode === 'satellite' ? 'Bản đồ' : 'Vệ tinh' }}
+              </button>
+              <button v-if="hasLatLng" type="button" class="absolute left-3 top-[52px] z-10 rounded-lg border border-white/70 px-3 py-2 text-xs font-semibold shadow-sm" :class="isMap3dEnabled ? 'bg-sky-500/95 text-white' : 'bg-white/95 text-slate-700'" @click.stop="toggleMap3d">
+                {{ isMap3dEnabled ? '2D' : '3D' }}
+              </button>
+              <div v-show="hasLatLng" ref="mapElement" class="h-full w-full"></div>
+              <div v-if="!hasLatLng" class="flex h-full w-full flex-col items-center justify-center text-sm text-slate-400">
+                <div class="mb-2 text-4xl">⌖</div>
+                Bản đồ sẽ hiển thị tại đây
+              </div>
+            </div>
+          </section>
+
+          <section class="detail-card">
+            <h2 class="detail-title">
+              <img :src="flagIcon" class="detail-title-icon" alt="" />
+              Báo cáo tin đăng
+            </h2>
+            <form @submit.prevent="submitListingReport">
+              <div class="grid gap-3 sm:grid-cols-2">
+                <label v-for="option in reportOptions" :key="option.value" class="flex items-center gap-2 text-xs text-slate-500">
+                  <input v-model="selectedReportReasons" type="checkbox" name="listing-report" :value="option.value" class="h-3.5 w-3.5 rounded border-slate-300 accent-sky-500" />
+                  <span>{{ option.label }}</span>
+                </label>
+              </div>
+              <button
+                type="submit"
+                class="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                :disabled="reportSubmitting || selectedReportReasons.length === 0"
+              >
+                {{ reportSubmitting ? 'Đang gửi...' : 'Gửi phản ánh' }}
+              </button>
+            </form>
+          </section>
+        </div>
+
+        <aside class="space-y-5 lg:sticky lg:top-24">
+          <section v-if="!isEmbedded" class="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+            <div class="border-b border-slate-100 pb-4">
+              <h2 class="text-[26px] font-extrabold text-sky-500">
+                {{ formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT'" class="text-sm font-medium text-slate-500">/tháng</span>
+              </h2>
+              <div v-if="summaryStats.length" class="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                <span v-if="hasPositiveValue(listing.property?.bedrooms)" class="flex items-center gap-1.5">
+                  <img :src="bedIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                  {{ listing.property.bedrooms }} PN
+                </span>
+                <span v-if="hasPositiveValue(listing.property?.bathrooms)" class="flex items-center gap-1.5">
+                  <img :src="bathIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                  {{ listing.property.bathrooms }} WC
+                </span>
+                <span v-if="hasPositiveValue(listing.property?.area)" class="flex items-center gap-1.5">
+                  <img :src="areaIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                  {{ listing.property.area }} m²
+                </span>
+              </div>
+            </div>
+
+            <div class="py-4 text-xs">
+              <p class="mb-3 font-semibold text-slate-800">Thông tin của bất động sản</p>
+              <div class="space-y-3">
+                <div v-if="listing.property?.type" class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
+                  <span class="whitespace-nowrap text-slate-400">Loại BĐS</span>
+                  <span class="truncate text-right text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
+                </div>
+                <div v-if="fullAddress" class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
+                  <span class="whitespace-nowrap text-slate-400">Địa chỉ</span>
+                  <span class="truncate text-right text-sky-500" :title="fullAddress">{{ fullAddress }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
+              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 font-bold text-white">
+                {{ (listing.owner?.full_name || listing.property?.contact_name || 'U').charAt(0).toUpperCase() }}
+              </div>
+              <div class="min-w-0">
+                <p class="truncate text-sm font-semibold text-slate-800">{{ listing.property?.contact_name || listing.owner?.full_name }}</p>
+                <p class="text-xs text-slate-500">{{ listing.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới' }}</p>
+              </div>
+              <button class="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-sky-100" aria-label="Nhắn tin chủ nhà">
+                <img :src="chatIcon" class="h-4 w-4" alt="" />
+              </button>
+            </div>
+
+            <div class="space-y-2">
+              <a v-if="contactPhone" :href="`tel:${contactPhone}`" class="flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600">
+                <img :src="callIcon" class="detail-action-icon mr-2 h-3.5 w-3.5" alt="" />
+                Liên hệ chủ nhà
+              </a>
+              <button v-if="!previewMode" class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600" @click="showAppointmentPopup = true">
+                <img :src="calendarIcon" class="mr-2 h-3.5 w-3.5" alt="" />
+                Đặt lịch xem nhà
               </button>
             </div>
           </section>
@@ -243,27 +320,18 @@
           <section v-if="relatedListings.length" class="rounded-[14px] border border-slate-200 bg-white p-5">
             <h2 class="mb-4 text-lg font-bold text-slate-800">Tin đăng liên quan</h2>
             <div class="space-y-4">
-              <article v-for="item in relatedListings" :key="item.id" class="flex gap-3">
-                <img :src="item.image" class="h-[86px] w-[116px] rounded-lg object-cover" alt="" />
+              <article
+                v-for="item in relatedListings"
+                :key="item.id"
+                class="group flex cursor-pointer gap-3 rounded-xl p-1.5 transition hover:bg-sky-50"
+                @click="clickRelatedListing(item)"
+              >
+                <img v-if="item.image" :src="item.image" class="h-[86px] w-[116px] rounded-lg object-cover" alt="" />
+                <div v-else class="h-[86px] w-[116px] shrink-0 rounded-lg bg-slate-100"></div>
                 <div class="min-w-0 flex-1">
-                  <h3 class="line-clamp-2 text-sm font-bold text-slate-800">{{ item.title }}</h3>
+                  <h3 class="line-clamp-2 text-sm font-bold text-slate-800 group-hover:text-sky-600">{{ item.title }}</h3>
                   <p class="mt-1 text-xs text-slate-500">{{ item.address }}</p>
-                  <div class="mt-1 flex items-center gap-2 text-[11px] text-slate-500">
-                    <span class="flex items-center gap-1">
-                      <img :src="bedIcon" class="h-3 w-3 object-contain opacity-70" alt="" />
-                      {{ item.bedrooms }} PN
-                    </span>
-                    <span class="flex items-center gap-1">
-                      <img :src="bathIcon" class="h-3 w-3 object-contain opacity-70" alt="" />
-                      {{ item.bathrooms }} WC
-                    </span>
-                    <span class="flex items-center gap-1">
-                      <img :src="areaIcon" class="h-3 w-3 object-contain opacity-70" alt="" />
-                      {{ item.area }} m²
-                    </span>
-                  </div>
                   <p class="mt-1 text-sm font-bold text-sky-500">{{ item.price }}</p>
-                  <p class="mt-1 text-xs text-slate-500">{{ item.owner }}</p>
                 </div>
               </article>
             </div>
@@ -279,14 +347,69 @@
       @close="showAppointmentPopup = false"
       @success="showAppointmentPopup = false"
     />
+
+    <Teleport to="body">
+      <div
+        v-if="imageLightboxOpen"
+        class="image-lightbox"
+        role="dialog"
+        aria-modal="true"
+        @click.self="closeImageLightbox"
+      >
+        <button type="button" class="image-lightbox-close" aria-label="Đóng ảnh" @click="closeImageLightbox"></button>
+        <button
+          v-if="displayImages.length > 1"
+          type="button"
+          class="image-lightbox-nav image-lightbox-prev"
+          aria-label="Ảnh trước"
+          @click.stop="prevImage"
+        ></button>
+        <img v-if="activeImage" :src="activeImage" class="image-lightbox-img" alt="Listing image zoomed" />
+        <button
+          v-if="displayImages.length > 1"
+          type="button"
+          class="image-lightbox-nav image-lightbox-next"
+          aria-label="Ảnh sau"
+          @click.stop="nextImage"
+        ></button>
+        <div class="image-lightbox-counter">
+          Hình ảnh {{ activeImageIndex + 1 }}/{{ displayImages.length }}
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Floating Save Listing Button -->
+    <div
+      v-if="listing && !loading && isEmbedded"
+      @click="toggleFavorite(listing)"
+      class="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white border border-r-0 border-slate-200 shadow-md rounded-l-xl py-3 px-2.5 w-14 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 active:scale-[0.95] transition-all group"
+    >
+      <Heart
+        class="h-5 w-5 text-slate-400 group-hover:text-slate-600 transition-colors"
+        :class="{ 'text-red-500 fill-red-500': isFavorite(listing) }"
+        :fill="isFavorite(listing) ? 'currentColor' : 'none'"
+      />
+      <span
+        class="text-[10px] mt-1 font-semibold text-slate-500 text-center select-none"
+        :class="{ 'text-red-500': isFavorite(listing) }"
+      >
+        Lưu tin
+      </span>
+    </div>
   </main>
 </template>
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import Breadcrumb from '@/components/shared/Breadcrumb.vue';
+import { useAuthStore } from '@/stores/auth';
+import { useFavoriteListings } from '@/composables/useFavoriteListings';
+import { Heart } from 'lucide-vue-next';
 import listingService from '@/services/listingService';
+import recentlyViewedService from '@/services/recentlyViewedService';
 import AppointmentBookingPopup from '@/components/appointments/AppointmentBookingPopup.vue';
-import { buildPropertyAddress, hydratePropertyAddress } from '@/utils/addressFormatter';
+import { buildPropertyAddress, hydrateListingAddresses, hydratePropertyAddress } from '@/utils/addressFormatter';
+import { selectRelatedListings } from '@/utils/relatedListingStrategies';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import maplibregl from 'maplibre-gl';
@@ -317,6 +440,8 @@ import floorIcon from '@/assets/images/details/sotang.png';
 
 const route = useRoute();
 const router = useRouter();
+const authStore = useAuthStore();
+const { isFavorite, toggleFavorite, loadFavorites } = useFavoriteListings();
 
 const props = defineProps({
   previewMode: {
@@ -329,17 +454,39 @@ const props = defineProps({
   },
 });
 
+const isEmbedded = ref(false);
 const loading = ref(!props.previewMode);
 const error = ref('');
 const listing = ref(props.previewListing || {});
 
+const detailCrumbs = computed(() => {
+  const list = [
+    { label: 'Trang chủ', to: '/' }
+  ];
+  if (listing.value) {
+    const isSale = listing.value.demand_type === 'SALE';
+    if (isSale) {
+      list.push({ label: 'Mua bán', to: '/sales' });
+    } else {
+      list.push({ label: 'Cho thuê', to: '/rent' });
+    }
+    list.push({ label: listing.value.title });
+  }
+  return list;
+});
+
 const activeImageIndex = ref(0);
+const imageLightboxOpen = ref(false);
+const descriptionElement = ref(null);
+const descriptionExpanded = ref(false);
+const descriptionCanToggle = ref(false);
 const mapElement = ref(null);
 const showAppointmentPopup = ref(false);
 const mapMode = ref('standard');
 const isMap3dEnabled = ref(false);
 const selectedReportReasons = ref([]);
 const reportSubmitting = ref(false);
+const relatedListings = ref([]);
 const toasts = ref([]);
 let toastIdCounter = 1;
 let map = null;
@@ -393,43 +540,74 @@ const contactPhone = computed(() => (
   listing.value?.property?.contact_phone || listing.value?.owner?.phone || ''
 ));
 
+const amenities = computed(() => {
+  const values = listing.value?.property?.amenities;
+  if (!Array.isArray(values)) return [];
+
+  return values
+    .map((amenity) => {
+      if (typeof amenity === 'string') return amenity.trim();
+      return amenity?.name || amenity?.label || '';
+    })
+    .filter(Boolean);
+});
+
+function hasPositiveValue(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0;
+}
+
+const summaryStats = computed(() => {
+  const property = listing.value?.property || {};
+  return [property.bedrooms, property.bathrooms, property.area].filter(hasPositiveValue);
+});
+
 function hasDetailValue(value) {
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === 'string') return value.trim() !== '';
+  if (typeof value === 'number') return value > 0;
   return value !== null && value !== undefined && value !== '';
 }
 
 function detailText(value, suffix = '') {
-  if (!hasDetailValue(value)) return '-';
   return suffix ? `${value}${suffix}` : value;
+}
+
+function detailItem(label, value, icon, formatter = detailText) {
+  if (!hasDetailValue(value)) return null;
+  return {
+    label,
+    value: formatter(value),
+    icon,
+  };
+}
+
+function pairDetailItems(items) {
+  const filtered = items.filter(Boolean);
+  const rows = [];
+
+  for (let i = 0; i < filtered.length; i += 2) {
+    rows.push(filtered.slice(i, i + 2));
+  }
+
+  return rows;
 }
 
 const detailRowPairs = computed(() => {
   const property = listing.value?.property || {};
-  return [
-    [
-      { label: 'Loại BĐS', value: property.type ? propertyTypeLabel(property.type) : '-', icon: propertyIcon },
-      { label: 'Diện tích', value: detailText(property.area, ' m²'), icon: areaIcon },
-    ],
-    [
-      { label: 'Phòng ngủ', value: detailText(property.bedrooms, ' PN'), icon: bedIcon },
-      { label: 'Phòng tắm', value: detailText(property.bathrooms, ' WC'), icon: bathIcon },
-    ],
-    [
-      { label: 'Hướng nhà', value: property.direction_code ? directionLabel(property.direction_code) : '-', icon: directionIcon },
-      { label: 'Hướng ban công', value: property.balcony_direction_code ? directionLabel(property.balcony_direction_code) : '-', icon: directionIcon },
-    ],
-    [
-      { label: 'Nội thất', value: property.furniture_status ? furnitureLabel(property.furniture_status) : '-', icon: interiorIcon },
-      { label: 'Pháp lý', value: property.legal_paper_types?.length ? property.legal_paper_types.map((v) => legalPaperLabel(v)).join(', ') : '-', icon: legalIcon },
-    ],
-    [
-      { label: 'Chiều sâu', value: detailText(property.depth, ' m'), icon: roadIcon },
-      { label: 'Mặt tiền', value: detailText(property.facade_width, ' m'), icon: roadIcon },
-    ],
-    [
-      { label: 'Số tầng', value: detailText(property.floors), icon: floorIcon },
-      { label: '', value: '', icon: null, empty: true },
-    ],
-  ];
+  return pairDetailItems([
+    detailItem('Loại BĐS', property.type, propertyIcon, propertyTypeLabel),
+    detailItem('Diện tích', property.area, areaIcon, (value) => detailText(value, ' m²')),
+    detailItem('Phòng ngủ', property.bedrooms, bedIcon, (value) => detailText(value, ' PN')),
+    detailItem('Phòng tắm', property.bathrooms, bathIcon, (value) => detailText(value, ' WC')),
+    detailItem('Hướng nhà', property.direction_code, directionIcon, directionLabel),
+    detailItem('Hướng ban công', property.balcony_direction_code, directionIcon, directionLabel),
+    detailItem('Nội thất', property.furniture_status, interiorIcon, furnitureLabel),
+    detailItem('Pháp lý', property.legal_paper_types, legalIcon, (values) => values.map((value) => legalPaperLabel(value)).join(', ')),
+    detailItem('Chiều sâu', property.depth, roadIcon, (value) => detailText(value, ' m')),
+    detailItem('Mặt tiền', property.facade_width, roadIcon, (value) => detailText(value, ' m')),
+    detailItem('Số tầng', property.floors, floorIcon),
+  ]);
 });
 
 const reportOptions = [
@@ -441,22 +619,45 @@ const reportOptions = [
   { value: 'DUPLICATE_LISTING', label: 'Trùng với tin rao khác' },
 ];
 
-const relatedListings = computed(() => {
-  if (!displayImages.value.length) return [];
-  const image = displayImages.value[0]?.url;
+async function loadRelatedListings() {
+  const current = listing.value;
+  if (!current?.id || !current?.demand_type || !current?.property?.province_code) {
+    relatedListings.value = [];
+    return;
+  }
 
-  return Array.from({ length: 4 }, (_, index) => ({
-    id: `${listing.value?.id || 'preview'}-${index}`,
-    image,
-    title: listing.value?.title || 'Tin đăng liên quan',
-    address: fullAddress.value || 'Khu vực lân cận',
-    price: formatPrice(listing.value?.property?.price),
-    owner: listing.value?.owner?.full_name || listing.value?.property?.contact_name || 'Người đăng',
-    bedrooms: listing.value?.property?.bedrooms || 0,
-    bathrooms: listing.value?.property?.bathrooms || 0,
-    area: listing.value?.property?.area || 0,
-  }));
-});
+  try {
+    const response = await listingService.getPublicListings({
+      demand_type: current.demand_type,
+      per_page: 24,
+    });
+    const items = response.data?.data || [];
+    await hydrateListingAddresses(items);
+
+    relatedListings.value = selectRelatedListings(current, items, {
+      limit: 4,
+      formatPrice,
+    });
+  } catch (err) {
+    console.error('Failed to load related listings:', err);
+    relatedListings.value = [];
+  }
+}
+
+function clickRelatedListing(item) {
+  if (isEmbedded.value) {
+    window.parent.postMessage({
+      type: 'select-listing-from-detail',
+      listing: {
+        id: item.id,
+        latitude: item.latitude,
+        longitude: item.longitude,
+      }
+    }, window.location.origin);
+  } else {
+    router.push(`/listings/${item.id}`);
+  }
+}
 
 function prevImage() {
   if (activeImageIndex.value > 0) {
@@ -474,12 +675,30 @@ function nextImage() {
   }
 }
 
+function openImageLightbox(index = activeImageIndex.value) {
+  activeImageIndex.value = index;
+  imageLightboxOpen.value = true;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeImageLightbox() {
+  imageLightboxOpen.value = false;
+  document.body.style.overflow = '';
+}
+
 function pushToast(message, type = 'info', duration = 2500) {
   const id = toastIdCounter++;
   toasts.value = [...toasts.value, { id, message, type }];
   setTimeout(() => {
     toasts.value = toasts.value.filter((item) => item.id !== id);
   }, duration);
+}
+
+async function updateDescriptionToggle() {
+  await nextTick();
+  const text = String(listing.value?.description || '').trim();
+  const lineCount = text.split(/\r?\n/).filter(Boolean).length;
+  descriptionCanToggle.value = lineCount > 3 || text.length > 180;
 }
 
 async function submitListingReport() {
@@ -581,6 +800,9 @@ async function loadListing() {
     const data = response.data.data;
     await hydratePropertyAddress(data?.property);
     listing.value = data;
+    descriptionExpanded.value = false;
+    await updateDescriptionToggle();
+    await loadRelatedListings();
   } catch (err) {
     console.error(err);
     error.value = 'Không tìm thấy tin đăng hoặc đã bị xóa.';
@@ -605,6 +827,7 @@ watch(
   async (value) => {
     if (!props.previewMode) return;
     listing.value = value || {};
+    relatedListings.value = [];
     loading.value = false;
     error.value = '';
     activeImageIndex.value = 0;
@@ -614,12 +837,42 @@ watch(
       map = null;
     }
 
+    closeImageLightbox();
+
+    descriptionExpanded.value = false;
+    await updateDescriptionToggle();
+
     if (hasLatLng.value) {
       await nextTick();
       setTimeout(() => initMap(), 200);
     }
   },
   { deep: true, immediate: true },
+);
+
+watch(
+  () => listing.value?.description,
+  () => {
+    descriptionExpanded.value = false;
+    updateDescriptionToggle();
+  },
+  { flush: 'post' },
+);
+
+watch(
+  () => route.params.id,
+  async (id, previousId) => {
+    if (props.previewMode || !id || id === previousId) return;
+    activeImageIndex.value = 0;
+    relatedListings.value = [];
+
+    if (map) {
+      map.remove();
+      map = null;
+    }
+
+    await loadListing();
+  },
 );
 
 
@@ -651,6 +904,10 @@ function trackViewNow(listingId) {
   listingService.trackView(listingId).catch(() => {
     // View tracking should never affect the listing detail UX.
   });
+
+  if (listing.value) {
+    recentlyViewedService.trackListingView(listing.value, authStore.isAuthenticated);
+  }
 }
 
 function replaceMapTilerKey(value, key) {
@@ -956,8 +1213,11 @@ function initMap() {
 
 
 onMounted(() => {
+  isEmbedded.value = window.self !== window.top;
+  window.addEventListener('resize', updateDescriptionToggle);
   if (props.previewMode) {
     loading.value = false;
+    updateDescriptionToggle();
     if (hasLatLng.value) {
       nextTick(() => setTimeout(() => initMap(), 200));
     }
@@ -965,13 +1225,25 @@ onMounted(() => {
   }
 
   loadListing();
+  loadFavorites();
 });
 
+watch(
+  () => authStore.isAuthenticated,
+  () => {
+    if (!props.previewMode) {
+      loadFavorites();
+    }
+  }
+);
+
 onUnmounted(() => {
+  window.removeEventListener('resize', updateDescriptionToggle);
   if (map) {
     map.remove();
     map = null;
   }
+  document.body.style.overflow = '';
 });
 </script>
 
@@ -1021,6 +1293,122 @@ onUnmounted(() => {
   border-color: #fecaca;
 }
 
+.image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.88);
+  padding: 34px 76px;
+}
+
+.image-lightbox-img {
+  width: min(92vw, 1440px);
+  max-height: calc(100vh - 68px);
+  border-radius: 14px;
+  object-fit: contain;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.image-lightbox-close,
+.image-lightbox-nav {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.image-lightbox-close:hover,
+.image-lightbox-nav:hover {
+  background: rgba(15, 23, 42, 0.78);
+  transform: translateY(-1px);
+}
+
+.image-lightbox-close {
+  top: 22px;
+  right: 24px;
+  height: 50px;
+  width: 50px;
+  padding: 0;
+}
+
+.image-lightbox-close::before,
+.image-lightbox-close::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 3px;
+  border-radius: 9999px;
+  background: currentColor;
+}
+
+.image-lightbox-close::before {
+  transform: rotate(45deg);
+}
+
+.image-lightbox-close::after {
+  transform: rotate(-45deg);
+}
+
+.image-lightbox-nav {
+  top: 50%;
+  height: 52px;
+  width: 52px;
+  padding: 0;
+  transform: translateY(-50%);
+}
+
+.image-lightbox-nav:hover {
+  transform: translateY(-50%) scale(1.03);
+}
+
+.image-lightbox-prev {
+  left: 24px;
+}
+
+.image-lightbox-next {
+  right: 24px;
+}
+
+.image-lightbox-prev::before,
+.image-lightbox-next::before {
+  content: "";
+  width: 15px;
+  height: 15px;
+  border-top: 4px solid currentColor;
+  border-right: 4px solid currentColor;
+  border-radius: 2px;
+}
+
+.image-lightbox-prev::before {
+  transform: translateX(3px) rotate(-135deg);
+}
+
+.image-lightbox-next::before {
+  transform: translateX(-3px) rotate(45deg);
+}
+
+.image-lightbox-counter {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.68);
+  padding: 8px 14px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .detail-card {
   margin-top: 18px;
   border: 1px solid #e2e8f0;
@@ -1065,8 +1453,57 @@ onUnmounted(() => {
   transform: translateY(-1px);
 }
 
+.detail-icon-button.is-active {
+  border-color: #fecdd3;
+  background-color: #fff1f2;
+  color: #f43f5e;
+}
+
+.detail-icon-button.is-active:hover {
+  border-color: #fda4af;
+  background-color: #ffe4e6;
+  box-shadow: 0 8px 18px rgba(244, 63, 94, 0.15);
+}
+
+.detail-icon-button.is-active {
+  border-color: #fecdd3;
+  background-color: #fff1f2;
+  color: #f43f5e;
+}
+
+.detail-icon-button.is-active:hover {
+  border-color: #fda4af;
+  background-color: #ffe4e6;
+  box-shadow: 0 8px 18px rgba(244, 63, 94, 0.15);
+}
+
 .detail-action-icon {
   filter: brightness(0) invert(1);
+}
+
+.detail-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  background: transparent;
+  padding: 2px 4px;
+  color: #0ea5e9;
+  font-size: 13px;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+
+.detail-toggle-button:hover {
+  color: #0284c7;
+}
+
+.description-collapsed {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 
 /* Custom styled scrollbars for the image strip */

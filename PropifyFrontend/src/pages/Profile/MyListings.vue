@@ -109,9 +109,11 @@
           <thead class="bg-slate-50 text-left text-xs text-slate-500">
             <tr>
               <th class="px-3 py-3">ID</th>
-              <th class="px-3 py-3">Ảnh</th>
+              <th class="px-3 py-3 w-[72px] min-w-[72px]">Ảnh</th>
               <th class="px-3 py-3">Mã tin đăng</th>
               <th class="px-3 py-3">Tin đăng</th>
+              <th class="px-3 py-3">Ngày tạo</th>
+              <th class="px-3 py-3">Ngày đăng</th>
               <th class="px-3 py-3">Địa chỉ</th>
               <th class="px-3 py-3">Giá</th>
               <th class="px-3 py-3">Gói tin</th>
@@ -121,10 +123,10 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td class="px-3 py-6 text-center text-slate-400" colspan="9">Đang tải dữ liệu...</td>
+              <td class="px-3 py-6 text-center text-slate-400" colspan="11">Đang tải dữ liệu...</td>
             </tr>
             <tr v-else-if="rows.length === 0">
-              <td class="px-3 py-6 text-center text-slate-400" colspan="9">Bạn chưa có tin đăng nào.</td>
+              <td class="px-3 py-6 text-center text-slate-400" colspan="11">Bạn chưa có tin đăng nào.</td>
             </tr>
             <tr 
               v-for="row in rows" 
@@ -135,19 +137,21 @@
               <td class="px-3 py-3 font-medium text-sky-600 group-hover:underline">
                 {{ row.id }}
               </td>
-              <td class="px-3 py-3">
+              <td class="px-3 py-3 w-[72px] min-w-[72px]">
                 <img
                   v-if="row.thumbnail"
                   :src="row.thumbnail"
                   alt="thumb"
-                  class="h-12 w-14 rounded-md object-cover"
+                  class="h-12 w-12 min-w-12 rounded-md object-cover border border-slate-200"
                 />
-                <div v-else class="h-12 w-14 rounded-md bg-slate-100"></div>
+                <div v-else class="h-12 w-12 min-w-12 rounded-md bg-slate-100 border border-slate-200"></div>
               </td>
               <td class="px-3 py-3 text-slate-500">{{ row.code }}</td>
               <td class="px-3 py-3 font-semibold text-slate-700 group-hover:text-sky-600">
                 {{ row.title }}
               </td>
+              <td class="px-3 py-3 text-slate-500 whitespace-nowrap">{{ row.createdAt }}</td>
+              <td class="px-3 py-3 text-slate-500 whitespace-nowrap">{{ row.publishedAt }}</td>
               <td class="px-3 py-3 text-slate-500">{{ row.address }}</td>
               <td class="px-3 py-3 font-semibold text-slate-700">{{ row.price }}</td>
               <td class="px-3 py-3">
@@ -298,6 +302,13 @@ function statusBadgeClass(status) {
   return map[status] || "bg-slate-100 text-slate-600";
 }
 
+function formatListingDate(value) {
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return date.toLocaleDateString("vi-VN");
+}
+
 function normalizeRows(items) {
   return items.map((item) => {
     const thumbnail = item?.images?.find((img) => img?.is_thumbnail)?.url || item?.images?.[0]?.url || "";
@@ -306,6 +317,8 @@ function normalizeRows(items) {
       code: toListingCode(item.id),
       title: item.title || "(Không tiêu đề)",
       thumbnail,
+      createdAt: formatListingDate(item.created_at),
+      publishedAt: item.published_at ? formatListingDate(item.published_at) : "--",
       address: buildAddress(item.property),
       price: formatCurrency(item?.property?.price),
       status: item.status,

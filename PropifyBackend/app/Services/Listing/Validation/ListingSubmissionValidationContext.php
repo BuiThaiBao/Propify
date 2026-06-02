@@ -10,6 +10,5 @@ final readonly class ListingSubmissionValidationContext
     public function __construct(
         public User $user,
         public CreateListingDto $dto,
-    ) {
-    }
+    ) {}
 }

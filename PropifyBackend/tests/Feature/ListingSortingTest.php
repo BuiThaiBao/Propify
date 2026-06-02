@@ -49,35 +49,75 @@ class ListingSortingTest extends TestCase
         $owner = User::query()->create(['phone' => '0900000003']);
         $package = Package::query()->create(['name' => 'Normal 2', 'slug' => 'normal-2', 'priority' => 1, 'price' => 0]);
 
-        $older = $this->createActiveListing($owner->id, 1000000, $package->id, 10, now()->subDays(2));
-        $newer = $this->createActiveListing($owner->id, 1200000, $package->id, 10, now()->subHour());
+        $olderPublished = $this->createActiveListing($owner->id, 1000000, $package->id, 10, now()->subDays(2), now()->subHour());
+        $newerPublished = $this->createActiveListing($owner->id, 1200000, $package->id, 10, now()->subHour(), now()->subDays(2));
 
         $response = $this->getJson('/api/v1/listings?sort=newest');
 
         $response->assertOk();
         $ids = array_map('intval', $response->json('data.*.id'));
-        $this->assertSame([$newer->id, $older->id], array_slice($ids, 0, 2));
+        $this->assertSame([$newerPublished->id, $olderPublished->id], array_slice($ids, 0, 2));
     }
 
-    private function createActiveListing(int $ownerId, float $price, ?int $packageId, int $score, $publishedAt): Listing
+    public function test_map_listings_include_property_province_and_ward_names(): void
     {
-        $property = Property::query()->create([
+        $owner = User::query()->create(['phone' => '0900000004']);
+        $package = Package::query()->create(['name' => 'Normal 3', 'slug' => 'normal-3', 'priority' => 1, 'price' => 0]);
+
+        $listing = $this->createActiveListing($owner->id, 1000000, $package->id, 10, now()->subHour(), null, [
+            'province' => 'Thành phố Hồ Chí Minh',
+            'ward_code' => '26734',
+            'ward' => 'Phường Bến Nghé',
+            'lat' => 10.7769,
+            'lng' => 106.7009,
+        ]);
+
+        $response = $this->getJson('/api/v1/listings/map');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.id', $listing->id);
+        $response->assertJsonPath('data.0.province', 'Thành phố Hồ Chí Minh');
+        $response->assertJsonPath('data.0.ward', 'Phường Bến Nghé');
+    }
+
+    public function test_public_search_matches_vietnamese_text_without_diacritics(): void
+    {
+        $owner = User::query()->create(['phone' => '0900000005']);
+        $package = Package::query()->create(['name' => 'Normal 4', 'slug' => 'normal-4', 'priority' => 1, 'price' => 0]);
+
+        $listing = $this->createActiveListing($owner->id, 1000000, $package->id, 10, now()->subHour(), null, [
+            'province' => 'Thành phố Hà Nội',
+            'ward' => 'Phường Hoàn Kiếm',
+            'address_detail' => 'Phố Hàng Mắm',
+        ]);
+
+        $response = $this->getJson('/api/v1/listings?keyword=Ha Noi');
+
+        $response->assertOk();
+        $ids = array_map('intval', $response->json('data.*.id'));
+        $this->assertContains($listing->id, $ids);
+    }
+
+    private function createActiveListing(int $ownerId, float $price, ?int $packageId, int $score, $publishedAt, $submittedAt = null, array $propertyOverrides = []): Listing
+    {
+        $property = Property::query()->create(array_merge([
             'owner_id' => $ownerId,
             'type' => 'HOUSE',
             'province_code' => '01',
             'area' => 50,
             'price' => $price,
-        ]);
+        ], $propertyOverrides));
 
         return Listing::query()->create([
             'property_id' => $property->id,
             'owner_id' => $ownerId,
             'demand_type' => 'SALE',
-            'title' => 'Listing ' . uniqid(),
+            'title' => 'Listing '.uniqid(),
             'description' => 'Test listing',
             'status' => 'ACTIVE',
             'package_id' => $packageId,
             'score' => $score,
+            'submitted_at' => $submittedAt ?? $publishedAt,
             'published_at' => $publishedAt,
         ]);
     }

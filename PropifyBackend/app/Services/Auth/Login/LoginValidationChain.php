@@ -18,7 +18,7 @@ final class LoginValidationChain
     public function validate(string $email, string $password): User
     {
         $user = $this->userRepository->findByEmail($email);
-        if (!$user) {
+        if (! $user) {
             throw new BusinessException(ErrorCode::AuthLoginFailed);
         }
 
@@ -26,7 +26,7 @@ final class LoginValidationChain
             throw new BusinessException(ErrorCode::AuthNotVerified);
         }
 
-        if (!Hash::check($password, $user->password)) {
+        if (! Hash::check($password, $user->password)) {
             throw new BusinessException(ErrorCode::AuthLoginFailed);
         }
 

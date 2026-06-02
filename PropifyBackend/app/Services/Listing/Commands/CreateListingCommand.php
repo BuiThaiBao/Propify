@@ -19,8 +19,7 @@ final class CreateListingCommand
         private readonly ListingRepository $listingRepository,
         private readonly ListingStatusStateFactory $statusStateFactory,
         private readonly ListingSubmissionValidationPipeline $validationPipeline,
-    ) {
-    }
+    ) {}
 
     public function handle(User $user, CreateListingDto $dto): Listing
     {
@@ -92,7 +91,9 @@ final class CreateListingCommand
         return [
             'type' => $dto->propertyType,
             'province_code' => $dto->provinceCode,
+            'province' => $dto->province,
             'ward_code' => $dto->wardCode,
+            'ward' => $dto->ward,
             'street_code' => $dto->streetCode,
             'project_name' => $dto->projectName,
             'address_detail' => $dto->addressDetail,
@@ -154,7 +155,7 @@ final class CreateListingCommand
 
     private function saveVerificationDocuments(Listing $listing, CreateListingDto $dto): void
     {
-        if (!$dto->requestVerification) {
+        if (! $dto->requestVerification) {
             return;
         }
 
@@ -189,15 +190,15 @@ final class CreateListingCommand
     {
         $score = 0;
 
-        if (!empty($dto->title) && mb_strlen($dto->title) >= 10) {
+        if (! empty($dto->title) && mb_strlen($dto->title) >= 10) {
             $score += 10;
         }
 
-        if (!empty($dto->description) && mb_strlen($dto->description) >= 20) {
+        if (! empty($dto->description) && mb_strlen($dto->description) >= 20) {
             $score += 10;
         }
 
-        if (!empty($dto->images) && count($dto->images) > 0) {
+        if (! empty($dto->images) && count($dto->images) > 0) {
             $score += 20;
         }
 
@@ -207,7 +208,7 @@ final class CreateListingCommand
 
         $hasFullInfo = ($dto->price > 0)
             && ($dto->area > 0)
-            && (!empty($dto->addressDetail) || !empty($dto->projectName));
+            && (! empty($dto->addressDetail) || ! empty($dto->projectName));
 
         if ($hasFullInfo) {
             $score += 20;

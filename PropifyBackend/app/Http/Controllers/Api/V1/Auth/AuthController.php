@@ -5,33 +5,26 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\DTOs\Auth\LoginCredentialsDto;
 use App\Enums\UserRole;
 use App\Helpers\ApiResponse;
-use App\Http\Resources\AuthTokenResource;
 use App\Http\Requests\Auth\Auth\CheckResetOtpRequest;
 use App\Http\Requests\Auth\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\Auth\LoginRequest;
 use App\Http\Requests\Auth\Auth\RegisterRequest;
 use App\Http\Requests\Auth\Auth\ResetPasswordRequest;
 use App\Http\Requests\Auth\Auth\VerifyOtpRequest;
+use App\Http\Resources\AuthTokenResource;
 use App\Http\Resources\UserResource;
 use App\Services\Auth\AuthService;
 use App\Support\AuthCookieFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-
 final class AuthController
 {
     public function __construct(
         private readonly AuthService $authService
-    ) {
-    }
+    ) {}
 
     // Register Documentation
-
-
-
-
-
 
     public function register(RegisterRequest $request): JsonResponse
     {
@@ -44,14 +37,7 @@ final class AuthController
         );
     }
 
-
-
-
     // Resend Register OTP
-
-
-
-
 
     public function resendRegisterOtp(Request $request): JsonResponse
     {
@@ -66,11 +52,6 @@ final class AuthController
     }
 
     // Verify OTP
-
-
-
-
-
 
     public function verifyOtp(VerifyOtpRequest $request): JsonResponse
     {
@@ -93,11 +74,6 @@ final class AuthController
     }
 
     // Login Documentation
-
-
-
-
-
 
     public function login(LoginRequest $request): JsonResponse
     {
@@ -127,11 +103,6 @@ final class AuthController
 
     // Get User Info Documentation
 
-
-
-
-
-
     public function me(): JsonResponse
     {
         $user = $this->authService->me();
@@ -142,10 +113,6 @@ final class AuthController
     }
 
     // Logout Documentation
-
-
-
-
 
     public function logout(Request $request): JsonResponse
     {
@@ -163,13 +130,7 @@ final class AuthController
         return $response;
     }
 
-
-
     // Refresh Token Documentation
-
-
-
-
 
     public function refresh(Request $request): JsonResponse
     {
@@ -191,8 +152,6 @@ final class AuthController
         return $response;
     }
 
-
-
     // Forgot Password
 
     public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
@@ -204,16 +163,7 @@ final class AuthController
         );
     }
 
-
-
-
-
     // Check Reset OTP (bước 2 — kiểm tra OTP trước khi cho nhập mật khẩu)
-
-
-
-
-
 
     public function checkResetOtp(CheckResetOtpRequest $request): JsonResponse
     {
@@ -225,14 +175,7 @@ final class AuthController
         return ApiResponse::success(message: 'Mã OTP hợp lệ');
     }
 
-
-
-
-
     // Reset Password
-
-
-
 
     public function resetPassword(ResetPasswordRequest $request): JsonResponse
     {

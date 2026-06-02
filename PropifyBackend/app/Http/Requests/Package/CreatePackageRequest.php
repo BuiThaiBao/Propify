@@ -2,10 +2,8 @@
 
 namespace App\Http\Requests\Package;
 
-use App\Enums\PackageType;
 use App\Enums\UserRole;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rules\Enum;
 
 final class CreatePackageRequest extends FormRequest
 {

@@ -18,8 +18,7 @@ final readonly class UpdatePackageDto
         public ?string $color,
         public bool $isActive,
         public array $activeDurations = [],
-    ) {
-    }
+    ) {}
 
     public static function fromRequest(UpdatePackageRequest $request): self
     {
