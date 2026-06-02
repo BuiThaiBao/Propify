@@ -109,7 +109,7 @@
           <thead class="bg-slate-50 text-left text-xs text-slate-500">
             <tr>
               <th class="px-3 py-3">ID</th>
-              <th class="px-3 py-3">Ảnh</th>
+              <th class="px-3 py-3 w-[72px] min-w-[72px]">Ảnh</th>
               <th class="px-3 py-3">Mã tin đăng</th>
               <th class="px-3 py-3">Tin đăng</th>
               <th class="px-3 py-3">Địa chỉ</th>
@@ -135,14 +135,14 @@
               <td class="px-3 py-3 font-medium text-sky-600 group-hover:underline">
                 {{ row.id }}
               </td>
-              <td class="px-3 py-3">
+              <td class="px-3 py-3 w-[72px] min-w-[72px]">
                 <img
                   v-if="row.thumbnail"
                   :src="row.thumbnail"
                   alt="thumb"
-                  class="h-12 w-12 rounded-md object-cover border border-slate-200"
+                  class="h-12 w-12 min-w-12 rounded-md object-cover border border-slate-200"
                 />
-                <div v-else class="h-12 w-12 rounded-md bg-slate-100 border border-slate-200"></div>
+                <div v-else class="h-12 w-12 min-w-12 rounded-md bg-slate-100 border border-slate-200"></div>
               </td>
               <td class="px-3 py-3 text-slate-500">{{ row.code }}</td>
               <td class="px-3 py-3 font-semibold text-slate-700 group-hover:text-sky-600">

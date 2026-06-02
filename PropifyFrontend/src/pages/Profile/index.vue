@@ -355,7 +355,7 @@
             <thead class="bg-slate-50 text-left text-xs text-slate-500">
               <tr>
                 <th class="px-3 py-4 whitespace-nowrap col-sticky-id">ID</th>
-                <th class="px-3 py-4 whitespace-nowrap">Ảnh</th>
+                <th class="px-3 py-4 whitespace-nowrap w-[72px] min-w-[72px]">Ảnh</th>
                 <th class="px-3 py-4 whitespace-nowrap">Mã tin đăng</th>
                 <th class="px-3 py-4 min-w-[200px]">Tin đăng</th>
                 <th class="px-3 py-4 whitespace-nowrap">Ngày tạo</th>
@@ -377,9 +377,9 @@
               </tr>
               <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="openListingEdit(item)">
                 <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap col-sticky-id">{{ item.id }}</td>
-                <td class="px-3 py-4 whitespace-nowrap">
-                  <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-12 rounded-md object-cover border border-slate-200" />
-                  <div v-else class="h-12 w-12 rounded-md bg-slate-100 border border-slate-200"></div>
+                <td class="px-3 py-4 whitespace-nowrap w-[72px] min-w-[72px]">
+                  <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-12 min-w-12 rounded-md object-cover border border-slate-200" />
+                  <div v-else class="h-12 w-12 min-w-12 rounded-md bg-slate-100 border border-slate-200"></div>
                 </td>
                 <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.code }}</td>
                 <td class="px-3 py-4 font-semibold text-slate-700 group-hover:text-sky-600">{{ item.title }}</td>
