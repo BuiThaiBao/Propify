@@ -168,51 +168,51 @@
                 class="flex items-center gap-3 cursor-pointer group py-2 px-3.5 rounded-full transition-all duration-200" 
                 :class="selectedPricePreset === 'all' ? 'bg-sky-50/60 text-[#0DA2E7]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
               >
-                <input type="radio" v-model="selectedPricePreset" value="all" class="accent-[#0DA2E7] w-4 h-4 cursor-pointer" />
+                <input type="radio" v-model="selectedPricePreset" value="all" class="appearance-none w-4 h-4 rounded-full border border-slate-300 bg-white checked:bg-[#0DA2E7] checked:border-white checked:border-[4px] checked:ring-1 checked:ring-[#0DA2E7] cursor-pointer transition-all focus:outline-none shrink-0" />
                 <span class="text-sm transition-colors" :class="{'font-semibold': selectedPricePreset === 'all'}">Tất cả</span>
               </label>
               <label 
                 class="flex items-center gap-3 cursor-pointer group py-2 px-3.5 rounded-full transition-all duration-200" 
                 :class="selectedPricePreset === 'under_5m' ? 'bg-sky-50/60 text-[#0DA2E7]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
               >
-                <input type="radio" v-model="selectedPricePreset" value="under_5m" class="accent-[#0DA2E7] w-4 h-4 cursor-pointer" />
+                <input type="radio" v-model="selectedPricePreset" value="under_5m" class="appearance-none w-4 h-4 rounded-full border border-slate-300 bg-white checked:bg-[#0DA2E7] checked:border-white checked:border-[4px] checked:ring-1 checked:ring-[#0DA2E7] cursor-pointer transition-all focus:outline-none shrink-0" />
                 <span class="text-sm transition-colors" :class="{'font-semibold': selectedPricePreset === 'under_5m'}">Dưới 5 triệu</span>
               </label>
               <label 
                 class="flex items-center gap-3 cursor-pointer group py-2 px-3.5 rounded-full transition-all duration-200" 
                 :class="selectedPricePreset === '5_10m' ? 'bg-sky-50/60 text-[#0DA2E7]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
               >
-                <input type="radio" v-model="selectedPricePreset" value="5_10m" class="accent-[#0DA2E7] w-4 h-4 cursor-pointer" />
+                <input type="radio" v-model="selectedPricePreset" value="5_10m" class="appearance-none w-4 h-4 rounded-full border border-slate-300 bg-white checked:bg-[#0DA2E7] checked:border-white checked:border-[4px] checked:ring-1 checked:ring-[#0DA2E7] cursor-pointer transition-all focus:outline-none shrink-0" />
                 <span class="text-sm transition-colors" :class="{'font-semibold': selectedPricePreset === '5_10m'}">5 - 10 triệu</span>
               </label>
               <label 
                 class="flex items-center gap-3 cursor-pointer group py-2 px-3.5 rounded-full transition-all duration-200" 
                 :class="selectedPricePreset === '10_20m' ? 'bg-sky-50/60 text-[#0DA2E7]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
               >
-                <input type="radio" v-model="selectedPricePreset" value="10_20m" class="accent-[#0DA2E7] w-4 h-4 cursor-pointer" />
+                <input type="radio" v-model="selectedPricePreset" value="10_20m" class="appearance-none w-4 h-4 rounded-full border border-slate-300 bg-white checked:bg-[#0DA2E7] checked:border-white checked:border-[4px] checked:ring-1 checked:ring-[#0DA2E7] cursor-pointer transition-all focus:outline-none shrink-0" />
                 <span class="text-sm transition-colors" :class="{'font-semibold': selectedPricePreset === '10_20m'}">10 - 20 triệu</span>
               </label>
               <label 
                 class="flex items-center gap-3 cursor-pointer group py-2 px-3.5 rounded-full transition-all duration-200" 
                 :class="selectedPricePreset === '20_50m' ? 'bg-sky-50/60 text-[#0DA2E7]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
               >
-                <input type="radio" v-model="selectedPricePreset" value="20_50m" class="accent-[#0DA2E7] w-4 h-4 cursor-pointer" />
+                <input type="radio" v-model="selectedPricePreset" value="20_50m" class="appearance-none w-4 h-4 rounded-full border border-slate-300 bg-white checked:bg-[#0DA2E7] checked:border-white checked:border-[4px] checked:ring-1 checked:ring-[#0DA2E7] cursor-pointer transition-all focus:outline-none shrink-0" />
                 <span class="text-sm transition-colors" :class="{'font-semibold': selectedPricePreset === '20_50m'}">20 - 50 triệu</span>
               </label>
               
               <!-- Custom range -->
               <div 
-                class="flex items-center justify-between py-1.5 px-3.5 rounded-full transition-all duration-200"
+                class="flex items-center gap-2 py-1.5 px-3.5 rounded-full transition-all duration-200"
                 :class="selectedPricePreset === 'custom' ? 'bg-sky-50/60 text-[#0DA2E7]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
               >
-                <div class="flex items-center gap-3">
-                  <span class="text-sm transition-colors" :class="{'font-semibold': selectedPricePreset === 'custom'}">Khác</span>
-                  <input type="radio" v-model="selectedPricePreset" value="custom" class="accent-[#0DA2E7] w-4 h-4 cursor-pointer" />
-                </div>
-                <div class="flex items-center gap-1.5">
+                <input type="radio" v-model="selectedPricePreset" value="custom" class="appearance-none w-4 h-4 rounded-full border border-slate-300 bg-white checked:bg-[#0DA2E7] checked:border-white checked:border-[4px] checked:ring-1 checked:ring-[#0DA2E7] cursor-pointer transition-all focus:outline-none shrink-0" />
+                <span class="text-sm transition-colors shrink-0" :class="{'font-semibold': selectedPricePreset === 'custom'}">Khác</span>
+                <div class="flex items-center gap-1">
                   <input
                     v-model="minPriceInput"
                     type="number"
+                    min="0"
+                    @input="minPriceInput = minPriceInput < 0 ? 0 : minPriceInput"
                     placeholder="Từ"
                     :disabled="selectedPricePreset !== 'custom'"
                     class="w-14 h-7 text-center border border-slate-200 rounded-md focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20 outline-none text-xs disabled:bg-slate-50 disabled:cursor-not-allowed"
@@ -221,11 +221,13 @@
                   <input
                     v-model="maxPriceInput"
                     type="number"
+                    min="0"
+                    @input="maxPriceInput = maxPriceInput < 0 ? 0 : maxPriceInput"
                     placeholder="Đến"
                     :disabled="selectedPricePreset !== 'custom'"
                     class="w-14 h-7 text-center border border-slate-200 rounded-md focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20 outline-none text-xs disabled:bg-slate-50 disabled:cursor-not-allowed"
                   />
-                  <span class="text-xs font-medium" :class="selectedPricePreset === 'custom' ? 'text-[#0DA2E7]' : 'text-slate-500'">triệu</span>
+                  <span class="text-xs font-medium shrink-0" :class="selectedPricePreset === 'custom' ? 'text-[#0DA2E7]' : 'text-slate-500'">triệu</span>
                 </div>
               </div>
             </div>
@@ -242,51 +244,51 @@
                 class="flex items-center gap-3 cursor-pointer group py-2 px-3.5 rounded-full transition-all duration-200" 
                 :class="selectedAreaPreset === 'all' ? 'bg-sky-50/60 text-[#0DA2E7]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
               >
-                <input type="radio" v-model="selectedAreaPreset" value="all" class="accent-[#0DA2E7] w-4 h-4 cursor-pointer" />
+                <input type="radio" v-model="selectedAreaPreset" value="all" class="appearance-none w-4 h-4 rounded-full border border-slate-300 bg-white checked:bg-[#0DA2E7] checked:border-white checked:border-[4px] checked:ring-1 checked:ring-[#0DA2E7] cursor-pointer transition-all focus:outline-none shrink-0" />
                 <span class="text-sm transition-colors" :class="{'font-semibold': selectedAreaPreset === 'all'}">Tất cả</span>
               </label>
               <label 
                 class="flex items-center gap-3 cursor-pointer group py-2 px-3.5 rounded-full transition-all duration-200" 
                 :class="selectedAreaPreset === 'under_30' ? 'bg-sky-50/60 text-[#0DA2E7]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
               >
-                <input type="radio" v-model="selectedAreaPreset" value="under_30" class="accent-[#0DA2E7] w-4 h-4 cursor-pointer" />
+                <input type="radio" v-model="selectedAreaPreset" value="under_30" class="appearance-none w-4 h-4 rounded-full border border-slate-300 bg-white checked:bg-[#0DA2E7] checked:border-white checked:border-[4px] checked:ring-1 checked:ring-[#0DA2E7] cursor-pointer transition-all focus:outline-none shrink-0" />
                 <span class="text-sm transition-colors" :class="{'font-semibold': selectedAreaPreset === 'under_30'}">Dưới 30 m²</span>
               </label>
               <label 
                 class="flex items-center gap-3 cursor-pointer group py-2 px-3.5 rounded-full transition-all duration-200" 
                 :class="selectedAreaPreset === '30_50' ? 'bg-sky-50/60 text-[#0DA2E7]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
               >
-                <input type="radio" v-model="selectedAreaPreset" value="30_50" class="accent-[#0DA2E7] w-4 h-4 cursor-pointer" />
+                <input type="radio" v-model="selectedAreaPreset" value="30_50" class="appearance-none w-4 h-4 rounded-full border border-slate-300 bg-white checked:bg-[#0DA2E7] checked:border-white checked:border-[4px] checked:ring-1 checked:ring-[#0DA2E7] cursor-pointer transition-all focus:outline-none shrink-0" />
                 <span class="text-sm transition-colors" :class="{'font-semibold': selectedAreaPreset === '30_50'}">30 - 50 m²</span>
               </label>
               <label 
                 class="flex items-center gap-3 cursor-pointer group py-2 px-3.5 rounded-full transition-all duration-200" 
                 :class="selectedAreaPreset === '50_80' ? 'bg-sky-50/60 text-[#0DA2E7]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
               >
-                <input type="radio" v-model="selectedAreaPreset" value="50_80" class="accent-[#0DA2E7] w-4 h-4 cursor-pointer" />
+                <input type="radio" v-model="selectedAreaPreset" value="50_80" class="appearance-none w-4 h-4 rounded-full border border-slate-300 bg-white checked:bg-[#0DA2E7] checked:border-white checked:border-[4px] checked:ring-1 checked:ring-[#0DA2E7] cursor-pointer transition-all focus:outline-none shrink-0" />
                 <span class="text-sm transition-colors" :class="{'font-semibold': selectedAreaPreset === '50_80'}">50 - 80 m²</span>
               </label>
               <label 
                 class="flex items-center gap-3 cursor-pointer group py-2 px-3.5 rounded-full transition-all duration-200" 
                 :class="selectedAreaPreset === '80_100' ? 'bg-sky-50/60 text-[#0DA2E7]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
               >
-                <input type="radio" v-model="selectedAreaPreset" value="80_100" class="accent-[#0DA2E7] w-4 h-4 cursor-pointer" />
+                <input type="radio" v-model="selectedAreaPreset" value="80_100" class="appearance-none w-4 h-4 rounded-full border border-slate-300 bg-white checked:bg-[#0DA2E7] checked:border-white checked:border-[4px] checked:ring-1 checked:ring-[#0DA2E7] cursor-pointer transition-all focus:outline-none shrink-0" />
                 <span class="text-sm transition-colors" :class="{'font-semibold': selectedAreaPreset === '80_100'}">80 - 100 m²</span>
               </label>
 
               <!-- Custom range -->
               <div 
-                class="flex items-center justify-between py-1.5 px-3.5 rounded-full transition-all duration-200"
+                class="flex items-center gap-2 py-1.5 px-3.5 rounded-full transition-all duration-200"
                 :class="selectedAreaPreset === 'custom' ? 'bg-sky-50/60 text-[#0DA2E7]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-800'"
               >
-                <div class="flex items-center gap-3">
-                  <span class="text-sm transition-colors" :class="{'font-semibold': selectedAreaPreset === 'custom'}">Khác</span>
-                  <input type="radio" v-model="selectedAreaPreset" value="custom" class="accent-[#0DA2E7] w-4 h-4 cursor-pointer" />
-                </div>
-                <div class="flex items-center gap-1.5">
+                <input type="radio" v-model="selectedAreaPreset" value="custom" class="appearance-none w-4 h-4 rounded-full border border-slate-300 bg-white checked:bg-[#0DA2E7] checked:border-white checked:border-[4px] checked:ring-1 checked:ring-[#0DA2E7] cursor-pointer transition-all focus:outline-none shrink-0" />
+                <span class="text-sm transition-colors shrink-0" :class="{'font-semibold': selectedAreaPreset === 'custom'}">Khác</span>
+                <div class="flex items-center gap-1">
                   <input
                     v-model="minAreaInput"
                     type="number"
+                    min="0"
+                    @input="minAreaInput = minAreaInput < 0 ? 0 : minAreaInput"
                     placeholder="Từ"
                     :disabled="selectedAreaPreset !== 'custom'"
                     class="w-14 h-7 text-center border border-slate-200 rounded-md focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20 outline-none text-xs disabled:bg-slate-50 disabled:cursor-not-allowed"
@@ -295,11 +297,13 @@
                   <input
                     v-model="maxAreaInput"
                     type="number"
+                    min="0"
+                    @input="maxAreaInput = maxAreaInput < 0 ? 0 : maxAreaInput"
                     placeholder="Đến"
                     :disabled="selectedAreaPreset !== 'custom'"
                     class="w-14 h-7 text-center border border-slate-200 rounded-md focus:border-sky-500 focus:ring-1 focus:ring-sky-500/20 outline-none text-xs disabled:bg-slate-50 disabled:cursor-not-allowed"
                   />
-                  <span class="text-xs font-medium" :class="selectedAreaPreset === 'custom' ? 'text-[#0DA2E7]' : 'text-slate-500'">m²</span>
+                  <span class="text-xs font-medium shrink-0" :class="selectedAreaPreset === 'custom' ? 'text-[#0DA2E7]' : 'text-slate-500'">m²</span>
                 </div>
               </div>
             </div>

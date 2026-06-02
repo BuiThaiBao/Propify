@@ -652,156 +652,56 @@
         </div>
 
         <div v-else class="space-y-4">
-          <article
-            v-for="item in paginatedFavoriteListings"
-            :key="item.id"
-            class="group overflow-hidden rounded-xl border border-slate-100 bg-white transition hover:shadow-md flex flex-col md:flex-row relative"
-          >
-            <!-- Left Side: Image section -->
-            <div class="relative w-full md:w-[260px] lg:w-[280px] h-48 md:h-[200px] shrink-0 bg-slate-50 overflow-hidden">
-              <img
-                :src="item.thumbnail || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60'"
-                alt="thumb"
-                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              
-              <!-- Floating Package Badge -->
-              <div v-if="item.package && item.package.priority > 0" class="absolute left-3 top-3 z-10">
-                <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm', packageBadgeColor(item.package)]">
-                  ★ {{ item.package.badge || item.package.name }}
-                </span>
-              </div>
-
-              <!-- Floating Favorite Heart Button -->
-              <button
-                type="button"
-                class="absolute right-3 top-3 z-10 rounded-full p-2 bg-rose-500 text-white shadow hover:bg-rose-600 transition animate-pulse"
-                aria-label="Bỏ yêu thích"
-                @click.stop="removeFavorite(item)"
-              >
-                <Heart class="h-4 w-4" fill="currentColor" />
-              </button>
-
-              <!-- Image count indicator -->
-              <div class="absolute bottom-3 right-3 rounded-md bg-slate-900/60 px-2 py-0.5 text-[10px] font-semibold text-white">
-                1/{{ item.images?.length || 1 }}
-              </div>
-
-              <!-- Dot indicators at bottom center -->
-              <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
-                <span v-for="n in Math.min(3, (item.images?.length || 1) - 1)" :key="n" class="w-1.5 h-1.5 rounded-full bg-white/50"></span>
-              </div>
-            </div>
-
-            <!-- Right Side: Details section -->
-            <div class="flex-1 p-4 lg:p-5 flex flex-col justify-between min-w-0">
-              <div class="relative">
-                <!-- Top Row: Tags & Score -->
-                <div class="flex items-center justify-between gap-4 mb-2">
-                  <div class="flex flex-wrap items-center gap-1.5">
-                    <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700">
-                      {{ propertyTypeLabel(item.property?.type) }}
-                    </span>
-                    <span v-if="item.isVerified" class="rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-600 flex items-center gap-0.5">
-                      ✓ Xác thực
-                    </span>
-                  </div>
-
-                  <!-- Score badge -->
-                  <div class="rounded-full bg-[#ebf8ff] text-[#0086ff] h-8 w-8 min-w-[2rem] flex items-center justify-center font-bold text-xs border border-[#bee3f8] shadow-sm">
-                    {{ item.score }}
-                  </div>
-                </div>
-
-                <!-- Title -->
-                <h3 class="text-base font-bold text-slate-800 leading-snug line-clamp-1 group-hover:text-sky-600 transition-colors cursor-pointer" @click="router.push('/listings/' + item.id)">
-                  {{ item.title }}
-                </h3>
-
-                <!-- Location & Time -->
-                <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-                  <span class="flex items-center gap-1">
-                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
-                    </svg>
-                    {{ item.address }}
-                  </span>
-                  <span class="flex items-center gap-1">
-                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    {{ timeAgo(item.publishedAt || item.submittedAt) }}
-                  </span>
-                </div>
-
-                <!-- Price -->
-                <p class="mt-3 text-lg font-bold text-sky-500">
-                  {{ item.price }}
-                  <span v-if="item.demandType === 'RENT'" class="text-xs font-normal text-slate-500">/tháng</span>
-                </p>
-
-                <!-- Amenities / Specs -->
-                <div class="mt-3 flex flex-wrap items-center gap-2">
-                  <span class="inline-flex items-center gap-1 rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-xs text-slate-600">
-                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 3H3v18h18V3Z"/><path d="M21 9H3"/><path d="M21 15H3"/><path d="M12 3v18"/>
-                    </svg>
-                    {{ item.property?.area || 0 }} m²
-                  </span>
-                  <span class="inline-flex items-center gap-1 rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-xs text-slate-600">
-                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/>
-                    </svg>
-                    {{ item.property?.bedrooms || 0 }} PN
-                  </span>
-                  <span class="inline-flex items-center gap-1 rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-xs text-slate-600">
-                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-2.1 0l-.8.8a1.5 1.5 0 0 0 0 2.1L6 9"/><path d="M4 14h16v7H4v-7Z"/><path d="M2 17h20"/><circle cx="7" cy="11" r="1"/><circle cx="17" cy="11" r="1"/>
-                    </svg>
-                    {{ item.property?.bathrooms || 0 }} WC
-                  </span>
-                </div>
-              </div>
-
-              <!-- Owner Info & Contact Button Row -->
-              <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between gap-4">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <div class="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs shrink-0 uppercase">
-                    {{ (item.owner?.full_name || item.property?.contact_name || 'U').charAt(0) }}
-                  </div>
-                  <div class="min-w-0 leading-none">
-                    <p class="text-xs font-bold text-slate-700 truncate mb-0.5">
-                      {{ item.property?.contact_name || item.owner?.full_name || 'Người dùng' }}
-                    </p>
-                    <p class="text-[10px] text-slate-400">
-                      {{ item.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới' }}
-                    </p>
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-3 shrink-0">
-                  <!-- Views count -->
-                  <span class="inline-flex items-center gap-1 text-xs text-slate-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                    {{ item.views }}
-                  </span>
-
-                  <!-- Contact Button -->
-                  <a
-                    v-if="item.property?.contact_phone || item.owner?.phone"
-                    :href="`tel:${item.property?.contact_phone || item.owner?.phone}`"
-                    class="rounded-full bg-sky-500 hover:bg-sky-600 px-4 py-1.5 text-xs font-semibold text-white flex items-center gap-1 shadow-sm transition"
-                  >
-                    <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                    </svg>
-                    Liên hệ
-                  </a>
-                </div>
-              </div>
-            </div>
-          </article>
+          <template v-for="item in paginatedFavoriteListings" :key="item.id">
+            <!-- Rent Card -->
+            <RentCard
+              v-if="item.demandType === 'RENT'"
+              :to="'/listings/' + item.id"
+              :verified="isVerified(item)"
+              :title="item.title"
+              :type="propertyTypeLabel(item.property?.type)"
+              :price="formatPrice(item.property?.price)"
+              :unit="'/tháng'"
+              :area="item.property?.area || 0"
+              :beds="item.property?.bedrooms || 0"
+              :baths="item.property?.bathrooms || 0"
+              :location="item.address"
+              :author="getAuthor(item)"
+              :image="getThumb(item)"
+              :images="item.images"
+              :package="item.package"
+              :listing-id="item.id"
+              :is-favorite="true"
+              :rating="null"
+              :timeAgo="timeAgo(item.publishedAt || item.submittedAt)"
+              :views="item.views ?? 0"
+              @toggle-favorite="removeFavorite(item)"
+            />
+            <!-- Sale Card -->
+            <SaleCard 
+              v-else
+              :to="'/listings/' + item.id"
+              :verified="isVerified(item)"
+              :title="item.title"
+              :type="propertyTypeLabel(item.property?.type)"
+              :price="formatPrice(item.property?.price)"
+              :unit="''"
+              :area="item.property?.area || 0"
+              :beds="item.property?.bedrooms || 0"
+              :baths="item.property?.bathrooms || 0"
+              :location="item.address"
+              :author="getAuthor(item)"
+              :image="getThumb(item)"
+              :images="item.images"
+              :package="item.package"
+              :listing-id="item.id"
+              :is-favorite="true"
+              :rating="null"
+              :timeAgo="timeAgo(item.publishedAt || item.submittedAt)"
+              :views="item.views ?? 0"
+              @toggle-favorite="removeFavorite(item)"
+            />
+          </template>
 
           <!-- Frontend Pagination -->
           <div class="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
@@ -899,6 +799,8 @@ import favoriteService from '@/services/favoriteService';
 import PackageUpgradeModal from '@/components/shared/PackageUpgradeModal.vue';
 import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
 import AppointmentManagement from '@/components/appointments/AppointmentManagement.vue';
+import SaleCard from '@/components/shared/SaleCard.vue';
+import RentCard from '@/components/shared/RentCard.vue';
 import { buildPropertyAddress, hydrateListingAddresses } from '@/utils/addressFormatter';
 import { Heart } from 'lucide-vue-next';
 
@@ -1334,6 +1236,35 @@ function timeAgo(dateStr) {
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 30) return `${diffDays} ngày trước`;
   return d.toLocaleDateString('vi-VN');
+}
+
+function isVerified(item) {
+  const value = item?.is_verified ?? item?.isVerified;
+  return value === true || Number(value) === 1;
+}
+
+function getThumb(item) {
+  if (item.images && item.images.length > 0) {
+    const thumb = item.images.find((image) => image.is_thumbnail || image.isThumbnail);
+    return thumb ? thumb.url : item.images[0].url;
+  }
+  return item.thumbnail || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60';
+}
+
+function getAuthor(item) {
+  return {
+    name: item.property?.contact_name || item.owner?.full_name || 'Chủ nhà',
+    role: item.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới',
+    phone: item.property?.contact_phone || item.owner?.phone,
+  };
+}
+
+function formatPrice(value) {
+  const num = Number(value || 0);
+  if (!num || num <= 0) return 'Thỏa thuận';
+  if (num >= 1000000000) return `${(num / 1000000000).toLocaleString('vi-VN')} tỷ`;
+  if (num >= 1000000) return `${(num / 1000000).toLocaleString('vi-VN')} triệu`;
+  return `${num.toLocaleString('vi-VN')} đ`;
 }
 
 // ==================== Package Upgrade ====================
