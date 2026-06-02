@@ -225,7 +225,7 @@ final class EloquentListingRepository implements ListingRepository
         return Listing::query()
             ->select(['id', 'property_id', 'title', 'demand_type'])
             ->with([
-                'property:id,address_detail,price,area,poster_type,lat,lng,project_name',
+                'property:id,address_detail,price,area,poster_type,lat,lng,project_name,province,ward',
                 'images:id,listing_id,image_url,is_thumbnail',
             ])
             ->where('status', 'ACTIVE')

@@ -208,6 +208,7 @@ final class ListingServiceImpl implements ListingService
         ?float $maxArea = null
     ): Collection {
         $cacheKey = 'listings:public:map:'.md5(serialize([
+            'version' => 2,
             'demand_type' => $demandType,
             'keyword' => $keyword,
             'poster_type' => $posterType,
