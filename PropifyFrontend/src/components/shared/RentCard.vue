@@ -2,68 +2,89 @@
 <template>
 	<RouterLink :to="to" class="block no-underline text-inherit">
 	<div 
-		class="bg-white rounded-md flex gap-4 shadow-sm border border-gray-100/60 hover:shadow-md transition-shadow group overflow-hidden min-h-[210px]"
+		class="bg-white rounded flex gap-4 group overflow-hidden min-h-[210px]"
 		:class="packageBorderClass"
 	>
-		<div class="relative w-[280px] md:w-[300px] shrink-0 rounded-r-md overflow-hidden">
-			<img :src="imageList[activeImgIdx]" alt="Property" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+		<!-- Left Media Column -->
+		<div class="flex flex-col gap-2 shrink-0 w-[280px] md:w-[300px] pt-[1px] pb-[1px] pl-[1px]">
+			<!-- Main Image Box -->
+			<div class="relative w-full h-0 flex-1 rounded overflow-hidden">
+				<img :src="imageList[activeImgIdx]" alt="Property" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
 
-			<div v-if="packageIcon" class="absolute top-0 left-0">
-				<span class="relative inline-block">
-					<img :src="packageIcon" class="block h-[4.3rem] w-auto" alt="" />
-					<span class="absolute top-[30%] right-1 flex h-[37%] items-center justify-center px-3 text-[10px] font-extrabold tracking-wide text-white whitespace-nowrap">
-						{{ packageLabel }}
+				<div v-if="packageIcon" class="absolute top-0 left-0">
+					<span class="relative inline-block">
+						<img :src="packageIcon" class="block h-[4.3rem] w-auto" alt="" />
+						<span class="absolute top-[30%] right-1 flex h-[37%] items-center justify-center px-3 text-[10px] font-extrabold tracking-wide text-white whitespace-nowrap">
+							{{ packageLabel }}
+						</span>
 					</span>
-				</span>
+				</div>
+
+				<!-- Image navigation arrows (visible on hover) -->
+				<div v-if="imageList.length > 1" class="absolute inset-0 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+					<button 
+						type="button" 
+						@click.prevent.stop="prevImg" 
+						class="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-sm transition-all pointer-events-auto active:scale-90"
+						aria-label="Ảnh trước"
+					>
+						<ChevronLeft class="w-5 h-5" />
+					</button>
+					<button 
+						type="button" 
+						@click.prevent.stop="nextImg" 
+						class="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-sm transition-all pointer-events-auto active:scale-90"
+						aria-label="Ảnh sau"
+					>
+						<ChevronRight class="w-5 h-5" />
+					</button>
+				</div>
+
+				<div class="absolute top-3 right-3 z-20">
+					<button
+						type="button"
+						:class="[
+							'backdrop-blur-md p-2 rounded-full transition-all shadow-sm',
+							isFavorite ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-white/20 hover:bg-white/30 text-white'
+						]"
+						aria-label="Yêu thích"
+						@click.prevent.stop="$emit('toggleFavorite')"
+					>
+						<Heart class="w-4 h-4" :fill="isFavorite ? 'currentColor' : 'none'" />
+					</button>
+				</div>
+
+				<!-- Pagination Indicator (e.g. 1/4) -->
+				<div v-if="imageList.length > 1" class="absolute bottom-3 right-3 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm font-medium z-20">
+					{{ activeImgIdx + 1 }}/{{ imageList.length }}
+				</div>
+
+				<!-- Dynamic Pagination Dots (only show for standard/gold packages) -->
+				<div v-if="imageList.length > 1 && !isPremium" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+					<div 
+						v-for="(img, idx) in imageList" 
+						:key="idx" 
+						class="w-1.5 h-1.5 rounded-full transition-all duration-300 shadow-sm"
+						:class="idx === activeImgIdx ? 'bg-white scale-110' : 'bg-white/50'"
+					></div>
+				</div>
 			</div>
 
-			<!-- Image navigation arrows (visible on hover) -->
-			<div v-if="imageList.length > 1" class="absolute inset-0 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
-				<button 
-					type="button" 
-					@click.prevent.stop="prevImg" 
-					class="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-sm transition-all pointer-events-auto active:scale-90"
-					aria-label="Ảnh trước"
-				>
-					<ChevronLeft class="w-5 h-5" />
-				</button>
-				<button 
-					type="button" 
-					@click.prevent.stop="nextImg" 
-					class="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-sm transition-all pointer-events-auto active:scale-90"
-					aria-label="Ảnh sau"
-				>
-					<ChevronRight class="w-5 h-5" />
-				</button>
-			</div>
-
-			<div class="absolute top-3 right-3 z-20">
-				<button
-					type="button"
-					:class="[
-						'backdrop-blur-md p-2 rounded-full transition-all shadow-sm',
-						isFavorite ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-white/20 hover:bg-white/30 text-white'
-					]"
-					aria-label="Yêu thích"
-					@click.prevent.stop="$emit('toggleFavorite')"
-				>
-					<Heart class="w-4 h-4" :fill="isFavorite ? 'currentColor' : 'none'" />
-				</button>
-			</div>
-
-			<!-- Pagination Indicator (e.g. 1/4) -->
-			<div v-if="imageList.length > 1" class="absolute bottom-3 right-3 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm font-medium z-20">
-				{{ activeImgIdx + 1 }}/{{ imageList.length }}
-			</div>
-
-			<!-- Dynamic Pagination Dots -->
-			<div v-if="imageList.length > 1" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+			<!-- Premium Thumbnails Row (only show for Diamond/Ruby packages) -->
+			<div v-if="isPremium && imageList.length > 1" class="flex gap-1 h-[50px] shrink-0 w-full">
 				<div 
-					v-for="(img, idx) in imageList" 
-					:key="idx" 
-					class="w-1.5 h-1.5 rounded-full transition-all duration-300 shadow-sm"
-					:class="idx === activeImgIdx ? 'bg-white scale-110' : 'bg-white/50'"
-				></div>
+					v-for="(img, idx) in previewImages" 
+					:key="idx"
+					@click.prevent.stop="activeImgIdx = idx"
+					class="relative flex-1 rounded-sm bg-slate-100 overflow-hidden cursor-pointer transition-all"
+					:class="idx === Math.min(activeImgIdx, 2) ? 'ring-2 ring-blue-500 ring-inset' : 'hover:opacity-90'"
+				>
+					<img :src="img" class="w-full h-full object-cover" alt="" />
+					<!-- Overlay on last thumb if there are more than 3 images -->
+					<div v-if="idx === 2 && imageList.length > 3" class="absolute inset-0 bg-black/60 text-white flex items-center justify-center text-[11px] font-bold">
+						+{{ remainingImagesCount }}
+					</div>
+				</div>
 			</div>
 		</div>
 
@@ -192,6 +213,20 @@ const imageList = computed(() => {
 	return [props.image];
 });
 
+const isPremium = computed(() => {
+	const slug = String(props.package?.slug || '').toLowerCase();
+	const priority = Number(props.package?.priority || 0);
+	return slug === 'diamond' || slug === 'ruby' || priority === 4;
+});
+
+const previewImages = computed(() => {
+	return imageList.value.slice(0, 3);
+});
+
+const remainingImagesCount = computed(() => {
+	return imageList.value.length - 2;
+});
+
 function nextImg() {
 	if (imageList.value.length <= 1) return;
 	activeImgIdx.value = (activeImgIdx.value + 1) % imageList.value.length;
@@ -245,7 +280,7 @@ function getInitials(name) {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	border-radius: 0.5rem;
+	border-radius: 0.25rem;
 	padding: 2px; /* Border thickness */
 	background: conic-gradient(
 		from var(--angle),
