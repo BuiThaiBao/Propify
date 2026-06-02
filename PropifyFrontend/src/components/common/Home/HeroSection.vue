@@ -83,10 +83,6 @@
 
             <!-- Buttons -->
             <div class="flex gap-2">
-              <button class="shrink-0 rounded-xl border border-border p-2">
-                <SlidersHorizontal class="w-4 h-4" />
-              </button>
-
               <button
                 @click="goToListings"
                 class="hero-gradient text-primary-foreground border-0 rounded-xl px-6 flex items-center hover:opacity-90 active:scale-[0.97] transition-all"
@@ -122,7 +118,7 @@ import { ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 // icons (cài nếu chưa có: npm i lucide-vue-next)
-import { MapPin, Search, SlidersHorizontal } from "lucide-vue-next";
+import { MapPin, Search } from "lucide-vue-next";
 
 // state
 const searchQuery = ref("");

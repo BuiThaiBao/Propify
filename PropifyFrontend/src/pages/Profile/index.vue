@@ -59,7 +59,13 @@
           >
             Danh sách tin đăng
           </button>
-          <button class="w-full text-left pl-12 pr-5 py-2.5 text-[0.82rem] text-slate-500 hover:bg-slate-200 hover:text-sky-500 transition-all">Danh sách xác thực BĐS</button>
+          <button
+            class="w-full text-left pl-12 pr-5 py-2.5 text-[0.82rem] transition-all"
+            :class="activeTab === 'verifications' ? 'bg-sky-100 text-sky-600 font-semibold' : 'text-slate-500 hover:bg-slate-200 hover:text-sky-500'"
+            @click="openVerificationsTab"
+          >
+            Danh sách xác thực BĐS
+          </button>
         </div>
 
         <!-- Quản lý đặt lịch -->
@@ -359,10 +365,10 @@
                 <th class="px-3 py-4 whitespace-nowrap">Mã tin đăng</th>
                 <th class="px-3 py-4 min-w-[200px]">Tin đăng</th>
                 <th class="px-3 py-4 whitespace-nowrap">Ngày tạo</th>
+                <th class="px-3 py-4 whitespace-nowrap">Ngày đăng</th>
                 <th class="px-3 py-4 min-w-[180px]">Địa chỉ</th>
                 <th class="px-3 py-4 whitespace-nowrap">Giá</th>
                 <th class="px-3 py-4 whitespace-nowrap">Gói tin</th>
-                <th class="px-3 py-4 whitespace-nowrap">Xác thực</th>
                 <th class="px-3 py-4 text-center whitespace-nowrap">Hiển thị</th>
                 <th class="px-3 py-4 whitespace-nowrap col-sticky-status">Trạng thái</th>
                 <th class="pl-3 pr-5 py-4 w-12 text-center col-sticky-actions"></th>
@@ -384,16 +390,12 @@
                 <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.code }}</td>
                 <td class="px-3 py-4 font-semibold text-slate-700 group-hover:text-sky-600">{{ item.title }}</td>
                 <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.createdAt }}</td>
+                <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.publishedAt }}</td>
                 <td class="px-3 py-4 text-slate-500">{{ item.address }}</td>
                 <td class="px-3 py-4 font-semibold text-slate-700 whitespace-nowrap">{{ item.price }}</td>
                 <td class="px-3 py-4 whitespace-nowrap">
                   <span :class="['rounded-full px-2 py-1 text-xs font-semibold', packageBadgeClass(item.package)]">
                     {{ packageLabel(item.package) }}
-                  </span>
-                </td>
-                <td class="px-3 py-4 whitespace-nowrap">
-                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', verificationBadgeClass(item.isVerified)]">
-                    {{ item.isVerified ? 'Đã xác thực' : 'Chưa xác thực' }}
                   </span>
                 </td>
                 <td class="px-3 py-4 whitespace-nowrap">
@@ -485,6 +487,185 @@
               class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50"
               :disabled="listingPagination.currentPage >= listingPagination.lastPage || listingsLoading"
               @click="loadMyListings(listingPagination.currentPage + 1)"
+            >
+              Sau
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== PROPERTY VERIFICATIONS TAB ===== -->
+      <section v-if="activeTab === 'verifications'" class="bg-white rounded-xl shadow-sm p-8">
+        <h2 class="text-xl font-bold text-slate-800 mb-6">Danh sách xác thực BĐS</h2>
+
+        <div class="grid grid-cols-1 gap-3 mb-4">
+          <input
+            v-model.trim="verificationFilters.keyword"
+            type="text"
+            class="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-sky-400"
+            placeholder="Nhập giá trị tìm kiếm..."
+          />
+        </div>
+
+        <div class="flex flex-nowrap overflow-x-auto gap-2 pb-2 mb-4 w-full no-scrollbar">
+          <button
+            v-for="tab in verificationStatusTabs"
+            :key="tab.value"
+            class="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border text-[0.85rem] font-medium transition-colors"
+            :class="verificationFilters.status === tab.value 
+              ? 'border-sky-300 bg-sky-50 text-sky-600' 
+              : 'border-slate-100 bg-white text-slate-600 hover:bg-slate-50'"
+            @click="verificationFilters.status = tab.value; loadVerificationListings(1)"
+          >
+            <span v-if="tab.colorClass" class="w-1.5 h-1.5 rounded-full" :class="tab.colorClass"></span>
+            {{ tab.label }}
+            <span class="text-[0.75rem] font-bold" :class="verificationFilters.status === tab.value ? 'text-sky-500' : 'text-slate-500'">{{ tab.count || 0 }}</span>
+          </button>
+        </div>
+
+        <div
+          v-if="listingActionMessage"
+          :class="['mb-4 rounded-lg px-4 py-3 text-sm border', listingActionSuccess ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-rose-200 bg-rose-50 text-rose-700']"
+        >
+          {{ listingActionMessage }}
+        </div>
+
+        <div class="overflow-x-auto rounded-lg border border-slate-200">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-left text-xs text-slate-500">
+              <tr>
+                <th class="px-3 py-4 whitespace-nowrap col-sticky-id">ID</th>
+                <th class="px-3 py-4 whitespace-nowrap w-[72px] min-w-[72px]">Ảnh</th>
+                <th class="px-3 py-4 whitespace-nowrap">Mã tin đăng</th>
+                <th class="px-3 py-4 min-w-[200px]">Tin đăng</th>
+                <th class="px-3 py-4 whitespace-nowrap">Ngày tạo</th>
+                <th class="px-3 py-4 whitespace-nowrap">Ngày đăng</th>
+                <th class="px-3 py-4 min-w-[180px]">Địa chỉ</th>
+                <th class="px-3 py-4 whitespace-nowrap">Giá</th>
+                <th class="px-3 py-4 whitespace-nowrap">Gói tin</th>
+                <th class="px-3 py-4 text-center whitespace-nowrap">Hiển thị</th>
+                <th class="px-3 py-4 whitespace-nowrap col-sticky-verification">Xác thực</th>
+                <th class="px-3 py-4 whitespace-nowrap col-sticky-status">Trạng thái</th>
+                <th class="pl-3 pr-5 py-4 w-12 text-center col-sticky-actions"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="verificationLoading">
+                <td class="px-3 py-6 text-center text-slate-400" colspan="13">Đang tải dữ liệu...</td>
+              </tr>
+              <tr v-else-if="verificationListings.length === 0">
+                <td class="px-3 py-6 text-center text-slate-400" colspan="13">Bạn chưa có tin đăng nào.</td>
+              </tr>
+              <tr v-for="item in verificationListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="openListingEdit(item)">
+                <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap col-sticky-id">{{ item.id }}</td>
+                <td class="px-3 py-4 whitespace-nowrap w-[72px] min-w-[72px]">
+                  <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-12 min-w-12 rounded-md object-cover border border-slate-200" />
+                  <div v-else class="h-12 w-12 min-w-12 rounded-md bg-slate-100 border border-slate-200"></div>
+                </td>
+                <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.code }}</td>
+                <td class="px-3 py-4 font-semibold text-slate-700 group-hover:text-sky-600">{{ item.title }}</td>
+                <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.createdAt }}</td>
+                <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.publishedAt }}</td>
+                <td class="px-3 py-4 text-slate-500">{{ item.address }}</td>
+                <td class="px-3 py-4 font-semibold text-slate-700 whitespace-nowrap">{{ item.price }}</td>
+                <td class="px-3 py-4 whitespace-nowrap">
+                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', packageBadgeClass(item.package)]">
+                    {{ packageLabel(item.package) }}
+                  </span>
+                </td>
+                <td class="px-3 py-4 whitespace-nowrap">
+                  <div class="flex items-center justify-center gap-1.5 text-slate-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span class="font-medium text-sm">{{ item.views ?? 0 }}</span>
+                  </div>
+                </td>
+                <td class="px-3 py-4 whitespace-nowrap col-sticky-verification">
+                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', verificationBadgeClass(item.isVerified)]">
+                    {{ item.isVerified ? 'Đã xác thực' : 'Chưa xác thực' }}
+                  </span>
+                </td>
+                <td class="px-3 py-4 whitespace-nowrap col-sticky-status">
+                  <span :class="['rounded-full px-2 py-1 text-xs font-medium', statusBadgeClass(item.status)]">
+                    {{ statusLabel(item.status) }}
+                  </span>
+                </td>
+                <td class="pl-3 pr-5 py-4 relative col-sticky-actions">
+                  <button @click.stop="toggleDropdown(item.id, $event)" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center mx-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+                  <Teleport to="body">
+                    <div v-if="openDropdownId === item.id" :style="{ top: dropdownStyle.top, left: dropdownStyle.left }" class="absolute w-[200px] bg-white border border-slate-100 shadow-xl rounded-xl py-2 z-[9999] text-left">
+                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('edit', item)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+                        Sửa tin đăng
+                      </button>
+                      <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('upgrade', item)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                        Nâng cấp gói tin
+                      </button>
+                      <button v-if="!item.isVerified" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('verify', item)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+                        Xác thực BĐS
+                      </button>
+                      <button
+                        :disabled="item.status !== 'DRAFT'"
+                        :class="[
+                          'w-full text-left px-4 py-2.5 text-[0.85rem] flex items-center gap-3 transition-colors',
+                          item.status === 'DRAFT'
+                            ? 'text-slate-700 hover:bg-slate-50'
+                            : 'cursor-not-allowed text-slate-300 bg-slate-50'
+                        ]"
+                        @click.stop="handleDropdownAction('publish', item)"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                        Đăng tin
+                      </button>
+                      <button
+                        :disabled="item.status !== 'ACTIVE'"
+                        :class="[
+                          'w-full text-left px-4 py-2.5 text-[0.85rem] flex items-center gap-3 transition-colors',
+                          item.status === 'ACTIVE'
+                            ? 'text-slate-700 hover:bg-slate-50'
+                            : 'cursor-not-allowed text-slate-300 bg-slate-50'
+                        ]"
+                        @click.stop="handleDropdownAction('unpublish', item)"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                        Gỡ tin đăng
+                      </button>
+                      <button v-if="item.status !== 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('lock', item)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Khóa tin đăng
+                      </button>
+                      <button v-if="item.status === 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unlock', item)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                        Mở khóa tin đăng
+                      </button>
+                    </div>
+                  </Teleport>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+          <p>Tổng cộng {{ verificationPagination.total }} tin</p>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50"
+              :disabled="verificationPagination.currentPage <= 1 || verificationLoading"
+              @click="loadVerificationListings(verificationPagination.currentPage - 1)"
+            >
+              Trước
+            </button>
+            <span>Trang {{ verificationPagination.currentPage }}/{{ verificationPagination.lastPage }}</span>
+            <button
+              type="button"
+              class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50"
+              :disabled="verificationPagination.currentPage >= verificationPagination.lastPage || verificationLoading"
+              @click="loadVerificationListings(verificationPagination.currentPage + 1)"
             >
               Sau
             </button>
@@ -652,156 +833,56 @@
         </div>
 
         <div v-else class="space-y-4">
-          <article
-            v-for="item in paginatedFavoriteListings"
-            :key="item.id"
-            class="group overflow-hidden rounded-xl border border-slate-100 bg-white transition hover:shadow-md flex flex-col md:flex-row relative"
-          >
-            <!-- Left Side: Image section -->
-            <div class="relative w-full md:w-[260px] lg:w-[280px] h-48 md:h-[200px] shrink-0 bg-slate-50 overflow-hidden">
-              <img
-                :src="item.thumbnail || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60'"
-                alt="thumb"
-                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              
-              <!-- Floating Package Badge -->
-              <div v-if="item.package && item.package.priority > 0" class="absolute left-3 top-3 z-10">
-                <span :class="['inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold text-white shadow-sm', packageBadgeColor(item.package)]">
-                  ★ {{ item.package.badge || item.package.name }}
-                </span>
-              </div>
-
-              <!-- Floating Favorite Heart Button -->
-              <button
-                type="button"
-                class="absolute right-3 top-3 z-10 rounded-full p-2 bg-rose-500 text-white shadow hover:bg-rose-600 transition animate-pulse"
-                aria-label="Bỏ yêu thích"
-                @click.stop="removeFavorite(item)"
-              >
-                <Heart class="h-4 w-4" fill="currentColor" />
-              </button>
-
-              <!-- Image count indicator -->
-              <div class="absolute bottom-3 right-3 rounded-md bg-slate-900/60 px-2 py-0.5 text-[10px] font-semibold text-white">
-                1/{{ item.images?.length || 1 }}
-              </div>
-
-              <!-- Dot indicators at bottom center -->
-              <div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
-                <span v-for="n in Math.min(3, (item.images?.length || 1) - 1)" :key="n" class="w-1.5 h-1.5 rounded-full bg-white/50"></span>
-              </div>
-            </div>
-
-            <!-- Right Side: Details section -->
-            <div class="flex-1 p-4 lg:p-5 flex flex-col justify-between min-w-0">
-              <div class="relative">
-                <!-- Top Row: Tags & Score -->
-                <div class="flex items-center justify-between gap-4 mb-2">
-                  <div class="flex flex-wrap items-center gap-1.5">
-                    <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700">
-                      {{ propertyTypeLabel(item.property?.type) }}
-                    </span>
-                    <span v-if="item.isVerified" class="rounded-full bg-emerald-50 border border-emerald-100 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-600 flex items-center gap-0.5">
-                      ✓ Xác thực
-                    </span>
-                  </div>
-
-                  <!-- Score badge -->
-                  <div class="rounded-full bg-[#ebf8ff] text-[#0086ff] h-8 w-8 min-w-[2rem] flex items-center justify-center font-bold text-xs border border-[#bee3f8] shadow-sm">
-                    {{ item.score }}
-                  </div>
-                </div>
-
-                <!-- Title -->
-                <h3 class="text-base font-bold text-slate-800 leading-snug line-clamp-1 group-hover:text-sky-600 transition-colors cursor-pointer" @click="router.push('/listings/' + item.id)">
-                  {{ item.title }}
-                </h3>
-
-                <!-- Location & Time -->
-                <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-                  <span class="flex items-center gap-1">
-                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>
-                    </svg>
-                    {{ item.address }}
-                  </span>
-                  <span class="flex items-center gap-1">
-                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
-                    {{ timeAgo(item.publishedAt || item.submittedAt) }}
-                  </span>
-                </div>
-
-                <!-- Price -->
-                <p class="mt-3 text-lg font-bold text-sky-500">
-                  {{ item.price }}
-                  <span v-if="item.demandType === 'RENT'" class="text-xs font-normal text-slate-500">/tháng</span>
-                </p>
-
-                <!-- Amenities / Specs -->
-                <div class="mt-3 flex flex-wrap items-center gap-2">
-                  <span class="inline-flex items-center gap-1 rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-xs text-slate-600">
-                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 3H3v18h18V3Z"/><path d="M21 9H3"/><path d="M21 15H3"/><path d="M12 3v18"/>
-                    </svg>
-                    {{ item.property?.area || 0 }} m²
-                  </span>
-                  <span class="inline-flex items-center gap-1 rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-xs text-slate-600">
-                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M2 4v16"/><path d="M2 8h18a2 2 0 0 1 2 2v10"/><path d="M2 17h20"/><path d="M6 8v9"/>
-                    </svg>
-                    {{ item.property?.bedrooms || 0 }} PN
-                  </span>
-                  <span class="inline-flex items-center gap-1 rounded-md border border-slate-100 bg-slate-50 px-2 py-1 text-xs text-slate-600">
-                    <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M9 6 6.5 3.5a1.5 1.5 0 0 0-2.1 0l-.8.8a1.5 1.5 0 0 0 0 2.1L6 9"/><path d="M4 14h16v7H4v-7Z"/><path d="M2 17h20"/><circle cx="7" cy="11" r="1"/><circle cx="17" cy="11" r="1"/>
-                    </svg>
-                    {{ item.property?.bathrooms || 0 }} WC
-                  </span>
-                </div>
-              </div>
-
-              <!-- Owner Info & Contact Button Row -->
-              <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between gap-4">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <div class="w-8 h-8 rounded-full bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs shrink-0 uppercase">
-                    {{ (item.owner?.full_name || item.property?.contact_name || 'U').charAt(0) }}
-                  </div>
-                  <div class="min-w-0 leading-none">
-                    <p class="text-xs font-bold text-slate-700 truncate mb-0.5">
-                      {{ item.property?.contact_name || item.owner?.full_name || 'Người dùng' }}
-                    </p>
-                    <p class="text-[10px] text-slate-400">
-                      {{ item.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới' }}
-                    </p>
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-3 shrink-0">
-                  <!-- Views count -->
-                  <span class="inline-flex items-center gap-1 text-xs text-slate-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-                    {{ item.views }}
-                  </span>
-
-                  <!-- Contact Button -->
-                  <a
-                    v-if="item.property?.contact_phone || item.owner?.phone"
-                    :href="`tel:${item.property?.contact_phone || item.owner?.phone}`"
-                    class="rounded-full bg-sky-500 hover:bg-sky-600 px-4 py-1.5 text-xs font-semibold text-white flex items-center gap-1 shadow-sm transition"
-                  >
-                    <svg class="h-3 w-3" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                    </svg>
-                    Liên hệ
-                  </a>
-                </div>
-              </div>
-            </div>
-          </article>
+          <template v-for="item in paginatedFavoriteListings" :key="item.id">
+            <!-- Rent Card -->
+            <RentCard
+              v-if="item.demandType === 'RENT'"
+              :to="'/listings/' + item.id"
+              :verified="isVerified(item)"
+              :title="item.title"
+              :type="propertyTypeLabel(item.property?.type)"
+              :price="formatPrice(item.property?.price)"
+              :unit="'/tháng'"
+              :area="item.property?.area || 0"
+              :beds="item.property?.bedrooms || 0"
+              :baths="item.property?.bathrooms || 0"
+              :location="item.address"
+              :author="getAuthor(item)"
+              :image="getThumb(item)"
+              :images="item.images"
+              :package="item.package"
+              :listing-id="item.id"
+              :is-favorite="true"
+              :rating="null"
+              :timeAgo="timeAgo(item.publishedAt || item.submittedAt)"
+              :views="item.views ?? 0"
+              @toggle-favorite="removeFavorite(item)"
+            />
+            <!-- Sale Card -->
+            <SaleCard 
+              v-else
+              :to="'/listings/' + item.id"
+              :verified="isVerified(item)"
+              :title="item.title"
+              :type="propertyTypeLabel(item.property?.type)"
+              :price="formatPrice(item.property?.price)"
+              :unit="''"
+              :area="item.property?.area || 0"
+              :beds="item.property?.bedrooms || 0"
+              :baths="item.property?.bathrooms || 0"
+              :location="item.address"
+              :author="getAuthor(item)"
+              :image="getThumb(item)"
+              :images="item.images"
+              :package="item.package"
+              :listing-id="item.id"
+              :is-favorite="true"
+              :rating="null"
+              :timeAgo="timeAgo(item.publishedAt || item.submittedAt)"
+              :views="item.views ?? 0"
+              @toggle-favorite="removeFavorite(item)"
+            />
+          </template>
 
           <!-- Frontend Pagination -->
           <div class="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
@@ -899,6 +980,8 @@ import favoriteService from '@/services/favoriteService';
 import PackageUpgradeModal from '@/components/shared/PackageUpgradeModal.vue';
 import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
 import AppointmentManagement from '@/components/appointments/AppointmentManagement.vue';
+import SaleCard from '@/components/shared/SaleCard.vue';
+import RentCard from '@/components/shared/RentCard.vue';
 import { buildPropertyAddress, hydrateListingAddresses } from '@/utils/addressFormatter';
 import { Heart } from 'lucide-vue-next';
 
@@ -998,7 +1081,7 @@ async function uploadAvatar() {
 }
 
 // ── Tabs ──
-const validTabs = ['profile', 'listings', 'appointments', 'favorites', 'password'];
+const validTabs = ['profile', 'listings', 'verifications', 'appointments', 'favorites', 'password'];
 const initialTab = validTabs.includes(route.query.tab) ? route.query.tab : 'profile';
 const activeTab = ref(initialTab);
 
@@ -1021,6 +1104,8 @@ watch(
 
     if (nextTab === 'listings') {
       openListingsTab();
+    } else if (nextTab === 'verifications') {
+      openVerificationsTab();
     } else if (nextTab === 'appointments') {
       openAppointmentsTab();
     } else if (nextTab === 'favorites') {
@@ -1113,6 +1198,44 @@ const statusTabs = computed(() => [
   { label: 'Đã gỡ', value: 'UNLISTED', colorClass: 'bg-slate-500', count: statusCounts.UNLISTED },
 ]);
 
+const verificationListings = ref([]);
+const verificationLoading = ref(false);
+const verificationLoaded = ref(false);
+const verificationFilters = reactive({
+  keyword: '',
+  status: '',
+});
+const verificationPagination = reactive({
+  currentPage: 1,
+  lastPage: 1,
+  total: 0,
+});
+const verificationStatusCounts = reactive({
+  ALL: 0,
+  PENDING: 0,
+  ACTIVE: 0,
+  DRAFT: 0,
+  REJECTED: 0,
+  LOCKED: 0,
+  UNLISTED: 0,
+});
+const verificationStatusTabs = computed(() => [
+  { label: 'Tất cả', value: '', colorClass: '', count: verificationStatusCounts.ALL },
+  { label: 'Chờ duyệt', value: 'PENDING', colorClass: 'bg-orange-500', count: verificationStatusCounts.PENDING },
+  { label: 'Tin đang đăng', value: 'ACTIVE', colorClass: 'bg-emerald-500', count: verificationStatusCounts.ACTIVE },
+  { label: 'Tin nháp', value: 'DRAFT', colorClass: 'bg-slate-400', count: verificationStatusCounts.DRAFT },
+  { label: 'Từ chối', value: 'REJECTED', colorClass: 'bg-rose-500', count: verificationStatusCounts.REJECTED },
+  { label: 'Tin bị khóa', value: 'LOCKED', colorClass: 'bg-red-600', count: verificationStatusCounts.LOCKED },
+  { label: 'Đã gỡ', value: 'UNLISTED', colorClass: 'bg-slate-500', count: verificationStatusCounts.UNLISTED },
+]);
+let verificationSearchTimeout = null;
+watch(() => verificationFilters.keyword, () => {
+  if (verificationSearchTimeout) clearTimeout(verificationSearchTimeout);
+  verificationSearchTimeout = setTimeout(() => {
+    loadVerificationListings(1);
+  }, 300);
+});
+
 let searchTimeout = null;
 watch(() => listingFilters.keyword, () => {
   if (searchTimeout) clearTimeout(searchTimeout);
@@ -1142,7 +1265,7 @@ const phoneAlreadySet = computed(() => !!authStore.user?.phone);
 
 // ── Sidebar expand/collapse ──
 const expandedSections = reactive({
-  listings: route.query.tab === 'listings',
+  listings: route.query.tab === 'listings' || route.query.tab === 'verifications',
   appointments: route.query.tab === 'appointments',
 });
 
@@ -1222,7 +1345,8 @@ function normalizeListings(items) {
       code: toListingCode(item.id),
       title: item.title || '(Không tiêu đề)',
       thumbnail,
-      createdAt: formatListingDate(item.published_at || item.submitted_at || item.created_at),
+      createdAt: formatListingDate(item.created_at),
+      publishedAt: item.published_at ? formatListingDate(item.published_at) : '--',
       address: buildAddress(item.property),
       price: formatCurrency(item?.property?.price),
       status: item.status,
@@ -1336,6 +1460,35 @@ function timeAgo(dateStr) {
   return d.toLocaleDateString('vi-VN');
 }
 
+function isVerified(item) {
+  const value = item?.is_verified ?? item?.isVerified;
+  return value === true || Number(value) === 1;
+}
+
+function getThumb(item) {
+  if (item.images && item.images.length > 0) {
+    const thumb = item.images.find((image) => image.is_thumbnail || image.isThumbnail);
+    return thumb ? thumb.url : item.images[0].url;
+  }
+  return item.thumbnail || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60';
+}
+
+function getAuthor(item) {
+  return {
+    name: item.property?.contact_name || item.owner?.full_name || 'Chủ nhà',
+    role: item.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới',
+    phone: item.property?.contact_phone || item.owner?.phone,
+  };
+}
+
+function formatPrice(value) {
+  const num = Number(value || 0);
+  if (!num || num <= 0) return 'Thỏa thuận';
+  if (num >= 1000000000) return `${(num / 1000000000).toLocaleString('vi-VN')} tỷ`;
+  if (num >= 1000000) return `${(num / 1000000).toLocaleString('vi-VN')} triệu`;
+  return `${num.toLocaleString('vi-VN')} đ`;
+}
+
 // ==================== Package Upgrade ====================
 const upgradeModalVisible = ref(false);
 const upgradeListingId = ref(null);
@@ -1348,7 +1501,11 @@ function openUpgradeModal(item) {
 }
 
 function onUpgradeSuccess() {
-  loadMyListings(listingPagination.currentPage);
+  if (activeTab.value === 'verifications') {
+    loadVerificationListings(verificationPagination.currentPage);
+  } else {
+    loadMyListings(listingPagination.currentPage);
+  }
 }
 
 async function loadMyListings(page = 1) {
@@ -1392,6 +1549,55 @@ async function loadMyListings(page = 1) {
   }
 }
 
+async function loadVerificationListings(page = 1) {
+  verificationLoading.value = true;
+  try {
+    const response = await listingService.getMyListings({
+      page,
+      per_page: 10,
+      keyword: verificationFilters.keyword || undefined,
+      status: verificationFilters.status || undefined,
+      demand_type: 'SALE',
+    });
+
+    const data = response?.data?.data || [];
+    const meta = response?.data?.meta || {};
+    await hydrateListingAddresses(data);
+
+    verificationListings.value = normalizeListings(data);
+    verificationPagination.currentPage = Number(meta.current_page || 1);
+    verificationPagination.lastPage = Number(meta.last_page || 1);
+    verificationPagination.total = Number(meta.total || 0);
+
+    if (meta.counts) {
+      verificationStatusCounts.ALL = meta.counts.ALL || 0;
+      verificationStatusCounts.PENDING = meta.counts.PENDING || 0;
+      verificationStatusCounts.ACTIVE = meta.counts.ACTIVE || 0;
+      verificationStatusCounts.DRAFT = meta.counts.DRAFT || 0;
+      verificationStatusCounts.REJECTED = meta.counts.REJECTED || 0;
+      verificationStatusCounts.LOCKED = meta.counts.LOCKED || 0;
+      verificationStatusCounts.UNLISTED = meta.counts.UNLISTED || 0;
+    }
+
+    verificationLoaded.value = true;
+  } catch {
+    verificationListings.value = [];
+    verificationPagination.currentPage = 1;
+    verificationPagination.lastPage = 1;
+    verificationPagination.total = 0;
+  } finally {
+    verificationLoading.value = false;
+  }
+}
+
+function openVerificationsTab() {
+  activeTab.value = 'verifications';
+  expandedSections.listings = true;
+  if (!verificationLoaded.value) {
+    loadVerificationListings(1);
+  }
+}
+
 const lockListingModalMessage = computed(() => {
   if (!lockListingTarget.value) {
     return 'Bạn có chắc chắn muốn khóa tin này không?';
@@ -1428,7 +1634,11 @@ async function handleConfirmLockListing() {
     listingActionMessage.value = 'Khóa tin đăng thành công.';
     lockListingModalOpen.value = false;
     lockListingTarget.value = null;
-    await loadMyListings(listingPagination.currentPage);
+    if (activeTab.value === 'verifications') {
+      await loadVerificationListings(verificationPagination.currentPage);
+    } else {
+      await loadMyListings(listingPagination.currentPage);
+    }
   } catch (error) {
     listingActionSuccess.value = false;
     listingActionMessage.value = error?.response?.data?.message || 'Không thể khóa tin đăng. Vui lòng thử lại.';
@@ -1473,7 +1683,11 @@ async function handleConfirmUnlistListing() {
     listingActionMessage.value = 'Gỡ tin đăng thành công.';
     unlistListingModalOpen.value = false;
     unlistListingTarget.value = null;
-    await loadMyListings(listingPagination.currentPage);
+    if (activeTab.value === 'verifications') {
+      await loadVerificationListings(verificationPagination.currentPage);
+    } else {
+      await loadMyListings(listingPagination.currentPage);
+    }
   } catch (error) {
     listingActionSuccess.value = false;
     listingActionMessage.value = error?.response?.data?.message || 'Không thể gỡ tin đăng. Vui lòng thử lại.';
@@ -1571,6 +1785,8 @@ onMounted(async () => {
   const tab = route.query.tab;
   if (tab === 'listings') {
     openListingsTab();
+  } else if (tab === 'verifications') {
+    openVerificationsTab();
   } else if (tab === 'appointments') {
     openAppointmentsTab();
   } else if (tab === 'favorites') {
@@ -1764,12 +1980,14 @@ async function handleChangePassword() {
 
 <style scoped>
 .col-sticky-id,
+.col-sticky-verification,
 .col-sticky-status,
 .col-sticky-actions {
   position: sticky !important;
   z-index: 10;
 }
 
+.col-sticky-verification,
 .col-sticky-status,
 .col-sticky-actions {
   box-shadow: inset 1px 0 0 0 #e2e8f0;
@@ -1781,6 +1999,7 @@ async function handleChangePassword() {
 }
 
 thead tr th.col-sticky-id,
+thead tr th.col-sticky-verification,
 thead tr th.col-sticky-status,
 thead tr th.col-sticky-actions {
   background-color: #f8fafc !important;
@@ -1788,6 +2007,7 @@ thead tr th.col-sticky-actions {
 }
 
 tbody tr td.col-sticky-id,
+tbody tr td.col-sticky-verification,
 tbody tr td.col-sticky-status,
 tbody tr td.col-sticky-actions {
   background-color: #ffffff;
@@ -1795,6 +2015,7 @@ tbody tr td.col-sticky-actions {
 }
 
 tbody tr:hover td.col-sticky-id,
+tbody tr:hover td.col-sticky-verification,
 tbody tr:hover td.col-sticky-status,
 tbody tr:hover td.col-sticky-actions {
   background-color: #f0f9ff !important;
@@ -1818,9 +2039,16 @@ tbody tr:hover td.col-sticky-actions {
   width: 120px;
   min-width: 120px;
   max-width: 120px;
+}
+
+.col-sticky-verification {
+  right: 168px;
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
   box-shadow: inset 1px 0 0 0 #e2e8f0, -3px 0 5px -2px rgba(0, 0, 0, 0.08);
 }
-thead tr th.col-sticky-status {
+thead tr th.col-sticky-verification {
   box-shadow: inset 1px 0 0 0 #e2e8f0, -3px 0 5px -2px rgba(0, 0, 0, 0.08);
 }
 </style>
