@@ -118,8 +118,8 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 // icons (cài nếu chưa có: npm i lucide-vue-next)
 import { MapPin, Search, SlidersHorizontal } from "lucide-vue-next";
@@ -129,7 +129,63 @@ const searchQuery = ref("");
 const searchType = ref("SALE"); // "SALE" or "RENT"
 
 // router
+const route = useRoute();
 const router = useRouter();
+
+function syncStateFromRoute() {
+  const routeQuery = String(route.query.q || "");
+  const routeType = String(route.query.type || "").toUpperCase();
+
+  searchQuery.value = routeQuery;
+  searchType.value = routeType === "RENT" ? "RENT" : "SALE";
+}
+
+function syncRouteFromState() {
+  if (route.name !== "Home") return;
+
+  const nextQuery = { ...route.query };
+  const nextSearch = searchQuery.value.trim();
+  const nextType = searchType.value === "RENT" ? "RENT" : undefined;
+
+  if (nextSearch) {
+    nextQuery.q = nextSearch;
+  } else {
+    delete nextQuery.q;
+  }
+
+  if (nextType) {
+    nextQuery.type = nextType;
+  } else {
+    delete nextQuery.type;
+  }
+
+  const currentQuery = {
+    ...(route.query.q ? { q: String(route.query.q) } : {}),
+    ...(route.query.type ? { type: String(route.query.type).toUpperCase() } : {}),
+  };
+  const normalizedNextQuery = {
+    ...(nextQuery.q ? { q: String(nextQuery.q) } : {}),
+    ...(nextQuery.type ? { type: String(nextQuery.type).toUpperCase() } : {}),
+  };
+
+  if (JSON.stringify(currentQuery) === JSON.stringify(normalizedNextQuery)) return;
+
+  router.replace({
+    query: nextQuery,
+  }).catch(() => {});
+}
+
+watch(
+  () => [route.query.q, route.query.type],
+  () => {
+    syncStateFromRoute();
+  },
+  { immediate: true }
+);
+
+watch([searchQuery, searchType], () => {
+  syncRouteFromState();
+});
 
 const goToListings = () => {
   const targetPath = searchType.value === "SALE" ? "/sales" : "/rent";
@@ -137,6 +193,7 @@ const goToListings = () => {
     path: targetPath,
     query: {
       q: searchQuery.value.trim() || undefined,
+      type: searchType.value === "RENT" ? "RENT" : undefined,
     },
   });
 };

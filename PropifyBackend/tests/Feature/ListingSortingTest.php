@@ -80,6 +80,24 @@ class ListingSortingTest extends TestCase
         $response->assertJsonPath('data.0.ward', 'Phường Bến Nghé');
     }
 
+    public function test_public_search_matches_vietnamese_text_without_diacritics(): void
+    {
+        $owner = User::query()->create(['phone' => '0900000005']);
+        $package = Package::query()->create(['name' => 'Normal 4', 'slug' => 'normal-4', 'priority' => 1, 'price' => 0]);
+
+        $listing = $this->createActiveListing($owner->id, 1000000, $package->id, 10, now()->subHour(), null, [
+            'province' => 'Thành phố Hà Nội',
+            'ward' => 'Phường Hoàn Kiếm',
+            'address_detail' => 'Phố Hàng Mắm',
+        ]);
+
+        $response = $this->getJson('/api/v1/listings?keyword=Ha Noi');
+
+        $response->assertOk();
+        $ids = array_map('intval', $response->json('data.*.id'));
+        $this->assertContains($listing->id, $ids);
+    }
+
     private function createActiveListing(int $ownerId, float $price, ?int $packageId, int $score, $publishedAt, $submittedAt = null, array $propertyOverrides = []): Listing
     {
         $property = Property::query()->create(array_merge([
