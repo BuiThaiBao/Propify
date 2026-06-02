@@ -2,13 +2,13 @@
 <template>
 	<RouterLink :to="to" class="block no-underline text-inherit">
 	<div 
-		class="bg-white rounded-2xl p-4 flex gap-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow group overflow-hidden"
+		class="bg-white rounded-md flex gap-4 shadow-sm border border-gray-100/60 hover:shadow-md transition-shadow group overflow-hidden min-h-[210px]"
 		:class="packageBorderClass"
 	>
-		<div class="relative w-[220px] h-[220px] shrink-0 rounded-xl overflow-hidden">
-			<img :src="image" alt="Property" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+		<div class="relative w-[280px] md:w-[300px] shrink-0 rounded-r-md overflow-hidden">
+			<img :src="imageList[activeImgIdx]" alt="Property" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
 
-			<div v-if="packageIcon" class="absolute -top-2 -left-2">
+			<div v-if="packageIcon" class="absolute top-0 left-0">
 				<span class="relative inline-block">
 					<img :src="packageIcon" class="block h-[4.3rem] w-auto" alt="" />
 					<span class="absolute top-[30%] right-1 flex h-[37%] items-center justify-center px-3 text-[10px] font-extrabold tracking-wide text-white whitespace-nowrap">
@@ -17,7 +17,27 @@
 				</span>
 			</div>
 
-			<div class="absolute top-3 right-3">
+			<!-- Image navigation arrows (visible on hover) -->
+			<div v-if="imageList.length > 1" class="absolute inset-0 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
+				<button 
+					type="button" 
+					@click.prevent.stop="prevImg" 
+					class="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-sm transition-all pointer-events-auto active:scale-90"
+					aria-label="Ảnh trước"
+				>
+					<ChevronLeft class="w-5 h-5" />
+				</button>
+				<button 
+					type="button" 
+					@click.prevent.stop="nextImg" 
+					class="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-sm transition-all pointer-events-auto active:scale-90"
+					aria-label="Ảnh sau"
+				>
+					<ChevronRight class="w-5 h-5" />
+				</button>
+			</div>
+
+			<div class="absolute top-3 right-3 z-20">
 				<button
 					type="button"
 					:class="[
@@ -31,20 +51,25 @@
 				</button>
 			</div>
 
-			<div class="absolute bottom-3 right-3 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm font-medium">
-				1/4
+			<!-- Pagination Indicator (e.g. 1/4) -->
+			<div v-if="imageList.length > 1" class="absolute bottom-3 right-3 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm font-medium z-20">
+				{{ activeImgIdx + 1 }}/{{ imageList.length }}
 			</div>
 
-			<div class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1">
-				<div class="w-1.5 h-1.5 rounded-full bg-white shadow-sm"></div>
-				<div class="w-1.5 h-1.5 rounded-full bg-white/50"></div>
-				<div class="w-1.5 h-1.5 rounded-full bg-white/50"></div>
+			<!-- Dynamic Pagination Dots -->
+			<div v-if="imageList.length > 1" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+				<div 
+					v-for="(img, idx) in imageList" 
+					:key="idx" 
+					class="w-1.5 h-1.5 rounded-full transition-all duration-300 shadow-sm"
+					:class="idx === activeImgIdx ? 'bg-white scale-110' : 'bg-white/50'"
+				></div>
 			</div>
 		</div>
 
-		<div class="flex-1 flex flex-col justify-between py-1 min-w-0">
+		<div class="flex-1 flex flex-col justify-between py-3 pr-4 min-w-0">
 			<div>
-				<div class="flex items-center justify-between gap-2 mb-2">
+				<div class="flex items-center justify-between gap-2 mb-1.5">
 					<div class="flex items-center gap-1.5 flex-wrap">
 						<span class="border border-gray-300 text-gray-600 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-white">
 							{{ type }}
@@ -60,22 +85,22 @@
 					</div>
 				</div>
 
-				<h3 class="text-[15px] font-bold text-gray-900 leading-snug mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+				<h3 class="text-[15px] font-bold text-gray-900 leading-snug mb-1.5 line-clamp-2 group-hover:text-blue-600 transition-colors">
 					{{ title }}
 				</h3>
 
-				<p class="text-[13px] text-gray-500 flex items-center gap-4 mb-2.5 flex-wrap">
-					<span class="flex items-center gap-1">
+				<p class="text-[13px] text-gray-500 flex items-center gap-4 mb-1.5 min-w-0">
+					<span class="flex items-center gap-1 min-w-0 flex-1">
 						<MapPin class="w-3.5 h-3.5 text-blue-500 shrink-0" />
-						<span>{{ location }}</span>
+						<span class="truncate">{{ location }}</span>
 					</span>
-					<span class="flex items-center gap-1 text-gray-400">
+					<span class="flex items-center gap-1 text-gray-400 shrink-0">
 						<CalendarDays class="w-3.5 h-3.5 shrink-0" />
 						{{ timeAgo }}
 					</span>
 				</p>
 
-				<div class="flex items-baseline gap-1 mb-3">
+				<div class="flex items-baseline gap-1 mb-2.5">
 					<span class="text-xl font-bold text-blue-600">{{ price }}</span>
 					<span class="text-sm font-medium text-gray-500" v-if="unit">{{ unit }}</span>
 				</div>
@@ -98,7 +123,7 @@
 				</div>
 			</div>
 
-			<div class="flex justify-between items-center pt-3 mt-3 border-t border-gray-100">
+			<div class="flex justify-between items-center pt-2 mt-2 border-t border-gray-100">
 				<div class="flex items-center gap-2">
 					<div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0">
 						{{ getInitials(author.name) }}
@@ -127,7 +152,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import { MapPin, Maximize, Bed, Bath, Heart, Eye, Phone, CheckCircle, CalendarDays } from 'lucide-vue-next';
+import { MapPin, Maximize, Bed, Bath, Heart, Eye, Phone, CheckCircle, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-vue-next';
 
 const showPhone = ref(false);
 
@@ -138,6 +163,7 @@ const props = defineProps({
 	isFavorite: { type: Boolean, default: false },
 	to: { type: String, default: '#' },
 	image: { type: String, default: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60' },
+	images: { type: Array, default: () => [] },
 	verified: { type: Boolean, default: true },
 	type: { type: String, default: 'Căn hộ' },
 	title: { type: String, default: 'Căn hộ studio full nội thất trung tâm quận 1' },
@@ -156,6 +182,25 @@ const props = defineProps({
 	package: { type: Object, default: null },
 	views: { type: [Number, String], default: 312 },
 });
+
+const activeImgIdx = ref(0);
+
+const imageList = computed(() => {
+	if (props.images && props.images.length > 0) {
+		return props.images.map(img => typeof img === 'object' ? img.url : img);
+	}
+	return [props.image];
+});
+
+function nextImg() {
+	if (imageList.value.length <= 1) return;
+	activeImgIdx.value = (activeImgIdx.value + 1) % imageList.value.length;
+}
+
+function prevImg() {
+	if (imageList.value.length <= 1) return;
+	activeImgIdx.value = (activeImgIdx.value - 1 + imageList.value.length) % imageList.value.length;
+}
 
 defineEmits(['toggleFavorite']);
 
@@ -200,7 +245,7 @@ function getInitials(name) {
 	left: 0;
 	right: 0;
 	bottom: 0;
-	border-radius: 1rem;
+	border-radius: 0.5rem;
 	padding: 2px; /* Border thickness */
 	background: conic-gradient(
 		from var(--angle),

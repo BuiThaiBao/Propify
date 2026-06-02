@@ -11,7 +11,7 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
         <!-- Left Column: Main Content -->
-        <div class="lg:col-span-8">
+        <div class="lg:col-span-9">
           <!-- Header section -->
           <div class="flex justify-between items-end mb-6">
             <div>
@@ -57,6 +57,7 @@
               :location="item.property?.full_address || item.property?.address_detail || ''"
               :author="getAuthor(item)"
               :image="getThumb(item)"
+              :images="item.images"
               :package="item.package"
               :listing-id="item.id"
               :is-favorite="isFavorite(item)"
@@ -104,7 +105,7 @@
         </div>
 
         <!-- Right Column: Sidebar Filters -->
-        <div class="lg:col-span-4 flex flex-col gap-4">
+        <div class="lg:col-span-3 flex flex-col gap-4">
           <!-- Tìm kiếm theo bản đồ -->
           <div @click="isMapOpen = true" class="bg-sky-50 border border-sky-100 rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer hover:bg-sky-100 transition shadow-sm text-center">
             <div class="bg-sky-200/50 p-2.5 rounded-full mb-2">
