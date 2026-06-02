@@ -100,6 +100,13 @@ async function resolveWardName(provinceCode, wardCode) {
 export async function hydratePropertyAddress(property) {
   if (!property) return property;
 
+  if (property.province || property.ward) {
+    property.province_name = property.province || property.province_name || '';
+    property.ward_name = property.ward || property.ward_name || '';
+    property.full_address = buildPropertyAddress(property);
+    return property;
+  }
+
   try {
     const [provinceName, wardName] = await Promise.all([
       resolveProvinceName(property.province_code),

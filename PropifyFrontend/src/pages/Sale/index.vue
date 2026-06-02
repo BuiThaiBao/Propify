@@ -30,10 +30,7 @@
             </div>
             
             <!-- Sort Dropdown -->
-            <button class="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-              Mới nhất
-              <ChevronDown class="w-4 h-4 text-gray-400" />
-            </button>
+            <SortDropdown v-model="sortBy" />
           </div>
 
           <!-- Listings -->
@@ -320,7 +317,7 @@
 
 <script setup>
 import { onMounted, ref, watch, computed } from 'vue';
-import { ChevronDown, ChevronLeft, ChevronRight, User, DollarSign, Ruler } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, User, DollarSign, Ruler } from 'lucide-vue-next';
 import SaleLayout from '@/layouts/SaleLayout.vue';
 import TopSearchBar from '@/components/shared/TopSearchBar.vue';
 import SaleCard from '@/components/shared/SaleCard.vue';
@@ -335,6 +332,7 @@ import { usePackages } from '@/composables/usePackages';
 import { useFavoriteListings } from '@/composables/useFavoriteListings';
 import MapSearchModal from '@/components/shared/MapSearchModal.vue';
 import Breadcrumb from '@/components/shared/Breadcrumb.vue';
+import SortDropdown from '@/components/shared/SortDropdown.vue';
 
 const currentDateStr = computed(() => {
   const now = new Date();
@@ -346,6 +344,7 @@ const {
   currentPage, lastPage, searchKeyword,
   saleSuggestions, visiblePages,
   posterType, minPrice, maxPrice, minArea, maxArea,
+  sortBy,
   init, onSearch, goToPage,
 } = useSaleListings();
 const { init: prefetchHomeListings } = useHomeListings();

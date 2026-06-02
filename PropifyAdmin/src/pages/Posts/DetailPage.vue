@@ -646,8 +646,8 @@ onBeforeUnmount(() => {
         <article class="detail-card">
           <h2><MapPin :size="16" /> Địa chỉ</h2>
           <div class="info-grid">
-            <div class="info-item"><span>Tỉnh/TP</span><strong>{{ property.province_name || property.province_code || '--' }}</strong></div>
-            <div class="info-item"><span>Phường/Xã</span><strong>{{ property.ward_name || property.ward_code || '--' }}</strong></div>
+            <div class="info-item"><span>Tỉnh/TP</span><strong>{{ property.province_name || property.province || property.province_code || '--' }}</strong></div>
+            <div class="info-item"><span>Phường/Xã</span><strong>{{ property.ward_name || property.ward || property.ward_code || '--' }}</strong></div>
             <div class="info-item"><span>Đường</span><strong>{{ property.street_code || '--' }}</strong></div>
             <div class="info-item wide"><span>Địa chỉ chi tiết</span><strong>{{ property.address_detail || '--' }}</strong></div>
           </div>

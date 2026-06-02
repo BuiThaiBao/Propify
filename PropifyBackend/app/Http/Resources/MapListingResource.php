@@ -19,6 +19,8 @@ class MapListingResource extends JsonResource
             'price' => $property?->price,
             'area' => $property?->area,
             'address' => $property?->address_detail,
+            'province' => $property?->province,
+            'ward' => $property?->ward,
             'latitude' => $property?->lat,
             'longitude' => $property?->lng,
             'bedrooms' => $property?->bedrooms,

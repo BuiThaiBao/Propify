@@ -5,7 +5,7 @@ import listingService from '@/services/listingService';
 import { hydrateListingAddresses } from '@/utils/addressFormatter';
 import { listingKeys } from '@/composables/queryKeys';
 
-async function fetchSalePage(page, keyword, posterType, minPrice, maxPrice, minArea, maxArea) {
+async function fetchSalePage(page, keyword, posterType, minPrice, maxPrice, minArea, maxArea, sortBy) {
   const response = await listingService.getPublicListings({
     demand_type: 'SALE',
     keyword: keyword?.trim() || undefined,
@@ -16,6 +16,7 @@ async function fetchSalePage(page, keyword, posterType, minPrice, maxPrice, minA
     max_price: maxPrice !== null ? maxPrice : undefined,
     min_area: minArea !== null ? minArea : undefined,
     max_area: maxArea !== null ? maxArea : undefined,
+    sort: sortBy || undefined,
   });
   const data = response?.data?.data || [];
   await hydrateListingAddresses(data);
@@ -46,6 +47,7 @@ export function useSaleListings() {
   const maxPrice = ref(null);
   const minArea = ref(null);
   const maxArea = ref(null);
+  const sortBy = ref(''); // '', 'newest', 'oldest', 'price_asc', 'price_desc', 'area_asc', 'area_desc'
 
   const queryKey = computed(() => listingKeys.publicList({
     demand_type: 'SALE',
@@ -57,6 +59,7 @@ export function useSaleListings() {
     max_price: maxPrice.value !== null ? maxPrice.value : undefined,
     min_area: minArea.value !== null ? minArea.value : undefined,
     max_area: maxArea.value !== null ? maxArea.value : undefined,
+    sort: sortBy.value || undefined,
   }));
 
   const query = useQuery({
@@ -68,7 +71,8 @@ export function useSaleListings() {
       minPrice.value,
       maxPrice.value,
       minArea.value,
-      maxArea.value
+      maxArea.value,
+      sortBy.value
     ),
     enabled,
     placeholderData: keepPreviousData,
@@ -114,16 +118,16 @@ export function useSaleListings() {
   });
 
   watch(
-    () => [enabled.value, currentPage.value, searchKeyword.value, lastPage.value, posterType.value, minPrice.value, maxPrice.value, minArea.value, maxArea.value],
-    ([isEnabled, page, keyword, totalPages, pType, minP, maxP, minA, maxA]) => {
+    () => [enabled.value, currentPage.value, searchKeyword.value, lastPage.value, posterType.value, minPrice.value, maxPrice.value, minArea.value, maxArea.value, sortBy.value],
+    ([isEnabled, page, keyword, totalPages, pType, minP, maxP, minA, maxA, sBy]) => {
       if (!isEnabled) return;
-      prefetchNextPage(page, keyword, totalPages, pType, minP, maxP, minA, maxA);
+      prefetchNextPage(page, keyword, totalPages, pType, minP, maxP, minA, maxA, sBy);
     },
   );
 
   // Reset page when filters change
   watch(
-    () => [posterType.value, minPrice.value, maxPrice.value, minArea.value, maxArea.value],
+    () => [posterType.value, minPrice.value, maxPrice.value, minArea.value, maxArea.value, sortBy.value],
     () => {
       currentPage.value = 1;
     }
@@ -149,7 +153,7 @@ export function useSaleListings() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function prefetchNextPage(page, keyword, totalPages, pType, minP, maxP, minA, maxA) {
+  function prefetchNextPage(page, keyword, totalPages, pType, minP, maxP, minA, maxA, sBy) {
     const nextPage = Number(page) + 1;
     if (nextPage > Number(totalPages || 1)) return;
 
@@ -164,8 +168,9 @@ export function useSaleListings() {
         max_price: maxP !== null ? maxP : undefined,
         min_area: minA !== null ? minA : undefined,
         max_area: maxA !== null ? maxA : undefined,
+        sort: sBy || undefined,
       }),
-      queryFn: () => fetchSalePage(nextPage, keyword, pType, minP, maxP, minA, maxA),
+      queryFn: () => fetchSalePage(nextPage, keyword, pType, minP, maxP, minA, maxA, sBy),
       staleTime: 60 * 1000,
     });
   }
@@ -184,6 +189,7 @@ export function useSaleListings() {
     maxPrice,
     minArea,
     maxArea,
+    sortBy,
     init,
     fetchSaleListings,
     onSearch,
