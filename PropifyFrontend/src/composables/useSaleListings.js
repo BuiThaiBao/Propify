@@ -1,6 +1,6 @@
 import { computed, ref, watch } from 'vue';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/vue-query';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import listingService from '@/services/listingService';
 import { hydrateListingAddresses } from '@/utils/addressFormatter';
 import { listingKeys } from '@/composables/queryKeys';
@@ -28,6 +28,7 @@ async function fetchSalePage(page, keyword, posterType, minPrice, maxPrice, minA
 
 export function useSaleListings() {
   const route = useRoute();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const enabled = ref(false);
   const currentPage = ref(1);
@@ -40,6 +41,15 @@ export function useSaleListings() {
       currentPage.value = 1;
     }
   );
+  watch(
+    () => route?.query?.sort,
+    (newVal) => {
+      const nextSort = String(newVal || '');
+      if (nextSort !== sortBy.value) {
+        sortBy.value = nextSort;
+      }
+    }
+  );
 
   // Filter states
   const posterType = ref(''); // '', 'OWNER', 'BROKER'
@@ -47,7 +57,7 @@ export function useSaleListings() {
   const maxPrice = ref(null);
   const minArea = ref(null);
   const maxArea = ref(null);
-  const sortBy = ref(''); // '', 'newest', 'oldest', 'price_asc', 'price_desc', 'area_asc', 'area_desc'
+  const sortBy = ref(String(route?.query?.sort || '')); // '', 'newest', 'oldest', 'price_asc', 'price_desc', 'area_asc', 'area_desc'
 
   const queryKey = computed(() => listingKeys.publicList({
     demand_type: 'SALE',
@@ -132,6 +142,18 @@ export function useSaleListings() {
       currentPage.value = 1;
     }
   );
+  watch(sortBy, (nextSort) => {
+    const currentSort = String(route?.query?.sort || '');
+    const normalizedNextSort = String(nextSort || '');
+    if (currentSort === normalizedNextSort) return;
+
+    router.replace({
+      query: {
+        ...route.query,
+        sort: normalizedNextSort || undefined,
+      },
+    }).catch(() => {});
+  });
 
   function init() {
     enabled.value = true;

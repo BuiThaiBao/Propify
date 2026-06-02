@@ -731,7 +731,7 @@
                     <svg class="h-3.5 w-3.5 text-slate-400 shrink-0" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                       <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                     </svg>
-                    {{ timeAgo(item.submittedAt) }}
+                    {{ timeAgo(item.publishedAt || item.submittedAt) }}
                   </span>
                 </div>
 
@@ -1222,7 +1222,7 @@ function normalizeListings(items) {
       code: toListingCode(item.id),
       title: item.title || '(Không tiêu đề)',
       thumbnail,
-      createdAt: formatListingDate(item.created_at || item.submitted_at),
+      createdAt: formatListingDate(item.published_at || item.submitted_at || item.created_at),
       address: buildAddress(item.property),
       price: formatCurrency(item?.property?.price),
       status: item.status,
@@ -1246,6 +1246,7 @@ function normalizeFavoriteListings(items) {
       property: item.property || {},
       owner: item.owner || {},
       demandType: item.demand_type,
+      publishedAt: item.published_at || item.submitted_at || item.created_at,
       submittedAt: item.submitted_at || item.created_at,
       views: item.views ?? 0,
       isVerified: Boolean(item.is_verified),
