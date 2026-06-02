@@ -31,7 +31,26 @@ interface ListingRepository
 
     public function paginatePublic(ListingSortingStrategy $sortingStrategy, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 
-    public function paginateAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
+    public function paginateAdmin(
+        ?string $status,
+        ?string $demandType,
+        ?string $keyword,
+        int $perPage,
+        ?string $searchField = 'title',
+        ?string $priceRange = null,
+        ?int $packageId = null,
+    ): LengthAwarePaginator;
+
+    /**
+     * @return array<string, int>
+     */
+    public function getAdminStatusCounts(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $searchField = 'title',
+        ?string $priceRange = null,
+        ?int $packageId = null,
+    ): array;
 
     public function updateProperty(int $id, array $attributes): Property;
 

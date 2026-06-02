@@ -6,14 +6,27 @@ import PageHeader from '@/components/shared/PageHeader.vue'
 import PostsFilter from './PostsFilter.vue'
 import PostsTable from './PostsTable.vue'
 import { listingService } from '@/services/listingService'
+import { usePackageApi } from '@/composables/usePackageApi'
 
 const PER_PAGE = 8
 const router = useRouter()
+const { fetchPackages } = usePackageApi()
 
 const searchQuery = ref('')
+const searchField = ref('title')
 const filterStatus = ref('all')
 const filterType = ref('all')
+const filterPriceRange = ref('all')
+const filterPackageId = ref('all')
+const packages = ref([])
 const listings = ref([])
+const statusCounts = ref({
+  all: 0,
+  pending: 0,
+  approved: 0,
+  rejected: 0,
+  locked: 0,
+})
 const loading = ref(false)
 const error = ref('')
 const actionError = ref('')
@@ -47,10 +60,23 @@ function buildParams() {
 
   const keyword = searchQuery.value.trim()
   if (keyword) params.keyword = keyword
+  if (keyword) params.search_field = searchField.value
   if (filterStatus.value !== 'all') params.status = statusParamMap[filterStatus.value]
   if (filterType.value !== 'all') params.demand_type = typeParamMap[filterType.value]
+  if (filterPriceRange.value !== 'all') params.price_range = filterPriceRange.value
+  if (filterPackageId.value !== 'all') params.package_id = filterPackageId.value
 
   return params
+}
+
+async function fetchPackageOptions() {
+  try {
+    const response = await fetchPackages({ include_inactive: true })
+    packages.value = response?.data ?? []
+  } catch (err) {
+    console.error('Failed to fetch package options:', err)
+    packages.value = []
+  }
 }
 
 async function fetchListings() {
@@ -67,10 +93,18 @@ async function fetchListings() {
     pagination.last_page = meta.last_page ?? 1
     pagination.per_page = meta.per_page ?? PER_PAGE
     pagination.total = meta.total ?? listings.value.length
+    statusCounts.value = {
+      all: meta.status_counts?.all ?? meta.total ?? 0,
+      pending: meta.status_counts?.pending ?? 0,
+      approved: meta.status_counts?.approved ?? 0,
+      rejected: meta.status_counts?.rejected ?? 0,
+      locked: meta.status_counts?.locked ?? 0,
+    }
   } catch (err) {
     console.error('Failed to fetch admin listings:', err)
     error.value = err.response?.data?.message || 'Không thể tải danh sách tin đăng.'
     listings.value = []
+    statusCounts.value = { all: 0, pending: 0, approved: 0, rejected: 0, locked: 0 }
   } finally {
     loading.value = false
   }
@@ -106,7 +140,7 @@ function goToPage(page) {
   fetchListings()
 }
 
-watch([filterStatus, filterType], () => {
+watch([filterStatus, filterType, filterPriceRange, filterPackageId], () => {
   pagination.current_page = 1
   fetchListings()
 })
@@ -119,7 +153,16 @@ watch(searchQuery, () => {
   }, 400)
 })
 
-onMounted(fetchListings)
+watch(searchField, () => {
+  if (!searchQuery.value.trim()) return
+  pagination.current_page = 1
+  fetchListings()
+})
+
+onMounted(() => {
+  fetchPackageOptions()
+  fetchListings()
+})
 </script>
 
 <template>
@@ -131,8 +174,13 @@ onMounted(fetchListings)
 
     <PostsFilter
       v-model:search="searchQuery"
+      v-model:search-field="searchField"
       v-model:status="filterStatus"
       v-model:type="filterType"
+      v-model:price-range="filterPriceRange"
+      v-model:package-id="filterPackageId"
+      :packages="packages"
+      :status-counts="statusCounts"
     />
 
     <PostsTable

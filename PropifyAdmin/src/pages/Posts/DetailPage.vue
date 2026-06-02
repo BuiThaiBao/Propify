@@ -17,6 +17,7 @@ import {
   Lock,
   MapPin,
   ShieldCheck,
+  Unlock,
   User,
   Video,
 } from 'lucide-vue-next'
@@ -49,6 +50,7 @@ const panState = ref({
 let previousBodyOverflow = ''
 
 const REJECT_REASON_OTHER = '__OTHER__'
+const EMPTY_LABEL = 'Không có'
 const LISTING_REJECT_REASONS = [
   'Thông tin bài đăng không chính xác hoặc thiếu nhất quán.',
   'Hình ảnh không rõ ràng hoặc không phù hợp với nội dung tin.',
@@ -100,14 +102,14 @@ const mapSrc = computed(() => {
 const unitPrice = computed(() => {
   const price = Number(property.value?.price)
   const area = Number(property.value?.area)
-  if (!price || !area) return '--'
+  if (!price || !area) return EMPTY_LABEL
   return `${formatMoney(Math.round(price / area))} đ/m²`
 })
 
 const priceLabel = computed(() => isRentListing.value ? 'Giá thuê' : 'Giá bán')
 const priceValue = computed(() => {
   const price = formatMoney(property.value?.price)
-  if (price === '--') return '--'
+  if (price === EMPTY_LABEL) return EMPTY_LABEL
   return isRentListing.value ? `${price} đ/tháng` : `${price} đ`
 })
 const rentMinTermText = computed(() => formatRentTerm(post.value?.rent_min_term))
@@ -137,14 +139,14 @@ async function fetchDetail() {
 
 function formatMoney(value) {
   const amount = Number(value)
-  if (!Number.isFinite(amount)) return '--'
+  if (!Number.isFinite(amount)) return EMPTY_LABEL
   return new Intl.NumberFormat('vi-VN').format(amount)
 }
 
 function formatDateTime(value) {
-  if (!value) return '--'
+  if (!value) return EMPTY_LABEL
   const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '--'
+  if (Number.isNaN(date.getTime())) return EMPTY_LABEL
   return new Intl.DateTimeFormat('vi-VN', {
     hour: '2-digit',
     minute: '2-digit',
@@ -152,6 +154,14 @@ function formatDateTime(value) {
     month: '2-digit',
     year: 'numeric',
   }).format(date)
+}
+
+function displayValue(value) {
+  return value === null || value === undefined || value === '' ? EMPTY_LABEL : value
+}
+
+function formatMetric(value, unit) {
+  return value === null || value === undefined || value === '' ? EMPTY_LABEL : `${value} ${unit}`
 }
 
 function mapStatusKey(status) {
@@ -175,11 +185,11 @@ function mapStatusLabel(status) {
 }
 
 function demandLabel(value) {
-  return value === 'SALE' ? 'Mua bán' : value === 'RENT' ? 'Cho thuê' : '--'
+  return value === 'SALE' ? 'Mua bán' : value === 'RENT' ? 'Cho thuê' : EMPTY_LABEL
 }
 
 function formatRentTerm(value) {
-  if (!value) return '--'
+  if (!value) return EMPTY_LABEL
   const text = String(value)
   const monthMatch = text.match(/\d+/)
   if (monthMatch) return `${monthMatch[0]} tháng`
@@ -187,7 +197,7 @@ function formatRentTerm(value) {
 }
 
 function formatRentPaymentInterval(value) {
-  if (!value) return '--'
+  if (!value) return EMPTY_LABEL
   const normalized = String(value).toUpperCase()
   const monthMatch = normalized.match(/\d+/)
   if (monthMatch) return `${monthMatch[0]} tháng/lần`
@@ -200,7 +210,7 @@ function formatRentPaymentInterval(value) {
 }
 
 function formatRentDeposit(value) {
-  if (!value) return '--'
+  if (!value) return EMPTY_LABEL
   const text = String(value)
   const monthMatch = text.match(/\d+/)
   if (monthMatch) return `${monthMatch[0]} tháng`
@@ -216,14 +226,14 @@ function propertyTypeLabel(value) {
     TOWNHOUSE: 'Liền kề',
     HOTEL: 'Khách sạn',
     RESORT: 'Resort',
-  }[value] || value || '--'
+  }[value] || value || EMPTY_LABEL
 }
 
 function posterTypeLabel(value) {
   return {
     OWNER: 'Chủ sở hữu',
     BROKER: 'Môi giới',
-  }[value] || value || '--'
+  }[value] || value || EMPTY_LABEL
 }
 
 function directionLabel(value) {
@@ -249,7 +259,7 @@ function directionLabel(value) {
     SW: 'Tây Nam',
     SOUTHWEST: 'Tây Nam',
     SOUTH_WEST: 'Tây Nam',
-  }[normalized] || value || '--'
+  }[normalized] || value || EMPTY_LABEL
 }
 
 function furnitureLabel(value) {
@@ -258,7 +268,7 @@ function furnitureLabel(value) {
     NONE: 'Không có nội thất',
     BASIC: 'Nội thất cơ bản',
     FULL: 'Đầy đủ nội thất',
-  }[normalized] || value || '--'
+  }[normalized] || value || EMPTY_LABEL
 }
 
 function historyActionLabel(value) {
@@ -272,15 +282,19 @@ function historyActionLabel(value) {
 }
 
 function canApprove() {
-  return ['PENDING', 'REJECTED', 'LOCKED'].includes(post.value?.status)
+  return post.value?.status === 'PENDING'
 }
 
 function canReject() {
-  return ['PENDING', 'ACTIVE'].includes(post.value?.status)
+  return post.value?.status === 'PENDING'
 }
 
 function canLock() {
-  return post.value?.status === 'ACTIVE'
+  return ['ACTIVE', 'REJECTED'].includes(post.value?.status)
+}
+
+function canUnlock() {
+  return post.value?.status === 'LOCKED'
 }
 
 async function changeStatus(status, reason = null) {
@@ -331,14 +345,17 @@ function runConfirmedAction() {
 function confirmStatusChange(status, reason = null) {
   const isReject = status === 'REJECTED'
   const isLock = status === 'LOCKED'
+  const isUnlock = status === 'ACTIVE' && post.value?.status === 'LOCKED'
   openConfirm({
-    title: isReject ? 'Xác nhận từ chối tin' : isLock ? 'Xác nhận khóa tin' : 'Xác nhận duyệt tin',
+    title: isReject ? 'Xác nhận từ chối tin' : isLock ? 'Xác nhận khóa tin' : isUnlock ? 'Xác nhận mở khóa tin' : 'Xác nhận duyệt tin',
     message: isReject
       ? 'Bạn chắc chắn muốn từ chối tin đăng này?'
       : isLock
         ? 'Bạn chắc chắn muốn khóa tin đăng này?'
-        : 'Bạn chắc chắn muốn duyệt tin đăng này?',
-    confirmText: isReject ? 'Từ chối' : isLock ? 'Khóa tin' : 'Duyệt tin',
+        : isUnlock
+          ? 'Bạn chắc chắn muốn mở khóa tin đăng này?'
+          : 'Bạn chắc chắn muốn duyệt tin đăng này?',
+    confirmText: isReject ? 'Từ chối' : isLock ? 'Khóa tin' : isUnlock ? 'Mở khóa' : 'Duyệt tin',
     tone: isReject ? 'danger' : 'primary',
     action: () => changeStatus(status, reason),
   })
@@ -545,6 +562,9 @@ onBeforeUnmount(() => {
           <button v-if="canLock()" class="outline-neutral" :disabled="actionLoading" @click="openReason('LOCKED')">
             <Lock :size="15" /> Khóa tin
           </button>
+          <button v-if="canUnlock()" class="primary-action" :disabled="actionLoading" @click="confirmStatusChange('ACTIVE')">
+            <Unlock :size="15" /> Mở khóa
+          </button>
           <button v-if="canApprove()" class="primary-action" :disabled="actionLoading" @click="confirmStatusChange('ACTIVE')">
             <CheckCircle :size="15" /> Duyệt tin
           </button>
@@ -591,7 +611,7 @@ onBeforeUnmount(() => {
           <div class="info-grid">
             <div class="info-item wide">
               <span>Tên bất động sản</span>
-              <strong>{{ post.title || '--' }}</strong>
+              <strong>{{ displayValue(post.title) }}</strong>
             </div>
             <div class="info-item">
               <span>Nhu cầu</span>
@@ -607,12 +627,12 @@ onBeforeUnmount(() => {
             </div>
             <div class="info-item">
               <span>Diện tích</span>
-              <strong>{{ property.area ? `${property.area} m²` : '--' }}</strong>
+              <strong>{{ formatMetric(property.area, 'm²') }}</strong>
             </div>
           </div>
           <div class="description">
             <span>Mô tả</span>
-            <p>{{ post.description || '--' }}</p>
+            <p>{{ displayValue(post.description) }}</p>
           </div>
           <div v-if="isSaleListing" class="unit-price">Đơn giá: <strong>{{ unitPrice }}</strong></div>
           <div v-else-if="isRentListing" class="rent-terms">
@@ -625,17 +645,17 @@ onBeforeUnmount(() => {
         <article class="detail-card">
           <h2><Info :size="16" /> Thông tin chi tiết</h2>
           <div class="info-grid detail-grid">
-            <div class="info-item"><span>Phòng ngủ</span><strong>{{ property.bedrooms ?? '--' }}</strong></div>
-            <div class="info-item"><span>Phòng tắm</span><strong>{{ property.bathrooms ?? '--' }}</strong></div>
-            <div class="info-item"><span>Số tầng</span><strong>{{ property.floors ?? '--' }}</strong></div>
-            <div class="info-item"><span>Tầng</span><strong>{{ property.floor_number ?? '--' }}</strong></div>
-            <div class="info-item"><span>Mặt tiền</span><strong>{{ property.facade_width ? `${property.facade_width} m` : '--' }}</strong></div>
-            <div class="info-item"><span>Chiều sâu</span><strong>{{ property.depth ? `${property.depth} m` : '--' }}</strong></div>
-            <div class="info-item"><span>Đường rộng</span><strong>{{ property.road_width ? `${property.road_width} m` : '--' }}</strong></div>
+            <div class="info-item"><span>Phòng ngủ</span><strong>{{ displayValue(property.bedrooms) }}</strong></div>
+            <div class="info-item"><span>Phòng tắm</span><strong>{{ displayValue(property.bathrooms) }}</strong></div>
+            <div class="info-item"><span>Số tầng</span><strong>{{ displayValue(property.floors) }}</strong></div>
+            <div class="info-item"><span>Tầng</span><strong>{{ displayValue(property.floor_number) }}</strong></div>
+            <div class="info-item"><span>Mặt tiền</span><strong>{{ formatMetric(property.facade_width, 'm') }}</strong></div>
+            <div class="info-item"><span>Chiều sâu</span><strong>{{ formatMetric(property.depth, 'm') }}</strong></div>
+            <div class="info-item"><span>Đường rộng</span><strong>{{ formatMetric(property.road_width, 'm') }}</strong></div>
             <div class="info-item"><span>Hướng nhà</span><strong>{{ directionLabel(property.direction_code) }}</strong></div>
             <div class="info-item"><span>Hướng ban công</span><strong>{{ directionLabel(property.balcony_direction_code) }}</strong></div>
             <div class="info-item"><span>Nội thất</span><strong>{{ furnitureLabel(property.furniture_status) }}</strong></div>
-            <div class="info-item"><span>Ban công</span><strong>{{ property.balconies ?? '--' }}</strong></div>
+            <div class="info-item"><span>Ban công</span><strong>{{ displayValue(property.balconies) }}</strong></div>
             <div class="info-item"><span>Thỏa thuận</span><strong>{{ property.is_negotiable ? 'Có' : 'Không' }}</strong></div>
           </div>
           <div v-if="property.amenities?.length" class="chips">
@@ -646,10 +666,10 @@ onBeforeUnmount(() => {
         <article class="detail-card">
           <h2><MapPin :size="16" /> Địa chỉ</h2>
           <div class="info-grid">
-            <div class="info-item"><span>Tỉnh/TP</span><strong>{{ property.province_name || property.province_code || '--' }}</strong></div>
-            <div class="info-item"><span>Phường/Xã</span><strong>{{ property.ward_name || property.ward_code || '--' }}</strong></div>
-            <div class="info-item"><span>Đường</span><strong>{{ property.street_code || '--' }}</strong></div>
-            <div class="info-item wide"><span>Địa chỉ chi tiết</span><strong>{{ property.address_detail || '--' }}</strong></div>
+            <div class="info-item"><span>Tỉnh/TP</span><strong>{{ displayValue(property.province_name || property.province_code) }}</strong></div>
+            <div class="info-item"><span>Phường/Xã</span><strong>{{ displayValue(property.ward_name || property.ward_code) }}</strong></div>
+            <div class="info-item"><span>Đường</span><strong>{{ displayValue(property.street_code) }}</strong></div>
+            <div class="info-item wide"><span>Địa chỉ chi tiết</span><strong>{{ displayValue(property.address_detail) }}</strong></div>
           </div>
           <iframe v-if="mapSrc" class="map-frame" :src="mapSrc" loading="lazy"></iframe>
           <div v-else class="map-empty">Listing chưa có tọa độ bản đồ.</div>
@@ -659,9 +679,9 @@ onBeforeUnmount(() => {
           <h2><User :size="16" /> Người đăng</h2>
           <div class="info-grid">
             <div class="info-item"><span>Loại</span><strong>{{ posterTypeLabel(property.poster_type) }}</strong></div>
-            <div class="info-item"><span>Họ tên</span><strong>{{ property.contact_name || post.owner?.full_name || '--' }}</strong></div>
-            <div class="info-item"><span>Số điện thoại</span><strong>{{ property.contact_phone || '--' }}</strong></div>
-            <div class="info-item"><span>Email</span><strong>{{ property.contact_email || post.owner?.email || '--' }}</strong></div>
+            <div class="info-item"><span>Họ tên</span><strong>{{ displayValue(property.contact_name || post.owner?.full_name) }}</strong></div>
+            <div class="info-item"><span>Số điện thoại</span><strong>{{ displayValue(property.contact_phone) }}</strong></div>
+            <div class="info-item"><span>Email</span><strong>{{ displayValue(property.contact_email || post.owner?.email) }}</strong></div>
           </div>
         </article>
       </section>
@@ -670,7 +690,7 @@ onBeforeUnmount(() => {
         <article class="detail-card">
           <div class="card-head">
             <h2><ShieldCheck :size="16" /> Giấy tờ pháp lý</h2>
-            <div class="verification-actions">
+            <div v-if="docs.length" class="verification-actions">
               <button class="outline-danger" :disabled="actionLoading" @click="openVerificationReject">
                 <Ban :size="15" /> Từ chối
               </button>
@@ -827,7 +847,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.detail-page { max-width: 1180px; margin: 0 auto; color: #0f172a; }
+.detail-page { max-width: 1180px; min-width: 0; margin: 0 auto; color: #0f172a; }
 .back-btn { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: #64748b; font-weight: 600; cursor: pointer; margin-bottom: 22px; }
 .detail-header { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
 .title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
@@ -840,7 +860,7 @@ onBeforeUnmount(() => {
 .tabs button { border: 0; border-radius: 999px; padding: 9px 18px; background: transparent; color: #64748b; font-weight: 700; cursor: pointer; }
 .tabs button.active { background: #fff; color: #0f172a; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08); }
 .section-stack { display: grid; gap: 18px; }
-.detail-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
+.detail-card { min-width: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
 .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 .detail-card h2, .card-head h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 16px; font-size: 17px; }
 .card-head h2 { margin-bottom: 0; }
@@ -859,7 +879,7 @@ onBeforeUnmount(() => {
 .info-item strong { color: #0f172a; font-size: 14px; font-weight: 650; word-break: break-word; }
 .description { margin-top: 16px; }
 .description span { color: #64748b; font-size: 12px; }
-.description p { margin: 6px 0 0; line-height: 1.7; }
+.description p { margin: 6px 0 0; line-height: 1.7; overflow-wrap: anywhere; word-break: break-word; }
 .unit-price { margin-top: 16px; padding: 12px 14px; border: 1px solid #dbeafe; border-radius: 10px; background: #eff6ff; color: #3b82f6; font-size: 13px; }
 .rent-terms { display: flex; flex-wrap: wrap; gap: 26px; margin-top: 16px; padding: 12px 14px; border: 1px solid #dbeafe; border-radius: 10px; background: #eff6ff; color: #64748b; font-size: 13px; }
 .rent-terms strong { color: #2563eb; font-weight: 700; }

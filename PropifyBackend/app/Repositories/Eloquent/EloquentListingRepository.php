@@ -134,9 +134,17 @@ final class EloquentListingRepository implements ListingRepository
         return $query->paginate($perPage);
     }
 
-    public function paginateAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
+    public function paginateAdmin(
+        ?string $status,
+        ?string $demandType,
+        ?string $keyword,
+        int $perPage,
+        ?string $searchField = 'title',
+        ?string $priceRange = null,
+        ?int $packageId = null,
+    ): LengthAwarePaginator
     {
-        return Listing::query()
+        return $this->buildAdminBaseQuery($demandType, $keyword, $searchField, $priceRange, $packageId)
             ->with([
                 'property.attributes.group',
                 'images',
@@ -148,38 +156,96 @@ final class EloquentListingRepository implements ListingRepository
                 'approver',
                 'package',
             ])
-            ->where('status', '!=', 'DRAFT')
             ->when($status && $status !== 'all', function ($query) use ($status) {
                 // If filtering by specific status, do exact match except for 'all'
                 $query->where('status', strtoupper($status));
             })
+            ->orderByDesc('id')
+            ->paginate($perPage);
+    }
+
+    public function getAdminStatusCounts(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $searchField = 'title',
+        ?string $priceRange = null,
+        ?int $packageId = null,
+    ): array {
+        $counts = $this->buildAdminBaseQuery($demandType, $keyword, $searchField, $priceRange, $packageId)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        return [
+            'all' => (int) $counts->sum(),
+            'pending' => (int) ($counts['PENDING'] ?? 0),
+            'approved' => (int) ($counts['ACTIVE'] ?? 0),
+            'rejected' => (int) ($counts['REJECTED'] ?? 0),
+            'locked' => (int) ($counts['LOCKED'] ?? 0),
+        ];
+    }
+
+    private function buildAdminBaseQuery(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $searchField = 'title',
+        ?string $priceRange = null,
+        ?int $packageId = null,
+    ) {
+        return Listing::query()
+            ->whereNotIn('status', ['DRAFT', 'UNLISTED'])
             ->when($demandType && $demandType !== 'all', function ($query) use ($demandType) {
                 $query->where('demand_type', strtoupper($demandType));
             })
-            ->when($keyword, function ($query) use ($keyword) {
+            ->when($packageId, function ($query) use ($packageId) {
+                $query->where('package_id', $packageId);
+            })
+            ->when($priceRange && $priceRange !== 'all', function ($query) use ($priceRange) {
+                $query->whereHas('property', function ($propertyQuery) use ($priceRange) {
+                    match ($priceRange) {
+                        'under_1b' => $propertyQuery->where('price', '<', 1000000000),
+                        '1b_3b' => $propertyQuery->whereBetween('price', [1000000000, 3000000000]),
+                        '3b_5b' => $propertyQuery->whereBetween('price', [3000000000, 5000000000]),
+                        '5b_10b' => $propertyQuery->whereBetween('price', [5000000000, 10000000000]),
+                        'over_10b' => $propertyQuery->where('price', '>', 10000000000),
+                        default => null,
+                    };
+                });
+            })
+            ->when($keyword, function ($query) use ($keyword, $searchField) {
                 $keywordLower = mb_strtolower($keyword, 'UTF-8');
                 $isRent = str_contains($keywordLower, 'cho') || str_contains($keywordLower, 'thuê');
                 $isSale = str_contains($keywordLower, 'mua') || str_contains($keywordLower, 'bán');
 
-                $query->where(function ($subQuery) use ($keyword, $isRent, $isSale) {
-                    $subQuery
-                        ->where('title', 'like', '%' . $keyword . '%')
-                        ->orWhereHas('property', function ($propertyQuery) use ($keyword) {
+                $query->where(function ($subQuery) use ($keyword, $isRent, $isSale, $searchField) {
+                    if ($searchField === 'owner') {
+                        $subQuery->whereHas('owner', function ($ownerQuery) use ($keyword) {
+                            $ownerQuery
+                                ->where('full_name', 'like', '%' . $keyword . '%')
+                                ->orWhere('email', 'like', '%' . $keyword . '%')
+                                ->orWhere('phone', 'like', '%' . $keyword . '%');
+                        });
+                    } elseif ($searchField === 'address') {
+                        $subQuery->whereHas('property', function ($propertyQuery) use ($keyword) {
                             $propertyQuery
                                 ->where('address_detail', 'like', '%' . $keyword . '%')
-                                ->orWhere('project_name', 'like', '%' . $keyword . '%');
+                                ->orWhere('project_name', 'like', '%' . $keyword . '%')
+                                ->orWhere('street_code', 'like', '%' . $keyword . '%')
+                                ->orWhere('province_code', 'like', '%' . $keyword . '%')
+                                ->orWhere('ward_code', 'like', '%' . $keyword . '%');
                         });
-                    
-                    if ($isRent) {
-                        $subQuery->orWhere('demand_type', 'RENT');
-                    }
-                    if ($isSale) {
-                        $subQuery->orWhere('demand_type', 'SALE');
+                    } else {
+                        $subQuery->where('title', 'like', '%' . $keyword . '%');
+
+                        if ($isRent) {
+                            $subQuery->orWhere('demand_type', 'RENT');
+                        }
+                        if ($isSale) {
+                            $subQuery->orWhere('demand_type', 'SALE');
+                        }
                     }
                 });
-            })
-            ->orderByDesc('id')
-            ->paginate($perPage);
+            });
     }
 
     public function updateProperty(int $id, array $attributes): Property

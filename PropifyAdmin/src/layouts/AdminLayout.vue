@@ -16,7 +16,7 @@ const admin = useAdminStore()
       :style="{ marginLeft: admin.sidebarCollapsed ? '72px' : '260px' }"
     >
       <AppTopbar />
-      <main class="flex-1 p-6 overflow-y-auto">
+      <main class="flex-1 min-w-0 overflow-x-hidden overflow-y-auto p-6">
         <RouterView />
       </main>
     </div>

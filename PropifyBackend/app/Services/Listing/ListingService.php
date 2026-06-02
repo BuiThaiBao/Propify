@@ -30,7 +30,26 @@ interface ListingService
 
     public function getPublicListings(?string $sortBy, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
 
-    public function getAllForAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator;
+    public function getAllForAdmin(
+        ?string $status,
+        ?string $demandType,
+        ?string $keyword,
+        int $perPage,
+        ?string $searchField = 'title',
+        ?string $priceRange = null,
+        ?int $packageId = null,
+    ): LengthAwarePaginator;
+
+    /**
+     * @return array<string, int>
+     */
+    public function getAdminStatusCounts(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $searchField = 'title',
+        ?string $priceRange = null,
+        ?int $packageId = null,
+    ): array;
 
     public function changeStatusForAdmin(int $listingId, string $status, ?string $rejectionReason = null, ?int $adminUserId = null): Listing;
 
