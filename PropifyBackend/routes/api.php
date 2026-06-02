@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\Geocoding\GeocodingController;
 use App\Http\Controllers\Api\V1\Listing\FavoriteController;
 use App\Http\Controllers\Api\V1\Listing\ListingController;
 use App\Http\Controllers\Api\V1\Listing\ListingUpgradeController;
+use App\Http\Controllers\Api\V1\Listing\RecentlyViewedController;
 use App\Http\Controllers\Api\V1\Listing\ViewTrackingController;
 use App\Http\Controllers\Api\V1\Package\PackageController;
 use App\Http\Controllers\Api\V1\Package\PackageDurationOptionController;
@@ -224,6 +225,10 @@ Route::prefix('v1/favorites')->as('favorites.')->middleware('auth:api')->group(f
     Route::get('/', [FavoriteController::class, 'index'])->name('index');
     Route::get('/ids', [FavoriteController::class, 'ids'])->name('ids');
     Route::post('/{listingId}', [FavoriteController::class, 'toggle'])->where('listingId', '[0-9]+')->name('toggle');
+});
+
+Route::prefix('v1/recently-viewed')->as('recently-viewed.')->middleware('auth:api')->group(function () {
+    Route::get('/', [RecentlyViewedController::class, 'index'])->name('index');
 });
 
 // ==================== PACKAGES: PUBLIC ROUTES ====================

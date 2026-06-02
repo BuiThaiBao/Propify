@@ -406,6 +406,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useFavoriteListings } from '@/composables/useFavoriteListings';
 import { Heart } from 'lucide-vue-next';
 import listingService from '@/services/listingService';
+import recentlyViewedService from '@/services/recentlyViewedService';
 import AppointmentBookingPopup from '@/components/appointments/AppointmentBookingPopup.vue';
 import { buildPropertyAddress, hydrateListingAddresses, hydratePropertyAddress } from '@/utils/addressFormatter';
 import { selectRelatedListings } from '@/utils/relatedListingStrategies';
@@ -903,6 +904,10 @@ function trackViewNow(listingId) {
   listingService.trackView(listingId).catch(() => {
     // View tracking should never affect the listing detail UX.
   });
+
+  if (listing.value) {
+    recentlyViewedService.trackListingView(listing.value, authStore.isAuthenticated);
+  }
 }
 
 function replaceMapTilerKey(value, key) {

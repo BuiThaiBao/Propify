@@ -103,7 +103,13 @@
         </button>
 
         <!-- Tin đã xem -->
-        <button class="flex items-center gap-2.5 w-full px-5 py-3.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-500 transition-all text-left">
+        <button
+          :class="['flex items-center gap-2.5 w-full px-5 py-3.5 text-sm transition-all text-left',
+            activeTab === 'recently-viewed'
+              ? 'bg-gradient-to-r from-sky-100 to-sky-50 text-sky-500 font-semibold border-l-[3px] border-sky-500'
+              : 'text-slate-600 hover:bg-slate-50 hover:text-sky-500']"
+          @click="openRecentlyViewedTab"
+        >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
           </svg>
@@ -930,6 +936,174 @@
           </div>
         </div>
       </section>
+
+      <!-- ===== RECENTLY VIEWED TAB ===== -->
+      <section v-if="activeTab === 'recently-viewed'" class="bg-white rounded-xl shadow-sm p-6">
+        <!-- Breadcrumb & Title -->
+        <div class="mb-5 flex flex-col gap-1">
+          <p class="text-xs text-slate-400">
+            <span class="hover:text-sky-500 cursor-pointer" @click="router.push('/')">Trang chủ</span>
+            <span class="mx-1.5">&gt;</span>
+            <span class="text-slate-600 font-medium">Tin đăng đã xem</span>
+          </p>
+          <h1 class="text-[22px] font-bold text-slate-800">Tin đăng đã xem</h1>
+        </div>
+
+        <!-- Filters & Search Row -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <!-- Type Filter Tabs -->
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              class="px-4 py-2 rounded-full border text-[0.85rem] font-medium transition-colors flex items-center gap-1.5"
+              :class="viewedDemandType === ''
+                ? 'border-sky-300 bg-sky-50 text-sky-600'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
+              @click="viewedDemandType = ''; viewedCurrentPage = 1"
+            >
+              Tất cả {{ viewedCounts.all }}
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 rounded-full border text-[0.85rem] font-medium transition-colors flex items-center gap-1.5"
+              :class="viewedDemandType === 'RENT'
+                ? 'border-emerald-300 bg-emerald-50 text-emerald-600'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
+              @click="viewedDemandType = 'RENT'; viewedCurrentPage = 1"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Cho thuê {{ viewedCounts.rent }}
+            </button>
+            <button
+              type="button"
+              class="px-4 py-2 rounded-full border text-[0.85rem] font-medium transition-colors flex items-center gap-1.5"
+              :class="viewedDemandType === 'SALE'
+                ? 'border-blue-300 bg-blue-50 text-blue-600'
+                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
+              @click="viewedDemandType = 'SALE'; viewedCurrentPage = 1"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+              Bán {{ viewedCounts.sale }}
+            </button>
+          </div>
+
+          <!-- Search Bar -->
+          <div class="relative w-full md:w-[320px]">
+            <input
+              v-model="viewedSearchQuery"
+              type="text"
+              class="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none transition focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20"
+              placeholder="Nhập giá trị tìm kiếm..."
+              @input="viewedCurrentPage = 1"
+            />
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+            </svg>
+          </div>
+        </div>
+
+        <div v-if="viewedLoading" class="py-8 text-center text-sm text-slate-400">
+          Đang tải dữ liệu...
+        </div>
+
+        <div v-else-if="filteredViewedListings.length === 0" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm text-slate-400">
+          Không tìm thấy tin đăng đã xem nào.
+        </div>
+
+        <div v-else class="space-y-4">
+          <template v-for="item in paginatedViewedListings" :key="item.id">
+            <!-- Rent Card -->
+            <RentCard
+              v-if="item.demandType === 'RENT'"
+              :to="'/listings/' + item.id"
+              :verified="isVerified(item)"
+              :title="item.title"
+              :type="propertyTypeLabel(item.property?.type)"
+              :price="formatPrice(item.property?.price)"
+              :unit="'/tháng'"
+              :area="item.property?.area || 0"
+              :beds="item.property?.bedrooms || 0"
+              :baths="item.property?.bathrooms || 0"
+              :location="item.address"
+              :author="getAuthor(item)"
+              :image="getThumb(item)"
+              :images="item.images"
+              :package="item.package"
+              :listing-id="item.id"
+              :is-favorite="isFavorite(item)"
+              :rating="null"
+              :timeAgo="timeAgo(item.publishedAt || item.submittedAt)"
+              :views="item.views ?? 0"
+              @toggle-favorite="toggleFavoriteFromViewed(item)"
+            />
+            <!-- Sale Card -->
+            <SaleCard 
+              v-else
+              :to="'/listings/' + item.id"
+              :verified="isVerified(item)"
+              :title="item.title"
+              :type="propertyTypeLabel(item.property?.type)"
+              :price="formatPrice(item.property?.price)"
+              :unit="''"
+              :area="item.property?.area || 0"
+              :beds="item.property?.bedrooms || 0"
+              :baths="item.property?.bathrooms || 0"
+              :location="item.address"
+              :author="getAuthor(item)"
+              :image="getThumb(item)"
+              :images="item.images"
+              :package="item.package"
+              :listing-id="item.id"
+              :is-favorite="isFavorite(item)"
+              :rating="null"
+              :timeAgo="timeAgo(item.publishedAt || item.submittedAt)"
+              :views="item.views ?? 0"
+              @toggle-favorite="toggleFavoriteFromViewed(item)"
+            />
+          </template>
+
+          <!-- Frontend Pagination -->
+          <div class="mt-6 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+            <p>Tất cả {{ viewedPagination.total }} dòng</p>
+            
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                class="rounded-lg border border-slate-200 w-8 h-8 flex items-center justify-center hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                :disabled="viewedCurrentPage <= 1"
+                @click="viewedCurrentPage--"
+              >
+                ‹
+              </button>
+              
+              <input
+                v-model.number="viewedCurrentPage"
+                type="text"
+                class="w-10 h-8 text-center rounded-lg border border-slate-200 text-sm outline-none transition focus:border-sky-400"
+              />
+              
+              <button
+                type="button"
+                class="rounded-lg border border-slate-200 w-8 h-8 flex items-center justify-center hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                :disabled="viewedCurrentPage >= viewedPagination.lastPage"
+                @click="viewedCurrentPage++"
+              >
+                ›
+              </button>
+
+              <select
+                v-model="viewedPageSize"
+                class="h-8 rounded-lg border border-slate-200 px-2 text-xs outline-none focus:border-sky-400"
+                @change="viewedCurrentPage = 1"
+              >
+                <option :value="10">10</option>
+                <option :value="25">25</option>
+                <option :value="50">50</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
     </div>
 
@@ -977,6 +1151,7 @@ import userService from '@/services/userService';
 import cloudinaryService from '@/services/cloudinaryService';
 import listingService from '@/services/listingService';
 import favoriteService from '@/services/favoriteService';
+import recentlyViewedService from '@/services/recentlyViewedService';
 import PackageUpgradeModal from '@/components/shared/PackageUpgradeModal.vue';
 import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
 import AppointmentManagement from '@/components/appointments/AppointmentManagement.vue';
@@ -1081,7 +1256,7 @@ async function uploadAvatar() {
 }
 
 // ── Tabs ──
-const validTabs = ['profile', 'listings', 'verifications', 'appointments', 'favorites', 'password'];
+const validTabs = ['profile', 'listings', 'verifications', 'appointments', 'favorites', 'recently-viewed', 'password'];
 const initialTab = validTabs.includes(route.query.tab) ? route.query.tab : 'profile';
 const activeTab = ref(initialTab);
 
@@ -1110,6 +1285,8 @@ watch(
       openAppointmentsTab();
     } else if (nextTab === 'favorites') {
       openFavoritesTab();
+    } else if (nextTab === 'recently-viewed') {
+      openRecentlyViewedTab();
     } else {
       activeTab.value = nextTab;
     }
@@ -1465,6 +1642,10 @@ function isVerified(item) {
   return value === true || Number(value) === 1;
 }
 
+function isFavorite(item) {
+  return favoriteListings.value.some((fav) => Number(fav.id) === Number(item.id));
+}
+
 function getThumb(item) {
   if (item.images && item.images.length > 0) {
     const thumb = item.images.find((image) => image.is_thumbnail || image.isThumbnail);
@@ -1742,6 +1923,74 @@ async function removeFavorite(item) {
   }
 }
 
+// ── Recently Viewed ──
+const viewedListings = ref([]);
+const viewedLoading = ref(false);
+const viewedLoaded = ref(false);
+const viewedSearchQuery = ref('');
+const viewedDemandType = ref('');
+const viewedCurrentPage = ref(1);
+const viewedPageSize = ref(10);
+
+const viewedCounts = computed(() => {
+  const all = viewedListings.value.length;
+  const rent = viewedListings.value.filter(item => item.demandType === 'RENT').length;
+  const sale = viewedListings.value.filter(item => item.demandType === 'SALE').length;
+  return { all, rent, sale };
+});
+
+const filteredViewedListings = computed(() => {
+  return viewedListings.value.filter((item) => {
+    const matchType = !viewedDemandType.value || item.demandType === viewedDemandType.value;
+    const matchQuery = !viewedSearchQuery.value || 
+      item.title.toLowerCase().includes(viewedSearchQuery.value.toLowerCase()) ||
+      (item.address && item.address.toLowerCase().includes(viewedSearchQuery.value.toLowerCase()));
+    return matchType && matchQuery;
+  });
+});
+
+const viewedPagination = computed(() => {
+  const total = filteredViewedListings.value.length;
+  const lastPage = Math.ceil(total / viewedPageSize.value) || 1;
+  return { total, lastPage };
+});
+
+const paginatedViewedListings = computed(() => {
+  const start = (viewedCurrentPage.value - 1) * viewedPageSize.value;
+  const end = start + viewedPageSize.value;
+  return filteredViewedListings.value.slice(start, end);
+});
+
+async function loadRecentlyViewed() {
+  viewedLoading.value = true;
+  try {
+    const data = await recentlyViewedService.getRecentlyViewed(authStore.isAuthenticated);
+    await hydrateListingAddresses(data);
+    viewedListings.value = normalizeFavoriteListings(data);
+    viewedLoaded.value = true;
+  } catch {
+    viewedListings.value = [];
+  } finally {
+    viewedLoading.value = false;
+  }
+}
+
+function openRecentlyViewedTab() {
+  activeTab.value = 'recently-viewed';
+  if (!viewedLoaded.value) {
+    loadRecentlyViewed();
+  }
+}
+
+async function toggleFavoriteFromViewed(item) {
+  try {
+    await favoriteService.toggle(item.id);
+    await loadFavorites();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
 // ── Profile form ──
 const isEditing = ref(false);
 const profileLoading = ref(false);
@@ -1791,6 +2040,8 @@ onMounted(async () => {
     openAppointmentsTab();
   } else if (tab === 'favorites') {
     openFavoritesTab();
+  } else if (tab === 'recently-viewed') {
+    openRecentlyViewedTab();
   } else if (tab === 'password') {
     activeTab.value = 'password';
   }

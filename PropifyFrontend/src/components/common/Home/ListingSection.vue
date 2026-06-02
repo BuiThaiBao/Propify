@@ -87,6 +87,7 @@
           :rating="null"
           :timeAgo="timeAgo(item.published_at || item.submitted_at)"
           :package="item.package"
+
           :is-favorite="isFavorite(item)"
           @toggle-favorite="toggleFavorite(item)"
         />
@@ -94,7 +95,7 @@
     </div>
 
     <!-- Tin xem gần đây -->
-    <div class="pt-8">
+    <div class="pt-8" v-if="viewedListings.length > 0">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-slate-800 flex items-center gap-2">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0DA2E7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -104,12 +105,12 @@
         </h2>
       </div>
 
-      <div v-if="saleListings.length === 0" class="text-center text-gray-400 py-8">
-        Bạn chưa xem tin nào gần đây.
+      <div v-if="viewedLoading" class="flex justify-center py-10">
+        <div class="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
       </div>
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <ListingCardHome
-          v-for="item in saleListings.slice(0,3)"
+          v-for="item in viewedListings"
           :key="'viewed-' + item.id"
           :listing-id="item.id"
           :to="'/listings/' + item.id"
@@ -119,7 +120,7 @@
           :title="item.title"
           :location="item.property?.full_address || item.property?.address_detail || ''"
           :price="formatPrice(item.property?.price)"
-          :unit="''"
+          :unit="item.demand_type === 'RENT' ? '/tháng' : ''"
           :area="item.property?.area || 0"
           :beds="item.property?.bedrooms || 0"
           :baths="item.property?.bathrooms || 0"
@@ -178,11 +179,12 @@
 </template>
 
 <script setup>
-import { onMounted, watch } from 'vue';
+import { ref, onMounted, watch } from 'vue';
 import ListingCardHome from '@/components/shared/ListingCardHome.vue';
 import { useHomeListings } from '@/composables/useHomeListings';
 import { useFavoriteListings } from '@/composables/useFavoriteListings';
 import { useAuthStore } from '@/stores/auth';
+import recentlyViewedService from '@/services/recentlyViewedService';
 
 const { saleListings, rentListings, saleLoading, rentLoading, init } = useHomeListings();
 const authStore = useAuthStore();
@@ -194,24 +196,43 @@ const {
   loadFavorites,
 } = useFavoriteListings();
 
+const viewedListings = ref([]);
+const viewedLoading = ref(false);
+
+async function loadRecentlyViewed() {
+  viewedLoading.value = true;
+  try {
+    const data = await recentlyViewedService.getRecentlyViewed(authStore.isAuthenticated);
+    // Take the top 3 viewed listings
+    viewedListings.value = data.slice(0, 3);
+  } catch (err) {
+    console.error('Failed to load recently viewed:', err);
+    viewedListings.value = [];
+  } finally {
+    viewedLoading.value = false;
+  }
+}
+
 onMounted(() => {
   init();
   loadFavorites();
+  loadRecentlyViewed();
 });
 
 watch(
   () => authStore.isAuthenticated,
   () => {
     loadFavorites();
+    loadRecentlyViewed();
   },
 );
 
 function getThumb(item) {
   if (item.images && item.images.length > 0) {
-    const thumb = item.images.find(i => i.is_thumbnail);
+    const thumb = item.images.find((image) => image.is_thumbnail || image.isThumbnail);
     return thumb ? thumb.url : item.images[0].url;
   }
-  return 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60';
+  return item.thumbnail || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60';
 }
 
 function formatPrice(value) {
@@ -233,8 +254,6 @@ function propertyTypeLabel(type) {
   };
   return map[type] || type || 'BĐS';
 }
-
-
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';
