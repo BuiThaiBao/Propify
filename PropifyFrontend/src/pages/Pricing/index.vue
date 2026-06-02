@@ -1,7 +1,15 @@
 <template>
   <div class="min-h-screen bg-white text-slate-900">
+    <!-- Breadcrumbs -->
+    <div class="mx-auto max-w-7xl px-4 md:px-8 pt-24 pb-0">
+      <Breadcrumb :crumbs="[
+        { label: 'Trang chủ', to: '/' },
+        { label: 'Bảng giá' }
+      ]" />
+    </div>
+
     <!-- Hero -->
-    <section class="px-4 pt-20 pb-8 text-center sm:pt-24">
+    <section class="px-4 pt-4 pb-8 text-center">
       <div class="mx-auto max-w-3xl">
         <h1 class="text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl">
           Bảng giá đăng tin
@@ -144,6 +152,7 @@
 <script setup>
 import { computed, onMounted } from 'vue';
 import AppFooter from '@/components/common/AppFooter.vue';
+import Breadcrumb from '@/components/shared/Breadcrumb.vue';
 import { usePackages } from '@/composables/usePackages';
 
 const { packages, loading, error, fetchPackages } = usePackages();

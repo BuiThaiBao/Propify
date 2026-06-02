@@ -2,11 +2,11 @@
 <template>
 	<RouterLink :to="to" class="block no-underline text-inherit">
 	<div 
-		class="bg-white rounded flex gap-4 group overflow-hidden min-h-[210px]"
+		class="bg-white rounded flex gap-4 group overflow-hidden h-[210px] border border-transparent hover:border-slate-200 transition-colors duration-200"
 		:class="packageBorderClass"
 	>
 		<!-- Left Media Column -->
-		<div class="flex flex-col gap-2 shrink-0 w-[280px] md:w-[300px] pt-[1px] pb-[1px] pl-[1px]">
+		<div class="flex flex-col gap-2 shrink-0 w-[280px] md:w-[300px] h-full pt-[1px] pb-[1px] pl-[1px]">
 			<!-- Main Image Box -->
 			<div class="relative w-full h-0 flex-1 rounded overflow-hidden">
 				<img :src="imageList[activeImgIdx]" alt="Property" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />

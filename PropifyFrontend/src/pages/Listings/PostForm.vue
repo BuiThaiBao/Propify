@@ -11,11 +11,10 @@
     </div>
 
     <div class="mx-auto w-full max-w-[1240px] px-4 lg:px-6">
-      <p class="text-xs text-slate-500">
-        <router-link to="/" class="hover:text-sky-600 hover:underline">Trang chủ</router-link>
-        <span> &gt; </span>
-        <span>{{ pageBreadcrumb }}</span>
-      </p>
+      <Breadcrumb :crumbs="[
+        { label: 'Trang chủ', to: '/' },
+        { label: pageBreadcrumb }
+      ]" />
       <h1 class="mt-2 text-[24px] font-extrabold tracking-tight text-slate-900">{{ pageTitle }}</h1>
 
       <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,760px)_330px] lg:justify-center">
@@ -828,6 +827,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import Breadcrumb from "@/components/shared/Breadcrumb.vue";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import listingService from "@/services/listingService";

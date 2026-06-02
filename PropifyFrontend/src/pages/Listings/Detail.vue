@@ -22,14 +22,7 @@
     <div v-else-if="listing" :class="previewMode ? 'mx-auto w-full max-w-[1280px] px-0' : 'mx-auto w-full max-w-[1280px] px-4 lg:px-8'">
       <div class="mb-5 flex items-start justify-between gap-4">
         <div class="min-w-0">
-          <p v-if="!isEmbedded" class="flex items-center gap-2 text-xs text-slate-400">
-            <button type="button" class="flex items-center gap-1 hover:text-sky-500" @click="router.back()">
-              <span class="text-base leading-none">←</span>
-              <span>Danh sách</span>
-            </button>
-            <span>/</span>
-            <span class="truncate text-slate-600">{{ listing.title }}</span>
-          </p>
+          <Breadcrumb v-if="!isEmbedded" :crumbs="detailCrumbs" />
           <h1 class="mt-3 text-[24px] font-extrabold leading-tight text-slate-900">{{ listing.title }}</h1>
           <p class="mt-1 flex items-center gap-2 text-xs text-slate-500">
             <span class="inline-flex items-center gap-1.5">
@@ -408,6 +401,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import Breadcrumb from '@/components/shared/Breadcrumb.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useFavoriteListings } from '@/composables/useFavoriteListings';
 import { Heart } from 'lucide-vue-next';
@@ -463,6 +457,22 @@ const isEmbedded = ref(false);
 const loading = ref(!props.previewMode);
 const error = ref('');
 const listing = ref(props.previewListing || {});
+
+const detailCrumbs = computed(() => {
+  const list = [
+    { label: 'Trang chủ', to: '/' }
+  ];
+  if (listing.value) {
+    const isSale = listing.value.demand_type === 'SALE';
+    if (isSale) {
+      list.push({ label: 'Mua bán', to: '/sales' });
+    } else {
+      list.push({ label: 'Cho thuê', to: '/rent' });
+    }
+    list.push({ label: listing.value.title });
+  }
+  return list;
+});
 
 const activeImageIndex = ref(0);
 const imageLightboxOpen = ref(false);

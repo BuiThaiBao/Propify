@@ -1,5 +1,11 @@
 <template>
-  <div class="w-full max-w-[1600px] mx-auto mt-20 mb-8 px-4 lg:px-8 flex gap-8 min-h-[calc(100vh-200px)] max-md:flex-col">
+  <div class="w-full max-w-[1600px] mx-auto mt-24 mb-8 px-4 lg:px-8">
+    <Breadcrumb :crumbs="[
+      { label: 'Trang chủ', to: '/' },
+      { label: 'Trang cá nhân' }
+    ]" />
+
+    <div class="flex gap-8 min-h-[calc(100vh-200px)] max-md:flex-col mt-4">
 <!-- Sidebar (chỉ giữ nguyên icon tóm tắt) -->
     <aside class="w-[260px] shrink-0 max-md:w-full">
       <div class="text-center p-6 bg-white rounded-xl shadow-sm mb-4">
@@ -844,6 +850,7 @@
         </div>
       </section>
     </main>
+    </div>
 
     <ConfirmActionModal
       :open="lockListingModalOpen"
@@ -884,6 +891,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRoute, useRouter } from 'vue-router';
+import Breadcrumb from '@/components/shared/Breadcrumb.vue';
 import userService from '@/services/userService';
 import cloudinaryService from '@/services/cloudinaryService';
 import listingService from '@/services/listingService';

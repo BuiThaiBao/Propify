@@ -1,24 +1,33 @@
 <template>
-  <div class="flex h-[calc(100vh-70px)] bg-gray-50 font-[Inter,sans-serif]">
-    <!-- Sidebar -->
-    <aside class="w-[320px] min-w-[320px] bg-white border-r border-gray-200 flex flex-col overflow-hidden"
-      :class="{ 'max-md:hidden': activeConversation && isMobile }">
-      <div class="px-5 py-4 border-b border-gray-100">
-        <h2 class="flex items-center gap-2.5 text-lg font-bold text-gray-900 m-0">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-          Tin nhắn
-          <span v-if="totalUnread > 0" class="bg-blue-500 text-white text-[0.7rem] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
-            {{ totalUnread }}
-          </span>
-        </h2>
-      </div>
-      <ConversationList :conversations="conversations" :active-id="activeConversation?.id" :loading="loadingConversations" @select="openConversation" />
-    </aside>
+  <div class="flex flex-col h-[calc(100vh-70px)] bg-gray-50 font-[Inter,sans-serif]">
+    <!-- Breadcrumbs -->
+    <div class="px-5 pt-3 bg-white border-b border-gray-200 shrink-0">
+      <Breadcrumb :crumbs="[
+        { label: 'Trang chủ', to: '/' },
+        { label: 'Tin nhắn' }
+      ]" />
+    </div>
 
-    <!-- Main -->
-    <main class="flex-1 flex flex-col overflow-hidden" :class="isMobile && !activeConversation ? 'hidden' : 'flex'">
+    <div class="flex flex-1 overflow-hidden">
+      <!-- Sidebar -->
+      <aside class="w-[320px] min-w-[320px] bg-white border-r border-gray-200 flex flex-col overflow-hidden"
+        :class="{ 'max-md:hidden': activeConversation && isMobile }">
+        <div class="px-5 py-4 border-b border-gray-100">
+          <h2 class="flex items-center gap-2.5 text-lg font-bold text-gray-900 m-0">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            Tin nhắn
+            <span v-if="totalUnread > 0" class="bg-blue-500 text-white text-[0.7rem] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+              {{ totalUnread }}
+            </span>
+          </h2>
+        </div>
+        <ConversationList :conversations="conversations" :active-id="activeConversation?.id" :loading="loadingConversations" @select="openConversation" />
+      </aside>
+
+      <!-- Main -->
+      <main class="flex-1 flex flex-col overflow-hidden" :class="isMobile && !activeConversation ? 'hidden' : 'flex'">
       <!-- Empty state -->
       <div v-if="!activeConversation" class="flex-1 flex flex-col items-center justify-center gap-4 text-gray-400 text-center p-10">
         <div class="size-24 rounded-full bg-blue-50 flex items-center justify-center">
@@ -68,6 +77,7 @@
         <ChatInput :disabled="sending" @send="handleSend" @typing="handleTyping" />
       </template>
     </main>
+    </div>
   </div>
 </template>
 
@@ -79,6 +89,7 @@ import { useAuthStore } from '@/stores/auth';
 import ConversationList from '@/components/chat/ConversationList.vue';
 import MessageBubble from '@/components/chat/MessageBubble.vue';
 import ChatInput from '@/components/chat/ChatInput.vue';
+import Breadcrumb from '@/components/shared/Breadcrumb.vue';
 
 const chatStore = useChatStore();
 const authStore = useAuthStore();
