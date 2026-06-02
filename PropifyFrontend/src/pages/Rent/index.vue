@@ -68,7 +68,7 @@
               :listing-id="item.id"
               :is-favorite="isFavorite(item)"
               :rating="null"
-              :timeAgo="timeAgo(item.submitted_at)"
+              :timeAgo="timeAgo(item.published_at || item.submitted_at)"
               :views="item.views ?? 0"
               @toggle-favorite="toggleFavorite(item)"
             />

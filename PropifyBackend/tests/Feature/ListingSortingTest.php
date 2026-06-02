@@ -49,14 +49,14 @@ class ListingSortingTest extends TestCase
         $owner = User::query()->create(['phone' => '0900000003']);
         $package = Package::query()->create(['name' => 'Normal 2', 'slug' => 'normal-2', 'priority' => 1, 'price' => 0]);
 
-        $older = $this->createActiveListing($owner->id, 1000000, $package->id, 10, now()->subDays(2));
-        $newer = $this->createActiveListing($owner->id, 1200000, $package->id, 10, now()->subHour());
+        $olderPublished = $this->createActiveListing($owner->id, 1000000, $package->id, 10, now()->subDays(2), now()->subHour());
+        $newerPublished = $this->createActiveListing($owner->id, 1200000, $package->id, 10, now()->subHour(), now()->subDays(2));
 
         $response = $this->getJson('/api/v1/listings?sort=newest');
 
         $response->assertOk();
         $ids = array_map('intval', $response->json('data.*.id'));
-        $this->assertSame([$newer->id, $older->id], array_slice($ids, 0, 2));
+        $this->assertSame([$newerPublished->id, $olderPublished->id], array_slice($ids, 0, 2));
     }
 
     public function test_map_listings_include_property_province_and_ward_names(): void
@@ -64,7 +64,7 @@ class ListingSortingTest extends TestCase
         $owner = User::query()->create(['phone' => '0900000004']);
         $package = Package::query()->create(['name' => 'Normal 3', 'slug' => 'normal-3', 'priority' => 1, 'price' => 0]);
 
-        $listing = $this->createActiveListing($owner->id, 1000000, $package->id, 10, now()->subHour(), [
+        $listing = $this->createActiveListing($owner->id, 1000000, $package->id, 10, now()->subHour(), null, [
             'province' => 'Thành phố Hồ Chí Minh',
             'ward_code' => '26734',
             'ward' => 'Phường Bến Nghé',
@@ -80,7 +80,7 @@ class ListingSortingTest extends TestCase
         $response->assertJsonPath('data.0.ward', 'Phường Bến Nghé');
     }
 
-    private function createActiveListing(int $ownerId, float $price, ?int $packageId, int $score, $publishedAt, array $propertyOverrides = []): Listing
+    private function createActiveListing(int $ownerId, float $price, ?int $packageId, int $score, $publishedAt, $submittedAt = null, array $propertyOverrides = []): Listing
     {
         $property = Property::query()->create(array_merge([
             'owner_id' => $ownerId,
@@ -99,6 +99,7 @@ class ListingSortingTest extends TestCase
             'status' => 'ACTIVE',
             'package_id' => $packageId,
             'score' => $score,
+            'submitted_at' => $submittedAt ?? $publishedAt,
             'published_at' => $publishedAt,
         ]);
     }

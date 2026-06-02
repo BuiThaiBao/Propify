@@ -27,7 +27,7 @@
           <p class="mt-1 flex items-center gap-2 text-xs text-slate-500">
             <span class="inline-flex items-center gap-1.5">
               <img :src="calendarIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
-              Ngày đăng: {{ formatDate(listing.submitted_at || listing.created_at) }}
+              Ngày đăng: {{ formatDate(listing.published_at || listing.submitted_at || listing.created_at) }}
             </span>
             <span v-if="listing.views != null">• {{ listing.views }} lượt xem</span>
           </p>
