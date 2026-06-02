@@ -140,9 +140,9 @@
                   v-if="row.thumbnail"
                   :src="row.thumbnail"
                   alt="thumb"
-                  class="h-12 w-14 rounded-md object-cover"
+                  class="h-12 w-12 rounded-md object-cover border border-slate-200"
                 />
-                <div v-else class="h-12 w-14 rounded-md bg-slate-100"></div>
+                <div v-else class="h-12 w-12 rounded-md bg-slate-100 border border-slate-200"></div>
               </td>
               <td class="px-3 py-3 text-slate-500">{{ row.code }}</td>
               <td class="px-3 py-3 font-semibold text-slate-700 group-hover:text-sky-600">

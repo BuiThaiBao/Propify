@@ -378,8 +378,8 @@
               <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="openListingEdit(item)">
                 <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap col-sticky-id">{{ item.id }}</td>
                 <td class="px-3 py-4 whitespace-nowrap">
-                  <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-14 rounded-md object-cover" />
-                  <div v-else class="h-12 w-14 rounded-md bg-slate-100"></div>
+                  <img v-if="item.thumbnail" :src="item.thumbnail" alt="thumb" class="h-12 w-12 rounded-md object-cover border border-slate-200" />
+                  <div v-else class="h-12 w-12 rounded-md bg-slate-100 border border-slate-200"></div>
                 </td>
                 <td class="px-3 py-4 text-slate-500 whitespace-nowrap">{{ item.code }}</td>
                 <td class="px-3 py-4 font-semibold text-slate-700 group-hover:text-sky-600">{{ item.title }}</td>
