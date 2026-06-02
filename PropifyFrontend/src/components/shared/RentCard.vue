@@ -115,10 +115,6 @@
 						<MapPin class="w-3.5 h-3.5 text-blue-500 shrink-0" />
 						<span class="truncate">{{ location }}</span>
 					</span>
-					<span class="flex items-center gap-1 text-gray-400 shrink-0">
-						<CalendarDays class="w-3.5 h-3.5 shrink-0" />
-						{{ timeAgo }}
-					</span>
 				</p>
 
 				<div class="flex items-baseline gap-1 mb-2.5">
@@ -156,6 +152,10 @@
 				</div>
 
 				<div class="flex items-center gap-3">
+					<div class="flex items-center gap-1 text-[12px] text-gray-400">
+						<CalendarDays class="w-3.5 h-3.5 shrink-0" />
+						{{ timeAgo }}
+					</div>
 					<div class="flex items-center gap-1 text-[12px] text-gray-500">
 						<Eye class="w-3.5 h-3.5" />
 						{{ views }}

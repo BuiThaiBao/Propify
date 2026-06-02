@@ -51,4 +51,30 @@ final class FavoriteServiceImpl implements FavoriteService
 
         return true;
     }
+
+    public function getUserRecentlyViewed(int $userId): Collection
+    {
+        return $this->favoriteRepository->findByUser($userId, 'VIEWED')
+            ->pluck('listing')
+            ->filter()
+            ->values();
+    }
+
+    public function trackView(int $userId, int $listingId): void
+    {
+        Listing::query()->findOrFail($listingId);
+
+        $viewed = $this->favoriteRepository->findByUserAndListing($userId, $listingId, 'VIEWED');
+
+        if ($viewed !== null) {
+            $viewed->touch();
+            return;
+        }
+
+        $this->favoriteRepository->create([
+            'user_id' => $userId,
+            'listing_id' => $listingId,
+            'type' => 'VIEWED',
+        ]);
+    }
 }

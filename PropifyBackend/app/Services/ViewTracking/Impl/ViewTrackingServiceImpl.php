@@ -3,12 +3,16 @@
 namespace App\Services\ViewTracking\Impl;
 
 use App\Models\Listing;
+use App\Services\Listing\Favorite\FavoriteService;
 use App\Services\ViewTracking\ViewTrackingService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 
 final class ViewTrackingServiceImpl implements ViewTrackingService
 {
+    public function __construct(
+        private readonly FavoriteService $favoriteService,
+    ) {}
     /** Redis key prefix cho dedup */
     private const DEDUP_PREFIX = 'view:listing:';
 
@@ -58,6 +62,19 @@ final class ViewTrackingServiceImpl implements ViewTrackingService
 
         if (! $exists) {
             return ['counted' => false, 'reason' => 'invalid_listing'];
+        }
+
+        // Record history for logged in user
+        if ($userId !== null) {
+            try {
+                $this->favoriteService->trackView($userId, $listingId);
+            } catch (\Throwable $e) {
+                Log::error('ViewTracking: failed to track user viewed history', [
+                    'listing_id' => $listingId,
+                    'user_id' => $userId,
+                    'error' => $e->getMessage(),
+                ]);
+            }
         }
 
         // 3. Build dedup key
