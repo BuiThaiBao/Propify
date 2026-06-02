@@ -64,6 +64,8 @@ class SameDemandSameProvinceNearestStrategy extends RelatedListingStrategy {
         address: shortPropertyAddress(item.property) || buildPropertyAddress(item.property),
         price: formatPrice(item.property?.price),
         distance: coordinateDistanceKm(currentListing.property, item.property),
+        latitude: item.property?.lat,
+        longitude: item.property?.lng,
       }))
       .sort((a, b) => a.distance - b.distance)
       .slice(0, limit);

@@ -38,6 +38,29 @@
           đến nhà phố yên tĩnh.
         </p>
 
+        <!-- Search Type Toggle (Mua bán / Cho thuê) -->
+        <div
+          class="flex gap-2 mb-3.5 animate-[slideUp_0.6s_ease_forwards]"
+          :style="{ animationDelay: '150ms' }"
+        >
+          <button
+            @click="searchType = 'SALE'"
+            type="button"
+            class="px-5 py-2 rounded-xl text-xs font-bold transition-all duration-200"
+            :class="searchType === 'SALE' ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-white/10 text-white/80 hover:bg-white/15'"
+          >
+            Mua bán
+          </button>
+          <button
+            @click="searchType = 'RENT'"
+            type="button"
+            class="px-5 py-2 rounded-xl text-xs font-bold transition-all duration-200"
+            :class="searchType === 'RENT' ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-white/10 text-white/80 hover:bg-white/15'"
+          >
+            Cho thuê
+          </button>
+        </div>
+
         <!-- Search bar -->
         <div
           class="max-w-xl animate-[slideUp_0.6s_ease_forwards] rounded-2xl bg-card p-2 shadow-elevated"
@@ -103,15 +126,17 @@ import { MapPin, Search, SlidersHorizontal } from "lucide-vue-next";
 
 // state
 const searchQuery = ref("");
+const searchType = ref("SALE"); // "SALE" or "RENT"
 
 // router
 const router = useRouter();
 
 const goToListings = () => {
+  const targetPath = searchType.value === "SALE" ? "/sales" : "/rent";
   router.push({
-    path: "/listings",
+    path: targetPath,
     query: {
-      q: searchQuery.value,
+      q: searchQuery.value.trim() || undefined,
     },
   });
 };

@@ -1,5 +1,6 @@
 import { computed, ref, watch } from 'vue';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useRoute } from 'vue-router';
 import listingService from '@/services/listingService';
 import { hydrateListingAddresses } from '@/utils/addressFormatter';
 import { listingKeys } from '@/composables/queryKeys';
@@ -25,10 +26,19 @@ async function fetchSalePage(page, keyword, posterType, minPrice, maxPrice, minA
 }
 
 export function useSaleListings() {
+  const route = useRoute();
   const queryClient = useQueryClient();
   const enabled = ref(false);
   const currentPage = ref(1);
-  const searchKeyword = ref('');
+  const searchKeyword = ref(route?.query?.q || '');
+
+  watch(
+    () => route?.query?.q,
+    (newVal) => {
+      searchKeyword.value = newVal || '';
+      currentPage.value = 1;
+    }
+  );
 
   // Filter states
   const posterType = ref(''); // '', 'OWNER', 'BROKER'

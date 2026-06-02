@@ -11,16 +11,21 @@
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
         <!-- Left Column: Main Content -->
-        <div class="lg:col-span-8">
+        <div class="lg:col-span-9">
+          <!-- Breadcrumb -->
+          <Breadcrumb :crumbs="[
+            { label: 'Trang chủ', to: '/' },
+            { label: 'Cho thuê' }
+          ]" />
+
           <!-- Header section -->
           <div class="flex justify-between items-end mb-6">
             <div>
-              <h1 class="text-2xl font-bold text-gray-900 flex items-center gap-2 mb-1">
-                <KeyRound class="w-6 h-6 text-blue-500" />
-                Cho thuê bất động sản
+              <h1 class="text-2xl font-bold text-gray-900 mb-1">
+                Cho thuê nhà đất giá rẻ tại Việt Nam {{ currentDateStr }}
               </h1>
               <p class="text-sm text-gray-500">
-                Hiện có <span class="font-bold text-blue-600">{{ rentTotal }}</span> bất động sản
+                Hiện có <span class="font-bold text-blue-600">{{ rentTotal ? Number(rentTotal).toLocaleString('vi-VN') : 0 }}</span> bất động sản.
               </p>
             </div>
 
@@ -61,6 +66,7 @@
               :location="item.property?.full_address || item.property?.address_detail || ''"
               :author="getAuthor(item)"
               :image="getThumb(item)"
+              :images="item.images"
               :package="item.package"
               :listing-id="item.id"
               :is-favorite="isFavorite(item)"
@@ -108,9 +114,9 @@
         </div>
 
         <!-- Right Column: Sidebar Filters -->
-        <div class="lg:col-span-4 flex flex-col gap-4">
+        <div class="lg:col-span-3 flex flex-col gap-4">
           <!-- Tìm kiếm theo bản đồ -->
-          <div @click="isMapOpen = true" class="bg-sky-50 border border-sky-100 rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer hover:bg-sky-100 transition shadow-sm text-center">
+          <div @click="isMapOpen = true" class="bg-sky-50 border border-sky-100 rounded p-5 flex flex-col items-center justify-center cursor-pointer hover:bg-sky-100 transition shadow-sm text-center">
             <div class="bg-sky-200/50 p-2.5 rounded-full mb-2">
               <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-sky-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/>
@@ -121,7 +127,7 @@
           </div>
 
           <!-- Người đăng -->
-          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div class="bg-white border border-slate-200 rounded p-5 shadow-sm">
             <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
               <User class="w-4 h-4 text-sky-500" />
               Người đăng
@@ -155,7 +161,7 @@
           </div>
 
           <!-- Khoảng giá -->
-          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div class="bg-white border border-slate-200 rounded p-5 shadow-sm">
             <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
               <DollarSign class="w-4 h-4 text-sky-500" />
               Khoảng giá
@@ -229,7 +235,7 @@
           </div>
 
           <!-- Diện tích -->
-          <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div class="bg-white border border-slate-200 rounded p-5 shadow-sm">
             <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3">
               <Ruler class="w-4 h-4 text-sky-500" />
               Diện tích
@@ -310,8 +316,8 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue';
-import { KeyRound, ChevronDown, ChevronLeft, ChevronRight, User, DollarSign, Ruler } from 'lucide-vue-next';
+import { onMounted, ref, watch, computed } from 'vue';
+import { ChevronDown, ChevronLeft, ChevronRight, User, DollarSign, Ruler } from 'lucide-vue-next';
 import RentLayout from '@/layouts/RentLayout.vue';
 import TopSearchBar from '@/components/shared/TopSearchBar.vue';
 import RentCard from '@/components/shared/RentCard.vue';
@@ -321,8 +327,13 @@ import TabFilterGroup from '@/components/shared/TabFilterGroup.vue';
 import RadioFilterGroup from '@/components/shared/RadioFilterGroup.vue';
 import { useRentListings } from '@/composables/useRentListings';
 import { useFavoriteListings } from '@/composables/useFavoriteListings';
-import { computed } from 'vue';
 import MapSearchModal from '@/components/shared/MapSearchModal.vue';
+import Breadcrumb from '@/components/shared/Breadcrumb.vue';
+
+const currentDateStr = computed(() => {
+  const now = new Date();
+  return `(${now.getMonth() + 1}/${now.getFullYear()})`;
+});
 
 const {
   rentListings, rentLoading, rentTotal,

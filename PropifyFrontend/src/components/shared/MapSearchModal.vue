@@ -310,8 +310,19 @@ const closeDropdown = (e) => {
   }
 };
 
+const handleIframeMessage = (event) => {
+  if (event.origin !== window.location.origin) return;
+  if (event.data?.type === 'select-listing-from-detail') {
+    const listing = event.data.listing;
+    if (listing) {
+      selectListingCard(listing);
+    }
+  }
+};
+
 onMounted(() => {
   window.addEventListener('click', closeDropdown);
+  window.addEventListener('message', handleIframeMessage);
 });
 
 const visibleListings = computed(() => {
@@ -707,6 +718,6 @@ watch(() => props.filters, async () => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('click', closeDropdown);
+  window.removeEventListener('message', handleIframeMessage);
   if (map) map.remove();
-});
-</script>
+});</script>
