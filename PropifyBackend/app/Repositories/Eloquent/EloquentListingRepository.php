@@ -10,7 +10,11 @@ use App\Models\ListingVideo;
 use App\Models\Property;
 use App\Repositories\ListingRepository;
 use App\Services\Listing\Sorting\ListingSortingStrategy;
+use App\Support\PropertySearchText;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 final class EloquentListingRepository implements ListingRepository
 {
@@ -64,14 +68,20 @@ final class EloquentListingRepository implements ListingRepository
                 $query->where('demand_type', $demandType);
             })
             ->when($keyword, function ($query) use ($keyword) {
-                $query->where(function ($subQuery) use ($keyword) {
+                $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
+
+                if ($normalizedKeyword === null) {
+                    return;
+                }
+
+                $like = '%'.$normalizedKeyword.'%';
+
+                $query->where(function ($subQuery) use ($like, $normalizedKeyword) {
                     $subQuery
-                        ->where('title', 'like', '%' . $keyword . '%')
-                        ->orWhere('description', 'like', '%' . $keyword . '%')
-                        ->orWhereHas('property', function ($propertyQuery) use ($keyword) {
-                            $propertyQuery
-                                ->where('address_detail', 'like', '%' . $keyword . '%')
-                                ->orWhere('project_name', 'like', '%' . $keyword . '%');
+                        ->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like])
+                        ->orWhereRaw($this->normalizeSearchExpression('description').' LIKE ?', [$like])
+                        ->orWhereHas('property', function ($propertyQuery) use ($normalizedKeyword) {
+                            $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword);
                         });
                 });
             })
@@ -97,8 +107,19 @@ final class EloquentListingRepository implements ListingRepository
             ->findOrFail($id);
     }
 
-    public function paginatePublic(ListingSortingStrategy $sortingStrategy, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
-    {
+    public function paginatePublic(
+        ListingSortingStrategy $sortingStrategy,
+        ?string $demandType,
+        ?string $keyword,
+        int $perPage,
+        ?string $posterType = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        ?float $minArea = null,
+        ?float $maxArea = null
+    ): LengthAwarePaginator {
+        $hasPropertyFilters = $posterType || $minPrice !== null || $maxPrice !== null || $minArea !== null || $maxArea !== null;
+
         $query = Listing::query()
             ->select([
                 'listings.id', 'listings.property_id', 'listings.owner_id', 'listings.title',
@@ -107,7 +128,7 @@ final class EloquentListingRepository implements ListingRepository
                 'listings.views', 'listings.submitted_at', 'listings.published_at',
             ])
             ->with([
-                'property:id,type,province_code,ward_code,street_code,project_name,address_detail,area,price,bedrooms,bathrooms,contact_name,contact_phone,contact_email,poster_type',
+                'property:id,type,province_code,province,ward_code,ward,street_code,project_name,address_detail,area,price,bedrooms,bathrooms,contact_name,contact_phone,contact_email,poster_type,lat,lng',
                 'images:id,listing_id,image_url,is_thumbnail,sort_order',
                 'owner:id,full_name,avatar_url,phone',
                 'package:id,name,slug,badge,color,priority',
@@ -117,15 +138,40 @@ final class EloquentListingRepository implements ListingRepository
                 $query->where('listings.demand_type', $demandType);
             })
             ->when($keyword, function ($query) use ($keyword) {
-                $query->where(function ($subQuery) use ($keyword) {
+                $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
+
+                if ($normalizedKeyword === null) {
+                    return;
+                }
+
+                $like = '%'.$normalizedKeyword.'%';
+
+                $query->where(function ($subQuery) use ($like, $normalizedKeyword) {
                     $subQuery
-                        ->where('listings.title', 'like', '%' . $keyword . '%')
-                        ->orWhere('listings.description', 'like', '%' . $keyword . '%')
-                        ->orWhereHas('property', function ($propertyQuery) use ($keyword) {
-                            $propertyQuery
-                                ->where('address_detail', 'like', '%' . $keyword . '%')
-                                ->orWhere('project_name', 'like', '%' . $keyword . '%');
+                        ->whereRaw($this->normalizeSearchExpression('listings.title').' LIKE ?', [$like])
+                        ->orWhereRaw($this->normalizeSearchExpression('listings.description').' LIKE ?', [$like])
+                        ->orWhereHas('property', function ($propertyQuery) use ($normalizedKeyword) {
+                            $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword);
                         });
+                });
+            })
+            ->when($hasPropertyFilters, function ($query) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
+                $query->whereHas('property', function ($q) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
+                    if ($posterType) {
+                        $q->where('poster_type', strtoupper($posterType));
+                    }
+                    if ($minPrice !== null) {
+                        $q->where('price', '>=', $minPrice);
+                    }
+                    if ($maxPrice !== null) {
+                        $q->where('price', '<=', $maxPrice);
+                    }
+                    if ($minArea !== null) {
+                        $q->where('area', '>=', $minArea);
+                    }
+                    if ($maxArea !== null) {
+                        $q->where('area', '<=', $maxArea);
+                    }
                 });
             });
 
@@ -142,8 +188,7 @@ final class EloquentListingRepository implements ListingRepository
         ?string $searchField = 'title',
         ?string $priceRange = null,
         ?int $packageId = null,
-    ): LengthAwarePaginator
-    {
+    ): LengthAwarePaginator {
         return $this->buildAdminBaseQuery($demandType, $keyword, $searchField, $priceRange, $packageId)
             ->with([
                 'property.attributes.group',
@@ -157,7 +202,6 @@ final class EloquentListingRepository implements ListingRepository
                 'package',
             ])
             ->when($status && $status !== 'all', function ($query) use ($status) {
-                // If filtering by specific status, do exact match except for 'all'
                 $query->where('status', strtoupper($status));
             })
             ->orderByDesc('id')
@@ -183,6 +227,57 @@ final class EloquentListingRepository implements ListingRepository
             'rejected' => (int) ($counts['REJECTED'] ?? 0),
             'locked' => (int) ($counts['LOCKED'] ?? 0),
         ];
+    }
+
+    public function getMapListings(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $posterType = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
+        ?float $minArea = null,
+        ?float $maxArea = null
+    ): Collection {
+        $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
+        $like = $normalizedKeyword !== null ? '%'.$normalizedKeyword.'%' : null;
+
+        return Listing::query()
+            ->select(['id', 'property_id', 'title', 'demand_type'])
+            ->with([
+                'property:id,address_detail,price,area,poster_type,lat,lng,project_name,province,ward',
+                'images:id,listing_id,image_url,is_thumbnail',
+            ])
+            ->where('status', 'ACTIVE')
+            ->when($demandType, fn ($query) => $query->where('demand_type', $demandType))
+            ->when($like, function ($query) use ($like, $normalizedKeyword) {
+                $query->where(function ($subQuery) use ($like, $normalizedKeyword) {
+                    $subQuery
+                        ->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like])
+                        ->orWhereHas('property', fn ($propertyQuery) => $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword));
+                });
+            })
+            ->whereHas('property', function ($query) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
+                $query->whereNotNull('lat')
+                    ->whereNotNull('lng');
+
+                if ($posterType) {
+                    $query->where('poster_type', strtoupper($posterType));
+                }
+                if ($minPrice !== null) {
+                    $query->where('price', '>=', $minPrice);
+                }
+                if ($maxPrice !== null) {
+                    $query->where('price', '<=', $maxPrice);
+                }
+                if ($minArea !== null) {
+                    $query->where('area', '>=', $minArea);
+                }
+                if ($maxArea !== null) {
+                    $query->where('area', '<=', $maxArea);
+                }
+            })
+            ->orderByDesc('id')
+            ->get();
     }
 
     private function buildAdminBaseQuery(
@@ -213,29 +308,37 @@ final class EloquentListingRepository implements ListingRepository
                 });
             })
             ->when($keyword, function ($query) use ($keyword, $searchField) {
-                $keywordLower = mb_strtolower($keyword, 'UTF-8');
-                $isRent = str_contains($keywordLower, 'cho') || str_contains($keywordLower, 'thuê');
-                $isSale = str_contains($keywordLower, 'mua') || str_contains($keywordLower, 'bán');
+                $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
 
-                $query->where(function ($subQuery) use ($keyword, $isRent, $isSale, $searchField) {
+                if ($normalizedKeyword === null) {
+                    return;
+                }
+
+                $like = '%'.$normalizedKeyword.'%';
+                $isRent = str_contains($normalizedKeyword, 'cho') || str_contains($normalizedKeyword, 'thue');
+                $isSale = str_contains($normalizedKeyword, 'mua') || str_contains($normalizedKeyword, 'ban');
+
+                $query->where(function ($subQuery) use ($like, $isRent, $isSale, $searchField) {
                     if ($searchField === 'owner') {
-                        $subQuery->whereHas('owner', function ($ownerQuery) use ($keyword) {
+                        $subQuery->whereHas('owner', function ($ownerQuery) use ($like) {
                             $ownerQuery
-                                ->where('full_name', 'like', '%' . $keyword . '%')
-                                ->orWhere('email', 'like', '%' . $keyword . '%')
-                                ->orWhere('phone', 'like', '%' . $keyword . '%');
+                                ->whereRaw($this->normalizeSearchExpression('full_name').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('email').' LIKE ?', [$like])
+                                ->orWhere('phone', 'like', $like);
                         });
                     } elseif ($searchField === 'address') {
-                        $subQuery->whereHas('property', function ($propertyQuery) use ($keyword) {
+                        $subQuery->whereHas('property', function ($propertyQuery) use ($like) {
                             $propertyQuery
-                                ->where('address_detail', 'like', '%' . $keyword . '%')
-                                ->orWhere('project_name', 'like', '%' . $keyword . '%')
-                                ->orWhere('street_code', 'like', '%' . $keyword . '%')
-                                ->orWhere('province_code', 'like', '%' . $keyword . '%')
-                                ->orWhere('ward_code', 'like', '%' . $keyword . '%');
+                                ->whereRaw($this->normalizeSearchExpression('address_detail').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('project_name').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('street_code').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('province_code').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('ward_code').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('province').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('ward').' LIKE ?', [$like]);
                         });
                     } else {
-                        $subQuery->where('title', 'like', '%' . $keyword . '%');
+                        $subQuery->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like]);
 
                         if ($isRent) {
                             $subQuery->orWhere('demand_type', 'RENT');
@@ -252,6 +355,7 @@ final class EloquentListingRepository implements ListingRepository
     {
         $property = Property::findOrFail($id);
         $property->update($attributes);
+
         return $property->fresh();
     }
 
@@ -259,6 +363,7 @@ final class EloquentListingRepository implements ListingRepository
     {
         $listing = Listing::findOrFail($id);
         $listing->update($attributes);
+
         return $listing->fresh();
     }
 
@@ -275,5 +380,80 @@ final class EloquentListingRepository implements ListingRepository
     public function deleteVerificationDocuments(int $listingId): void
     {
         ListingVerificationDocument::where('listing_id', $listingId)->delete();
+    }
+
+    private function normalizeSearchKeyword(?string $keyword): ?string
+    {
+        $normalized = PropertySearchText::normalize($keyword);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        return $normalized;
+    }
+
+    private function normalizeSearchExpression(string $column): string
+    {
+        $driver = DB::connection()->getDriverName();
+
+        return match ($driver) {
+            'sqlite' => "normalize_text($column)",
+            'mysql', 'mariadb' => "LOWER(CONVERT($column USING utf8mb4)) COLLATE utf8mb4_unicode_ci",
+            default => "LOWER($column)",
+        };
+    }
+
+    private function applyPropertySearchConstraint(Builder $query, string $normalizedKeyword): void
+    {
+        $tokens = $this->tokenize($normalizedKeyword);
+
+        if ($this->shouldUseFullTextSearch($tokens)) {
+            $query->whereRaw(
+                'MATCH(properties.search_text) AGAINST (? IN BOOLEAN MODE)',
+                [$this->toBooleanSearchQuery($tokens)],
+            );
+
+            return;
+        }
+
+        $query->where('properties.search_text', 'like', '%'.$normalizedKeyword.'%');
+    }
+
+    private function shouldUseFullTextSearch(array $tokens): bool
+    {
+        if ($tokens === []) {
+            return false;
+        }
+
+        $driver = DB::connection()->getDriverName();
+
+        if (! in_array($driver, ['mysql', 'mariadb'], true)) {
+            return false;
+        }
+
+        foreach ($tokens as $token) {
+            if (mb_strlen($token, 'UTF-8') < 3) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function toBooleanSearchQuery(array $tokens): string
+    {
+        return implode(' ', array_map(
+            static fn (string $token) => sprintf('+%s*', $token),
+            $tokens,
+        ));
+    }
+
+    private function tokenize(string $keyword): array
+    {
+        return array_values(array_filter(
+            preg_split('/\s+/u', $keyword) ?: [],
+            static fn (string $token) => $token !== '',
+        ));
     }
 }
