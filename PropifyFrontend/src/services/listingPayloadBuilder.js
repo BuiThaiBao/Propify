@@ -73,6 +73,11 @@ export function buildListingPayload(payload) {
   });
 
   Object.keys(data).forEach((key) => {
+    if (key === "price" && data.is_negotiable === true) {
+      data.price = null;
+      return;
+    }
+
     if (isBlank(data[key])) {
       delete data[key];
     }

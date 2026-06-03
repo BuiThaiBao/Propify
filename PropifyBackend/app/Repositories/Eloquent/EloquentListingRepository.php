@@ -204,6 +204,35 @@ final class EloquentListingRepository implements ListingRepository
             ->when($status && $status !== 'all', function ($query) use ($status) {
                 $query->where('status', strtoupper($status));
             })
+            ->when($demandType && $demandType !== 'all', function ($query) use ($demandType) {
+                $query->where('demand_type', strtoupper($demandType));
+            })
+            ->when($keyword, function ($query) use ($keyword) {
+                $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
+
+                if ($normalizedKeyword === null) {
+                    return;
+                }
+
+                $isRent = str_contains($normalizedKeyword, 'cho') || str_contains($normalizedKeyword, 'thue');
+                $isSale = str_contains($normalizedKeyword, 'mua') || str_contains($normalizedKeyword, 'ban');
+                $like = '%'.$normalizedKeyword.'%';
+
+                $query->where(function ($subQuery) use ($like, $isRent, $isSale, $normalizedKeyword) {
+                    $subQuery
+                        ->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like])
+                        ->orWhereHas('property', function ($propertyQuery) use ($normalizedKeyword) {
+                            $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword);
+                        });
+
+                    if ($isRent) {
+                        $subQuery->orWhere('demand_type', 'RENT');
+                    }
+                    if ($isSale) {
+                        $subQuery->orWhere('demand_type', 'SALE');
+                    }
+                });
+            })
             ->orderByDesc('id')
             ->paginate($perPage);
     }

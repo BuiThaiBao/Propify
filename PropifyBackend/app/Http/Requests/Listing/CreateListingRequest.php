@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Listing;
 
 use App\DTOs\Listing\CreateListingDto;
+use App\Support\ListingPostingOptions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -21,10 +22,10 @@ final class CreateListingRequest extends FormRequest
 
         return [
             'save_as_draft' => ['nullable', 'boolean'],
-            'demand_type' => [$required, Rule::in(['SALE', 'RENT'])],
+            'demand_type' => [$required, Rule::in(ListingPostingOptions::values('demand_types'))],
             'title' => [$required, 'string', 'max:120'],
             'description' => $isDraft ? ['nullable', 'string', 'max:5000'] : ['required', 'string', 'min:20', 'max:5000'],
-            'property_type' => [$required, 'string', 'max:50'],
+            'property_type' => [$required, 'string', 'max:50', Rule::in(ListingPostingOptions::values('property_types'))],
             'province_code' => [$required, 'string', 'max:20'],
             'province' => ['nullable', 'string', 'max:255'],
             'ward_code' => [$required, 'string', 'max:20'],
@@ -43,13 +44,13 @@ final class CreateListingRequest extends FormRequest
             'facade_width' => ['nullable', 'numeric', 'gt:0'],
             'depth' => ['nullable', 'numeric', 'gt:0'],
             'road_width' => ['nullable', 'numeric', 'gt:0'],
-            'direction_code' => ['nullable', 'string', 'max:30'],
-            'balcony_direction_code' => ['nullable', 'string', 'max:30'],
-            'furniture_status' => ['nullable', Rule::in(['NONE', 'BASIC', 'FULL'])],
+            'direction_code' => ['nullable', 'string', 'max:30', Rule::in(ListingPostingOptions::values('directions'))],
+            'balcony_direction_code' => ['nullable', 'string', 'max:30', Rule::in(ListingPostingOptions::values('directions'))],
+            'furniture_status' => ['nullable', Rule::in(ListingPostingOptions::values('furniture_statuses'))],
             'contact_name' => [$required, 'string', 'max:100'],
             'contact_phone' => [$required, 'regex:/^(03|05|07|08|09)\d{8}$/'],
             'contact_email' => ['nullable', 'regex:/^[A-Za-z0-9._%+-]+@gmail\.com$/', 'max:255'],
-            'poster_type' => [$required, Rule::in(['OWNER', 'BROKER'])],
+            'poster_type' => [$required, Rule::in(ListingPostingOptions::values('poster_types'))],
             'lat' => ['nullable', 'numeric', 'between:-90,90'],
             'lng' => ['nullable', 'numeric', 'between:-180,180'],
             'package_id' => ['nullable', 'integer', 'exists:packages,id'],
@@ -61,9 +62,9 @@ final class CreateListingRequest extends FormRequest
             'attribute_ids' => ['nullable', 'array'],
             'attribute_ids.*' => ['integer', 'exists:attributes,id'],
             'amenities' => ['nullable', 'array'],
-            'amenities.*' => ['string', 'max:100'],
+            'amenities.*' => ['string', 'max:100', Rule::in(ListingPostingOptions::values('amenities'))],
             'legal_paper_types' => ['nullable', 'array'],
-            'legal_paper_types.*' => ['string', 'max:100'],
+            'legal_paper_types.*' => ['string', 'max:100', Rule::in(ListingPostingOptions::values('legal_paper_types'))],
             'public_info_agreed' => ['nullable', 'boolean'],
 
             'request_verification' => ['nullable', 'boolean'],
@@ -76,9 +77,9 @@ final class CreateListingRequest extends FormRequest
             'appointment_days' => ['nullable', 'array'],
             'appointment_days.*' => ['integer', 'between:0,6'],
             'appointment_time_slot' => ['nullable', 'string', 'max:50'],
-            'rent_min_term' => ['nullable', 'string', 'max:50'],
-            'rent_payment_interval' => ['nullable', 'string', 'max:50'],
-            'rent_deposit' => ['nullable', 'string', 'max:50'],
+            'rent_min_term' => ['nullable', 'string', 'max:50', Rule::in(ListingPostingOptions::values('rent_min_terms'))],
+            'rent_payment_interval' => ['nullable', 'string', 'max:50', Rule::in(ListingPostingOptions::values('rent_payment_intervals'))],
+            'rent_deposit' => ['nullable', 'string', 'max:50', Rule::in(ListingPostingOptions::values('rent_deposits'))],
             'appointment_contact_name' => ['nullable', 'string', 'max:100'],
             'appointment_contact_phone' => ['nullable', 'regex:/^(03|05|07|08|09)\d{8}$/'],
             'appointment_contact_email' => ['nullable', 'regex:/^[A-Za-z0-9._%+-]+@gmail\.com$/', 'max:255'],
@@ -150,12 +151,13 @@ final class CreateListingRequest extends FormRequest
     {
         $validated = $this->validated();
         $isDraft = (bool) ($validated['save_as_draft'] ?? false);
+        $isNegotiable = (bool) ($validated['is_negotiable'] ?? false);
 
         return new CreateListingDto(
-            demandType: $validated['demand_type'] ?? 'SALE',
+            demandType: $validated['demand_type'] ?? ListingPostingOptions::firstValue('demand_types'),
             title: trim($validated['title'] ?? 'Tin nháp chưa có tiêu đề'),
             description: trim($validated['description'] ?? ''),
-            propertyType: $validated['property_type'] ?? 'APARTMENT',
+            propertyType: $validated['property_type'] ?? ListingPostingOptions::firstValue('property_types'),
             provinceCode: $validated['province_code'] ?? '0',
             province: isset($validated['province']) ? trim($validated['province']) : null,
             wardCode: $validated['ward_code'] ?? null,
@@ -164,8 +166,8 @@ final class CreateListingRequest extends FormRequest
             projectName: isset($validated['project_name']) ? trim($validated['project_name']) : null,
             addressDetail: isset($validated['address_detail']) ? trim($validated['address_detail']) : null,
             area: isset($validated['area']) ? (float) $validated['area'] : 0.0,
-            price: isset($validated['price']) ? (float) $validated['price'] : 0.0,
-            isNegotiable: (bool) ($validated['is_negotiable'] ?? false),
+            price: $isNegotiable ? null : (isset($validated['price']) ? (float) $validated['price'] : null),
+            isNegotiable: $isNegotiable,
             bedrooms: (int) ($validated['bedrooms'] ?? 0),
             bathrooms: (int) ($validated['bathrooms'] ?? 0),
             floors: isset($validated['floors']) ? (int) $validated['floors'] : null,
@@ -180,7 +182,7 @@ final class CreateListingRequest extends FormRequest
             contactName: trim($validated['contact_name'] ?? ''),
             contactPhone: trim($validated['contact_phone'] ?? ''),
             contactEmail: isset($validated['contact_email']) ? trim($validated['contact_email']) : null,
-            posterType: $validated['poster_type'] ?? 'OWNER',
+            posterType: $validated['poster_type'] ?? ListingPostingOptions::firstValue('poster_types'),
             lat: isset($validated['lat']) ? (float) $validated['lat'] : null,
             lng: isset($validated['lng']) ? (float) $validated['lng'] : null,
             images: $validated['images'] ?? [],

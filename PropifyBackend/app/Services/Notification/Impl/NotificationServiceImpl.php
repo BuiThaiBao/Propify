@@ -3,7 +3,8 @@
 namespace App\Services\Notification\Impl;
 
 use App\Enums\MailType;
-use App\Enums\NotificationChanelType;
+use App\Enums\NotificationChannelType;
+use App\Enums\NotificationType;
 use App\Models\User;
 use App\Services\Notification\Channel\NotificationChannel;
 use App\Services\Notification\NotificationService;
@@ -19,33 +20,31 @@ final class NotificationServiceImpl implements NotificationService
     ) {}
 
     /**
-     * @param  NotificationChanelType[]  $channels  Danh sách channel muốn gửi
+     * @param  NotificationChannelType[]  $channels  Danh sách channel muốn gửi
      */
     public function send(
         User $user,
-        MailType $template,
+        NotificationType|MailType $type,
         array $data = [],
-        array $channels = [NotificationChanelType::EMAIL]
+        array $channels = [NotificationChannelType::EMAIL]
     ): void {
         foreach ($this->channels as $channel) {
-            // So sánh enum với enum — dùng in_array strict
             if (! in_array($channel->name(), $channels, true)) {
                 continue;
             }
 
             try {
-                $channel->send($user, $template, $data);
+                $channel->send($user, $type, $data);
 
                 Log::info('Notification sent', [
                     'channel' => $channel->name()->value,
-                    'template' => $template->value,
+                    'type' => $type->value,
                     'user_id' => $user->id,
                 ]);
             } catch (\Throwable $e) {
-                // Không để 1 channel lỗi làm fail toàn bộ
                 Log::error('Notification failed', [
                     'channel' => $channel->name()->value,
-                    'template' => $template->value,
+                    'type' => $type->value,
                     'user_id' => $user->id,
                     'error' => $e->getMessage(),
                 ]);

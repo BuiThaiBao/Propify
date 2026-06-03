@@ -12,6 +12,7 @@ const API_REFRESH_URL = "/v1/auth/refresh";
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
+  timeout: 45000,
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",

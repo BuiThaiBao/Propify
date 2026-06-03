@@ -2,8 +2,9 @@
 
 namespace App\Enums;
 
-enum NotificationChanelType: string
+enum NotificationChannelType: string
 {
+    case DATABASE = 'database';
     case EMAIL = 'email';
     case SMS = 'sms';
     case ZALO = 'zalo';

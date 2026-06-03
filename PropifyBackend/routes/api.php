@@ -15,13 +15,16 @@ use App\Http\Controllers\Api\V1\Cloudinary\CloudinaryController;
 use App\Http\Controllers\Api\V1\Geocoding\GeocodingController;
 use App\Http\Controllers\Api\V1\Listing\FavoriteController;
 use App\Http\Controllers\Api\V1\Listing\ListingController;
+use App\Http\Controllers\Api\V1\Listing\ListingPostingOptionsController;
 use App\Http\Controllers\Api\V1\Listing\ListingUpgradeController;
 use App\Http\Controllers\Api\V1\Listing\RecentlyViewedController;
 use App\Http\Controllers\Api\V1\Listing\ViewTrackingController;
+use App\Http\Controllers\Api\V1\Notification\NotificationController;
 use App\Http\Controllers\Api\V1\Package\PackageController;
 use App\Http\Controllers\Api\V1\Package\PackageDurationOptionController;
 use App\Http\Controllers\Api\V1\Package\PackagePricingController;
 use App\Http\Controllers\Api\V1\Payment\VnpayReturnController;
+use App\Http\Controllers\Api\V1\Project\ProjectSearchController;
 use App\Http\Controllers\Api\V1\User\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -183,6 +186,7 @@ Route::get('v1/payments/vnpay/return', VnpayReturnController::class)
 Route::prefix('v1/listings')->as('listings.')->group(function () {
     Route::get('/', [ListingController::class, 'index'])->name('index');
     Route::get('/map', [ListingController::class, 'mapListings'])->name('map');
+    Route::get('/posting-options', ListingPostingOptionsController::class)->name('posting-options');
     Route::get('/{id}', [ListingController::class, 'show'])->where('id', '[0-9]+')->name('show');
 
     // View tracking — public, throttle 60/min/IP
@@ -212,6 +216,10 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
     });
 });
 
+Route::prefix('v1/projects')->as('projects.')->group(function () {
+    Route::get('/search', ProjectSearchController::class)->name('search');
+});
+
 Route::prefix('v1/amenities')->as('amenities.')->group(function () {
     Route::get('/', [AmenityController::class, 'index'])->name('index');
 
@@ -229,6 +237,13 @@ Route::prefix('v1/favorites')->as('favorites.')->middleware('auth:api')->group(f
 
 Route::prefix('v1/recently-viewed')->as('recently-viewed.')->middleware('auth:api')->group(function () {
     Route::get('/', [RecentlyViewedController::class, 'index'])->name('index');
+});
+
+Route::prefix('v1/notifications')->as('notifications.')->middleware('auth:api')->group(function () {
+    Route::get('/', [NotificationController::class, 'index'])->name('index');
+    Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
+    Route::post('/read-all', [NotificationController::class, 'markAllAsRead'])->name('read-all');
+    Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('read');
 });
 
 // ==================== PACKAGES: PUBLIC ROUTES ====================

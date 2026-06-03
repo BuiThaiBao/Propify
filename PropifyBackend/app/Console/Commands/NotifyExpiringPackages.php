@@ -2,36 +2,31 @@
 
 namespace App\Console\Commands;
 
-use App\Mail\PackageExpiringMail;
+use App\Enums\NotificationType;
+use App\Events\Listing\ListingPackageExpiring;
 use App\Models\Listing;
+use App\Models\Notification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 /**
- * Gửi email thông báo gói tin sắp hết hạn.
- *
- * Logic:
- *   - Tìm listings có package_expires_at trong vòng 7 ngày tới
- *   - Gửi 1 email/ngày cho owner
- *   - Email chứa nút gia hạn
- *
- * Chạy: Mỗi ngày 1 lần (9h sáng)
+ * Phát event thông báo cho listing có gói sắp hết hạn trong 7 ngày.
  */
 final class NotifyExpiringPackages extends Command
 {
+    private const THRESHOLD_DAYS = 7;
+
     protected $signature = 'packages:notify-expiring';
 
     protected $description = 'Send daily email to owners of listings with packages expiring within 7 days';
 
     public function handle(): int
     {
-        // Tìm listings có gói sắp hết hạn (trong 7 ngày tới)
         $listings = Listing::query()
             ->whereNotNull('package_id')
             ->whereNotNull('package_expires_at')
             ->where('package_expires_at', '>', now())
-            ->where('package_expires_at', '<=', now()->addDays(7))
+            ->where('package_expires_at', '<=', now()->addDays(self::THRESHOLD_DAYS))
             ->with(['owner:id,full_name,email', 'package:id,name,slug,badge,color'])
             ->get();
 
@@ -52,34 +47,36 @@ final class NotifyExpiringPackages extends Command
 
             $daysLeft = (int) now()->diffInDays($listing->package_expires_at, false);
 
-            if ($daysLeft < 0) {
-                continue; // Đã hết hạn, sẽ được xử lý bởi packages:expire
+            if ($daysLeft !== self::THRESHOLD_DAYS) {
+                continue;
             }
 
-            try {
-                Mail::to($owner->email)->queue(
-                    new PackageExpiringMail(
-                        listing: $listing,
-                        ownerName: $owner->full_name ?? 'Quý khách',
-                        packageName: $listing->package?->name ?? 'Gói tin',
-                        daysLeft: $daysLeft,
-                        expiresAt: $listing->package_expires_at,
-                    )
-                );
+            $alreadyNotified = Notification::query()
+                ->where('user_id', $owner->id)
+                ->where('type', NotificationType::PACKAGE_EXPIRING->value)
+                ->whereJsonContains('data->listing_id', $listing->id)
+                ->whereJsonContains('data->threshold_days', $daysLeft)
+                ->exists();
 
-                $sentCount++;
-
-                Log::debug('[NotifyExpiringPackages] Email queued', [
-                    'listing_id' => $listing->id,
-                    'owner_id' => $owner->id,
-                    'days_left' => $daysLeft,
-                ]);
-            } catch (\Throwable $e) {
-                Log::error('[NotifyExpiringPackages] Failed to send email', [
-                    'listing_id' => $listing->id,
-                    'error' => $e->getMessage(),
-                ]);
+            if ($alreadyNotified) {
+                continue;
             }
+
+            ListingPackageExpiring::dispatch(
+                listingId: $listing->id,
+                userId: $owner->id,
+                daysLeft: $daysLeft,
+                thresholdDays: $daysLeft,
+                expiresAt: $listing->package_expires_at,
+            );
+
+            $sentCount++;
+
+            Log::debug('[NotifyExpiringPackages] Event dispatched', [
+                'listing_id' => $listing->id,
+                'owner_id' => $owner->id,
+                'days_left' => $daysLeft,
+            ]);
         }
 
         Log::info('[NotifyExpiringPackages] Completed', [
@@ -87,7 +84,7 @@ final class NotifyExpiringPackages extends Command
             'emails_sent' => $sentCount,
         ]);
 
-        $this->info(sprintf('Queued %d expiration notification emails.', $sentCount));
+        $this->info(sprintf('Dispatched %d expiration notifications.', $sentCount));
 
         return self::SUCCESS;
     }

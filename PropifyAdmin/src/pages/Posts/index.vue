@@ -31,6 +31,8 @@ const loading = ref(false)
 const error = ref('')
 const actionError = ref('')
 const updatingPostId = ref(null)
+const listingStatusOptions = ref([])
+const adminListingStatusOptions = ref([])
 const pagination = reactive({
   current_page: 1,
   last_page: 1,
@@ -39,13 +41,6 @@ const pagination = reactive({
 })
 
 let searchTimer = null
-
-const statusParamMap = {
-  approved: 'ACTIVE',
-  pending: 'PENDING',
-  rejected: 'REJECTED',
-  locked: 'LOCKED',
-}
 
 const typeParamMap = {
   sale: 'SALE',
@@ -60,8 +55,7 @@ function buildParams() {
 
   const keyword = searchQuery.value.trim()
   if (keyword) params.keyword = keyword
-  if (keyword) params.search_field = searchField.value
-  if (filterStatus.value !== 'all') params.status = statusParamMap[filterStatus.value]
+  if (filterStatus.value !== 'all') params.status = filterStatus.value
   if (filterType.value !== 'all') params.demand_type = typeParamMap[filterType.value]
   if (filterPriceRange.value !== 'all') params.price_range = filterPriceRange.value
   if (filterPackageId.value !== 'all') params.package_id = filterPackageId.value
@@ -69,13 +63,14 @@ function buildParams() {
   return params
 }
 
-async function fetchPackageOptions() {
+async function fetchPostingOptions() {
   try {
-    const response = await fetchPackages({ include_inactive: true })
-    packages.value = response?.data ?? []
+    const response = await listingService.getPostingOptions()
+    const options = response.data?.data ?? {}
+    listingStatusOptions.value = options.listing_statuses ?? []
+    adminListingStatusOptions.value = options.admin_listing_statuses ?? []
   } catch (err) {
-    console.error('Failed to fetch package options:', err)
-    packages.value = []
+    console.error('Failed to fetch posting options:', err)
   }
 }
 
@@ -153,15 +148,9 @@ watch(searchQuery, () => {
   }, 400)
 })
 
-watch(searchField, () => {
-  if (!searchQuery.value.trim()) return
-  pagination.current_page = 1
-  fetchListings()
-})
-
-onMounted(() => {
-  fetchPackageOptions()
-  fetchListings()
+onMounted(async () => {
+  await fetchPostingOptions()
+  await fetchListings()
 })
 </script>
 
@@ -177,10 +166,7 @@ onMounted(() => {
       v-model:search-field="searchField"
       v-model:status="filterStatus"
       v-model:type="filterType"
-      v-model:price-range="filterPriceRange"
-      v-model:package-id="filterPackageId"
-      :packages="packages"
-      :status-counts="statusCounts"
+      :status-options="listingStatusOptions"
     />
 
     <PostsTable
@@ -189,6 +175,8 @@ onMounted(() => {
       :error="error"
       :action-error="actionError"
       :updating-post-id="updatingPostId"
+      :status-options="listingStatusOptions"
+      :admin-status-options="adminListingStatusOptions"
       @change-status="updateListingStatus"
       @open-detail="openListingDetail"
     />

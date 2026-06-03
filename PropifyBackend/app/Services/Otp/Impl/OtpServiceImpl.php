@@ -3,7 +3,7 @@
 namespace App\Services\Otp\Impl;
 
 use App\Enums\MailType;
-use App\Enums\NotificationChanelType;
+use App\Enums\NotificationChannelType;
 use App\Enums\OtpContext;
 use App\Models\User;
 use App\Services\Notification\NotificationService;
@@ -38,9 +38,9 @@ final class OtpServiceImpl implements OtpService
 
         $this->notificationService->send(
             user: $user,
-            template: $mailType,
+            type: $mailType,
             data: ['otp' => $otp],
-            channels: [NotificationChanelType::EMAIL],
+            channels: [NotificationChannelType::EMAIL],
         );
 
         return $otp;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Listing;
 
+use App\Support\ListingPostingOptions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,8 +16,8 @@ final class GetMyListingsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'status' => ['nullable', Rule::in(['DRAFT', 'PENDING', 'ACTIVE', 'EXPIRED', 'REJECTED', 'LOCKED', 'UNLISTED'])],
-            'demand_type' => ['nullable', Rule::in(['SALE', 'RENT'])],
+            'status' => ['nullable', Rule::in(ListingPostingOptions::values('listing_statuses'))],
+            'demand_type' => ['nullable', Rule::in(ListingPostingOptions::values('demand_types'))],
             'keyword' => ['nullable', 'string', 'max:120'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];

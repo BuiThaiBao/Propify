@@ -13,6 +13,10 @@ const listingService = {
     return api.get("/v1/listings/map", { params });
   },
 
+  getPostingOptions() {
+    return api.get("/v1/listings/posting-options");
+  },
+
   getById(id) {
     return api.get(`/v1/listings/${id}`);
   },

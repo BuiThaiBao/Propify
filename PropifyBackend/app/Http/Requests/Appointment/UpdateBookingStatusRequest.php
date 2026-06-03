@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Appointment;
 
+use App\Support\ListingPostingOptions;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 final class UpdateBookingStatusRequest extends FormRequest
 {
@@ -18,7 +20,7 @@ final class UpdateBookingStatusRequest extends FormRequest
     {
         return [
             'booking_id' => ['required', 'integer'],
-            'status' => ['required', 'string', 'in:APPROVED,CANCELLED_BY_POSTER'],
+            'status' => ['required', 'string', Rule::in(ListingPostingOptions::values('poster_booking_statuses'))],
             'note' => ['required_if:status,CANCELLED_BY_POSTER', 'nullable', 'string', 'max:500'],
         ];
     }

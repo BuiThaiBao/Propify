@@ -6,125 +6,19 @@
     ]" />
 
     <div class="flex gap-8 min-h-[calc(100vh-200px)] max-md:flex-col mt-4">
-<!-- Sidebar (chỉ giữ nguyên icon tóm tắt) -->
-    <aside class="w-[260px] shrink-0 max-md:w-full">
-      <div class="text-center p-6 bg-white rounded-xl shadow-sm mb-4">
-        <div
-          class="w-[72px] h-[72px] rounded-full overflow-hidden bg-gradient-to-br from-sky-100 to-sky-200 text-sky-500 flex items-center justify-center mx-auto mb-3"
-        >
-          <img
-            v-if="authStore.user?.avatar_url"
-            :src="authStore.user.avatar_url"
-            alt="Avatar"
-            class="w-full h-full object-cover"
-          />
-          <svg v-else xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-        </div>
-        <h3 class="text-base font-semibold text-slate-800 mb-0.5">{{ authStore.user?.full_name || 'Người dùng' }}</h3>
-        <p class="text-xs text-slate-400">{{ authStore.user?.email }}</p>
-      </div>
-
-      <nav class="bg-white rounded-xl shadow-sm overflow-hidden max-md:flex max-md:flex-wrap">
-        <!-- Thông tin tài khoản -->
-        <button
-          :class="['flex items-center gap-2.5 w-full px-5 py-3.5 text-sm text-left transition-all max-md:flex-1 max-md:min-w-[120px] max-md:justify-center',
-            activeTab === 'profile'
-              ? 'bg-gradient-to-r from-sky-100 to-sky-50 text-sky-500 font-semibold border-l-[3px] border-sky-500 max-md:border-l-0 max-md:border-b-[3px]'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-sky-500']"
-          @click="activeTab = 'profile'"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-          Thông tin tài khoản
-        </button>
-
-        <!-- Quản lý tin đăng -->
-        <button class="flex items-center gap-2.5 w-full px-5 py-3.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-500 transition-all text-left" @click="toggleSection('listings')">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>
-          </svg>
-          <span class="flex-1">Quản lý tin đăng</span>
-          <svg :class="['transition-transform text-slate-400', expandedSections.listings && 'rotate-180']" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m6 9 6 6 6-6"/>
-          </svg>
-        </button>
-        <div v-show="expandedSections.listings" class="bg-slate-50 border-t border-slate-100">
-          <button
-            class="w-full text-left pl-12 pr-5 py-2.5 text-[0.82rem] transition-all"
-            :class="activeTab === 'listings' ? 'bg-sky-100 text-sky-600 font-semibold' : 'text-slate-500 hover:bg-slate-200 hover:text-sky-500'"
-            @click="openListingsTab"
-          >
-            Danh sách tin đăng
-          </button>
-          <button
-            class="w-full text-left pl-12 pr-5 py-2.5 text-[0.82rem] transition-all"
-            :class="activeTab === 'verifications' ? 'bg-sky-100 text-sky-600 font-semibold' : 'text-slate-500 hover:bg-slate-200 hover:text-sky-500'"
-            @click="openVerificationsTab"
-          >
-            Danh sách xác thực BĐS
-          </button>
-        </div>
-
-        <!-- Quản lý đặt lịch -->
-        <button class="flex items-center gap-2.5 w-full px-5 py-3.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-500 transition-all text-left" @click="toggleSection('appointments')">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
-          </svg>
-          <span class="flex-1">Quản lý đặt lịch</span>
-          <svg :class="['transition-transform text-slate-400', expandedSections.appointments && 'rotate-180']" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m6 9 6 6 6-6"/>
-          </svg>
-        </button>
-        <div v-show="expandedSections.appointments" class="bg-slate-50 border-t border-slate-100">
-          <button
-            class="w-full text-left pl-12 pr-5 py-2.5 text-[0.82rem] transition-all"
-            :class="activeTab === 'appointments' ? 'bg-sky-100 text-sky-600 font-semibold' : 'text-slate-500 hover:bg-slate-200 hover:text-sky-500'"
-            @click="openAppointmentsTab"
-          >
-            Đặt lịch xem nhà
-          </button>
-        </div>
-
-        <!-- Tin đăng yêu thích -->
-        <button
-          :class="['flex items-center gap-2.5 w-full px-5 py-3.5 text-sm transition-all text-left',
-            activeTab === 'favorites'
-              ? 'bg-gradient-to-r from-sky-100 to-sky-50 text-sky-500 font-semibold border-l-[3px] border-sky-500'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-sky-500']"
-          @click="openFavoritesTab"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-          </svg>
-          Tin đăng yêu thích
-        </button>
-
-        <!-- Tin đã xem -->
-        <button
-          :class="['flex items-center gap-2.5 w-full px-5 py-3.5 text-sm transition-all text-left',
-            activeTab === 'recently-viewed'
-              ? 'bg-gradient-to-r from-sky-100 to-sky-50 text-sky-500 font-semibold border-l-[3px] border-sky-500'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-sky-500']"
-          @click="openRecentlyViewedTab"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>
-          </svg>
-          Tin đã xem
-        </button>
-
-        <!-- Lịch sử giao dịch -->
-        <button class="flex items-center gap-2.5 w-full px-5 py-3.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-500 transition-all text-left">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-          </svg>
-          Lịch sử giao dịch
-        </button>
-      </nav>
-    </aside>
+    <ProfileSidebar
+      :user="authStore.user"
+      :active-tab="activeTab"
+      :expanded-sections="expandedSections"
+      @select-tab="activeTab = $event"
+      @toggle-section="toggleSection"
+      @open-listings="openListingsTab"
+      @open-verifications="openVerificationsTab"
+      @open-appointments="openAppointmentsTab"
+      @open-favorites="openFavoritesTab"
+      @open-recently-viewed="openRecentlyViewedTab"
+      @open-notifications="openNotificationsTab"
+    />
 
     <!-- Main Content -->
     <main class="flex-1 min-w-0">
@@ -410,6 +304,11 @@
                     <span class="font-medium text-sm">{{ item.views ?? 0 }}</span>
                   </div>
                 </td>
+                <td class="px-3 py-4 whitespace-nowrap col-sticky-verification">
+                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', verificationBadgeClass(item.isVerified)]">
+                    {{ item.isVerified ? 'Đã xác thực' : 'Chưa xác thực' }}
+                  </span>
+                </td>
                 <td class="px-3 py-4 whitespace-nowrap col-sticky-status">
                   <span :class="['rounded-full px-2 py-1 text-xs font-medium', statusBadgeClass(item.status)]">
                     {{ statusLabel(item.status) }}
@@ -419,7 +318,6 @@
                   <button @click.stop="toggleDropdown(item.id, $event)" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center mx-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
                   </button>
-                  
                   <Teleport to="body">
                     <div v-if="openDropdownId === item.id" :style="{ top: dropdownStyle.top, left: dropdownStyle.left }" class="absolute w-[200px] bg-white border border-slate-100 shadow-xl rounded-xl py-2 z-[9999] text-left">
                       <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('edit', item)">
@@ -477,22 +375,22 @@
         </div>
 
         <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
-          <p>Tổng cộng {{ listingPagination.total }} tin</p>
+          <p>Tổng cộng {{ verificationPagination.total }} tin</p>
           <div class="flex items-center gap-2">
             <button
               type="button"
               class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50"
-              :disabled="listingPagination.currentPage <= 1 || listingsLoading"
-              @click="loadMyListings(listingPagination.currentPage - 1)"
+              :disabled="verificationPagination.currentPage <= 1 || verificationLoading"
+              @click="loadVerificationListings(verificationPagination.currentPage - 1)"
             >
               Trước
             </button>
-            <span>Trang {{ listingPagination.currentPage }}/{{ listingPagination.lastPage }}</span>
+            <span>Trang {{ verificationPagination.currentPage }}/{{ verificationPagination.lastPage }}</span>
             <button
               type="button"
               class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50"
-              :disabled="listingPagination.currentPage >= listingPagination.lastPage || listingsLoading"
-              @click="loadMyListings(listingPagination.currentPage + 1)"
+              :disabled="verificationPagination.currentPage >= verificationPagination.lastPage || verificationLoading"
+              @click="loadVerificationListings(verificationPagination.currentPage + 1)"
             >
               Sau
             </button>
@@ -1104,6 +1002,7 @@
           </div>
         </div>
       </section>
+            <ProfileNotificationsPanel v-if="activeTab === 'notifications'" />
     </main>
     </div>
 
@@ -1155,6 +1054,8 @@ import recentlyViewedService from '@/services/recentlyViewedService';
 import PackageUpgradeModal from '@/components/shared/PackageUpgradeModal.vue';
 import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
 import AppointmentManagement from '@/components/appointments/AppointmentManagement.vue';
+import ProfileSidebar from '@/components/profile/ProfileSidebar.vue';
+import ProfileNotificationsPanel from '@/components/profile/ProfileNotificationsPanel.vue';
 import SaleCard from '@/components/shared/SaleCard.vue';
 import RentCard from '@/components/shared/RentCard.vue';
 import { buildPropertyAddress, hydrateListingAddresses } from '@/utils/addressFormatter';
@@ -1256,7 +1157,7 @@ async function uploadAvatar() {
 }
 
 // ── Tabs ──
-const validTabs = ['profile', 'listings', 'verifications', 'appointments', 'favorites', 'recently-viewed', 'password'];
+const validTabs = ['profile', 'listings', 'verifications', 'appointments', 'favorites', 'recently-viewed', 'notifications', 'password'];
 const initialTab = validTabs.includes(route.query.tab) ? route.query.tab : 'profile';
 const activeTab = ref(initialTab);
 
@@ -1287,6 +1188,8 @@ watch(
       openFavoritesTab();
     } else if (nextTab === 'recently-viewed') {
       openRecentlyViewedTab();
+    } else if (nextTab === 'notifications') {
+      openNotificationsTab();
     } else {
       activeTab.value = nextTab;
     }
@@ -1331,11 +1234,7 @@ function handleDropdownAction(action, item) {
       alert('Chỉ có thể đăng tin nháp.');
     }
   } else if (action === 'unpublish') {
-    if (item.status === 'ACTIVE') openUnlistListingModal(item);
-    else alert('Chỉ có thể gỡ tin đang đăng.');
-  } else if (action === 'lock') {
-    if (item.status === 'ACTIVE') openLockListingModal(item);
-    else alert('Chỉ có thể khóa tin đang đăng.');
+    openUnlistListingModal(item);
   } else {
     alert('Tính năng đang phát triển');
   }
@@ -1354,6 +1253,7 @@ const listingPagination = reactive({
   lastPage: 1,
   total: 0,
 });
+const listingStatusOptions = ref([]);
 
 const statusCounts = reactive({
   ALL: 0,
@@ -1451,16 +1351,20 @@ function toggleSection(key) {
 }
 
 function statusLabel(status) {
+  return listingStatusOptions.value.find((option) => option.value === status)?.label || status;
+}
+
+function statusTabColorClass(status) {
   const map = {
-    DRAFT: 'Tin nháp',
-    PENDING: 'Chờ duyệt',
-    ACTIVE: 'Đang đăng',
-    EXPIRED: 'Hết hạn',
-    REJECTED: 'Từ chối',
-    LOCKED: 'Tin bị khóa',
-    UNLISTED: 'Đã gỡ',
+    DRAFT: 'bg-slate-400',
+    PENDING: 'bg-orange-500',
+    ACTIVE: 'bg-emerald-500',
+    EXPIRED: 'bg-slate-500',
+    REJECTED: 'bg-rose-500',
+    LOCKED: 'bg-red-600',
+    UNLISTED: 'bg-slate-500',
   };
-  return map[status] || status;
+  return map[status] || 'bg-slate-400';
 }
 
 function statusBadgeClass(status) {
@@ -1474,6 +1378,15 @@ function statusBadgeClass(status) {
     UNLISTED: 'bg-slate-100 text-slate-600',
   };
   return map[status] || 'bg-slate-100 text-slate-600';
+}
+
+async function fetchListingOptions() {
+  try {
+    const response = await listingService.getPostingOptions();
+    listingStatusOptions.value = response?.data?.data?.listing_statuses || [];
+  } catch (error) {
+    console.error('Failed to load listing options:', error);
+  }
 }
 
 function toListingCode(id) {
@@ -1604,6 +1517,9 @@ const paginatedFavoriteListings = computed(() => {
 function propertyTypeLabel(type) {
   const map = {
     APARTMENT: 'Căn hộ chung cư',
+    HOUSE: 'Nhà ở',
+    LAND: 'Đất',
+    ROOM: 'Phòng',
     PRIVATE_HOUSE: 'Nhà riêng',
     STREET_HOUSE: 'Nhà mặt phố',
     VILLA_TOWNHOUSE: 'Biệt thự liền kề',
@@ -1982,6 +1898,10 @@ function openRecentlyViewedTab() {
   }
 }
 
+function openNotificationsTab() {
+  activeTab.value = 'notifications';
+}
+
 async function toggleFavoriteFromViewed(item) {
   try {
     await favoriteService.toggle(item.id);
@@ -2001,14 +1921,34 @@ const profileForm = reactive({
   phone: '',
 });
 
+const syncProfileForm = (user) => {
+  if (!user) {
+    return;
+  }
+
+  profileForm.fullName = user.full_name || '';
+  profileForm.phone = user.phone || '';
+};
+
 const isProfileFormUnchanged = computed(() => {
   const currentFullName = authStore.user?.full_name || '';
   const currentPhone = authStore.user?.phone || '';
   return profileForm.fullName.trim() === currentFullName && profileForm.phone.trim() === currentPhone;
 });
 
+watch(
+  () => authStore.user?.id,
+  () => {
+    if (authStore.user?.id && !isEditing.value) {
+      syncProfileForm(authStore.user);
+    }
+  },
+  { immediate: true },
+);
+
 onMounted(async () => {
   document.addEventListener('click', closeDropdown);
+  await fetchListingOptions();
 
   // Luôn fetch fresh user để đảm bảo avatar_url mới nhất từ DB
   // (sessionStorage cache có thể không có avatar_url nếu đăng nhập trước khi tích hợp Cloudinary)
@@ -2018,8 +1958,7 @@ onMounted(async () => {
     // Giữ nguyên data cũ nếu fetch thất bại
   }
 
-  profileForm.fullName = authStore.user?.full_name || '';
-  profileForm.phone = authStore.user?.phone || '';
+  syncProfileForm(authStore.user);
 
   // Nếu đến từ nút "Đăng tin" mà chưa có SĐT → tự bật edit + focus phone
   if (route.query.require === 'phone' && !authStore.user?.phone) {
@@ -2042,6 +1981,8 @@ onMounted(async () => {
     openFavoritesTab();
   } else if (tab === 'recently-viewed') {
     openRecentlyViewedTab();
+  } else if (tab === 'notifications') {
+    openNotificationsTab();
   } else if (tab === 'password') {
     activeTab.value = 'password';
   }
@@ -2068,8 +2009,7 @@ function startEditing() {
 
 function cancelEditing() {
   isEditing.value = false;
-  profileForm.fullName = authStore.user?.full_name || '';
-  profileForm.phone = authStore.user?.phone || '';
+  syncProfileForm(authStore.user);
   profileMessage.value = '';
   requirePhone.value = false;
 }
@@ -2303,3 +2243,5 @@ thead tr th.col-sticky-verification {
   box-shadow: inset 1px 0 0 0 #e2e8f0, -3px 0 5px -2px rgba(0, 0, 0, 0.08);
 }
 </style>
+
+

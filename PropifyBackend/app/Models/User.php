@@ -112,6 +112,11 @@ final class User extends Authenticatable implements JWTSubject
         return $this->hasMany(UserFavorite::class, 'user_id');
     }
 
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(Notification::class, 'user_id');
+    }
+
     /** Các conversation mà user tham gia (với tư cách participant) */
     public function conversations(): BelongsToMany
     {

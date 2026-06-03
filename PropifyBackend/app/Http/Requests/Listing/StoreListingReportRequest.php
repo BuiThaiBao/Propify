@@ -2,20 +2,12 @@
 
 namespace App\Http\Requests\Listing;
 
+use App\Support\ListingPostingOptions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 final class StoreListingReportRequest extends FormRequest
 {
-    public const REASONS = [
-        'WRONG_PRICE',
-        'WRONG_ADDRESS',
-        'SOLD_OR_RENTED',
-        'WRONG_INFORMATION',
-        'UNREACHABLE_OWNER',
-        'DUPLICATE_LISTING',
-    ];
-
     public function authorize(): bool
     {
         return $this->user() !== null;
@@ -25,7 +17,7 @@ final class StoreListingReportRequest extends FormRequest
     {
         return [
             'reasons' => ['required', 'array', 'min:1'],
-            'reasons.*' => ['required', 'string', Rule::in(self::REASONS)],
+            'reasons.*' => ['required', 'string', Rule::in(ListingPostingOptions::values('listing_report_reasons'))],
             'description' => ['nullable', 'string', 'max:1000'],
         ];
     }

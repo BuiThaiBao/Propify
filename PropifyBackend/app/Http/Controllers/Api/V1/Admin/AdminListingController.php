@@ -8,9 +8,11 @@ use App\Exceptions\BusinessException;
 use App\Helpers\ApiResponse;
 use App\Http\Resources\ListingResource;
 use App\Services\Listing\ListingService;
+use App\Support\ListingPostingOptions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 final class AdminListingController extends Controller
@@ -70,7 +72,7 @@ final class AdminListingController extends Controller
         }
 
         $request->validate([
-            'status' => 'required|string|in:ACTIVE,REJECTED,LOCKED',
+            'status' => ['required', 'string', Rule::in(ListingPostingOptions::values('admin_listing_statuses'))],
             'rejection_reason' => 'nullable|string',
             'reason' => 'nullable|string',
         ]);

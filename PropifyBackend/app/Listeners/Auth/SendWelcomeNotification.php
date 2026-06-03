@@ -3,7 +3,7 @@
 namespace App\Listeners\Auth;
 
 use App\Enums\MailType;
-use App\Enums\NotificationChanelType;
+use App\Enums\NotificationChannelType;
 use App\Events\Auth\UserRegistered;
 use App\Services\Notification\NotificationService;
 
@@ -22,8 +22,8 @@ final class SendWelcomeNotification
     {
         $this->notificationService->send(
             user: $event->user,
-            template: MailType::WELCOME,
-            channels: [NotificationChanelType::EMAIL],
+            type: MailType::WELCOME,
+            channels: [NotificationChannelType::EMAIL],
         );
     }
 }
