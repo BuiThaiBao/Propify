@@ -42,6 +42,7 @@ const cloudinaryService = {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", cloudinaryUrl, true);
+      xhr.timeout = 45000;
 
       // Theo dõi tiến trình upload
       if (onProgress && typeof onProgress === "function") {
@@ -62,6 +63,7 @@ const cloudinaryService = {
       };
 
       xhr.onerror = () => reject(new Error("Network error during Cloudinary upload"));
+      xhr.ontimeout = () => reject(new Error("Upload ảnh/video quá lâu. Vui lòng kiểm tra mạng và thử lại."));
       xhr.send(formData);
     });
   },

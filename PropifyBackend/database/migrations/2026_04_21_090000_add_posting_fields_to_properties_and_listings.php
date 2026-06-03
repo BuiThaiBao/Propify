@@ -10,10 +10,10 @@ return new class extends Migration
     {
         Schema::table('properties', function (Blueprint $table) {
             if (! Schema::hasColumn('properties', 'amenities')) {
-                $table->json('amenities')->nullable();
+                $table->json('amenities')->nullable()->comment('Enum array: Sân chơi, Bể bơi, Sân vườn, Thang máy, Wifi, Khu để xe');
             }
             if (! Schema::hasColumn('properties', 'legal_paper_types')) {
-                $table->json('legal_paper_types')->nullable();
+                $table->json('legal_paper_types')->nullable()->comment('Enum array: LAND_USE_CERTIFICATE, SALE_CONTRACT, CAPITAL_CONTRIBUTION_CONTRACT, ALLOTTED_OR_SUBDIVIDED_LAND, BORROWED_LAND, LEASED_LAND, ORIGIN_PROOF_DOCUMENT, NO_LAND_CERTIFICATE, PROCESSING_LAND_CERTIFICATE, APPOINTMENT_FOR_CERTIFICATE, BUSINESS_TRANSFER, SHARE_TRANSFER, INVESTMENT_COOPERATION, HANDWRITTEN');
             }
             if (! Schema::hasColumn('properties', 'public_info_agreed')) {
                 $table->boolean('public_info_agreed')->default(false);

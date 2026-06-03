@@ -70,8 +70,12 @@
                 <span v-if="listing.is_verified" class="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">Đã xác thực</span>
                 <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
               </div>
-              <button v-if="displayImages.length > 1" class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click.stop="prevImage">‹</button>
-              <button v-if="displayImages.length > 1" class="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-2xl text-white backdrop-blur hover:bg-black/45" @click.stop="nextImage">›</button>
+              <button v-if="displayImages.length > 1" class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur hover:bg-black/45" aria-label="Ảnh trước" @click.stop="prevImage">
+                <ChevronLeft class="h-5 w-5" />
+              </button>
+              <button v-if="displayImages.length > 1" class="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur hover:bg-black/45" aria-label="Ảnh sau" @click.stop="nextImage">
+                <ChevronRight class="h-5 w-5" />
+              </button>
               <div class="absolute bottom-3 left-3 rounded-full bg-slate-900/70 px-3 py-1 text-xs font-semibold text-white">
                 Hình ảnh {{ activeImageIndex + 1 }}/{{ displayImages.length }}
               </div>
@@ -167,7 +171,7 @@
                 <img :src="callIcon" class="detail-action-icon mr-2 h-3.5 w-3.5" alt="" />
                 Liên hệ chủ nhà
               </a>
-              <button v-if="!previewMode" class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600" @click="showAppointmentPopup = true">
+              <button v-if="!previewMode" class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600" @click="openAppointmentBooking">
                 <img :src="calendarIcon" class="mr-2 h-3.5 w-3.5" alt="" />
                 Đặt lịch xem nhà
               </button>
@@ -317,7 +321,7 @@
                 <img :src="callIcon" class="detail-action-icon mr-2 h-3.5 w-3.5" alt="" />
                 Liên hệ chủ nhà
               </a>
-              <button v-if="!previewMode" class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600" @click="showAppointmentPopup = true">
+              <button v-if="!previewMode" class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600" @click="openAppointmentBooking">
                 <img :src="calendarIcon" class="mr-2 h-3.5 w-3.5" alt="" />
                 Đặt lịch xem nhà
               </button>
@@ -353,6 +357,19 @@
       :listing-id="listing?.id"
       @close="showAppointmentPopup = false"
       @success="showAppointmentPopup = false"
+    />
+
+    <Login
+      v-if="showLoginPopup"
+      @close="closeAuthPopup"
+      @success="handleAuthSuccess"
+      @switchToRegister="showLoginPopup = false; showRegisterPopup = true"
+    />
+    <Register
+      v-if="showRegisterPopup"
+      @close="closeAuthPopup"
+      @success="handleAuthSuccess"
+      @switchToLogin="showRegisterPopup = false; showLoginPopup = true"
     />
 
     <Teleport to="body">
@@ -410,9 +427,11 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useFavoriteListings } from '@/composables/useFavoriteListings';
-import { Heart } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, Heart } from 'lucide-vue-next';
 import listingService from '@/services/listingService';
 import AppointmentBookingPopup from '@/components/appointments/AppointmentBookingPopup.vue';
+import Login from '@/pages/Auth/Login.vue';
+import Register from '@/pages/Auth/Register.vue';
 import { buildPropertyAddress, hydrateListingAddresses, hydratePropertyAddress } from '@/utils/addressFormatter';
 import { selectRelatedListings } from '@/utils/relatedListingStrategies';
 import * as L from 'leaflet';
@@ -471,6 +490,9 @@ const descriptionExpanded = ref(false);
 const descriptionCanToggle = ref(false);
 const mapElement = ref(null);
 const showAppointmentPopup = ref(false);
+const showLoginPopup = ref(false);
+const showRegisterPopup = ref(false);
+const openAppointmentAfterAuth = ref(false);
 const mapMode = ref('standard');
 const isMap3dEnabled = ref(false);
 const selectedReportReasons = ref([]);
@@ -668,6 +690,35 @@ function pushToast(message, type = 'info', duration = 2500) {
   }, duration);
 }
 
+function openAppointmentBooking() {
+  if (props.previewMode) return;
+
+  if (!authStore.isAuthenticated) {
+    openAppointmentAfterAuth.value = true;
+    showRegisterPopup.value = false;
+    showLoginPopup.value = true;
+    return;
+  }
+
+  showAppointmentPopup.value = true;
+}
+
+function closeAuthPopup() {
+  showLoginPopup.value = false;
+  showRegisterPopup.value = false;
+  openAppointmentAfterAuth.value = false;
+}
+
+function handleAuthSuccess() {
+  showLoginPopup.value = false;
+  showRegisterPopup.value = false;
+
+  if (openAppointmentAfterAuth.value) {
+    openAppointmentAfterAuth.value = false;
+    showAppointmentPopup.value = true;
+  }
+}
+
 async function updateDescriptionToggle() {
   await nextTick();
   const text = String(listing.value?.description || '').trim();
@@ -722,6 +773,9 @@ function formatPhone(phone) {
 function propertyTypeLabel(type) {
   const map = {
     APARTMENT: 'Căn hộ chung cư',
+    HOUSE: 'Nhà ở',
+    LAND: 'Đất',
+    ROOM: 'Phòng',
     PRIVATE_HOUSE: 'Nhà riêng',
     STREET_HOUSE: 'Nhà mặt phố',
     VILLA_TOWNHOUSE: 'Biệt thự liền kề',

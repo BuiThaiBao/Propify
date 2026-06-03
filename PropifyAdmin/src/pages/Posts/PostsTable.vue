@@ -24,6 +24,14 @@ const props = defineProps({
     type: [Number, String],
     default: null,
   },
+  statusOptions: {
+    type: Array,
+    default: () => [],
+  },
+  adminStatusOptions: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['change-status', 'open-detail'])
@@ -153,15 +161,11 @@ function mapStatusKey(status) {
 }
 
 function mapStatusLabel(status) {
-  const labels = {
-    ACTIVE: 'Đã duyệt',
-    PENDING: 'Chờ duyệt',
-    REJECTED: 'Từ chối',
-    LOCKED: 'Đã khóa',
-    EXPIRED: 'Tin hết hạn',
-  }
+  return props.statusOptions.find((option) => option.value === status)?.label || status || 'Chờ duyệt'
+}
 
-  return labels[status] || status || 'Chờ duyệt'
+function adminStatusLabel(status) {
+  return props.adminStatusOptions.find((option) => option.value === status)?.label || mapStatusLabel(status)
 }
 
 function toggleSelected(id) {
@@ -188,7 +192,7 @@ function getActions(post) {
 
   if (['PENDING', 'LOCKED', 'REJECTED'].includes(post.status)) {
     actions.push({
-      label: 'Duyệt tin',
+      label: adminStatusLabel('ACTIVE'),
       status: 'ACTIVE',
       icon: CheckCircle,
       className: 'approve-action',
@@ -197,7 +201,7 @@ function getActions(post) {
 
   if (post.status === 'ACTIVE') {
     actions.push({
-      label: 'Khóa tin',
+      label: adminStatusLabel('LOCKED'),
       status: 'LOCKED',
       icon: Lock,
       className: 'lock-action',
@@ -206,7 +210,7 @@ function getActions(post) {
 
   if (['PENDING', 'ACTIVE'].includes(post.status)) {
     actions.push({
-      label: 'Từ chối',
+      label: adminStatusLabel('REJECTED'),
       status: 'REJECTED',
       icon: Ban,
       className: 'reject-action',

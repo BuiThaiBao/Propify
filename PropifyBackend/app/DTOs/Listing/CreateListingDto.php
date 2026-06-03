@@ -22,7 +22,7 @@ final readonly class CreateListingDto
         public ?string $projectName,
         public ?string $addressDetail,
         public float $area,
-        public float $price,
+        public ?float $price,
         public bool $isNegotiable,
         public int $bedrooms,
         public int $bathrooms,

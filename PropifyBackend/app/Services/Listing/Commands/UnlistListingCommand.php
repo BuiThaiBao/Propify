@@ -9,14 +9,12 @@ use App\Models\Listing;
 use App\Models\ListingStatusHistory;
 use App\Models\User;
 use App\Repositories\ListingRepository;
-use App\Services\Listing\State\ListingStatusStateFactory;
 use Illuminate\Support\Facades\DB;
 
 final class UnlistListingCommand
 {
     public function __construct(
         private readonly ListingRepository $listingRepository,
-        private readonly ListingStatusStateFactory $statusStateFactory,
     ) {}
 
     public function handle(User $user, int $listingId): Listing
@@ -32,24 +30,20 @@ final class UnlistListingCommand
                 throw new BusinessException(ErrorCode::AuthForbidden);
             }
 
-            if ($listing->status === 'UNLISTED') {
-                throw new BusinessException(ErrorCode::BadRequest, 'Tin dang da duoc go truoc do.');
+            $updated = $listing;
+
+            if ($listing->status !== 'UNLISTED') {
+                $updated = $this->listingRepository->updateListing($listing->id, [
+                    'status' => 'UNLISTED',
+                ]);
+
+                ListingStatusHistory::create([
+                    'user_id' => $user->id,
+                    'listing_id' => $listing->id,
+                    'action' => 'UNLISTED',
+                    'reason' => 'User unlisted listing',
+                ]);
             }
-
-            if (! $this->statusStateFactory->make($listing->status)->canTransitionTo('UNLISTED')) {
-                throw new BusinessException(ErrorCode::BadRequest, 'Khong cho phep go tin nay.');
-            }
-
-            $updated = $this->listingRepository->updateListing($listing->id, [
-                'status' => 'UNLISTED',
-            ]);
-
-            ListingStatusHistory::create([
-                'user_id' => $user->id,
-                'listing_id' => $listing->id,
-                'action' => 'UNLISTED',
-                'reason' => 'User unlisted listing',
-            ]);
 
             $loaded = $updated->load([
                 'property.attributes.group',

@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api\V1\Cloudinary;
 use App\Helpers\ApiResponse;
 use App\Models\User;
 use App\Services\Media\UploadSignatureAdapter;
+use App\Support\ListingPostingOptions;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 /**
  * Cung cấp signed signature để frontend upload ảnh trực tiếp lên Cloudinary (Option B).
@@ -35,7 +37,7 @@ final class CloudinaryController
     public function sign(Request $request): JsonResponse
     {
         $request->validate([
-            'type' => 'required|string|in:avatar,listing',
+            'type' => ['required', 'string', Rule::in(ListingPostingOptions::values('upload_types'))],
         ]);
 
         $uploadType = $request->query('type', 'avatar');

@@ -499,6 +499,9 @@ function formatPrice(value) {
 function propertyTypeLabel(type) {
   const map = {
     APARTMENT: 'Căn hộ chung cư',
+    HOUSE: 'Nhà ở',
+    LAND: 'Đất',
+    ROOM: 'Phòng',
     PRIVATE_HOUSE: 'Nhà riêng',
     STREET_HOUSE: 'Nhà mặt phố',
     VILLA_TOWNHOUSE: 'Biệt thự liền kề',

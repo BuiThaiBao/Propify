@@ -434,25 +434,11 @@
                         Đăng tin
                       </button>
                       <button
-                        :disabled="item.status !== 'ACTIVE'"
-                        :class="[
-                          'w-full text-left px-4 py-2.5 text-[0.85rem] flex items-center gap-3 transition-colors',
-                          item.status === 'ACTIVE'
-                            ? 'text-slate-700 hover:bg-slate-50'
-                            : 'cursor-not-allowed text-slate-300 bg-slate-50'
-                        ]"
+                        class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                         @click.stop="handleDropdownAction('unpublish', item)"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                         Gỡ tin đăng
-                      </button>
-                      <button v-if="item.status !== 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('lock', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        Khóa tin đăng
-                      </button>
-                      <button v-if="item.status === 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unlock', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
-                        Mở khóa tin đăng
                       </button>
                     </div>
                   </Teleport>
@@ -846,18 +832,6 @@
     </main>
 
     <ConfirmActionModal
-      :open="lockListingModalOpen"
-      title="Xác nhận khóa tin"
-      :message="lockListingModalMessage"
-      confirm-text="Xác nhận khóa"
-      cancel-text="Hủy"
-      :loading="lockingListing"
-      loading-text="Đang khóa..."
-      @confirm="handleConfirmLockListing"
-      @cancel="closeLockListingModal"
-    />
-
-    <ConfirmActionModal
       :open="unlistListingModalOpen"
       title="Xác nhận gỡ tin"
       :message="unlistListingModalMessage"
@@ -1061,11 +1035,7 @@ function handleDropdownAction(action, item) {
       alert('Chỉ có thể đăng tin nháp.');
     }
   } else if (action === 'unpublish') {
-    if (item.status === 'ACTIVE') openUnlistListingModal(item);
-    else alert('Chỉ có thể gỡ tin đang đăng.');
-  } else if (action === 'lock') {
-    if (item.status === 'ACTIVE') openLockListingModal(item);
-    else alert('Chỉ có thể khóa tin đang đăng.');
+    openUnlistListingModal(item);
   } else {
     alert('Tính năng đang phát triển');
   }
@@ -1084,6 +1054,7 @@ const listingPagination = reactive({
   lastPage: 1,
   total: 0,
 });
+const listingStatusOptions = ref([]);
 
 const statusCounts = reactive({
   ALL: 0,
@@ -1097,12 +1068,14 @@ const statusCounts = reactive({
 
 const statusTabs = computed(() => [
   { label: 'Tất cả', value: '', colorClass: '', count: statusCounts.ALL },
-  { label: 'Chờ duyệt', value: 'PENDING', colorClass: 'bg-orange-500', count: statusCounts.PENDING },
-  { label: 'Tin đang đăng', value: 'ACTIVE', colorClass: 'bg-emerald-500', count: statusCounts.ACTIVE },
-  { label: 'Tin nháp', value: 'DRAFT', colorClass: 'bg-slate-400', count: statusCounts.DRAFT },
-  { label: 'Từ chối', value: 'REJECTED', colorClass: 'bg-rose-500', count: statusCounts.REJECTED },
-  { label: 'Tin bị khóa', value: 'LOCKED', colorClass: 'bg-red-600', count: statusCounts.LOCKED },
-  { label: 'Đã gỡ', value: 'UNLISTED', colorClass: 'bg-slate-500', count: statusCounts.UNLISTED },
+  ...listingStatusOptions.value
+    .filter((option) => Object.prototype.hasOwnProperty.call(statusCounts, option.value))
+    .map((option) => ({
+      label: option.label,
+      value: option.value,
+      colorClass: statusTabColorClass(option.value),
+      count: statusCounts[option.value] || 0,
+    })),
 ]);
 
 let searchTimeout = null;
@@ -1113,9 +1086,6 @@ watch(() => listingFilters.keyword, () => {
   }, 300);
 });
 
-const lockListingModalOpen = ref(false);
-const lockListingTarget = ref(null);
-const lockingListing = ref(false);
 const unlistListingModalOpen = ref(false);
 const unlistListingTarget = ref(null);
 const unlistingListing = ref(false);
@@ -1143,16 +1113,20 @@ function toggleSection(key) {
 }
 
 function statusLabel(status) {
+  return listingStatusOptions.value.find((option) => option.value === status)?.label || status;
+}
+
+function statusTabColorClass(status) {
   const map = {
-    DRAFT: 'Tin nháp',
-    PENDING: 'Chờ duyệt',
-    ACTIVE: 'Đang đăng',
-    EXPIRED: 'Hết hạn',
-    REJECTED: 'Từ chối',
-    LOCKED: 'Tin bị khóa',
-    UNLISTED: 'Đã gỡ',
+    DRAFT: 'bg-slate-400',
+    PENDING: 'bg-orange-500',
+    ACTIVE: 'bg-emerald-500',
+    EXPIRED: 'bg-slate-500',
+    REJECTED: 'bg-rose-500',
+    LOCKED: 'bg-red-600',
+    UNLISTED: 'bg-slate-500',
   };
-  return map[status] || status;
+  return map[status] || 'bg-slate-400';
 }
 
 function statusBadgeClass(status) {
@@ -1166,6 +1140,15 @@ function statusBadgeClass(status) {
     UNLISTED: 'bg-slate-100 text-slate-600',
   };
   return map[status] || 'bg-slate-100 text-slate-600';
+}
+
+async function fetchListingOptions() {
+  try {
+    const response = await listingService.getPostingOptions();
+    listingStatusOptions.value = response?.data?.data?.listing_statuses || [];
+  } catch (error) {
+    console.error('Failed to load listing options:', error);
+  }
 }
 
 function toListingCode(id) {
@@ -1294,6 +1277,9 @@ const paginatedFavoriteListings = computed(() => {
 function propertyTypeLabel(type) {
   const map = {
     APARTMENT: 'Căn hộ chung cư',
+    HOUSE: 'Nhà ở',
+    LAND: 'Đất',
+    ROOM: 'Phòng',
     PRIVATE_HOUSE: 'Nhà riêng',
     STREET_HOUSE: 'Nhà mặt phố',
     VILLA_TOWNHOUSE: 'Biệt thự liền kề',
@@ -1380,51 +1366,6 @@ async function loadMyListings(page = 1) {
     listingPagination.total = 0;
   } finally {
     listingsLoading.value = false;
-  }
-}
-
-const lockListingModalMessage = computed(() => {
-  if (!lockListingTarget.value) {
-    return 'Bạn có chắc chắn muốn khóa tin này không?';
-  }
-
-  return `Bạn có chắc chắn muốn khóa tin "${lockListingTarget.value.title}" không?`;
-});
-
-function openLockListingModal(item) {
-  lockListingTarget.value = item;
-  lockListingModalOpen.value = true;
-}
-
-function closeLockListingModal() {
-  if (lockingListing.value) {
-    return;
-  }
-
-  lockListingModalOpen.value = false;
-  lockListingTarget.value = null;
-}
-
-async function handleConfirmLockListing() {
-  if (!lockListingTarget.value) {
-    return;
-  }
-
-  lockingListing.value = true;
-  listingActionMessage.value = '';
-
-  try {
-    await listingService.lock(lockListingTarget.value.id);
-    listingActionSuccess.value = true;
-    listingActionMessage.value = 'Khóa tin đăng thành công.';
-    lockListingModalOpen.value = false;
-    lockListingTarget.value = null;
-    await loadMyListings(listingPagination.currentPage);
-  } catch (error) {
-    listingActionSuccess.value = false;
-    listingActionMessage.value = error?.response?.data?.message || 'Không thể khóa tin đăng. Vui lòng thử lại.';
-  } finally {
-    lockingListing.value = false;
   }
 }
 
@@ -1537,6 +1478,7 @@ const isProfileFormUnchanged = computed(() => {
 
 onMounted(async () => {
   document.addEventListener('click', closeDropdown);
+  await fetchListingOptions();
 
   // Luôn fetch fresh user để đảm bảo avatar_url mới nhất từ DB
   // (sessionStorage cache có thể không có avatar_url nếu đăng nhập trước khi tích hợp Cloudinary)

@@ -11,11 +11,11 @@ return new class extends Migration
         Schema::create('listings', function (Blueprint $table) {
             $table->id();
             $table->foreignId('property_id')->constrained('properties')->cascadeOnDelete();
-            $table->string('demand_type', 20)->comment('SALE, RENT');
+            $table->string('demand_type', 20)->comment('Enum: SALE, RENT');
             $table->string('title');
             $table->text('description')->nullable();
             $table->text('ai_description')->nullable();
-            $table->string('status')->default('DRAFT')->comment('DRAFT, PENDING, ACTIVE, EXPIRED, REJECTED, LOCKED');
+            $table->string('status')->default('DRAFT')->comment('Enum: DRAFT, PENDING, ACTIVE, EXPIRED, REJECTED, LOCKED, UNLISTED');
             // Gói tin có thể null nếu tin thường
             $table->foreignId('package_id')->nullable()->constrained('packages');
             $table->integer('score')->default(0);

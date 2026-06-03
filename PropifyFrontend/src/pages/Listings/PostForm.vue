@@ -9,7 +9,6 @@
         {{ toast.message }}
       </div>
     </div>
-
     <div class="mx-auto w-full max-w-[1240px] px-4 lg:px-6">
       <p class="text-xs text-slate-500">
         <router-link to="/" class="hover:text-sky-600 hover:underline">Trang chủ</router-link>
@@ -21,7 +20,7 @@
       <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,760px)_330px] lg:justify-center">
       <form class="space-y-4 lg:w-[760px]" @submit.prevent="isVerificationOnlyMode ? submitVerificationOnly() : submitListing()">
         <template v-if="!isVerificationOnlyMode">
-        <section class="section-card">
+        <section class="section-card" data-score-section="media">
           <header class="section-title">
             <img :src="uploadImageIcon" alt="upload" class="h-5 w-5" />
             <h2>Hình ảnh, Video</h2>
@@ -73,7 +72,7 @@
           </div>
         </section>
 
-        <section class="section-card">
+        <section class="section-card" data-score-section="info">
           <header class="section-title">
             <img :src="homeImageIcon" alt="info" class="h-5 w-5" />
             <h2>Thông tin bất động sản</h2>
@@ -82,8 +81,15 @@
           <div class="mt-3">
             <p class="field-label required">Nhu cầu của bạn</p>
             <div class="mt-2 flex flex-wrap gap-2">
-              <button type="button" :class="pillClass(form.demandType === 'SALE')" @click="form.demandType = 'SALE'">Mua bán</button>
-              <button type="button" :class="pillClass(form.demandType === 'RENT')" @click="form.demandType = 'RENT'">Cho thuê</button>
+              <button
+                v-for="option in demandTypeOptions"
+                :key="option.value"
+                type="button"
+                :class="pillClass(form.demandType === option.value)"
+                @click="form.demandType = option.value"
+              >
+                {{ option.label }}
+              </button>
             </div>
           </div>
 
@@ -160,7 +166,7 @@
                   type="text"
                   inputmode="numeric"
                   placeholder="Nhập số"
-                  @input="onNumberInput($event, 'price', false)"
+                  @input="handlePriceInput"
                   @focus="priceFocused = true"
                   @blur="handlePriceBlur"
                 />
@@ -182,7 +188,14 @@
           </div>
 
           <div class="mt-3 flex items-center gap-2">
-            <input id="is-negotiable-info" v-model="form.isNegotiable" type="checkbox" class="h-4 w-4 rounded border-slate-300" />
+            <input
+              id="is-negotiable-info"
+              v-model="form.isNegotiable"
+              type="checkbox"
+              class="h-4 w-4 rounded border-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="hasPriceValue"
+              @change="handleNegotiableChange"
+            />
             <label for="is-negotiable-info" class="text-[14px] text-slate-500">Giá Thương lượng</label>
           </div>
 
@@ -190,10 +203,15 @@
             <div>
               <p class="field-label">Thời gian thuê tối thiểu</p>
               <div class="mt-2 flex flex-wrap gap-2">
-                <button type="button" :class="pillClass(form.rentMinTerm === '1_month')" @click="form.rentMinTerm = '1_month'">1 tháng</button>
-                <button type="button" :class="pillClass(form.rentMinTerm === '3_months')" @click="form.rentMinTerm = '3_months'">3 tháng</button>
-                <button type="button" :class="pillClass(form.rentMinTerm === '6_months')" @click="form.rentMinTerm = '6_months'">6 tháng</button>
-                <button type="button" :class="pillClass(form.rentMinTerm === '1_year')" @click="form.rentMinTerm = '1_year'">1 năm</button>
+                <button
+                  v-for="option in rentMinTermOptions"
+                  :key="option.value"
+                  type="button"
+                  :class="pillClass(form.rentMinTerm === option.value)"
+                  @click="form.rentMinTerm = option.value"
+                >
+                  {{ option.label }}
+                </button>
               </div>
               <p v-if="fieldError('rentMinTerm')" class="field-error mt-2">{{ fieldErrorMessage('rentMinTerm') }}</p>
             </div>
@@ -201,10 +219,15 @@
             <div>
               <p class="field-label">Kỳ thanh toán</p>
               <div class="mt-2 flex flex-wrap gap-2">
-                <button type="button" :class="pillClass(form.rentPaymentInterval === 'monthly')" @click="form.rentPaymentInterval = 'monthly'">1 tháng/lần</button>
-                <button type="button" :class="pillClass(form.rentPaymentInterval === 'quarter')" @click="form.rentPaymentInterval = 'quarter'">3 tháng/lần</button>
-                <button type="button" :class="pillClass(form.rentPaymentInterval === 'half_year')" @click="form.rentPaymentInterval = 'half_year'">6 tháng/lần</button>
-                <button type="button" :class="pillClass(form.rentPaymentInterval === 'yearly')" @click="form.rentPaymentInterval = 'yearly'">1 năm/lần</button>
+                <button
+                  v-for="option in rentPaymentIntervalOptions"
+                  :key="option.value"
+                  type="button"
+                  :class="pillClass(form.rentPaymentInterval === option.value)"
+                  @click="form.rentPaymentInterval = option.value"
+                >
+                  {{ option.label }}
+                </button>
               </div>
               <p v-if="fieldError('rentPaymentInterval')" class="field-error mt-2">{{ fieldErrorMessage('rentPaymentInterval') }}</p>
             </div>
@@ -212,17 +235,21 @@
             <div>
               <p class="field-label">Đặt cọc</p>
               <div class="mt-2 flex flex-wrap gap-2">
-                <button type="button" :class="pillClass(form.rentDeposit === 'none')" @click="form.rentDeposit = 'none'">Không</button>
-                <button type="button" :class="pillClass(form.rentDeposit === '1_month')" @click="form.rentDeposit = '1_month'">1 tháng</button>
-                <button type="button" :class="pillClass(form.rentDeposit === '3_months')" @click="form.rentDeposit = '3_months'">3 tháng</button>
-                <button type="button" :class="pillClass(form.rentDeposit === '6_months')" @click="form.rentDeposit = '6_months'">6 tháng</button>
-                <button type="button" :class="pillClass(form.rentDeposit === '1_year')" @click="form.rentDeposit = '1_year'">1 năm</button>
+                <button
+                  v-for="option in rentDepositOptions"
+                  :key="option.value"
+                  type="button"
+                  :class="pillClass(form.rentDeposit === option.value)"
+                  @click="form.rentDeposit = option.value"
+                >
+                  {{ option.label }}
+                </button>
               </div>
             </div>
           </div>
         </section>
 
-        <section class="section-card">
+        <section class="section-card" data-score-section="location">
           <header class="section-title">
             <img :src="locationImageIcon" alt="location" class="h-5 w-5" />
             <h2>Vị trí</h2>
@@ -318,7 +345,7 @@
           <p v-if="locationLoadError" class="mt-2 text-xs text-red-500">{{ locationLoadError }}</p>
         </section>
 
-        <section class="section-card">
+        <section class="section-card" data-score-section="detail">
           <header class="section-title">
             <img :src="cameraImageIcon" alt="detail" class="h-5 w-5" />
             <h2>Chi tiết bất động sản</h2>
@@ -460,8 +487,15 @@
             <div class="mt-4">
             <p class="field-label">Nội thất</p>
             <div class="mt-2 flex items-center gap-2">
-              <button type="button" :class="pillClass(form.furnitureStatus === 'FULL')" @click="setFurnitureStatus('FULL')">Có</button>
-              <button type="button" :class="pillClass(form.furnitureStatus === 'NONE')" @click="setFurnitureStatus('NONE')">Không</button>
+              <button
+                v-for="option in furnitureStatusOptions"
+                :key="option.value"
+                type="button"
+                :class="pillClass(form.furnitureStatus === option.value)"
+                @click="setFurnitureStatus(option.value)"
+              >
+                {{ option.label }}
+              </button>
             </div>
 
             </div>
@@ -471,21 +505,21 @@
             <div class="mt-2 flex flex-wrap gap-2">
               <button
                 v-for="amenity in amenityOptions"
-                :key="amenity"
+                :key="amenity.value"
                 type="button"
                 class="amenity-chip"
-                :class="{ active: selectedAmenities.includes(amenity) }"
-                @click="toggleAmenity(amenity)"
+                :class="{ active: selectedAmenities.includes(amenity.value) }"
+                @click="toggleAmenity(amenity.value)"
               >
                 <span>+</span>
-                <span>{{ amenity }}</span>
+                <span>{{ amenity.label }}</span>
               </button>
             </div>
           </div>
 
         </section>
 
-        <section class="section-card">
+        <section class="section-card" data-score-section="contact">
           <header class="section-title">
             <img :src="informationImageIcon" alt="contact" class="h-5 w-5" />
             <h2>Thông tin liên hệ</h2>
@@ -493,8 +527,15 @@
 
           <div class="contact-action-row mt-3">
             <div class="flex gap-2">
-              <button type="button" :class="pillClass(form.posterType === 'OWNER')" @click="form.posterType = 'OWNER'">Chủ nhà</button>
-              <button type="button" :class="pillClass(form.posterType === 'BROKER')" @click="form.posterType = 'BROKER'">Môi giới</button>
+              <button
+                v-for="option in posterTypeOptions"
+                :key="option.value"
+                type="button"
+                :class="pillClass(form.posterType === option.value)"
+                @click="form.posterType = option.value"
+              >
+                {{ option.label }}
+              </button>
             </div>
             <button type="button" :class="pillClass(false)" @click="useAccountContactInfo">
               Dùng thông tin tài khoản
@@ -642,8 +683,8 @@
             >
               Xem trước tin đăng
             </button>
-            <button type="submit" :disabled="loading" class="ml-auto rounded-xl bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60">
-              {{ loading ? 'Đang đăng tin...' : (isEditMode ? 'Cập nhật tin' : 'Đăng tin') }}
+            <button type="submit" :disabled="formBusy" class="ml-auto rounded-xl bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60">
+              {{ submitButtonText }}
             </button>
           </div>
         </div>
@@ -701,7 +742,7 @@
             <h3 class="text-[28px] font-extrabold leading-none text-slate-900">Chi tiết điểm thông tin</h3>
 
             <div class="mt-4 space-y-3">
-              <div class="score-row">
+              <div class="score-row" :class="{ 'score-row-active': activeScoreSection === 'media' }">
                 <div class="score-label">
                   <span class="circle" :class="{ done: mediaDone }"></span>
                   <span>Hình ảnh và video</span>
@@ -731,7 +772,7 @@
                 </div>
               </div>
 
-              <div class="score-row">
+              <div class="score-row" :class="{ 'score-row-active': activeScoreSection === 'info' || activeScoreSection === 'location' }">
                 <div class="score-label">
                   <span class="circle" :class="{ done: infoDone }"></span>
                   <span>Thông tin BĐS</span>
@@ -753,14 +794,15 @@
                 <div
                   v-for="item in infoChecklist"
                   :key="`info-${item.label}`"
-                  class="flex items-center justify-between text-sm mt-1"
+                  class="score-item-row flex items-center justify-between text-sm mt-1"
+                  :class="{ 'score-item-active': item.section === activeScoreSection }"
                 >
                   <div :class="item.done ? 'text-emerald-600' : ''">• {{ item.label }}</div>
                   <div :class="item.done ? 'text-emerald-600' : 'text-slate-400'">{{ item.done ? '✓' : '' }} {{ item.points }}đ</div>
                 </div>
               </div>
 
-              <div class="score-row">
+              <div class="score-row" :class="{ 'score-row-active': activeScoreSection === 'detail' }">
                 <div class="score-label">
                   <span class="circle" :class="{ done: detailDone }"></span>
                   <span>Chi tiết BĐS</span>
@@ -789,7 +831,7 @@
                 </div>
               </div>
 
-              <div class="score-row">
+              <div class="score-row" :class="{ 'score-row-active': activeScoreSection === 'contact' }">
                 <div class="score-label">
                   <span class="circle" :class="{ done: contactDone }"></span>
                   <span>Thông tin liên hệ</span>
@@ -855,70 +897,33 @@ import infoDotIcon from "@/assets/images/listing/postlisting/i.png";
 import bedIcon from "@/assets/images/listing/postlisting/giuong.png";
 import bathIcon from "@/assets/images/listing/postlisting/bontam.png";
 
-const salePropertyTypeOptions = [
-  { value: "APARTMENT", label: "Căn hộ chung cư" },
-  { value: "PRIVATE_HOUSE", label: "Nhà riêng" },
-  { value: "STREET_HOUSE", label: "Nhà mặt phố" },
-  { value: "MINI_APARTMENT", label: "Chung cư mini" },
-  { value: "VILLA_TOWNHOUSE", label: "Biệt thự liền kề" },
-  { value: "SHOPHOUSE", label: "Shophouse" },
-  { value: "KIOSK", label: "Ki-ốt" },
-  { value: "OFFICE", label: "Văn phòng" },
-  { value: "RESORT", label: "Khu nghỉ dưỡng" },
-  { value: "RESTAURANT_HOTEL", label: "Nhà hàng - Khách sạn" },
-];
-
-const rentPropertyTypeOptions = [
-  { value: "APARTMENT", label: "Căn hộ chung cư" },
-  { value: "RENT_ROOM", label: "Phòng trọ" },
-  { value: "BOARDING_HOUSE", label: "Nhà trọ" },
-  { value: "PRIVATE_HOUSE", label: "Nhà riêng" },
-  { value: "STREET_HOUSE", label: "Nhà mặt phố" },
-  { value: "MINI_APARTMENT", label: "Chung cư mini" },
-  { value: "VILLA_TOWNHOUSE", label: "Biệt thự liền kề" },
-  { value: "SHOPHOUSE", label: "Shophouse" },
-  { value: "KIOSK", label: "Ki-ốt" },
-  { value: "OFFICE", label: "Văn phòng" },
-  { value: "RESORT", label: "Khu nghỉ dưỡng" },
-  { value: "RESTAURANT_HOTEL", label: "Nhà hàng - Khách sạn" },
-];
-
-const legalPaperOptions = [
-  { value: "LAND_USE_CERTIFICATE", label: "Giấy CN QSDĐ - Sổ đỏ - Sổ hồng" },
-  { value: "SALE_CONTRACT", label: "Hợp đồng mua bán" },
-  { value: "CAPITAL_CONTRIBUTION_CONTRACT", label: "Hợp đồng góp vốn" },
-  { value: "ALLOTTED_OR_SUBDIVIDED_LAND", label: "Đất giao - Đất phân" },
-  { value: "BORROWED_LAND", label: "Đất mượn" },
-  { value: "LEASED_LAND", label: "Đất thuê" },
-  { value: "ORIGIN_PROOF_DOCUMENT", label: "Giấy tờ chứng minh nguồn gốc" },
-  { value: "NO_LAND_CERTIFICATE", label: "Chưa làm giấy CN QSDĐ" },
-  { value: "PROCESSING_LAND_CERTIFICATE", label: "Đang làm giấy CN QSDĐ" },
-  { value: "APPOINTMENT_FOR_CERTIFICATE", label: "Đã có giấy hẹn lấy sổ" },
-  { value: "BUSINESS_TRANSFER", label: "Sang nhượng doanh nghiệp" },
-  { value: "SHARE_TRANSFER", label: "Mua bán cổ phần" },
-  { value: "INVESTMENT_COOPERATION", label: "Hợp tác đầu tư" },
-  { value: "HANDWRITTEN", label: "Viết tay" },
-];
-
-const quickNumberOptions = [1, 2, 3, 4, 5];
-const amenityOptions = ["Sân chơi", "Bể bơi", "Sân vườn", "Thang máy", "Wifi", "Khu để xe"];
-const directionOptions = [
-  { value: "N", label: "Bắc" },
-  { value: "NE", label: "Đông Bắc" },
-  { value: "E", label: "Đông" },
-  { value: "SE", label: "Đông Nam" },
-  { value: "S", label: "Nam" },
-  { value: "SW", label: "Tây Nam" },
-  { value: "W", label: "Tây" },
-  { value: "NW", label: "Tây Bắc" },
-];
+function createEmptyPostingOptions() {
+  return {
+    demand_types: [],
+    property_types: {
+      sale: [],
+      rent: [],
+    },
+    legal_paper_types: [],
+    quick_numbers: [],
+    amenities: [],
+    directions: [],
+    furniture_statuses: [],
+    poster_types: [],
+    rental: {
+      min_terms: [],
+      payment_intervals: [],
+      deposits: [],
+    },
+  };
+}
 
 function createInitialState() {
   return {
-    demandType: "SALE",
+    demandType: "",
     title: "",
     description: "",
-    propertyType: "APARTMENT",
+    propertyType: "",
     provinceCode: "",
     province: "",
     districtCode: "",
@@ -945,7 +950,7 @@ function createInitialState() {
     contactName: "",
     contactPhone: "",
     contactEmail: "",
-    posterType: "OWNER",
+    posterType: "",
     lat: "",
     lng: "",
     packageId: "",
@@ -991,6 +996,7 @@ const showPreviewModal = ref(false);
 const showDraftConfirm = ref(false);
 const submitError = ref("");
 const validationErrors = ref({});
+let submitErrorTimer = null;
 const touchedFields = reactive({});
 const locationSearchText = ref("");
 const mapElement = ref(null);
@@ -1023,6 +1029,7 @@ let lastStandardCamera = null;
 const provinces = ref([]);
 const wards = ref([]);
 const wardsLoading = ref(false);
+const postingOptions = ref(createEmptyPostingOptions());
 
 const locationSearching = ref(false);
 const locationLoadError = ref("");
@@ -1046,7 +1053,9 @@ const mediaCollapsed = ref(false);
 const infoCollapsed = ref(false);
 const detailCollapsed = ref(false);
 const contactCollapsed = ref(false);
+const activeScoreSection = ref('media');
 const priceFocused = ref(false);
+let scoreSectionObserver = null;
 
 const toasts = ref([]);
 let toastIdCounter = 1;
@@ -1061,12 +1070,55 @@ function pushToast(message, type = "info", duration = 2500) {
   }, duration);
 }
 
+function clearSubmitError() {
+  if (submitErrorTimer) {
+    clearTimeout(submitErrorTimer);
+    submitErrorTimer = null;
+  }
+  submitError.value = "";
+}
+
+function setSubmitError(message, duration = 5000) {
+  clearSubmitError();
+  submitError.value = message || "";
+  if (!submitError.value) return;
+
+  submitErrorTimer = setTimeout(() => {
+    clearSubmitError();
+    submitErrorTimer = null;
+  }, duration);
+}
+
 const listingMediaUpload = useListingMediaUpload({
   onStatus: (message) => pushToast(message, "info", 1200),
 });
 
+const formBusy = computed(() => loading.value || savingDraft.value);
+const submitButtonText = computed(() => {
+  if (savingDraft.value) return 'Đang lưu nháp...';
+  if (loading.value) {
+    if (isVerificationOnlyMode.value) return 'Đang lưu xác thực...';
+    return isEditMode.value ? 'Đang cập nhật tin...' : 'Đang đăng tin...';
+  }
+  if (isVerificationOnlyMode.value) return 'Lưu xác thực';
+  return isEditMode.value ? 'Cập nhật tin' : 'Đăng tin';
+});
+
 const MAX_LISTING_IMAGES = 10;
 const IMAGE_SCORE_TARGET_COUNT = 4;
+
+const demandTypeOptions = computed(() => postingOptions.value.demand_types || []);
+const salePropertyTypeOptions = computed(() => postingOptions.value.property_types?.sale || []);
+const rentPropertyTypeOptions = computed(() => postingOptions.value.property_types?.rent || []);
+const legalPaperOptions = computed(() => postingOptions.value.legal_paper_types || []);
+const quickNumberOptions = computed(() => postingOptions.value.quick_numbers || []);
+const amenityOptions = computed(() => postingOptions.value.amenities || []);
+const directionOptions = computed(() => postingOptions.value.directions || []);
+const furnitureStatusOptions = computed(() => postingOptions.value.furniture_statuses || []);
+const posterTypeOptions = computed(() => postingOptions.value.poster_types || []);
+const rentMinTermOptions = computed(() => postingOptions.value.rental?.min_terms || []);
+const rentPaymentIntervalOptions = computed(() => postingOptions.value.rental?.payment_intervals || []);
+const rentDepositOptions = computed(() => postingOptions.value.rental?.deposits || []);
 
 const imageCount = computed(() => Array.isArray(form.images) ? form.images.length : 0);
 const imageScoreCount = computed(() => Math.min(imageCount.value, IMAGE_SCORE_TARGET_COUNT));
@@ -1080,24 +1132,24 @@ const mediaPercent = computed(() => Math.round((mediaPoints.value / 4) * 100));
 const mediaDone = computed(() => mediaPoints.value === 4);
 
 const infoChecklist = computed(() => [
-  { label: 'Nhu cầu', done: Boolean(form.demandType), points: 0.15 },
-  { label: 'Tiêu đề', done: Boolean(form.title?.trim()), points: 0.25 },
-  { label: 'Mô tả', done: Boolean(form.description?.trim()), points: 0.25 },
-  { label: 'Loại nhà đất', done: Boolean(form.propertyType?.trim()), points: 0.2 },
-  { label: 'Giấy tờ pháp lý', done: Array.isArray(form.legalPaperTypes) && form.legalPaperTypes.length > 0, points: form.demandType === 'RENT' ? 0.1 : 0.15 },
-  { label: 'Diện tích', done: Number(form.area) > 0, points: 0.25 },
-  { label: form.demandType === 'RENT' ? 'Giá thuê' : 'Giá bán', done: form.isNegotiable || Number(form.price) > 0, points: form.demandType === 'RENT' ? 0.2 : 0.3 },
+  { label: 'Nhu cầu', done: Boolean(form.demandType), points: 0.15, section: 'info' },
+  { label: 'Tiêu đề', done: Boolean(form.title?.trim()), points: 0.25, section: 'info' },
+  { label: 'Mô tả', done: descriptionCount.value >= 20, points: 0.25, section: 'info' },
+  { label: 'Loại nhà đất', done: Boolean(form.propertyType?.trim()), points: 0.2, section: 'info' },
+  { label: 'Giấy tờ pháp lý', done: Array.isArray(form.legalPaperTypes) && form.legalPaperTypes.length > 0, points: form.demandType === 'RENT' ? 0.1 : 0.15, section: 'info' },
+  { label: 'Diện tích', done: Number(form.area) > 0, points: 0.25, section: 'info' },
+  { label: form.demandType === 'RENT' ? 'Giá thuê' : 'Giá bán', done: form.isNegotiable || Number(form.price) > 0, points: form.demandType === 'RENT' ? 0.2 : 0.3, section: 'info' },
   ...(form.demandType === 'RENT'
     ? [
-        { label: 'Thời gian cho thuê', done: Boolean(form.rentMinTerm), points: 0.05 },
-        { label: 'Kỳ thanh toán', done: Boolean(form.rentPaymentInterval), points: 0.05 },
-        { label: 'Đặt cọc', done: Boolean(form.rentDeposit), points: 0.05 },
+        { label: 'Thời gian cho thuê', done: Boolean(form.rentMinTerm), points: 0.05, section: 'info' },
+        { label: 'Kỳ thanh toán', done: Boolean(form.rentPaymentInterval), points: 0.05, section: 'info' },
+        { label: 'Đặt cọc', done: Boolean(form.rentDeposit), points: 0.05, section: 'info' },
       ]
     : []),
-  { label: 'Tỉnh/thành phố', done: Boolean(form.provinceCode?.trim()), points: 0.15 },
-  { label: 'Xã/phường', done: Boolean(form.wardCode?.trim()), points: 0.1 },
-  { label: 'Đường/phố', done: Boolean(form.streetCode?.trim()), points: 0.1 },
-  { label: 'Địa chỉ cụ thể', done: Boolean(form.addressDetail?.trim()), points: 0.1 },
+  { label: 'Tỉnh/thành phố', done: Boolean(form.provinceCode?.trim()), points: 0.15, section: 'location' },
+  { label: 'Xã/phường', done: Boolean(form.wardCode?.trim()), points: 0.1, section: 'location' },
+  { label: 'Đường/phố', done: Boolean(form.streetCode?.trim()), points: 0.1, section: 'location' },
+  { label: 'Địa chỉ cụ thể', done: Boolean(form.addressDetail?.trim()), points: 0.1, section: 'location' },
 ]);
 
 const infoRawPoints = computed(() => scoreItems(infoChecklist.value));
@@ -1212,7 +1264,7 @@ const scoreLevel = computed(() => {
 });
 
 const selectedLegalPaperLabels = computed(() => {
-  return legalPaperOptions
+  return legalPaperOptions.value
     .filter((option) => form.legalPaperTypes.includes(option.value))
     .map((option) => option.label)
     .join(", ");
@@ -1232,8 +1284,44 @@ function onDocumentClick(e) {
   showLegalDropdown.value = false;
 }
 
+function setActiveScoreSection(section) {
+  if (!section || activeScoreSection.value === section) return;
+
+  activeScoreSection.value = section;
+  mediaCollapsed.value = section !== 'media';
+  infoCollapsed.value = section !== 'info' && section !== 'location';
+  detailCollapsed.value = section !== 'detail';
+  contactCollapsed.value = section !== 'contact';
+}
+
+function initScoreSectionObserver() {
+  scoreSectionObserver?.disconnect();
+
+  if (typeof IntersectionObserver === 'undefined') return;
+
+  const sections = Array.from(document.querySelectorAll('[data-score-section]'));
+  if (!sections.length) return;
+
+  scoreSectionObserver = new IntersectionObserver((entries) => {
+    const visibleEntries = entries
+      .filter((entry) => entry.isIntersecting)
+      .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+
+    const activeEntry = visibleEntries[0];
+    const section = activeEntry?.target?.dataset?.scoreSection;
+    if (section) setActiveScoreSection(section);
+  }, {
+    root: null,
+    threshold: [0.25, 0.45, 0.65],
+    rootMargin: '-32% 0px -42% 0px',
+  });
+
+  sections.forEach((section) => scoreSectionObserver.observe(section));
+}
+
 onMounted(() => {
   document.addEventListener('click', onDocumentClick);
+  initScoreSectionObserver();
 });
 
 // If the appointment component wasn't mounted when we loaded edit data,
@@ -1247,6 +1335,8 @@ watch(appointmentForm, (v) => {
 
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick);
+  scoreSectionObserver?.disconnect();
+  scoreSectionObserver = null;
 });
 
 const shouldRequestVerification = computed(() => {
@@ -1256,6 +1346,7 @@ const shouldRequestVerification = computed(() => {
 const titleCount = computed(() => normalizeSingleLineText(form.title).length);
 const descriptionCount = computed(() => normalizeMultilineText(form.description).length);
 const priceLabel = computed(() => (form.demandType === "RENT" ? "Giá thuê" : "Giá bán"));
+const hasPriceValue = computed(() => Number(String(form.price || '').replace(/[^0-9]/g, '')) > 0);
 const priceSuggestions = computed(() => {
   const base = Number(String(form.price || '').replace(/[^0-9]/g, ''));
   if (!base || form.isNegotiable) return [];
@@ -1274,7 +1365,7 @@ const priceSuggestions = computed(() => {
 const showPriceSuggestions = computed(() => priceFocused.value && priceSuggestions.value.length > 0);
 
 const currentPropertyTypeOptions = computed(() =>
-  form.demandType === "RENT" ? rentPropertyTypeOptions : salePropertyTypeOptions,
+  form.demandType === "RENT" ? rentPropertyTypeOptions.value : salePropertyTypeOptions.value,
 );
 
 const selectedProvinceName = computed(() => {
@@ -1307,11 +1398,36 @@ const previewListing = computed(() => buildListingPreview({
 watch(
   () => form.demandType,
   () => {
-    const hasSelectedType = currentPropertyTypeOptions.value.some(
-      (option) => option.value === form.propertyType,
-    );
-    if (!hasSelectedType) {
-      form.propertyType = currentPropertyTypeOptions.value[0]?.value ?? "APARTMENT";
+    ensurePropertyTypeOption();
+  },
+);
+
+watch(demandTypeOptions, () => {
+  ensureDemandTypeOption();
+});
+
+watch(currentPropertyTypeOptions, () => {
+  ensurePropertyTypeOption();
+});
+
+watch(posterTypeOptions, () => {
+  ensurePosterTypeOption();
+});
+
+watch(
+  () => form.price,
+  () => {
+    if (hasPriceValue.value && form.isNegotiable) {
+      form.isNegotiable = false;
+    }
+  },
+);
+
+watch(
+  () => form.isNegotiable,
+  (isNegotiable) => {
+    if (isNegotiable) {
+      clearPriceForNegotiable();
     }
   },
 );
@@ -1336,6 +1452,7 @@ watch([selectedAmenities, publicInfoAgreed], () => saveFormToDraft(), { deep: tr
 
 onMounted(async () => {
   initializeMap();
+  await fetchPostingOptions();
   await fetchProvinces();
 
   if (isEditMode.value) {
@@ -1345,6 +1462,21 @@ onMounted(async () => {
     loadFormFromDraft();
   }
 });
+
+watch(
+  () => [route.name, route.params.id, route.query.mode],
+  async () => {
+    if (isEditMode.value) {
+      resetFormState();
+      clearDraft();
+      await loadListingForEdit();
+      return;
+    }
+
+    resetFormState();
+    loadFormFromDraft();
+  },
+);
 
 function getVerificationDocumentType(document) {
   return document?.type || document?.document_type || document?.documentType || '';
@@ -1370,7 +1502,7 @@ async function loadListingForEdit() {
     if (!data || typeof data !== 'object') {
       throw new Error('Dữ liệu tin đăng không hợp lệ');
     }
-    submitError.value = "";
+    clearSubmitError();
 
     const p = data.property || {};
     const inputValue = (value) => (value === null || value === undefined ? '' : String(value));
@@ -1397,10 +1529,10 @@ async function loadListingForEdit() {
       return match ? `${String(Number(match[1])).padStart(2, '0')}:${match[2]}:${match[3] || '00'}` : '';
     };
 
-    form.demandType = data.demand_type || 'SALE';
+    form.demandType = data.demand_type || '';
     form.title = data.title || '';
     form.description = data.description || '';
-    form.propertyType = p.type || 'APARTMENT';
+    form.propertyType = p.type || '';
     form.provinceCode = p.province_code ? String(p.province_code) : '';
     form.province = p.province || p.province_name || '';
     form.districtCode = p.district_code ? String(p.district_code) : '';
@@ -1410,8 +1542,8 @@ async function loadListingForEdit() {
     form.projectName = p.project_name || '';
     form.addressDetail = p.address_detail || '';
     form.area = inputValue(p.area);
-    form.price = inputValue(p.price);
-    form.isNegotiable = p.is_negotiable || false;
+    form.isNegotiable = Boolean(p.is_negotiable);
+    form.price = form.isNegotiable ? '' : inputValue(p.price);
     form.bedrooms = inputValue(p.bedrooms);
     form.bathrooms = inputValue(p.bathrooms);
     form.floors = inputValue(p.floors);
@@ -1427,7 +1559,7 @@ async function loadListingForEdit() {
     form.contactName = p.contact_name || '';
     form.contactPhone = p.contact_phone || '';
     form.contactEmail = p.contact_email || '';
-    form.posterType = p.poster_type || 'OWNER';
+    form.posterType = p.poster_type || '';
     form.lat = p.lat ?? '';
     form.lng = p.lng ?? '';
     form.amenities = arrayValue(p.amenities);
@@ -1440,6 +1572,7 @@ async function loadListingForEdit() {
     form.attributeIds = Array.isArray(p.attributes) ? p.attributes.map((attribute) => attribute.id).filter(Boolean) : [];
     selectedAmenities.value = [...arrayValue(p.amenities)];
     publicInfoAgreed.value = Boolean(p.public_info_agreed);
+    ensurePostingOptionSelections();
 
     const verificationDocuments = Array.isArray(data.verification_documents) ? data.verification_documents : [];
     const idFrontDoc = verificationDocuments.find((doc) => getVerificationDocumentType(doc) === 'ID_FRONT');
@@ -1545,7 +1678,7 @@ async function loadListingForEdit() {
     }
   } catch (err) {
     console.error('Failed to load listing for edit:', err);
-    submitError.value = 'Không thể tải dữ liệu tin đăng để chỉnh sửa.';
+    setSubmitError('Không thể tải dữ liệu tin đăng để chỉnh sửa.');
   } finally {
     isHydratingEdit.value = false;
     editLoading.value = false;
@@ -2040,6 +2173,62 @@ async function searchAddressOnMap() {
   await geocodeAddressToMap(query, 16);
 }
 
+function ensurePropertyTypeOption() {
+  if (!currentPropertyTypeOptions.value.length) return;
+
+  const hasSelectedType = currentPropertyTypeOptions.value.some(
+    (option) => option.value === form.propertyType,
+  );
+
+  if (!hasSelectedType) {
+    form.propertyType = currentPropertyTypeOptions.value[0]?.value ?? "";
+  }
+}
+
+function ensureDemandTypeOption() {
+  if (!demandTypeOptions.value.length) return;
+
+  const hasSelectedType = demandTypeOptions.value.some(
+    (option) => option.value === form.demandType,
+  );
+
+  if (!hasSelectedType) {
+    form.demandType = demandTypeOptions.value[0]?.value ?? "";
+  }
+}
+
+function ensurePosterTypeOption() {
+  if (!posterTypeOptions.value.length) return;
+
+  const hasSelectedType = posterTypeOptions.value.some(
+    (option) => option.value === form.posterType,
+  );
+
+  if (!hasSelectedType) {
+    form.posterType = posterTypeOptions.value[0]?.value ?? "";
+  }
+}
+
+function ensurePostingOptionSelections() {
+  ensureDemandTypeOption();
+  ensurePropertyTypeOption();
+  ensurePosterTypeOption();
+}
+
+async function fetchPostingOptions() {
+  try {
+    const response = await listingService.getPostingOptions();
+    postingOptions.value = {
+      ...createEmptyPostingOptions(),
+      ...(response?.data?.data || {}),
+    };
+    ensurePostingOptionSelections();
+  } catch (error) {
+    console.error('Failed to load posting options:', error);
+    pushToast('Không thể tải cấu hình đăng tin từ máy chủ.', 'error', 3500);
+  }
+}
+
 async function fetchProvinces() {
   locationLoadError.value = "";
   try {
@@ -2526,8 +2715,27 @@ function handlePriceBlur() {
   }, 120);
 }
 
+function handlePriceInput(event) {
+  onNumberInput(event, 'price', false);
+  if (hasPriceValue.value) {
+    form.isNegotiable = false;
+  }
+}
+
+function handleNegotiableChange() {
+  if (form.isNegotiable) {
+    clearPriceForNegotiable();
+  }
+}
+
+function clearPriceForNegotiable() {
+  form.price = "";
+  delete touchedFields.price;
+}
+
 function selectPriceSuggestion(value) {
   form.price = String(value);
+  form.isNegotiable = false;
   touchField('price');
   priceFocused.value = false;
 }
@@ -2541,11 +2749,15 @@ function onPhoneInput(event) {
 }
 
 function openPreview() {
+  if (formBusy.value) return;
+
   normalizeFormTextFields();
   showPreviewModal.value = true;
 }
 
 function openBackConfirm() {
+  if (formBusy.value) return;
+
   if (isEditMode.value) {
     router.back();
     return;
@@ -2555,6 +2767,8 @@ function openBackConfirm() {
 }
 
 function discardAndGoBack() {
+  if (formBusy.value) return;
+
   showDraftConfirm.value = false;
   router.back();
 }
@@ -2574,6 +2788,8 @@ function setAppointmentRows(rows) {
 }
 
 async function saveDraftAndGoBack() {
+  if (loading.value) return;
+
   if (isEditMode.value) {
     router.back();
     return;
@@ -2581,15 +2797,15 @@ async function saveDraftAndGoBack() {
 
   if (savingDraft.value) return;
   savingDraft.value = true;
-  submitError.value = "";
+  clearSubmitError();
   validationErrors.value = {};
 
   try {
     normalizeFormTextFields();
     touchAllRequired();
-    if (hasRequiredErrors()) {
-      submitError.value = 'Vui lòng điền đầy đủ thông tin bắt buộc trước khi lưu nháp.';
-      pushToast('Cần điền đầy đủ thông tin bắt buộc trước khi lưu tin nháp.', 'error', 3500);
+    const requiredErrors = getRequiredFieldErrors();
+    if (requiredErrors.length) {
+      showMissingRequiredToast(requiredErrors);
       showDraftConfirm.value = false;
       return;
     }
@@ -2630,7 +2846,7 @@ async function saveDraftAndGoBack() {
   } catch (error) {
     const data = error?.response?.data;
     validationErrors.value = data?.errors || {};
-    submitError.value = data?.message || error?.message || 'Không thể lưu tin nháp. Vui lòng thử lại';
+    setSubmitError(data?.message || error?.message || 'Không thể lưu tin nháp. Vui lòng thử lại');
     pushToast(submitError.value, 'error');
   } finally {
     savingDraft.value = false;
@@ -2664,20 +2880,52 @@ async function useAccountContactInfo() {
   pushToast('Đã điền thông tin tài khoản vào phần liên hệ', 'success');
 }
 
+const requiredFieldLabels = {
+  images: 'Hình ảnh',
+  title: 'Tiêu đề',
+  description: 'Mô tả',
+  propertyType: 'Loại nhà đất',
+  area: 'Diện tích',
+  price: 'Giá',
+  provinceCode: 'Tỉnh/thành phố',
+  wardCode: 'Xã/phường',
+  streetCode: 'Đường/phố',
+  addressDetail: 'Địa chỉ cụ thể',
+  contactName: 'Tên liên hệ',
+  contactPhone: 'Số điện thoại liên hệ',
+  contactEmail: 'Email liên hệ',
+};
+
+const requiredFields = Object.keys(requiredFieldLabels);
+
 function touchAllRequired() {
-  const required = ['images', 'title', 'description', 'propertyType', 'area', 'price', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail', 'floorNumber', 'floors'];
-  required.forEach((f) => touchField(f));
+  requiredFields.forEach((field) => touchField(field));
 }
 
-function hasRequiredErrors() {
-  const base = ['images', 'title', 'description', 'propertyType', 'area', 'provinceCode', 'wardCode', 'streetCode', 'addressDetail', 'contactName', 'contactPhone', 'contactEmail', 'floorNumber', 'floors'];
+function getRequiredFieldErrors() {
+  return requiredFields
+    .filter((field) => {
+      if (field === 'price' && form.isNegotiable) return false;
+      touchedFields[field] = true;
+      return fieldError(field);
+    })
+    .map((field) => ({
+      field,
+      label: requiredFieldLabels[field],
+      message: fieldErrorMessage(field),
+    }));
+}
 
-  const hasError = base.some((f) => {
-    touchedFields[f] = true;
-    return fieldError(f);
-  });
+function showMissingRequiredToast(errors) {
+  const missingLabels = errors.map((error) => error.label);
+  const visibleLabels = missingLabels.slice(0, 5);
+  const moreCount = missingLabels.length - visibleLabels.length;
+  const suffix = moreCount > 0 ? ` và ${moreCount} trường khác` : '';
+  const message = `Vui lòng bổ sung: ${visibleLabels.join(', ')}${suffix}.`;
 
-  return hasError || (!form.isNegotiable && fieldError('price'));
+  setSubmitError(message);
+  validationErrors.value = {};
+  pushToast(message, 'error', 5500);
 }
 
 function setFurnitureStatus(status) {
@@ -2788,27 +3036,53 @@ function clearLegalDocumentPreviews() {
   legalDocumentPreviews.value = [];
 }
 
-function resetForm() {
+function clearMapMarker() {
+  form.lat = "";
+  form.lng = "";
+
+  if (!map?.getSource(POSTING_LOCATION_SOURCE_ID)) return;
+
+  map.getSource(POSTING_LOCATION_SOURCE_ID).setData({
+    type: "FeatureCollection",
+    features: [],
+  });
+}
+
+function resetFormState() {
   clearImagePreviews();
   clearIdCardPreviews();
   clearLegalDocumentPreviews();
   Object.assign(form, createInitialState());
+  Object.keys(touchedFields).forEach((key) => {
+    delete touchedFields[key];
+  });
   showLegalDropdown.value = false;
   showMoreDetail.value = true;
   showVerificationSection.value = true;
   publicInfoAgreed.value = false;
   selectedAmenities.value = [];
-  submitError.value = "";
+  pendingAppointmentRows.value = null;
+  existingAppointmentSlotIds.value = [];
+  appointmentForm.value?.resetForm?.();
+  locationSearchText.value = "";
+  locationLoadError.value = "";
+  clearSubmitError();
   validationErrors.value = {};
   imageUploadError.value = "";
   videoUploadError.value = "";
   verificationUploadError.value = "";
   videoPreviewName.value = "";
+  priceFocused.value = false;
+  activeScoreSection.value = 'media';
+  clearMapMarker();
+}
 
-
+function resetForm() {
+  resetFormState();
 }
 
 onBeforeUnmount(() => {
+  clearSubmitError();
   if (map) {
     map.remove();
     map = null;
@@ -2824,13 +3098,13 @@ async function submitVerificationOnly() {
   }
 
   if (!form.identityCardFront || !form.identityCardBack) {
-    submitError.value = 'Vui lòng tải lên CCCD/CMND mặt trước và mặt sau.';
+    setSubmitError('Vui lòng tải lên CCCD/CMND mặt trước và mặt sau.');
     pushToast(submitError.value, 'error');
     return;
   }
 
   loading.value = true;
-  submitError.value = "";
+  clearSubmitError();
   validationErrors.value = {};
 
   try {
@@ -2848,9 +3122,9 @@ async function submitVerificationOnly() {
     if (error.response && error.response.data) {
       const data = error.response.data;
       validationErrors.value = data?.errors || {};
-      submitError.value = data?.message || 'Không thể lưu thông tin xác thực. Vui lòng thử lại';
+      setSubmitError(data?.message || 'Không thể lưu thông tin xác thực. Vui lòng thử lại');
     } else {
-      submitError.value = error.message || 'Không thể lưu thông tin xác thực. Vui lòng thử lại';
+      setSubmitError(error.message || 'Không thể lưu thông tin xác thực. Vui lòng thử lại');
     }
 
     pushToast(submitError.value, 'error');
@@ -2867,19 +3141,20 @@ async function submitListing() {
 
   // Validate required fields first
   touchAllRequired();
-  if (hasRequiredErrors()) {
-    submitError.value = "";
+  const requiredErrors = getRequiredFieldErrors();
+  if (requiredErrors.length) {
+    showMissingRequiredToast(requiredErrors);
     return;
   }
 
   if (isBelowMinimumScore.value) {
-    submitError.value = `Tin đăng đang dưới điểm tối thiểu ${minimumScore.value}đ`;
+    setSubmitError(`Tin đăng đang dưới điểm tối thiểu ${minimumScore.value}đ`);
     pushToast(`Tin đăng dưới điểm tối thiểu ${minimumScore.value}đ. Vui lòng bổ sung thông tin trước khi đăng.`, 'error', 3500);
     return;
   }
 
   loading.value = true;
-  submitError.value = "";
+  clearSubmitError();
   validationErrors.value = {};
   pushToast('Đang xử lý dữ liệu...', 'info');
   normalizeFormTextFields();
@@ -2893,7 +3168,7 @@ async function submitListing() {
       const isValidAppointments = appointmentForm.value.validateAll();
       if (!isValidAppointments) {
         loading.value = false;
-        submitError.value = 'Lịch hẹn xem nhà không hợp lệ';
+        setSubmitError('Lịch hẹn xem nhà không hợp lệ');
         pushToast('Lịch hẹn xem nhà không hợp lệ', 'error');
         return;
       }
@@ -2905,9 +3180,11 @@ async function submitListing() {
   }
 
   try {
+    pushToast('Đang tải ảnh và giấy tờ lên...', 'info', 2500);
     await listingMediaUpload.uploadListingMediaPayload(form);
 
     // 4. Submit to Backend
+    pushToast(isEditMode.value ? 'Đang cập nhật tin đăng...' : 'Đang gửi tin đăng...', 'info', 2500);
     console.log('Submitting listing payload', JSON.parse(JSON.stringify(form)));
     let response;
     if (isEditMode.value) {
@@ -2930,7 +3207,7 @@ async function submitListing() {
       pushToast('Lưu khung giờ xem nhà thất bại (không ảnh hưởng tới tin đăng)', 'warning');
     }
 
-    submitError.value = "";
+    clearSubmitError();
     clearDraft();
     pushToast(response.data?.message || (isEditMode.value ? 'Cập nhật tin thành công' : 'Đăng tin thành công. Tin đăng chờ duyệt'), 'success');
     resetForm();
@@ -2943,18 +3220,20 @@ async function submitListing() {
       validationErrors.value = data?.errors || {};
 
       if (statusCode === 401) {
-        submitError.value = 'Phiên làm việc đã hết hạn';
+        setSubmitError('Phiên làm việc đã hết hạn');
       } else if (statusCode === 500) {
-        submitError.value = 'Đã xảy ra lỗi hệ thống';
+        setSubmitError('Đã xảy ra lỗi hệ thống');
       } else if (statusCode >= 400 && statusCode < 500) {
-        submitError.value = data?.message || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại';
+        setSubmitError(data?.message || 'Dữ liệu không hợp lệ. Vui lòng kiểm tra lại');
       } else {
-        submitError.value = data?.message || 'Không thể lưu tin đăng. Vui lòng thử lại';
+        setSubmitError(data?.message || 'Không thể lưu tin đăng. Vui lòng thử lại');
       }
 
       pushToast(submitError.value, 'error');
     } else {
-      submitError.value = error.message || 'Upload thất bại. Vui lòng thử lại';
+      setSubmitError(error.code === 'ECONNABORTED'
+        ? 'Kết nối quá lâu, vui lòng kiểm tra mạng và thử lại.'
+        : (error.message || 'Upload thất bại. Vui lòng thử lại'));
       pushToast(submitError.value, 'error');
     }
   } finally {
@@ -3586,6 +3865,9 @@ async function submitListing() {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  border-radius: 10px;
+  padding: 4px 6px;
+  margin: 0 -6px;
 }
 
 .score-label {
@@ -3607,6 +3889,13 @@ async function submitListing() {
   margin-top: -8px;
   font-size: 12px;
   color: #94a3b8;
+}
+
+.score-item-row {
+  border-radius: 8px;
+  padding: 2px 6px;
+  margin-left: -6px;
+  margin-right: -6px;
 }
 
 .score-value-wrap {
