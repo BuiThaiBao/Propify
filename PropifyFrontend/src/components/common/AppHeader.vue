@@ -46,7 +46,7 @@
           <div class="relative flex items-center gap-1" ref="accountDropdownRef">
             <router-link
               to="/profile?tab=favorites"
-              @click="accountMenuOpen = false"
+              @click="accountMenuOpen = false; notificationMenuOpen = false"
               class="inline-flex h-9 w-9 items-center justify-center text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/15"
               title="Yêu thích"
             >
@@ -66,8 +66,92 @@
                 />
               </svg>
             </router-link>
+            <div class="relative">
+              <button
+                @click="toggleNotificationMenu"
+                class="inline-flex h-9 w-9 items-center justify-center text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/15 relative"
+                title="Thông báo"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
+                  <path d="M9 17a3 3 0 0 0 6 0" />
+                </svg>
+                <span
+                  v-if="unreadCount > 0"
+                  class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[11px] font-semibold flex items-center justify-center"
+                >
+                  {{ unreadCount > 9 ? '9+' : unreadCount }}
+                </span>
+              </button>
+
+              <div
+                v-if="notificationMenuOpen"
+                class="absolute right-0 top-full mt-2 w-80 bg-card border border-border rounded-xl shadow-lg z-50 overflow-hidden"
+              >
+                <div class="px-4 py-3 border-b border-border/50 flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-sm font-semibold text-foreground">Thông báo</p>
+                    <p class="text-xs text-muted-foreground">{{ unreadCount }} chưa đọc</p>
+                  </div>
+                  <button
+                    v-if="unreadCount > 0"
+                    @click="markAllNotificationsRead"
+                    class="text-xs font-medium text-sky-600 hover:text-sky-700"
+                  >
+                    Đọc tất cả
+                  </button>
+                </div>
+
+                <div v-if="notificationLoading" class="px-4 py-6 text-sm text-muted-foreground text-center">
+                  Đang tải thông báo...
+                </div>
+
+                <div v-else-if="notifications.length === 0" class="px-4 py-6 text-sm text-muted-foreground text-center">
+                  Chưa có thông báo nào.
+                </div>
+
+                <div v-else class="max-h-96 overflow-y-auto">
+                  <button
+                    v-for="item in notifications"
+                    :key="item.id"
+                    @click="handleNotificationClick(item)"
+                    class="w-full text-left px-4 py-3 border-b border-border/40 hover:bg-muted/40 transition-colors"
+                  >
+                    <div class="flex items-start gap-3">
+                      <span
+                        class="mt-1 h-2.5 w-2.5 rounded-full shrink-0"
+                        :class="item.read_at ? 'bg-slate-300' : 'bg-sky-500'"
+                      ></span>
+                      <div class="min-w-0 flex-1">
+                        <p class="text-sm font-medium text-foreground">{{ item.title }}</p>
+                        <p class="text-xs text-muted-foreground mt-1 line-clamp-2">{{ item.content }}</p>
+                        <p class="text-[11px] text-muted-foreground/80 mt-2">{{ formatNotificationTime(item.created_at) }}</p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                <router-link
+                  to="/profile?tab=notifications"
+                  @click="notificationMenuOpen = false; accountMenuOpen = false"
+                  class="block px-4 py-3 text-sm font-medium text-sky-600 hover:bg-sky-50"
+                >
+                  Xem tất cả thông báo
+                </router-link>
+              </div>
+            </div>
             <button
-              @click="accountMenuOpen = !accountMenuOpen"
+              @click="toggleAccountMenu"
               class="inline-flex h-9 w-9 items-center justify-center text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/15"
               title="Tài khoản"
             >
@@ -272,22 +356,42 @@
       @success="handleAuthSuccess"
       @switchToLogin="showRegisterPopup = false; showLoginPopup = true"
     />
+
+    <div class="fixed top-20 right-4 z-[60] flex flex-col gap-2 w-[320px] pointer-events-none">
+      <div
+        v-for="toast in notificationToasts"
+        :key="toast.id"
+        class="pointer-events-auto rounded-xl border border-sky-100 bg-white/95 px-4 py-3 shadow-lg backdrop-blur"
+      >
+        <p class="text-sm font-semibold text-slate-800">{{ toast.title }}</p>
+        <p class="text-xs text-slate-500 mt-1">{{ toast.content }}</p>
+      </div>
+    </div>
   </nav>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter, useRoute } from "vue-router";
+import { getEcho } from "@/plugins/echo";
+import notificationService from "@/services/notificationService";
 import Login from "@/pages/Auth/Login.vue";
 import Register from "@/pages/Auth/Register.vue";
 
 const mobileMenuOpen = ref(false);
 const accountMenuOpen = ref(false);
+const notificationMenuOpen = ref(false);
 const accountDropdownRef = ref(null);
 const authStore = useAuthStore();
 const router = useRouter();
 const route = useRoute();
+const notifications = ref([]);
+const unreadCount = ref(0);
+const notificationLoading = ref(false);
+const notificationToasts = ref([]);
+let subscribedChannelName = null;
+let toastId = 1;
 
 const navLinks = [
   { label: "Trang chủ", href: "/" },
@@ -326,7 +430,9 @@ function handleAuthSuccess() {
 }
 
 async function handleLogout() {
+  leaveNotificationChannel();
   accountMenuOpen.value = false;
+  notificationMenuOpen.value = false;
   await authStore.logout();
   router.push("/");
 }
@@ -337,6 +443,121 @@ function handleClickOutside(e) {
     !accountDropdownRef.value.contains(e.target)
   ) {
     accountMenuOpen.value = false;
+    notificationMenuOpen.value = false;
+  }
+}
+
+function formatNotificationTime(value) {
+  if (!value) return "";
+  return new Date(value).toLocaleString("vi-VN");
+}
+
+function pushToast(notification) {
+  const id = toastId++;
+  notificationToasts.value = [
+    ...notificationToasts.value,
+    { id, title: notification.title, content: notification.content },
+  ];
+
+  window.setTimeout(() => {
+    notificationToasts.value = notificationToasts.value.filter((item) => item.id !== id);
+  }, 3500);
+}
+
+async function fetchNotifications() {
+  if (!authStore.isAuthenticated) {
+    notifications.value = [];
+    unreadCount.value = 0;
+    return;
+  }
+
+  notificationLoading.value = true;
+
+  try {
+    const response = await notificationService.getNotifications({ per_page: 6 });
+    notifications.value = response?.data?.data || [];
+    unreadCount.value = Number(response?.data?.meta?.unread_count || 0);
+  } catch {
+    notifications.value = [];
+    unreadCount.value = 0;
+  } finally {
+    notificationLoading.value = false;
+  }
+}
+
+async function markAllNotificationsRead() {
+  try {
+    await notificationService.markAllAsRead();
+    notifications.value = notifications.value.map((item) => ({
+      ...item,
+      read_at: item.read_at || new Date().toISOString(),
+    }));
+    unreadCount.value = 0;
+  } catch {
+    // keep current state on failure
+  }
+}
+
+async function handleNotificationClick(item) {
+  if (!item.read_at) {
+    try {
+      await notificationService.markAsRead(item.id);
+      item.read_at = new Date().toISOString();
+      unreadCount.value = Math.max(0, unreadCount.value - 1);
+    } catch {
+      // ignore click failure
+    }
+  }
+
+  notificationMenuOpen.value = false;
+  accountMenuOpen.value = false;
+  router.push("/profile?tab=notifications");
+}
+
+function leaveNotificationChannel() {
+  const echo = getEcho();
+  if (echo && subscribedChannelName) {
+    echo.leave(subscribedChannelName);
+  }
+  subscribedChannelName = null;
+}
+
+function subscribeNotifications() {
+  const echo = getEcho();
+  const userId = authStore.user?.id;
+
+  if (!echo || !userId) {
+    return;
+  }
+
+  const channelName = `user.${userId}`;
+
+  if (subscribedChannelName === channelName) {
+    return;
+  }
+
+  leaveNotificationChannel();
+
+  echo.private(channelName).listen(".notification.sent", (event) => {
+    const notification = event?.notification;
+    if (!notification) {
+      return;
+    }
+
+    notifications.value = [notification, ...notifications.value.filter((item) => item.id !== notification.id)].slice(0, 6);
+    unreadCount.value += notification.read_at ? 0 : 1;
+    pushToast(notification);
+  });
+
+  subscribedChannelName = channelName;
+}
+
+function toggleNotificationMenu() {
+  notificationMenuOpen.value = !notificationMenuOpen.value;
+  accountMenuOpen.value = false;
+
+  if (notificationMenuOpen.value && notifications.value.length === 0) {
+    fetchNotifications();
   }
 }
 
@@ -350,7 +571,50 @@ onMounted(() => {
     }, 500);
   }
   document.addEventListener("click", handleClickOutside);
+  if (authStore.isAuthenticated) {
+    fetchNotifications();
+    subscribeNotifications();
+  }
 });
-onUnmounted(() => document.removeEventListener("click", handleClickOutside));
+onUnmounted(() => {
+  document.removeEventListener("click", handleClickOutside);
+  leaveNotificationChannel();
+});
+
+watch(
+  () => authStore.isAuthenticated,
+  async (authenticated) => {
+    if (authenticated) {
+      await fetchNotifications();
+      subscribeNotifications();
+    } else {
+      leaveNotificationChannel();
+      notifications.value = [];
+      unreadCount.value = 0;
+    }
+  },
+);
+
+watch(
+  () => authStore.user?.id,
+  () => {
+    if (authStore.isAuthenticated) {
+      subscribeNotifications();
+    }
+  },
+);
+
+function toggleAccountMenu() {
+  accountMenuOpen.value = !accountMenuOpen.value;
+  notificationMenuOpen.value = false;
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    accountMenuOpen.value = false;
+    notificationMenuOpen.value = false;
+  }
+);
 </script>
 

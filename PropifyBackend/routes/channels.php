@@ -30,3 +30,11 @@ Broadcast::channel(
     },
     ['guards' => ['api']] // ← BẮT BUỘC: dùng JWT guard, không dùng web session guard
 );
+
+Broadcast::channel(
+    'user.{userId}',
+    static function (User $user, int $userId): bool {
+        return (int) $user->id === (int) $userId;
+    },
+    ['guards' => ['api']]
+);
