@@ -9,6 +9,7 @@ use App\Models\Notification;
 use App\Models\Package;
 use App\Models\Property;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
@@ -19,6 +20,7 @@ final class NotifyExpiringPackagesTest extends TestCase
 
     public function test_command_dispatches_event_for_eligible_listing(): void
     {
+        CarbonImmutable::setTestNow('2026-06-03 09:00:00');
         Event::fake([ListingPackageExpiring::class]);
 
         [$owner, $listing] = $this->createExpiringListing();
@@ -26,12 +28,17 @@ final class NotifyExpiringPackagesTest extends TestCase
         $this->artisan('packages:notify-expiring')->assertSuccessful();
 
         Event::assertDispatched(ListingPackageExpiring::class, function (ListingPackageExpiring $event) use ($owner, $listing) {
-            return $event->user->is($owner) && $event->listing->is($listing);
+            return $event->userId === $owner->id
+                && $event->listingId === $listing->id
+                && $event->thresholdDays === 7;
         });
+
+        CarbonImmutable::setTestNow();
     }
 
-    public function test_command_skips_duplicate_notification_for_same_expiry_timestamp(): void
+    public function test_command_skips_duplicate_notification_for_same_threshold_day(): void
     {
+        CarbonImmutable::setTestNow('2026-06-03 09:00:00');
         Event::fake([ListingPackageExpiring::class]);
 
         [$owner, $listing] = $this->createExpiringListing();
@@ -43,13 +50,15 @@ final class NotifyExpiringPackagesTest extends TestCase
             'content' => 'Đã gửi',
             'data' => [
                 'listing_id' => $listing->id,
-                'package_expires_at' => $listing->package_expires_at->toDateTimeString(),
+                'threshold_days' => 7,
             ],
         ]);
 
         $this->artisan('packages:notify-expiring')->assertSuccessful();
 
         Event::assertNotDispatched(ListingPackageExpiring::class);
+
+        CarbonImmutable::setTestNow();
     }
 
     private function createExpiringListing(): array
@@ -85,7 +94,7 @@ final class NotifyExpiringPackagesTest extends TestCase
             'package_id' => $package->id,
             'score' => 10,
             'published_at' => now()->subHour(),
-            'package_expires_at' => now()->addDays(3),
+            'package_expires_at' => now()->addDays(7),
         ]);
 
         return [$owner, $listing];

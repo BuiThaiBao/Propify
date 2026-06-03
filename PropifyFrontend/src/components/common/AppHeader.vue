@@ -538,7 +538,7 @@ function subscribeNotifications() {
 
   leaveNotificationChannel();
 
-  echo.private(channelName).listen(".NotificationSent", (event) => {
+  echo.private(channelName).listen(".notification.sent", (event) => {
     const notification = event?.notification;
     if (!notification) {
       return;

@@ -236,6 +236,7 @@ Route::prefix('v1/recently-viewed')->as('recently-viewed.')->middleware('auth:ap
 
 Route::prefix('v1/notifications')->as('notifications.')->middleware('auth:api')->group(function () {
     Route::get('/', [NotificationController::class, 'index'])->name('index');
+    Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
     Route::post('/read-all', [NotificationController::class, 'markAllAsRead'])->name('read-all');
     Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('read');
 });

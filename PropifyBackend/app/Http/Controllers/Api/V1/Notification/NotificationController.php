@@ -28,15 +28,22 @@ final class NotificationController
         );
     }
 
+    public function unreadCount(Request $request): JsonResponse
+    {
+        return ApiResponse::success(
+            data: [
+                'unread_count' => $request->user()->notifications()->unread()->count(),
+            ],
+            message: 'Lấy số lượng thông báo chưa đọc thành công.'
+        );
+    }
+
     public function markAsRead(Request $request, string $id): JsonResponse
     {
         $notification = Notification::query()
             ->where('user_id', $request->user()->id)
-            ->find($id);
-
-        if (! $notification) {
-            return ApiResponse::notFound('Không tìm thấy thông báo.');
-        }
+            ->where('id', $id)
+            ->firstOrFail();
 
         if (! $notification->read_at) {
             $notification->forceFill(['read_at' => now()])->save();

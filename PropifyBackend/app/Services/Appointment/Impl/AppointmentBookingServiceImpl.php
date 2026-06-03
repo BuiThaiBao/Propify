@@ -5,6 +5,7 @@ namespace App\Services\Appointment\Impl;
 use App\DTOs\Appointment\CreateBookingDto;
 use App\Enums\BookingStatus;
 use App\Enums\ErrorCode;
+use App\Events\Appointment\AppointmentBooked;
 use App\Exceptions\BusinessException;
 use App\Jobs\AutoCancelExpiredBookingJob;
 use App\Models\AppointmentBooking;
@@ -124,6 +125,8 @@ final class AppointmentBookingServiceImpl implements AppointmentBookingService
         // 11. Dispatch job tự động hủy khi quá hạn confirm_deadline
         AutoCancelExpiredBookingJob::dispatch($booking->id)
             ->delay($confirmDeadline);
+
+        AppointmentBooked::dispatch($booking->id);
 
         return $booking;
     }

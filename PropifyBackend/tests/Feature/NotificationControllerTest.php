@@ -86,4 +86,29 @@ final class NotificationControllerTest extends TestCase
         $response->assertOk();
         $this->assertSame(0, $user->notifications()->unread()->count());
     }
+
+    public function test_user_can_get_unread_notification_count(): void
+    {
+        $user = User::query()->create(['phone' => '0900000005', 'email' => 'u5@example.com']);
+
+        Notification::query()->create([
+            'user_id' => $user->id,
+            'type' => 'package_upgraded',
+            'title' => 'A',
+            'content' => 'A',
+        ]);
+        Notification::query()->create([
+            'user_id' => $user->id,
+            'type' => 'package_expiring',
+            'title' => 'B',
+            'content' => 'B',
+            'read_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user, 'api')
+            ->getJson('/api/v1/notifications/unread-count');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.unread_count', 1);
+    }
 }

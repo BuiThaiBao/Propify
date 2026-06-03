@@ -2,8 +2,10 @@
 
 namespace App\Services\Notification\Channel;
 
-use App\Enums\NotificationChanelType;
+use App\Enums\MailType;
+use App\Enums\NotificationChannelType;
 use App\Enums\NotificationType;
+use App\Mail\AppointmentBookedMail;
 use App\Mail\Auth\ForgotPasswordMail;
 use App\Mail\Auth\VerifyEmailMail;
 use App\Mail\Auth\WelcomeMail;
@@ -16,17 +18,17 @@ use Illuminate\Support\Facades\Mail;
 
 final class EmailChannel implements NotificationChannel
 {
-    public function name(): NotificationChanelType
+    public function name(): NotificationChannelType
     {
-        return NotificationChanelType::EMAIL;
+        return NotificationChannelType::EMAIL;
     }
 
-    public function send(User $user, NotificationType $mailType, array $data = []): void
+    public function send(User $user, NotificationType|MailType $type, array $data = []): void
     {
-        $mailable = match ($mailType) {
-            NotificationType::WELCOME => new WelcomeMail($user, $data),
-            NotificationType::VERIFY_EMAIL => new VerifyEmailMail($user, $data),
-            NotificationType::FORGOT_PASSWORD => new ForgotPasswordMail($user, $data),
+        $mailable = match ($type) {
+            MailType::WELCOME => new WelcomeMail($user, $data),
+            MailType::VERIFY_EMAIL => new VerifyEmailMail($user, $data),
+            MailType::FORGOT_PASSWORD => new ForgotPasswordMail($user, $data),
             NotificationType::PACKAGE_UPGRADED => new PackageUpgradedMail($user, $data),
             NotificationType::PACKAGE_EXPIRING => new PackageExpiringMail(
                 listing: Listing::query()->findOrFail($data['listing_id']),
@@ -35,12 +37,11 @@ final class EmailChannel implements NotificationChannel
                 daysLeft: (int) ($data['days_left'] ?? 0),
                 expiresAt: Carbon::parse($data['package_expires_at'] ?? now()),
             ),
-            default => throw new \InvalidArgumentException("Unsupported mail template: {$mailType->value}"),
+            NotificationType::APPOINTMENT_BOOKED => new AppointmentBookedMail($user, $data),
+            default => throw new \InvalidArgumentException("Unsupported mail template: {$type->value}"),
         };
 
-        // Theo yêu cầu: OTP gửi đồng bộ (chờ gửi xong mới đi tiếp),
-        // Còn Welcome Mail thì ném vào Queue (gửi ngầm) để verify-otp không bị chậm 6s.
-        if ($mailType === NotificationType::WELCOME) {
+        if ($type === MailType::WELCOME) {
             Mail::to($user->email)->queue($mailable);
         } else {
             Mail::to($user->email)->send($mailable);

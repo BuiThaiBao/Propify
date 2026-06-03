@@ -50,10 +50,10 @@ final class UpgradeListingCommand
         });
 
         ListingPackageUpgraded::dispatch(
-            listing: $updated,
-            user: $transaction->user,
-            oldPackage: $context->currentPackage,
-            newPackage: $newPackage,
+            listingId: $updated->id,
+            userId: $transaction->user_id,
+            oldPackageId: $context->currentPackage?->id,
+            newPackageId: $newPackage->id,
             durationDays: (int) $transaction->duration_days,
             amount: (string) $transaction->amount,
             expiresAt: $expiresAt,
