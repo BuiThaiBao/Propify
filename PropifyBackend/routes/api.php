@@ -283,6 +283,7 @@ Route::prefix('v1/packages')->as('packages.admin.')->middleware('auth:api')->gro
 Route::prefix('v1/admin')->as('admin.')->middleware('auth:api')->group(function () {
     Route::get('/listings', [AdminListingController::class, 'index'])->name('listings.index');
     Route::get('/listings/{id}', [AdminListingController::class, 'show'])->where('id', '[0-9]+')->name('listings.show');
+    Route::get('/listings/{id}/reports', [AdminListingController::class, 'reports'])->where('id', '[0-9]+')->name('listings.reports');
     Route::patch('/listings/{id}/status', [AdminListingController::class, 'changeStatus'])->name('listings.change-status');
     Route::patch('/listings/{id}/verification', [AdminListingController::class, 'updateVerification'])->where('id', '[0-9]+')->name('listings.verification');
     Route::get('/audit-logs', [AdminAuditLogController::class, 'index'])->name('audit-logs.index');

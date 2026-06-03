@@ -364,7 +364,7 @@
                         @click.stop="handleDropdownAction('appeal-lock', item)"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M12 7v5"/><path d="M12 15h.01"/></svg>
-                        Phản ánh
+                        Khiếu nại
                       </button>
                     </div>
                   </Teleport>
@@ -543,7 +543,7 @@
                         @click.stop="handleDropdownAction('appeal-lock', item)"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M12 7v5"/><path d="M12 15h.01"/></svg>
-                        Phản ánh
+                        Khiếu nại
                       </button>
                     </div>
                   </Teleport>
@@ -1021,42 +1021,24 @@
     <Teleport to="body">
       <div v-if="lockAppealModalOpen" class="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/35 px-4">
         <div class="w-full max-w-[520px] rounded-xl bg-white p-6 shadow-2xl">
-          <h3 class="text-lg font-bold text-slate-800">Phản ánh tin bị khóa</h3>
+          <h3 class="text-lg font-bold text-slate-800">Khiếu nại tin bị khóa</h3>
           <p class="mt-1 text-sm text-slate-400">{{ lockAppealTarget?.title || lockAppealTarget?.code }}</p>
 
-          <label class="mt-5 block text-sm font-medium text-slate-700">
-            Lý do phản ánh <span class="text-rose-500">*</span>
-          </label>
-          <textarea
-            v-model.trim="lockAppealReason"
-            rows="5"
-            class="mt-2 w-full resize-none rounded-lg border border-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
-            placeholder="Nhập lý do bạn cho rằng tin bị khóa chưa đúng..."
-            :disabled="submittingLockAppeal"
-          ></textarea>
-          <div class="mt-2 flex items-center justify-between gap-3">
-            <p class="text-xs" :class="lockAppealError ? 'text-rose-500' : 'text-slate-400'">
-              {{ lockAppealError || 'Lý do cần tối thiểu 10 ký tự.' }}
-            </p>
-            <p class="text-xs text-slate-400">{{ lockAppealReason.length }}/1000</p>
+          <div class="mt-5 rounded-lg border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-6 text-slate-700">
+            <p>Để khiếu nại về tin đăng bị khóa, vui lòng gửi email cho Propify theo địa chỉ:</p>
+            <a class="mt-2 inline-block font-bold text-sky-600 hover:text-sky-700" href="mailto:contact@renthouse.vn">
+              contact@renthouse.vn
+            </a>
+            <p class="mt-2 text-xs text-slate-500">Bạn nên đính kèm mã tin và mô tả ngắn gọn để bộ phận hỗ trợ kiểm tra nhanh hơn.</p>
           </div>
 
           <div class="mt-6 flex justify-end gap-3">
             <button
               type="button"
-              class="rounded-lg px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-60"
-              :disabled="submittingLockAppeal"
+              class="rounded-lg bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
               @click="closeLockAppealModal"
             >
-              Hủy
-            </button>
-            <button
-              type="button"
-              class="rounded-lg bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
-              :disabled="!canSubmitLockAppeal"
-              @click="submitLockAppeal"
-            >
-              {{ submittingLockAppeal ? 'Đang gửi...' : 'Gửi phản ánh' }}
+              Đóng
             </button>
           </div>
         </div>
@@ -1366,9 +1348,6 @@ const unlistListingTarget = ref(null);
 const unlistingListing = ref(false);
 const lockAppealModalOpen = ref(false);
 const lockAppealTarget = ref(null);
-const lockAppealReason = ref('');
-const lockAppealError = ref('');
-const submittingLockAppeal = ref(false);
 const listingActionMessage = ref('');
 const listingActionSuccess = ref(false);
 const favoritesLoaded = ref(false);
@@ -1745,10 +1724,6 @@ const unlistListingModalMessage = computed(() => {
   return `Bạn có chắc chắn muốn gỡ tin "${unlistListingTarget.value.title}" không? Tin sẽ không còn hiển thị công khai.`;
 });
 
-const canSubmitLockAppeal = computed(() => {
-  return !submittingLockAppeal.value && lockAppealReason.value.trim().length >= 10;
-});
-
 function openUnlistListingModal(item) {
   unlistListingTarget.value = item;
   unlistListingModalOpen.value = true;
@@ -1798,55 +1773,12 @@ function openLockAppealModal(item) {
   }
 
   lockAppealTarget.value = item;
-  lockAppealReason.value = '';
-  lockAppealError.value = '';
   lockAppealModalOpen.value = true;
 }
 
 function closeLockAppealModal() {
-  if (submittingLockAppeal.value) {
-    return;
-  }
-
   lockAppealModalOpen.value = false;
   lockAppealTarget.value = null;
-  lockAppealReason.value = '';
-  lockAppealError.value = '';
-}
-
-async function submitLockAppeal() {
-  const reason = lockAppealReason.value.trim();
-
-  if (!lockAppealTarget.value) {
-    return;
-  }
-
-  if (reason.length < 10) {
-    lockAppealError.value = 'Lý do phản ánh cần tối thiểu 10 ký tự.';
-    return;
-  }
-
-  submittingLockAppeal.value = true;
-  lockAppealError.value = '';
-  listingActionMessage.value = '';
-
-  try {
-    const response = await listingService.appealLock(lockAppealTarget.value.id, { reason });
-    listingActionSuccess.value = true;
-    listingActionMessage.value = response?.data?.message || 'Đã gửi phản ánh. Quản trị viên sẽ xem xét tin của bạn.';
-    submittingLockAppeal.value = false;
-    closeLockAppealModal();
-
-    if (activeTab.value === 'verifications') {
-      await loadVerificationListings(verificationPagination.currentPage);
-    } else {
-      await loadMyListings(listingPagination.currentPage);
-    }
-  } catch (error) {
-    lockAppealError.value = error?.response?.data?.message || 'Không thể gửi phản ánh. Vui lòng thử lại.';
-  } finally {
-    submittingLockAppeal.value = false;
-  }
 }
 
 function openListingsTab() {

@@ -14,6 +14,7 @@ final class ListingReport extends Model
     protected $fillable = [
         'listing_id',
         'reporter_id',
+        'report_group_id',
         'reason',
         'description',
         'image_urls',
