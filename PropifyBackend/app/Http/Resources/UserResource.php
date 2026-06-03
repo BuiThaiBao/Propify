@@ -22,6 +22,7 @@ final class UserResource extends JsonResource
             'avatar_url' => $this->avatar_url,
             'role' => $this->role,
             'status' => $this->status,
+            'has_password' => ! is_null($this->password),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),
         ];

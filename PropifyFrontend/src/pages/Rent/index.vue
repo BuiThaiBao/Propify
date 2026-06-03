@@ -2,6 +2,8 @@
   <RentLayout>
     <TopSearchBar
       v-model="searchKeyword"
+      v-model:search-field="searchField"
+      :search-field-options="searchFieldOptions"
       :suggestions="rentSuggestions"
       @search="onSearch"
       @select-suggestion="onSearch"
@@ -339,7 +341,7 @@ const currentDateStr = computed(() => {
 
 const {
   rentListings, rentLoading, rentTotal,
-  currentPage, lastPage, searchKeyword,
+  currentPage, lastPage, searchKeyword, searchField,
   rentSuggestions, visiblePages,
   posterType, minPrice, maxPrice, minArea, maxArea,
   sortBy,
@@ -348,6 +350,14 @@ const {
 const { isFavorite, toggleFavorite, loadFavorites } = useFavoriteListings();
 const isMapOpen = ref(false);
 const mapFilters = computed(() => ({ demand_type: 'RENT', keyword: searchKeyword.value, poster_type: posterType.value, min_price: minPrice.value, max_price: maxPrice.value, min_area: minArea.value, max_area: maxArea.value }));
+const searchFieldOptions = [
+  { value: 'all', label: 'Tất cả' },
+  { value: 'province', label: 'Tỉnh/Thành phố' },
+  { value: 'ward', label: 'Phường/Xã' },
+  { value: 'street_code', label: 'Đường' },
+  { value: 'project_name', label: 'Dự án' },
+  { value: 'address_detail', label: 'Địa chỉ chi tiết' },
+];
 
 // Custom UI Filter presets
 const selectedPricePreset = ref('all');

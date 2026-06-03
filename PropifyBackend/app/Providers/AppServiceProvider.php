@@ -2,10 +2,10 @@
 
 namespace App\Providers;
 
-use App\Events\Auth\PasswordChanged;
-use App\Events\Auth\UserRegistered;
 use App\Events\Appointment\AppointmentBooked;
 use App\Events\Appointment\AppointmentBookingStatusUpdated;
+use App\Events\Auth\PasswordChanged;
+use App\Events\Auth\UserRegistered;
 use App\Events\Listing\FavoriteToggled;
 use App\Events\Listing\ListingPackageExpiring;
 use App\Events\Listing\ListingPackageUpgraded;
@@ -14,9 +14,9 @@ use App\Events\Listing\ListingVerificationRequested;
 use App\Events\Package\PackageCreated;
 use App\Events\Package\PackageStatusChanged;
 use App\Events\User\ProfileUpdated;
-use App\Listeners\Auth\SendWelcomeNotification;
 use App\Listeners\Appointment\SendAppointmentBookedNotification;
 use App\Listeners\Appointment\SendAppointmentBookingStatusNotification;
+use App\Listeners\Auth\SendWelcomeNotification;
 use App\Listeners\Listing\ClearPublicListingCache;
 use App\Listeners\Listing\LogListingPackageUpgrade;
 use App\Listeners\Listing\LogListingSaved;
@@ -98,8 +98,8 @@ use App\Services\ViewTracking\Impl\ViewTrackingServiceImpl;
 use App\Services\ViewTracking\ViewTrackingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 final class AppServiceProvider extends ServiceProvider
 {

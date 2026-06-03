@@ -4,11 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 final class Transaction extends Model
 {
     protected $table = 'transactions';
 
+    // Giữ nguyên fillable để tương thích với luồng tạo giao dịch (VNPay callback)
     protected $fillable = [
         'user_id',
         'listing_id',
@@ -52,5 +54,11 @@ final class Transaction extends Model
     public function package(): BelongsTo
     {
         return $this->belongsTo(Package::class, 'package_id');
+    }
+
+    /** Các ghi chú đối soát của giao dịch */
+    public function notes(): HasMany
+    {
+        return $this->hasMany(TransactionNote::class, 'transaction_id')->latest('id');
     }
 }

@@ -98,6 +98,38 @@ class ListingSortingTest extends TestCase
         $this->assertContains($listing->id, $ids);
     }
 
+    public function test_public_search_can_target_a_specific_property_field(): void
+    {
+        $owner = User::query()->create(['phone' => '0900000006']);
+        $package = Package::query()->create(['name' => 'Normal 5', 'slug' => 'normal-5', 'priority' => 1, 'price' => 0]);
+
+        $provinceListing = $this->createActiveListing($owner->id, 1000000, $package->id, 10, now()->subHour(), null, [
+            'province' => 'Thành phố Hồ Chí Minh',
+            'ward' => 'Phường Bến Nghé',
+            'project_name' => 'Saigon Centre',
+            'address_detail' => '65 Le Loi',
+        ]);
+
+        $projectListing = $this->createActiveListing($owner->id, 1200000, $package->id, 10, now()->subMinutes(30), null, [
+            'province' => 'Thành phố Đà Nẵng',
+            'ward' => 'Phường Hải Châu',
+            'project_name' => 'Ho Chi Minh Garden',
+            'address_detail' => '12 Bach Dang',
+        ]);
+
+        $provinceResponse = $this->getJson('/api/v1/listings?keyword=ho%20chi%20minh&search_field=province');
+        $provinceResponse->assertOk();
+        $provinceIds = array_map('intval', $provinceResponse->json('data.*.id'));
+        $this->assertContains($provinceListing->id, $provinceIds);
+        $this->assertNotContains($projectListing->id, $provinceIds);
+
+        $projectResponse = $this->getJson('/api/v1/listings?keyword=ho%20chi%20minh&search_field=project_name');
+        $projectResponse->assertOk();
+        $projectIds = array_map('intval', $projectResponse->json('data.*.id'));
+        $this->assertContains($projectListing->id, $projectIds);
+        $this->assertNotContains($provinceListing->id, $projectIds);
+    }
+
     private function createActiveListing(int $ownerId, float $price, ?int $packageId, int $score, $publishedAt, $submittedAt = null, array $propertyOverrides = []): Listing
     {
         $property = Property::query()->create(array_merge([

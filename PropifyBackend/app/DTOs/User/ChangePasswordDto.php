@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 final readonly class ChangePasswordDto
 {
     public function __construct(
-        public string $currentPassword,
+        public ?string $currentPassword,
         public string $newPassword,
     ) {}
 
