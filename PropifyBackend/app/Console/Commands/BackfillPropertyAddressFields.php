@@ -35,6 +35,7 @@ final class BackfillPropertyAddressFields extends Command
 
                     if ($provinceName === null && $wardName === null) {
                         $skipped++;
+
                         continue;
                     }
 

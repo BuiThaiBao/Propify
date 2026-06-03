@@ -86,6 +86,43 @@ final class ChangeUserPasswordCommandTest extends TestCase
         $this->assertDatabaseCount('audit_logs', 0);
     }
 
+    public function test_it_changes_password_when_current_password_is_null_for_social_login(): void
+    {
+        Log::spy();
+
+        $user = User::create([
+            'full_name' => 'Social User',
+            'email' => 'social@example.com',
+            'password' => null,
+            'role' => UserRole::User->value,
+            'status' => UserStatus::Active->value,
+        ]);
+
+        $repository = Mockery::mock(UserRepository::class);
+        $repository
+            ->shouldReceive('update')
+            ->once()
+            ->with($user->id, Mockery::on(function (array $data): bool {
+                return isset($data['password'])
+                    && Hash::check('NewPassword123', $data['password']);
+            }))
+            ->andReturn($user);
+
+        $command = new ChangeUserPasswordCommand($repository, new PasswordValidationChain);
+        $command->execute($user, new ChangePasswordDto(null, 'NewPassword123'));
+
+        $auditLog = AuditLog::query()->firstOrFail();
+
+        $this->assertSame($user->id, $auditLog->actor_id);
+        $this->assertSame(User::class, $auditLog->auditable_type);
+        $this->assertSame($user->id, $auditLog->auditable_id);
+        $this->assertSame('user.password.changed', $auditLog->action);
+
+        Log::shouldHaveReceived('info')
+            ->once()
+            ->with('User password changed', ['user_id' => $user->id]);
+    }
+
     protected function tearDown(): void
     {
         Mockery::close();

@@ -13,6 +13,7 @@ final class ViewTrackingServiceImpl implements ViewTrackingService
     public function __construct(
         private readonly FavoriteService $favoriteService,
     ) {}
+
     /** Redis key prefix cho dedup */
     private const DEDUP_PREFIX = 'view:listing:';
 
