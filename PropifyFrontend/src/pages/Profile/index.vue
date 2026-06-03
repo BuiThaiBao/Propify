@@ -464,14 +464,6 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                         Gỡ tin đăng
                       </button>
-                      <button v-if="item.status !== 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('lock', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        Khóa tin đăng
-                      </button>
-                      <button v-if="item.status === 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unlock', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
-                        Mở khóa tin đăng
-                      </button>
                     </div>
                   </Teleport>
                 </td>
@@ -642,14 +634,6 @@
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                         Gỡ tin đăng
-                      </button>
-                      <button v-if="item.status !== 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('lock', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        Khóa tin đăng
-                      </button>
-                      <button v-if="item.status === 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unlock', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
-                        Mở khóa tin đăng
                       </button>
                     </div>
                   </Teleport>
@@ -1112,18 +1096,6 @@
     </div>
 
     <ConfirmActionModal
-      :open="lockListingModalOpen"
-      title="Xác nhận khóa tin"
-      :message="lockListingModalMessage"
-      confirm-text="Xác nhận khóa"
-      cancel-text="Hủy"
-      :loading="lockingListing"
-      loading-text="Đang khóa..."
-      @confirm="handleConfirmLockListing"
-      @cancel="closeLockListingModal"
-    />
-
-    <ConfirmActionModal
       :open="unlistListingModalOpen"
       title="Xác nhận gỡ tin"
       :message="unlistListingModalMessage"
@@ -1265,6 +1237,8 @@ const initialTab = validTabs.includes(route.query.tab) ? route.query.tab : 'prof
 const activeTab = ref(initialTab);
 
 watch(activeTab, (newTab) => {
+  if (route.name !== 'Profile') return;
+
   const query = { ...route.query };
   if (newTab === 'profile') {
     delete query.tab;
@@ -1316,7 +1290,7 @@ function closeDropdown() {
 
 function openListingEdit(item) {
   if (!item?.id) return;
-  router.push('/listings/' + item.id + '/edit');
+  router.push({ name: 'ListingEdit', params: { id: item.id } });
 }
 
 function handleDropdownAction(action, item) {
@@ -1324,7 +1298,7 @@ function handleDropdownAction(action, item) {
   if (action === 'edit') {
     openListingEdit(item);
   } else if (action === 'verify') {
-    router.push({ path: '/listings/' + item.id + '/edit', query: { mode: 'verification' } });
+    router.push({ name: 'ListingEdit', params: { id: item.id }, query: { mode: 'verification' } });
   } else if (action === 'upgrade') {
     if (item.status === 'ACTIVE') openUpgradeModal(item);
     else alert('Chỉ có thể nâng cấp tin đang đăng.');
@@ -1790,55 +1764,6 @@ function openVerificationsTab() {
   expandedSections.listings = true;
   if (!verificationLoaded.value) {
     loadVerificationListings(1);
-  }
-}
-
-const lockListingModalMessage = computed(() => {
-  if (!lockListingTarget.value) {
-    return 'Bạn có chắc chắn muốn khóa tin này không?';
-  }
-
-  return `Bạn có chắc chắn muốn khóa tin "${lockListingTarget.value.title}" không?`;
-});
-
-function openLockListingModal(item) {
-  lockListingTarget.value = item;
-  lockListingModalOpen.value = true;
-}
-
-function closeLockListingModal() {
-  if (lockingListing.value) {
-    return;
-  }
-
-  lockListingModalOpen.value = false;
-  lockListingTarget.value = null;
-}
-
-async function handleConfirmLockListing() {
-  if (!lockListingTarget.value) {
-    return;
-  }
-
-  lockingListing.value = true;
-  listingActionMessage.value = '';
-
-  try {
-    await listingService.lock(lockListingTarget.value.id);
-    listingActionSuccess.value = true;
-    listingActionMessage.value = 'Khóa tin đăng thành công.';
-    lockListingModalOpen.value = false;
-    lockListingTarget.value = null;
-    if (activeTab.value === 'verifications') {
-      await loadVerificationListings(verificationPagination.currentPage);
-    } else {
-      await loadMyListings(listingPagination.currentPage);
-    }
-  } catch (error) {
-    listingActionSuccess.value = false;
-    listingActionMessage.value = error?.response?.data?.message || 'Không thể khóa tin đăng. Vui lòng thử lại.';
-  } finally {
-    lockingListing.value = false;
   }
 }
 

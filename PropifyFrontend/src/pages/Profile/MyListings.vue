@@ -364,7 +364,7 @@ function selectStatus(status) {
 }
 
 function goToEdit(id) {
-  router.push('/listings/' + id + '/edit');
+  router.push({ name: 'ListingEdit', params: { id } });
 }
 
 async function fetchListingOptions() {

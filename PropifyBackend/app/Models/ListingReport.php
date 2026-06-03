@@ -16,7 +16,12 @@ final class ListingReport extends Model
         'reporter_id',
         'reason',
         'description',
+        'image_urls',
         'status',
+    ];
+
+    protected $casts = [
+        'image_urls' => 'array',
     ];
 
     public function listing(): BelongsTo

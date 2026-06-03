@@ -54,15 +54,15 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: "/listings/:id",
-    name: "ListingDetail",
-    component: () => import("@/pages/Listings/Detail.vue"),
-  },
-  {
     path: "/listings/:id/edit",
     name: "ListingEdit",
     component: () => import("@/pages/Listings/PostForm.vue"),
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/listings/:id",
+    name: "ListingDetail",
+    component: () => import("@/pages/Listings/Detail.vue"),
   },
   {
     path: "/pricing",

@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('project_name', 255)->nullable();
             $table->string('address_detail')->nullable();
             $table->decimal('area', 10, 2);
-            $table->decimal('price', 15, 2);
+            $table->decimal('price', 15, 2)->nullable();
             $table->boolean('is_negotiable')->default(false);
             $table->integer('bedrooms')->default(0);
             $table->integer('bathrooms')->default(0);

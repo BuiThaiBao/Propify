@@ -38,6 +38,7 @@ final readonly class ReportListingCommand
                 'reporter_id' => $reporter->id,
                 'reason' => $reason,
                 'description' => $context->description ?: self::reasonDescription($reason),
+                'image_urls' => array_values($payload['image_urls'] ?? []),
                 'status' => ListingReport::STATUS_WARNING,
             ]));
     }
