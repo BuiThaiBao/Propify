@@ -10,19 +10,42 @@
     <div class="max-w-7xl mx-auto px-4 md:px-8">
       <div class="flex items-center h-16 divide-x divide-gray-100">
         <!-- Location Dropdown -->
-        <div class="flex items-center gap-2 pr-4 cursor-pointer hover:text-blue-600 text-gray-700">
-          <MapPin class="w-4 h-4 text-blue-500" />
-          <span class="text-sm font-medium">Tất cả</span>
-          <ChevronDown class="w-4 h-4 text-gray-400" />
+        <div class="relative pr-4 text-gray-700">
+          <button
+            type="button"
+            class="flex items-center gap-2 cursor-pointer hover:text-blue-600"
+            @click="toggleSearchFieldMenu"
+          >
+            <MapPin class="w-4 h-4 text-blue-500" />
+            <span class="text-sm font-medium">{{ selectedSearchFieldLabel }}</span>
+            <ChevronDown class="w-4 h-4 text-gray-400" />
+          </button>
+
+          <div
+            v-if="searchFieldMenuOpen && hasSearchFieldOptions"
+            class="absolute left-0 top-[calc(100%+8px)] z-50 min-w-56 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl"
+          >
+            <button
+              v-for="option in searchFieldOptions"
+              :key="option.value"
+              type="button"
+              class="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+              @mousedown.prevent="selectSearchField(option.value)"
+            >
+              <span>{{ option.label }}</span>
+              <span v-if="option.value === searchField" class="text-xs font-semibold text-blue-500">Đang chọn</span>
+            </button>
+          </div>
         </div>
 
         <!-- Search Input -->
         <div class="relative flex-1 flex items-center px-4">
           <Search class="w-5 h-5 text-gray-400 mr-2" />
           <input
+            ref="searchInputRef"
             type="text"
             :value="modelValue"
-            :placeholder="placeholder"
+            :placeholder="effectivePlaceholder"
             class="w-full bg-transparent border-none outline-none text-sm text-gray-700 placeholder-gray-400"
             @input="onInput"
             @keydown.enter.prevent="onSearch"
@@ -67,25 +90,54 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue';
+import { computed, nextTick, ref, onMounted, onUnmounted } from 'vue';
 import { MapPin, ChevronDown, Search, Home } from 'lucide-vue-next';
 
 const props = defineProps({
   modelValue: { type: String, default: '' },
+  searchField: { type: String, default: 'all' },
   placeholder: { type: String, default: 'Tìm kiếm theo tên, địa chỉ, dự án...' },
   suggestions: { type: Array, default: () => [] },
+  searchFieldOptions: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['update:modelValue', 'search', 'select-suggestion']);
+const emit = defineEmits(['update:modelValue', 'update:searchField', 'search', 'select-suggestion']);
 
 const visible = ref(true);
 const showSuggestions = ref(false);
+const searchFieldMenuOpen = ref(false);
+const searchInputRef = ref(null);
 let lastScrollY = 0;
 let hideTimer = null;
 const THRESHOLD = 5; // px - tránh false positive từ micro-scroll
 
 const showSuggestionList = computed(() => {
   return showSuggestions.value && Array.isArray(props.suggestions) && props.suggestions.length > 0;
+});
+
+const hasSearchFieldOptions = computed(() => Array.isArray(props.searchFieldOptions) && props.searchFieldOptions.length > 0);
+
+const selectedSearchFieldLabel = computed(() => {
+  const selected = props.searchFieldOptions.find((option) => option.value === props.searchField);
+
+  return selected?.label || 'Tất cả';
+});
+
+const effectivePlaceholder = computed(() => {
+  const placeholders = {
+    all: 'Tìm kiếm theo tên, địa chỉ, dự án...',
+    province: 'Tìm theo tỉnh/thành phố...',
+    ward: 'Tìm theo phường/xã...',
+    street_code: 'Tìm theo tên đường...',
+    project_name: 'Tìm theo tên dự án...',
+    address_detail: 'Tìm theo địa chỉ chi tiết...',
+  };
+
+  if (props.searchField && placeholders[props.searchField]) {
+    return placeholders[props.searchField];
+  }
+
+  return props.placeholder || placeholders.all;
 });
 
 function onInput(event) {
@@ -96,6 +148,7 @@ function onInput(event) {
 function onSearch() {
   emit('search', props.modelValue || '');
   showSuggestions.value = false;
+  searchFieldMenuOpen.value = false;
 }
 
 function selectSuggestion(value) {
@@ -108,6 +161,18 @@ function hideSuggestionsWithDelay() {
   setTimeout(() => {
     showSuggestions.value = false;
   }, 120);
+}
+
+function toggleSearchFieldMenu() {
+  if (!hasSearchFieldOptions.value) return;
+  searchFieldMenuOpen.value = !searchFieldMenuOpen.value;
+}
+
+async function selectSearchField(value) {
+  emit('update:searchField', value);
+  searchFieldMenuOpen.value = false;
+  await nextTick();
+  searchInputRef.value?.focus();
 }
 
 function resetHideTimer() {

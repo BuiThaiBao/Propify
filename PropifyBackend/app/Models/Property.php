@@ -69,7 +69,7 @@ final class Property extends Model
 
     protected static function booted(): void
     {
-        static::saving(function (Property $property): void {
+        self::saving(function (Property $property): void {
             $property->search_text = PropertySearchText::build([
                 $property->project_name,
                 $property->province,

@@ -42,6 +42,7 @@ final class ListingController
         $sortBy = $request->input('sort');
         $demandType = $request->input('demand_type');
         $keyword = $request->input('keyword');
+        $searchField = $request->input('search_field');
 
         $posterType = $request->input('poster_type');
         $minPrice = $request->has('min_price') && $request->input('min_price') !== '' ? (float) $request->input('min_price') : null;
@@ -54,6 +55,7 @@ final class ListingController
             $demandType,
             $keyword,
             $perPage,
+            $searchField,
             $posterType,
             $minPrice,
             $maxPrice,
@@ -88,6 +90,7 @@ final class ListingController
         $items = $this->listingService->getMapListings(
             demandType: $request->input('demand_type'),
             keyword: $request->input('keyword'),
+            searchField: $request->input('search_field'),
             posterType: $request->input('poster_type'),
             minPrice: $request->has('min_price') && $request->input('min_price') !== '' ? (float) $request->input('min_price') : null,
             maxPrice: $request->has('max_price') && $request->input('max_price') !== '' ? (float) $request->input('max_price') : null,

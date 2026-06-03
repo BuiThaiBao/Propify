@@ -68,6 +68,7 @@ final class FavoriteServiceImpl implements FavoriteService
 
         if ($viewed !== null) {
             $viewed->touch();
+
             return;
         }
 

@@ -194,7 +194,7 @@
                   Chỉnh sửa
                 </button>
                 <button type="button" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-white text-sky-500 border-[1.5px] border-sky-500 hover:bg-sky-50 transition-all" @click="activeTab = 'password'">
-                  Đổi mật khẩu
+                  {{ authStore.user?.has_password ? 'Đổi mật khẩu' : 'Cập nhật mật khẩu' }}
                 </button>
               </template>
               <template v-else>
@@ -583,7 +583,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
-          Đổi mật khẩu
+          {{ authStore.user?.has_password ? 'Đổi mật khẩu' : 'Cập nhật mật khẩu' }}
         </h2>
 
         <div v-if="passwordMessage" :class="['rounded-lg px-4 py-3 text-sm mb-5',
@@ -593,7 +593,7 @@
 
         <form @submit.prevent="handleChangePassword" class="flex flex-col gap-5">
           <!-- Current password -->
-          <div class="flex flex-col gap-1.5">
+          <div v-if="authStore.user?.has_password" class="flex flex-col gap-1.5">
             <label for="currentPassword" class="text-[0.85rem] font-semibold text-slate-700 after:content-['*'] after:text-red-500 after:ml-1">Mật khẩu hiện tại</label>
             <div class="relative">
               <input
@@ -652,7 +652,7 @@
               Hủy
             </button>
             <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-br from-sky-500 to-sky-600 text-white hover:from-sky-600 hover:to-sky-700 hover:shadow-lg hover:shadow-sky-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed" :disabled="passwordLoading || !isPasswordFormValid">
-              {{ passwordLoading ? 'Đang xử lý...' : 'Cập nhật mật khẩu' }}
+              {{ passwordLoading ? 'Đang xử lý...' : (authStore.user?.has_password ? 'Cập nhật mật khẩu' : 'Tạo mật khẩu mới') }}
             </button>
           </div>
         </form>
@@ -2069,14 +2069,15 @@ const passwordForm = reactive({
 });
 
 const isPasswordFormValid = computed(() => {
+  const hasPassword = authStore.user?.has_password;
   const current = passwordForm.currentPassword.trim();
   const pwd = passwordForm.newPassword.trim();
   const confirm = passwordForm.newPasswordConfirmation.trim();
   
-  if (!current || !pwd || !confirm) return false;
+  if ((hasPassword && !current) || !pwd || !confirm) return false;
   if (pwd.length < 8) return false;
   if (!/[a-z]/.test(pwd) || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) return false;
-  if (current === pwd) return false;
+  if (hasPassword && current === pwd) return false;
   if (pwd !== confirm) return false;
   
   return true;
@@ -2105,7 +2106,7 @@ watch(
         passwordMessage.value = 'Mật khẩu phải chứa chữ hoa, chữ thường và chữ số.';
         return;
       }
-      if (current && current === pwd) {
+      if (authStore.user?.has_password && current && current === pwd) {
         passwordMessage.value = 'Mật khẩu mới không trùng với mật khẩu cũ.';
         return;
       }
@@ -2143,10 +2144,24 @@ async function handleChangePassword() {
   passwordMessage.value = '';
 
   try {
+    const wasSocialLoginWithoutPassword = !authStore.user?.has_password;
     await userService.changePassword(passwordForm);
-    passwordSuccess.value = true;
-    passwordMessage.value = 'Đổi mật khẩu thành công!';
+    
+    // Fetch updated user to sync has_password state
+    try {
+      await authStore.fetchUser();
+    } catch (e) {
+      console.error('Failed to sync user state:', e);
+    }
+
     resetPasswordForm();
+
+    // Redirect to profile tab and show success message
+    activeTab.value = 'profile';
+    profileSuccess.value = true;
+    profileMessage.value = wasSocialLoginWithoutPassword 
+      ? 'Cập nhật mật khẩu thành công!' 
+      : 'Đổi mật khẩu thành công!';
   } catch (error) {
     passwordSuccess.value = false;
     const data = error.response?.data;
