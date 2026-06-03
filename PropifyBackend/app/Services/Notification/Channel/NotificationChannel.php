@@ -2,7 +2,7 @@
 
 namespace App\Services\Notification\Channel;
 
-use App\Enums\MailType;
+use App\Enums\NotificationType;
 use App\Enums\NotificationChanelType;
 use App\Models\User;
 
@@ -16,5 +16,5 @@ interface NotificationChannel
     /**
      * Gửi thông báo với template và data
      */
-    public function send(User $user, MailType $template, array $data = []): void;
+    public function send(User $user, NotificationType $template, array $data = []): void;
 }

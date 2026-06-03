@@ -2,8 +2,8 @@
 
 namespace App\Services\Notification\Impl;
 
-use App\Enums\MailType;
 use App\Enums\NotificationChanelType;
+use App\Enums\NotificationType;
 use App\Models\User;
 use App\Services\Notification\Channel\NotificationChannel;
 use App\Services\Notification\NotificationService;
@@ -23,7 +23,7 @@ final class NotificationServiceImpl implements NotificationService
      */
     public function send(
         User $user,
-        MailType $template,
+        NotificationType $template,
         array $data = [],
         array $channels = [NotificationChanelType::EMAIL]
     ): void {

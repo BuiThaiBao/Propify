@@ -2,12 +2,16 @@
 
 namespace App\Services\Notification\Channel;
 
-use App\Enums\MailType;
 use App\Enums\NotificationChanelType;
+use App\Enums\NotificationType;
 use App\Mail\Auth\ForgotPasswordMail;
 use App\Mail\Auth\VerifyEmailMail;
 use App\Mail\Auth\WelcomeMail;
+use App\Mail\PackageExpiringMail;
+use App\Mail\PackageUpgradedMail;
+use App\Models\Listing;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Mail;
 
 final class EmailChannel implements NotificationChannel
@@ -17,18 +21,26 @@ final class EmailChannel implements NotificationChannel
         return NotificationChanelType::EMAIL;
     }
 
-    public function send(User $user, MailType $mailType, array $data = []): void
+    public function send(User $user, NotificationType $mailType, array $data = []): void
     {
         $mailable = match ($mailType) {
-            MailType::WELCOME => new WelcomeMail($user, $data),
-            MailType::VERIFY_EMAIL => new VerifyEmailMail($user, $data),
-            MailType::FORGOT_PASSWORD => new ForgotPasswordMail($user, $data),
+            NotificationType::WELCOME => new WelcomeMail($user, $data),
+            NotificationType::VERIFY_EMAIL => new VerifyEmailMail($user, $data),
+            NotificationType::FORGOT_PASSWORD => new ForgotPasswordMail($user, $data),
+            NotificationType::PACKAGE_UPGRADED => new PackageUpgradedMail($user, $data),
+            NotificationType::PACKAGE_EXPIRING => new PackageExpiringMail(
+                listing: Listing::query()->findOrFail($data['listing_id']),
+                ownerName: $user->full_name ?? 'Quý khách',
+                packageName: $data['package_name'] ?? 'Gói tin',
+                daysLeft: (int) ($data['days_left'] ?? 0),
+                expiresAt: Carbon::parse($data['package_expires_at'] ?? now()),
+            ),
             default => throw new \InvalidArgumentException("Unsupported mail template: {$mailType->value}"),
         };
 
         // Theo yêu cầu: OTP gửi đồng bộ (chờ gửi xong mới đi tiếp),
         // Còn Welcome Mail thì ném vào Queue (gửi ngầm) để verify-otp không bị chậm 6s.
-        if ($mailType === MailType::WELCOME) {
+        if ($mailType === NotificationType::WELCOME) {
             Mail::to($user->email)->queue($mailable);
         } else {
             Mail::to($user->email)->send($mailable);

@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Events\Auth\PasswordChanged;
 use App\Events\Auth\UserRegistered;
 use App\Events\Listing\FavoriteToggled;
+use App\Events\Listing\ListingPackageExpiring;
 use App\Events\Listing\ListingPackageUpgraded;
 use App\Events\Listing\ListingSaved;
 use App\Events\Listing\ListingVerificationRequested;
@@ -15,6 +16,8 @@ use App\Listeners\Auth\SendWelcomeNotification;
 use App\Listeners\Listing\ClearPublicListingCache;
 use App\Listeners\Listing\LogListingPackageUpgrade;
 use App\Listeners\Listing\LogListingSaved;
+use App\Listeners\Listing\SendPackageExpiringNotification;
+use App\Listeners\Listing\SendPackageUpgradeNotification;
 use App\Repositories\AmenityRepository;
 use App\Repositories\AppointmentBookingRepository;
 use App\Repositories\AppointmentSlotRepository;
@@ -71,6 +74,7 @@ use App\Services\Listing\Verification\Impl\ListingVerificationServiceImpl;
 use App\Services\Listing\Verification\ListingVerificationService;
 use App\Services\Media\CloudinaryUploadSignatureAdapter;
 use App\Services\Media\UploadSignatureAdapter;
+use App\Services\Notification\Channel\DatabaseChannel;
 use App\Services\Notification\Channel\EmailChannel;
 use App\Services\Notification\Impl\NotificationServiceImpl;
 use App\Services\Notification\NotificationService;
@@ -148,6 +152,7 @@ final class AppServiceProvider extends ServiceProvider
         // Thêm channel mới chỉ cần append vào array này
         $this->app->bind(NotificationService::class, function () {
             return new NotificationServiceImpl(channels: [
+                app(DatabaseChannel::class),
                 app(EmailChannel::class),
                 // app(SmsChannel::class),   // bật khi có
                 // app(ZaloChannel::class),  // bật khi có
@@ -202,6 +207,8 @@ final class AppServiceProvider extends ServiceProvider
         Event::listen(ListingSaved::class, LogListingSaved::class);
         Event::listen(ListingPackageUpgraded::class, ClearPublicListingCache::class);
         Event::listen(ListingPackageUpgraded::class, LogListingPackageUpgrade::class);
+        Event::listen(ListingPackageUpgraded::class, SendPackageUpgradeNotification::class);
+        Event::listen(ListingPackageExpiring::class, SendPackageExpiringNotification::class);
         Event::listen(FavoriteToggled::class, static function () {});
         Event::listen(ListingVerificationRequested::class, static function () {});
         Event::listen(ProfileUpdated::class, static function () {});
