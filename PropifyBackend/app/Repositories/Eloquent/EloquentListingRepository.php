@@ -10,10 +10,11 @@ use App\Models\ListingVideo;
 use App\Models\Property;
 use App\Repositories\ListingRepository;
 use App\Services\Listing\Sorting\ListingSortingStrategy;
+use App\Support\PropertySearchText;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 final class EloquentListingRepository implements ListingRepository
 {
@@ -75,16 +76,12 @@ final class EloquentListingRepository implements ListingRepository
 
                 $like = '%'.$normalizedKeyword.'%';
 
-                $query->where(function ($subQuery) use ($like) {
+                $query->where(function ($subQuery) use ($like, $normalizedKeyword) {
                     $subQuery
                         ->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like])
                         ->orWhereRaw($this->normalizeSearchExpression('description').' LIKE ?', [$like])
-                        ->orWhereHas('property', function ($propertyQuery) use ($like) {
-                            $propertyQuery
-                                ->whereRaw($this->normalizeSearchExpression('address_detail').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('project_name').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('province').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('ward').' LIKE ?', [$like]);
+                        ->orWhereHas('property', function ($propertyQuery) use ($normalizedKeyword) {
+                            $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword);
                         });
                 });
             })
@@ -149,16 +146,12 @@ final class EloquentListingRepository implements ListingRepository
 
                 $like = '%'.$normalizedKeyword.'%';
 
-                $query->where(function ($subQuery) use ($like) {
+                $query->where(function ($subQuery) use ($like, $normalizedKeyword) {
                     $subQuery
                         ->whereRaw($this->normalizeSearchExpression('listings.title').' LIKE ?', [$like])
                         ->orWhereRaw($this->normalizeSearchExpression('listings.description').' LIKE ?', [$like])
-                        ->orWhereHas('property', function ($propertyQuery) use ($like) {
-                            $propertyQuery
-                                ->whereRaw($this->normalizeSearchExpression('address_detail').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('project_name').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('province').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('ward').' LIKE ?', [$like]);
+                        ->orWhereHas('property', function ($propertyQuery) use ($normalizedKeyword) {
+                            $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword);
                         });
                 });
             })
@@ -220,15 +213,11 @@ final class EloquentListingRepository implements ListingRepository
                 $isSale = str_contains($normalizedKeyword, 'mua') || str_contains($normalizedKeyword, 'ban');
                 $like = '%'.$normalizedKeyword.'%';
 
-                $query->where(function ($subQuery) use ($like, $isRent, $isSale) {
+                $query->where(function ($subQuery) use ($like, $isRent, $isSale, $normalizedKeyword) {
                     $subQuery
                         ->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like])
-                        ->orWhereHas('property', function ($propertyQuery) use ($like) {
-                            $propertyQuery
-                                ->whereRaw($this->normalizeSearchExpression('address_detail').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('project_name').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('province').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('ward').' LIKE ?', [$like]);
+                        ->orWhereHas('property', function ($propertyQuery) use ($normalizedKeyword) {
+                            $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword);
                         });
 
                     if ($isRent) {
@@ -263,15 +252,11 @@ final class EloquentListingRepository implements ListingRepository
             ])
             ->where('status', 'ACTIVE')
             ->when($demandType, fn ($query) => $query->where('demand_type', $demandType))
-            ->when($like, function ($query) use ($like) {
-                $query->where(function ($subQuery) use ($like) {
+            ->when($like, function ($query) use ($like, $normalizedKeyword) {
+                $query->where(function ($subQuery) use ($like, $normalizedKeyword) {
                     $subQuery
                         ->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like])
-                        ->orWhereHas('property', fn ($propertyQuery) => $propertyQuery
-                            ->whereRaw($this->normalizeSearchExpression('address_detail').' LIKE ?', [$like])
-                            ->orWhereRaw($this->normalizeSearchExpression('project_name').' LIKE ?', [$like])
-                            ->orWhereRaw($this->normalizeSearchExpression('province').' LIKE ?', [$like])
-                            ->orWhereRaw($this->normalizeSearchExpression('ward').' LIKE ?', [$like]));
+                        ->orWhereHas('property', fn ($propertyQuery) => $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword));
                 });
             })
             ->whereHas('property', function ($query) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
@@ -331,14 +316,11 @@ final class EloquentListingRepository implements ListingRepository
 
     private function normalizeSearchKeyword(?string $keyword): ?string
     {
-        $normalized = trim((string) $keyword);
+        $normalized = PropertySearchText::normalize($keyword);
 
         if ($normalized === '') {
             return null;
         }
-
-        $normalized = Str::ascii(mb_strtolower($normalized, 'UTF-8'));
-        $normalized = preg_replace('/\s+/u', ' ', $normalized) ?: $normalized;
 
         return $normalized;
     }
@@ -352,5 +334,58 @@ final class EloquentListingRepository implements ListingRepository
             'mysql', 'mariadb' => "LOWER(CONVERT($column USING utf8mb4)) COLLATE utf8mb4_unicode_ci",
             default => "LOWER($column)",
         };
+    }
+
+    private function applyPropertySearchConstraint(Builder $query, string $normalizedKeyword): void
+    {
+        $tokens = $this->tokenize($normalizedKeyword);
+
+        if ($this->shouldUseFullTextSearch($tokens)) {
+            $query->whereRaw(
+                'MATCH(properties.search_text) AGAINST (? IN BOOLEAN MODE)',
+                [$this->toBooleanSearchQuery($tokens)],
+            );
+
+            return;
+        }
+
+        $query->where('properties.search_text', 'like', '%'.$normalizedKeyword.'%');
+    }
+
+    private function shouldUseFullTextSearch(array $tokens): bool
+    {
+        if ($tokens === []) {
+            return false;
+        }
+
+        $driver = DB::connection()->getDriverName();
+
+        if (! in_array($driver, ['mysql', 'mariadb'], true)) {
+            return false;
+        }
+
+        foreach ($tokens as $token) {
+            if (mb_strlen($token, 'UTF-8') < 3) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function toBooleanSearchQuery(array $tokens): string
+    {
+        return implode(' ', array_map(
+            static fn (string $token) => sprintf('+%s*', $token),
+            $tokens,
+        ));
+    }
+
+    private function tokenize(string $keyword): array
+    {
+        return array_values(array_filter(
+            preg_split('/\s+/u', $keyword) ?: [],
+            static fn (string $token) => $token !== '',
+        ));
     }
 }

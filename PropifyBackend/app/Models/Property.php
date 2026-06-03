@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PropertySearchText;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,6 +20,7 @@ final class Property extends Model
         'street_code',
         'project_name',
         'address_detail',
+        'search_text',
         'area',
         'price',
         'is_negotiable',
@@ -64,6 +66,19 @@ final class Property extends Model
         'lat' => 'decimal:8',
         'lng' => 'decimal:8',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (Property $property): void {
+            $property->search_text = PropertySearchText::build([
+                $property->project_name,
+                $property->province,
+                $property->ward,
+                $property->street_code,
+                $property->address_detail,
+            ]);
+        });
+    }
 
     // ==================== Relationships ====================
 
