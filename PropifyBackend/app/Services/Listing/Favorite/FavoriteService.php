@@ -11,4 +11,8 @@ interface FavoriteService
     public function getUserFavoriteIds(int $userId): Collection;
 
     public function toggle(int $userId, int $listingId): bool;
+
+    public function getUserRecentlyViewed(int $userId): Collection;
+
+    public function trackView(int $userId, int $listingId): void;
 }

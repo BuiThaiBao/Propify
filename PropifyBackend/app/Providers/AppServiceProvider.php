@@ -84,7 +84,9 @@ use App\Services\User\Impl\UserServiceImpl;
 use App\Services\User\UserService;
 use App\Services\ViewTracking\Impl\ViewTrackingServiceImpl;
 use App\Services\ViewTracking\ViewTrackingService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
 
 final class AppServiceProvider extends ServiceProvider
@@ -184,6 +186,16 @@ final class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            $pdo = DB::connection()->getPdo();
+
+            if (method_exists($pdo, 'sqliteCreateFunction')) {
+                $pdo->sqliteCreateFunction('normalize_text', function ($value) {
+                    return Str::ascii(mb_strtolower((string) $value, 'UTF-8'));
+                }, 1);
+            }
+        }
+
         // ── Event → Listener mapping (Laravel 11 style) ───────────────────
         Event::listen(UserRegistered::class, SendWelcomeNotification::class);
         Event::listen(ListingSaved::class, ClearPublicListingCache::class);

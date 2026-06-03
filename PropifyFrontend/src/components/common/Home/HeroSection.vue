@@ -38,6 +38,29 @@
           đến nhà phố yên tĩnh.
         </p>
 
+        <!-- Search Type Toggle (Mua bán / Cho thuê) -->
+        <div
+          class="flex gap-2 mb-3.5 animate-[slideUp_0.6s_ease_forwards]"
+          :style="{ animationDelay: '150ms' }"
+        >
+          <button
+            @click="searchType = 'SALE'"
+            type="button"
+            class="px-5 py-2 rounded-xl text-xs font-bold transition-all duration-200"
+            :class="searchType === 'SALE' ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-white/10 text-white/80 hover:bg-white/15'"
+          >
+            Mua bán
+          </button>
+          <button
+            @click="searchType = 'RENT'"
+            type="button"
+            class="px-5 py-2 rounded-xl text-xs font-bold transition-all duration-200"
+            :class="searchType === 'RENT' ? 'bg-primary text-primary-foreground shadow-lg' : 'bg-white/10 text-white/80 hover:bg-white/15'"
+          >
+            Cho thuê
+          </button>
+        </div>
+
         <!-- Search bar -->
         <div
           class="max-w-xl animate-[slideUp_0.6s_ease_forwards] rounded-2xl bg-card p-2 shadow-elevated"
@@ -60,10 +83,6 @@
 
             <!-- Buttons -->
             <div class="flex gap-2">
-              <button class="shrink-0 rounded-xl border border-border p-2">
-                <SlidersHorizontal class="w-4 h-4" />
-              </button>
-
               <button
                 @click="goToListings"
                 class="hero-gradient text-primary-foreground border-0 rounded-xl px-6 flex items-center hover:opacity-90 active:scale-[0.97] transition-all"
@@ -95,23 +114,82 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
+import { ref, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
 // icons (cài nếu chưa có: npm i lucide-vue-next)
-import { MapPin, Search, SlidersHorizontal } from "lucide-vue-next";
+import { MapPin, Search } from "lucide-vue-next";
 
 // state
 const searchQuery = ref("");
+const searchType = ref("SALE"); // "SALE" or "RENT"
 
 // router
+const route = useRoute();
 const router = useRouter();
 
+function syncStateFromRoute() {
+  const routeQuery = String(route.query.q || "");
+  const routeType = String(route.query.type || "").toUpperCase();
+
+  searchQuery.value = routeQuery;
+  searchType.value = routeType === "RENT" ? "RENT" : "SALE";
+}
+
+function syncRouteFromState() {
+  if (route.name !== "Home") return;
+
+  const nextQuery = { ...route.query };
+  const nextSearch = searchQuery.value.trim();
+  const nextType = searchType.value === "RENT" ? "RENT" : undefined;
+
+  if (nextSearch) {
+    nextQuery.q = nextSearch;
+  } else {
+    delete nextQuery.q;
+  }
+
+  if (nextType) {
+    nextQuery.type = nextType;
+  } else {
+    delete nextQuery.type;
+  }
+
+  const currentQuery = {
+    ...(route.query.q ? { q: String(route.query.q) } : {}),
+    ...(route.query.type ? { type: String(route.query.type).toUpperCase() } : {}),
+  };
+  const normalizedNextQuery = {
+    ...(nextQuery.q ? { q: String(nextQuery.q) } : {}),
+    ...(nextQuery.type ? { type: String(nextQuery.type).toUpperCase() } : {}),
+  };
+
+  if (JSON.stringify(currentQuery) === JSON.stringify(normalizedNextQuery)) return;
+
+  router.replace({
+    query: nextQuery,
+  }).catch(() => {});
+}
+
+watch(
+  () => [route.query.q, route.query.type],
+  () => {
+    syncStateFromRoute();
+  },
+  { immediate: true }
+);
+
+watch([searchQuery, searchType], () => {
+  syncRouteFromState();
+});
+
 const goToListings = () => {
+  const targetPath = searchType.value === "SALE" ? "/sales" : "/rent";
   router.push({
-    path: "/listings",
+    path: targetPath,
     query: {
-      q: searchQuery.value,
+      q: searchQuery.value.trim() || undefined,
+      type: searchType.value === "RENT" ? "RENT" : undefined,
     },
   });
 };

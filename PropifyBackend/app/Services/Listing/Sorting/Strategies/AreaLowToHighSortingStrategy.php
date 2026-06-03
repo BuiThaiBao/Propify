@@ -5,12 +5,12 @@ namespace App\Services\Listing\Sorting\Strategies;
 use App\Services\Listing\Sorting\ListingSortingStrategy;
 use Illuminate\Database\Eloquent\Builder;
 
-final class NewestListingSortingStrategy implements ListingSortingStrategy
+final class AreaLowToHighSortingStrategy implements ListingSortingStrategy
 {
     public function apply(Builder $query): Builder
     {
         return $query
-            ->orderByDesc('listings.published_at')
-            ->orderByDesc('listings.id');
+            ->join('properties', 'listings.property_id', '=', 'properties.id')
+            ->orderBy('properties.area', 'asc');
     }
 }

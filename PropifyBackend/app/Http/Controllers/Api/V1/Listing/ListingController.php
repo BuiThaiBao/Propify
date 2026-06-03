@@ -184,6 +184,9 @@ final class ListingController
         );
 
         $countsQuery = Listing::where('owner_id', $request->user()->id)
+            ->when($request->input('demand_type'), function ($query, $demandType) {
+                $query->where('demand_type', $demandType);
+            })
             ->selectRaw('status, count(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status')

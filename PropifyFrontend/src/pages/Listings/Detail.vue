@@ -22,19 +22,12 @@
     <div v-else-if="listing" :class="previewMode ? 'mx-auto w-full max-w-[1280px] px-0' : 'mx-auto w-full max-w-[1280px] px-4 lg:px-8'">
       <div class="mb-5 flex items-start justify-between gap-4">
         <div class="min-w-0">
-          <p v-if="!isEmbedded" class="flex items-center gap-2 text-xs text-slate-400">
-            <button type="button" class="flex items-center gap-1 hover:text-sky-500" @click="router.back()">
-              <span class="text-base leading-none">←</span>
-              <span>Danh sách</span>
-            </button>
-            <span>/</span>
-            <span class="truncate text-slate-600">{{ listing.title }}</span>
-          </p>
+          <Breadcrumb v-if="!isEmbedded" :crumbs="detailCrumbs" />
           <h1 class="mt-3 text-[24px] font-extrabold leading-tight text-slate-900">{{ listing.title }}</h1>
           <p class="mt-1 flex items-center gap-2 text-xs text-slate-500">
             <span class="inline-flex items-center gap-1.5">
               <img :src="calendarIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
-              Ngày đăng: {{ formatDate(listing.submitted_at || listing.created_at) }}
+              Ngày đăng: {{ formatDate(listing.published_at || listing.submitted_at || listing.created_at) }}
             </span>
             <span v-if="listing.views != null">• {{ listing.views }} lượt xem</span>
           </p>
@@ -57,8 +50,8 @@
       <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,820px)_360px] xl:grid-cols-[minmax(0,860px)_370px]">
         <div class="min-w-0">
 
-          <section v-if="displayImages.length" class="mb-3">
-            <div class="relative overflow-hidden rounded-[14px] bg-slate-200">
+          <section v-if="displayImages.length" class="detail-card !p-0 border-slate-200/60 overflow-hidden mb-3">
+            <div class="relative overflow-hidden bg-slate-200">
               <img
                 v-if="activeImage"
                 :src="activeImage"
@@ -80,7 +73,7 @@
                 Hình ảnh {{ activeImageIndex + 1 }}/{{ displayImages.length }}
               </div>
             </div>
-            <div class="mt-2 flex gap-2 overflow-x-auto pb-1">
+            <div class="p-4 flex gap-2 overflow-x-auto pb-2">
               <button
                 v-for="(img, idx) in displayImages"
                 :key="idx"
@@ -335,7 +328,7 @@
                 v-for="item in relatedListings"
                 :key="item.id"
                 class="group flex cursor-pointer gap-3 rounded-xl p-1.5 transition hover:bg-sky-50"
-                @click="router.push(`/listings/${item.id}`)"
+                @click="clickRelatedListing(item)"
               >
                 <img v-if="item.image" :src="item.image" class="h-[86px] w-[116px] rounded-lg object-cover" alt="" />
                 <div v-else class="h-[86px] w-[116px] shrink-0 rounded-lg bg-slate-100"></div>
@@ -404,7 +397,7 @@
 
     <!-- Floating Save Listing Button -->
     <div
-      v-if="listing && !loading"
+      v-if="listing && !loading && isEmbedded"
       @click="toggleFavorite(listing)"
       class="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white border border-r-0 border-slate-200 shadow-md rounded-l-xl py-3 px-2.5 w-14 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 active:scale-[0.95] transition-all group"
     >
@@ -425,10 +418,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import Breadcrumb from '@/components/shared/Breadcrumb.vue';
 import { useAuthStore } from '@/stores/auth';
 import { useFavoriteListings } from '@/composables/useFavoriteListings';
 import { ChevronLeft, ChevronRight, Heart } from 'lucide-vue-next';
 import listingService from '@/services/listingService';
+import recentlyViewedService from '@/services/recentlyViewedService';
 import AppointmentBookingPopup from '@/components/appointments/AppointmentBookingPopup.vue';
 import Login from '@/pages/Auth/Login.vue';
 import Register from '@/pages/Auth/Register.vue';
@@ -482,6 +477,22 @@ const isEmbedded = ref(false);
 const loading = ref(!props.previewMode);
 const error = ref('');
 const listing = ref(props.previewListing || {});
+
+const detailCrumbs = computed(() => {
+  const list = [
+    { label: 'Trang chủ', to: '/' }
+  ];
+  if (listing.value) {
+    const isSale = listing.value.demand_type === 'SALE';
+    if (isSale) {
+      list.push({ label: 'Mua bán', to: '/sales' });
+    } else {
+      list.push({ label: 'Cho thuê', to: '/rent' });
+    }
+    list.push({ label: listing.value.title });
+  }
+  return list;
+});
 
 const activeImageIndex = ref(0);
 const imageLightboxOpen = ref(false);
@@ -652,6 +663,21 @@ async function loadRelatedListings() {
   } catch (err) {
     console.error('Failed to load related listings:', err);
     relatedListings.value = [];
+  }
+}
+
+function clickRelatedListing(item) {
+  if (isEmbedded.value) {
+    window.parent.postMessage({
+      type: 'select-listing-from-detail',
+      listing: {
+        id: item.id,
+        latitude: item.latitude,
+        longitude: item.longitude,
+      }
+    }, window.location.origin);
+  } else {
+    router.push(`/listings/${item.id}`);
   }
 }
 
@@ -932,6 +958,10 @@ function trackViewNow(listingId) {
   listingService.trackView(listingId).catch(() => {
     // View tracking should never affect the listing detail UX.
   });
+
+  if (listing.value) {
+    recentlyViewedService.trackListingView(listing.value, authStore.isAuthenticated);
+  }
 }
 
 function replaceMapTilerKey(value, key) {

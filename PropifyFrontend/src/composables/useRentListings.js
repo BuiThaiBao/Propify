@@ -1,10 +1,11 @@
 import { computed, ref, watch } from 'vue';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useRoute, useRouter } from 'vue-router';
 import listingService from '@/services/listingService';
 import { hydrateListingAddresses } from '@/utils/addressFormatter';
 import { listingKeys } from '@/composables/queryKeys';
 
-async function fetchRentPage(page, keyword, posterType, minPrice, maxPrice, minArea, maxArea) {
+async function fetchRentPage(page, keyword, posterType, minPrice, maxPrice, minArea, maxArea, sortBy) {
   const response = await listingService.getPublicListings({
     demand_type: 'RENT',
     keyword: keyword?.trim() || undefined,
@@ -15,6 +16,7 @@ async function fetchRentPage(page, keyword, posterType, minPrice, maxPrice, minA
     max_price: maxPrice !== null ? maxPrice : undefined,
     min_area: minArea !== null ? minArea : undefined,
     max_area: maxArea !== null ? maxArea : undefined,
+    sort: sortBy || undefined,
   });
   const data = response?.data?.data || [];
   await hydrateListingAddresses(data);
@@ -25,10 +27,29 @@ async function fetchRentPage(page, keyword, posterType, minPrice, maxPrice, minA
 }
 
 export function useRentListings() {
+  const route = useRoute();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const enabled = ref(false);
   const currentPage = ref(1);
-  const searchKeyword = ref('');
+  const searchKeyword = ref(route?.query?.q || '');
+
+  watch(
+    () => route?.query?.q,
+    (newVal) => {
+      searchKeyword.value = newVal || '';
+      currentPage.value = 1;
+    }
+  );
+  watch(
+    () => route?.query?.sort,
+    (newVal) => {
+      const nextSort = String(newVal || '');
+      if (nextSort !== sortBy.value) {
+        sortBy.value = nextSort;
+      }
+    }
+  );
 
   // Filter states
   const posterType = ref(''); // '', 'OWNER', 'BROKER'
@@ -36,6 +57,7 @@ export function useRentListings() {
   const maxPrice = ref(null);
   const minArea = ref(null);
   const maxArea = ref(null);
+  const sortBy = ref(String(route?.query?.sort || '')); // '', 'newest', 'oldest', 'price_asc', 'price_desc', 'area_asc', 'area_desc'
 
   const queryKey = computed(() => listingKeys.publicList({
     demand_type: 'RENT',
@@ -47,6 +69,7 @@ export function useRentListings() {
     max_price: maxPrice.value !== null ? maxPrice.value : undefined,
     min_area: minArea.value !== null ? minArea.value : undefined,
     max_area: maxArea.value !== null ? maxArea.value : undefined,
+    sort: sortBy.value || undefined,
   }));
 
   const query = useQuery({
@@ -58,7 +81,8 @@ export function useRentListings() {
       minPrice.value,
       maxPrice.value,
       minArea.value,
-      maxArea.value
+      maxArea.value,
+      sortBy.value
     ),
     enabled,
     placeholderData: keepPreviousData,
@@ -104,20 +128,32 @@ export function useRentListings() {
   });
 
   watch(
-    () => [enabled.value, currentPage.value, searchKeyword.value, lastPage.value, posterType.value, minPrice.value, maxPrice.value, minArea.value, maxArea.value],
-    ([isEnabled, page, keyword, totalPages, pType, minP, maxP, minA, maxA]) => {
+    () => [enabled.value, currentPage.value, searchKeyword.value, lastPage.value, posterType.value, minPrice.value, maxPrice.value, minArea.value, maxArea.value, sortBy.value],
+    ([isEnabled, page, keyword, totalPages, pType, minP, maxP, minA, maxA, sBy]) => {
       if (!isEnabled) return;
-      prefetchNextPage(page, keyword, totalPages, pType, minP, maxP, minA, maxA);
+      prefetchNextPage(page, keyword, totalPages, pType, minP, maxP, minA, maxA, sBy);
     },
   );
 
   // Reset page when filters change
   watch(
-    () => [posterType.value, minPrice.value, maxPrice.value, minArea.value, maxArea.value],
+    () => [posterType.value, minPrice.value, maxPrice.value, minArea.value, maxArea.value, sortBy.value],
     () => {
       currentPage.value = 1;
     }
   );
+  watch(sortBy, (nextSort) => {
+    const currentSort = String(route?.query?.sort || '');
+    const normalizedNextSort = String(nextSort || '');
+    if (currentSort === normalizedNextSort) return;
+
+    router.replace({
+      query: {
+        ...route.query,
+        sort: normalizedNextSort || undefined,
+      },
+    }).catch(() => {});
+  });
 
   function init() {
     enabled.value = true;
@@ -131,6 +167,20 @@ export function useRentListings() {
   async function onSearch(value) {
     searchKeyword.value = value || '';
     currentPage.value = 1;
+    const normalizedNextQuery = searchKeyword.value.trim();
+    const currentQuery = String(route?.query?.q || '');
+    if (currentQuery !== normalizedNextQuery) {
+      const nextQuery = { ...route.query };
+      if (normalizedNextQuery) {
+        nextQuery.q = normalizedNextQuery;
+      } else {
+        delete nextQuery.q;
+      }
+
+      router.replace({
+        query: nextQuery,
+      }).catch(() => {});
+    }
   }
 
   async function goToPage(page) {
@@ -139,7 +189,7 @@ export function useRentListings() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function prefetchNextPage(page, keyword, totalPages, pType, minP, maxP, minA, maxA) {
+  function prefetchNextPage(page, keyword, totalPages, pType, minP, maxP, minA, maxA, sBy) {
     const nextPage = Number(page) + 1;
     if (nextPage > Number(totalPages || 1)) return;
 
@@ -154,8 +204,9 @@ export function useRentListings() {
         max_price: maxP !== null ? maxP : undefined,
         min_area: minA !== null ? minA : undefined,
         max_area: maxA !== null ? maxA : undefined,
+        sort: sBy || undefined,
       }),
-      queryFn: () => fetchRentPage(nextPage, keyword, pType, minP, maxP, minA, maxA),
+      queryFn: () => fetchRentPage(nextPage, keyword, pType, minP, maxP, minA, maxA, sBy),
       staleTime: 60 * 1000,
     });
   }
@@ -174,6 +225,7 @@ export function useRentListings() {
     maxPrice,
     minArea,
     maxArea,
+    sortBy,
     init,
     fetchRentListings,
     onSearch,
