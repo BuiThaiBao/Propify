@@ -2,22 +2,20 @@
 
 namespace App\Events\Listing;
 
-use App\Models\Listing;
-use App\Models\Package;
-use App\Models\User;
 use Carbon\CarbonInterface;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-final class ListingPackageUpgraded
+final class ListingPackageUpgraded implements ShouldDispatchAfterCommit
 {
     use Dispatchable, SerializesModels;
 
     public function __construct(
-        public readonly Listing $listing,
-        public readonly User $user,
-        public readonly ?Package $oldPackage,
-        public readonly Package $newPackage,
+        public readonly int $listingId,
+        public readonly int $userId,
+        public readonly ?int $oldPackageId,
+        public readonly int $newPackageId,
         public readonly int $durationDays,
         public readonly string $amount,
         public readonly CarbonInterface $expiresAt,

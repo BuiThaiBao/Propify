@@ -5,6 +5,10 @@ const notificationService = {
     return api.get("/v1/notifications", { params });
   },
 
+  getUnreadCount() {
+    return api.get("/v1/notifications/unread-count");
+  },
+
   markAsRead(notificationId) {
     return api.post(`/v1/notifications/${notificationId}/read`);
   },

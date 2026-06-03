@@ -14,18 +14,19 @@ use Illuminate\Support\Facades\Log;
  */
 final class NotifyExpiringPackages extends Command
 {
+    private const THRESHOLD_DAYS = 7;
+
     protected $signature = 'packages:notify-expiring';
 
     protected $description = 'Send daily email to owners of listings with packages expiring within 7 days';
 
     public function handle(): int
     {
-        // Tìm listings có gói sắp hết hạn (trong 7 ngày tới)
         $listings = Listing::query()
             ->whereNotNull('package_id')
             ->whereNotNull('package_expires_at')
             ->where('package_expires_at', '>', now())
-            ->where('package_expires_at', '<=', now()->addDays(7))
+            ->where('package_expires_at', '<=', now()->addDays(self::THRESHOLD_DAYS))
             ->with(['owner:id,full_name,email', 'package:id,name,slug,badge,color'])
             ->get();
 
@@ -46,15 +47,15 @@ final class NotifyExpiringPackages extends Command
 
             $daysLeft = (int) now()->diffInDays($listing->package_expires_at, false);
 
-            if ($daysLeft < 0) {
-                continue; // Đã hết hạn, sẽ được xử lý bởi packages:expire
+            if ($daysLeft !== self::THRESHOLD_DAYS) {
+                continue;
             }
 
             $alreadyNotified = Notification::query()
                 ->where('user_id', $owner->id)
                 ->where('type', NotificationType::PACKAGE_EXPIRING->value)
-                ->where('data->listing_id', $listing->id)
-                ->where('data->package_expires_at', $listing->package_expires_at->toDateTimeString())
+                ->whereJsonContains('data->listing_id', $listing->id)
+                ->whereJsonContains('data->threshold_days', $daysLeft)
                 ->exists();
 
             if ($alreadyNotified) {
@@ -62,9 +63,10 @@ final class NotifyExpiringPackages extends Command
             }
 
             ListingPackageExpiring::dispatch(
-                listing: $listing,
-                user: $owner,
+                listingId: $listing->id,
+                userId: $owner->id,
                 daysLeft: $daysLeft,
+                thresholdDays: $daysLeft,
                 expiresAt: $listing->package_expires_at,
             );
 

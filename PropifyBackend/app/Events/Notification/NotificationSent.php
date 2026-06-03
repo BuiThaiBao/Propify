@@ -5,11 +5,12 @@ namespace App\Events\Notification;
 use App\Models\Notification;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Events\ShouldDispatchAfterCommit;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-final class NotificationSent implements ShouldBroadcastNow
+final class NotificationSent implements ShouldBroadcastNow, ShouldDispatchAfterCommit
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -17,14 +18,14 @@ final class NotificationSent implements ShouldBroadcastNow
         public readonly Notification $notification
     ) {}
 
-    public function broadcastOn(): PrivateChannel
+    public function broadcastOn(): array
     {
-        return new PrivateChannel('user.'.$this->notification->user_id);
+        return [new PrivateChannel('user.'.$this->notification->user_id)];
     }
 
     public function broadcastAs(): string
     {
-        return 'NotificationSent';
+        return 'notification.sent';
     }
 
     public function broadcastWith(): array
