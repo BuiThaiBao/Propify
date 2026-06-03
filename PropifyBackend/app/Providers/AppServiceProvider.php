@@ -18,6 +18,7 @@ use App\Listeners\Appointment\SendAppointmentBookedNotification;
 use App\Listeners\Appointment\SendAppointmentBookingStatusNotification;
 use App\Listeners\Auth\SendWelcomeNotification;
 use App\Listeners\Listing\ClearPublicListingCache;
+use App\Listeners\Listing\CreateListingNotification;
 use App\Listeners\Listing\LogListingPackageUpgrade;
 use App\Listeners\Listing\LogListingSaved;
 use App\Listeners\Listing\SendPackageExpiringNotification;
@@ -215,6 +216,7 @@ final class AppServiceProvider extends ServiceProvider
         Event::listen(UserRegistered::class, SendWelcomeNotification::class);
         Event::listen(ListingSaved::class, ClearPublicListingCache::class);
         Event::listen(ListingSaved::class, LogListingSaved::class);
+        Event::listen(ListingSaved::class, CreateListingNotification::class);
         Event::listen(ListingPackageUpgraded::class, ClearPublicListingCache::class);
         Event::listen(ListingPackageUpgraded::class, LogListingPackageUpgrade::class);
         Event::listen(ListingPackageUpgraded::class, SendPackageUpgradeNotification::class);

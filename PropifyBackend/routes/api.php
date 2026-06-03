@@ -212,6 +212,10 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
             ->where('id', '[0-9]+')
             ->middleware('throttle:6,1')
             ->name('reports.store');
+        Route::post('/{id}/lock-appeals', [ListingController::class, 'appealLock'])
+            ->where('id', '[0-9]+')
+            ->middleware('throttle:3,1')
+            ->name('lock-appeals.store');
         Route::post('/{id}/upgrade', [ListingUpgradeController::class, 'upgrade'])
             ->where('id', '[0-9]+')
             ->name('upgrade');
@@ -244,8 +248,8 @@ Route::prefix('v1/recently-viewed')->as('recently-viewed.')->middleware('auth:ap
 Route::prefix('v1/notifications')->as('notifications.')->middleware('auth:api')->group(function () {
     Route::get('/', [NotificationController::class, 'index'])->name('index');
     Route::get('/unread-count', [NotificationController::class, 'unreadCount'])->name('unread-count');
-    Route::post('/read-all', [NotificationController::class, 'markAllAsRead'])->name('read-all');
-    Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('read');
+    Route::patch('/read-all', [NotificationController::class, 'markAllAsRead'])->name('read-all');
+    Route::patch('/{id}/read', [NotificationController::class, 'markAsRead'])->name('read');
 });
 
 // ==================== PACKAGES: PUBLIC ROUTES ====================
@@ -281,6 +285,7 @@ Route::prefix('v1/packages')->as('packages.admin.')->middleware('auth:api')->gro
 Route::prefix('v1/admin')->as('admin.')->middleware(['auth:api', 'admin'])->group(function () {
     Route::get('/listings', [AdminListingController::class, 'index'])->name('listings.index');
     Route::get('/listings/{id}', [AdminListingController::class, 'show'])->where('id', '[0-9]+')->name('listings.show');
+    Route::get('/listings/{id}/reports', [AdminListingController::class, 'reports'])->where('id', '[0-9]+')->name('listings.reports');
     Route::patch('/listings/{id}/status', [AdminListingController::class, 'changeStatus'])->name('listings.change-status');
     Route::patch('/listings/{id}/verification', [AdminListingController::class, 'updateVerification'])->where('id', '[0-9]+')->name('listings.verification');
     Route::get('/audit-logs', [AdminAuditLogController::class, 'index'])->name('audit-logs.index');

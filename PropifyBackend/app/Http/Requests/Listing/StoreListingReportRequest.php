@@ -19,6 +19,8 @@ final class StoreListingReportRequest extends FormRequest
             'reasons' => ['required', 'array', 'min:1'],
             'reasons.*' => ['required', 'string', Rule::in(ListingPostingOptions::values('listing_report_reasons'))],
             'description' => ['nullable', 'string', 'max:1000'],
+            'image_urls' => ['nullable', 'array', 'max:5'],
+            'image_urls.*' => ['required', 'string', 'url', 'max:2048'],
         ];
     }
 

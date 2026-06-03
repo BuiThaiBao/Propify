@@ -134,7 +134,7 @@
                       ></span>
                       <div class="min-w-0 flex-1">
                         <p class="text-sm font-medium text-foreground">{{ item.title }}</p>
-                        <p class="text-xs text-muted-foreground mt-1 line-clamp-2">{{ item.content }}</p>
+                        <p class="text-xs text-muted-foreground mt-1 line-clamp-2">{{ item.message || item.content }}</p>
                         <p class="text-[11px] text-muted-foreground/80 mt-2">{{ formatNotificationTime(item.created_at) }}</p>
                       </div>
                     </div>
@@ -142,7 +142,7 @@
                 </div>
 
                 <router-link
-                  to="/profile?tab=notifications"
+                  to="/notifications"
                   @click="notificationMenuOpen = false; accountMenuOpen = false"
                   class="block px-4 py-3 text-sm font-medium text-sky-600 hover:bg-sky-50"
                 >
@@ -326,6 +326,16 @@
                 {{ authStore.user?.full_name }}
               </span>
             </div>
+            <router-link
+              to="/notifications"
+              @click="mobileMenuOpen = false"
+              class="flex w-full items-center justify-center gap-2 rounded-lg border border-sky-100 bg-sky-50 py-3 text-center font-medium text-sky-600 transition-colors hover:bg-sky-100"
+            >
+              Thông báo
+              <span v-if="unreadCount" class="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white">
+                {{ unreadCount > 99 ? '99+' : unreadCount }}
+              </span>
+            </router-link>
             <button
               @click="handleLogout(); mobileMenuOpen = false"
               class="w-full border border-destructive/20 text-destructive hover:bg-destructive/10 rounded-lg py-3 font-medium text-center transition-colors"
@@ -371,11 +381,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from "vue";
+import { computed, ref, onMounted, onUnmounted, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import { useNotificationStore } from "@/stores/notifications";
 import { useRouter, useRoute } from "vue-router";
 import { getEcho } from "@/plugins/echo";
-import notificationService from "@/services/notificationService";
 import Login from "@/pages/Auth/Login.vue";
 import Register from "@/pages/Auth/Register.vue";
 
@@ -384,11 +394,12 @@ const accountMenuOpen = ref(false);
 const notificationMenuOpen = ref(false);
 const accountDropdownRef = ref(null);
 const authStore = useAuthStore();
+const notificationStore = useNotificationStore();
 const router = useRouter();
 const route = useRoute();
-const notifications = ref([]);
-const unreadCount = ref(0);
-const notificationLoading = ref(false);
+const notifications = computed(() => notificationStore.recent);
+const unreadCount = computed(() => notificationStore.unreadCount);
+const notificationLoading = computed(() => notificationStore.loadingRecent);
 const notificationToasts = ref([]);
 let subscribedChannelName = null;
 let toastId = 1;
@@ -431,6 +442,7 @@ function handleAuthSuccess() {
 
 async function handleLogout() {
   leaveNotificationChannel();
+  notificationStore.reset();
   accountMenuOpen.value = false;
   notificationMenuOpen.value = false;
   await authStore.logout();
@@ -456,7 +468,7 @@ function pushToast(notification) {
   const id = toastId++;
   notificationToasts.value = [
     ...notificationToasts.value,
-    { id, title: notification.title, content: notification.content },
+    { id, title: notification.title, content: notification.message || notification.content },
   ];
 
   window.setTimeout(() => {
@@ -466,44 +478,29 @@ function pushToast(notification) {
 
 async function fetchNotifications() {
   if (!authStore.isAuthenticated) {
-    notifications.value = [];
-    unreadCount.value = 0;
+    notificationStore.reset();
     return;
   }
 
-  notificationLoading.value = true;
-
   try {
-    const response = await notificationService.getNotifications({ per_page: 6 });
-    notifications.value = response?.data?.data || [];
-    unreadCount.value = Number(response?.data?.meta?.unread_count || 0);
+    await notificationStore.fetchRecent();
   } catch {
-    notifications.value = [];
-    unreadCount.value = 0;
-  } finally {
-    notificationLoading.value = false;
+    notificationStore.reset();
   }
 }
 
 async function markAllNotificationsRead() {
   try {
-    await notificationService.markAllAsRead();
-    notifications.value = notifications.value.map((item) => ({
-      ...item,
-      read_at: item.read_at || new Date().toISOString(),
-    }));
-    unreadCount.value = 0;
+    await notificationStore.markAllAsRead();
   } catch {
     // keep current state on failure
   }
 }
 
 async function handleNotificationClick(item) {
-  if (!item.read_at) {
+  if (!item.is_read && !item.read_at) {
     try {
-      await notificationService.markAsRead(item.id);
-      item.read_at = new Date().toISOString();
-      unreadCount.value = Math.max(0, unreadCount.value - 1);
+      await notificationStore.markAsRead(item.id);
     } catch {
       // ignore click failure
     }
@@ -511,7 +508,19 @@ async function handleNotificationClick(item) {
 
   notificationMenuOpen.value = false;
   accountMenuOpen.value = false;
-  router.push("/profile?tab=notifications");
+
+  const actionUrl = item.data?.action_url;
+  if (actionUrl) {
+    router.push(actionUrl);
+    return;
+  }
+
+  if (item.data?.listing_id && item.data?.status === "ACTIVE") {
+    router.push(`/listings/${item.data.listing_id}`);
+    return;
+  }
+
+  router.push("/profile?tab=listings");
 }
 
 function leaveNotificationChannel() {
@@ -544,8 +553,7 @@ function subscribeNotifications() {
       return;
     }
 
-    notifications.value = [notification, ...notifications.value.filter((item) => item.id !== notification.id)].slice(0, 6);
-    unreadCount.value += notification.read_at ? 0 : 1;
+    notificationStore.fetchRecent().catch(() => {});
     pushToast(notification);
   });
 
@@ -556,7 +564,7 @@ function toggleNotificationMenu() {
   notificationMenuOpen.value = !notificationMenuOpen.value;
   accountMenuOpen.value = false;
 
-  if (notificationMenuOpen.value && notifications.value.length === 0) {
+  if (notificationMenuOpen.value) {
     fetchNotifications();
   }
 }
@@ -573,12 +581,14 @@ onMounted(() => {
   document.addEventListener("click", handleClickOutside);
   if (authStore.isAuthenticated) {
     fetchNotifications();
+    notificationStore.startPolling();
     subscribeNotifications();
   }
 });
 onUnmounted(() => {
   document.removeEventListener("click", handleClickOutside);
   leaveNotificationChannel();
+  notificationStore.stopPolling();
 });
 
 watch(
@@ -586,11 +596,11 @@ watch(
   async (authenticated) => {
     if (authenticated) {
       await fetchNotifications();
+      notificationStore.startPolling();
       subscribeNotifications();
     } else {
       leaveNotificationChannel();
-      notifications.value = [];
-      unreadCount.value = 0;
+      notificationStore.reset();
     }
   },
 );

@@ -451,7 +451,8 @@ final class ListingServiceImpl implements ListingService
         }
 
         // Thông tin đầy đủ: giá > 0, diện tích > 0, có địa chỉ
-        $hasFullInfo = ($dto->price > 0)
+        $hasValidPrice = $dto->isNegotiable || ($dto->price !== null && $dto->price > 0);
+        $hasFullInfo = $hasValidPrice
             && ($dto->area > 0)
             && (! empty($dto->addressDetail) || ! empty($dto->projectName));
         if ($hasFullInfo) {
