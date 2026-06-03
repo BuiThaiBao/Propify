@@ -55,6 +55,7 @@ function buildParams() {
 
   const keyword = searchQuery.value.trim()
   if (keyword) params.keyword = keyword
+  if (searchField.value) params.search_field = searchField.value
   if (filterStatus.value !== 'all') params.status = filterStatus.value
   if (filterType.value !== 'all') params.demand_type = typeParamMap[filterType.value]
   if (filterPriceRange.value !== 'all') params.price_range = filterPriceRange.value
@@ -65,10 +66,14 @@ function buildParams() {
 
 async function fetchPostingOptions() {
   try {
-    const response = await listingService.getPostingOptions()
-    const options = response.data?.data ?? {}
+    const [postingOptionsResponse, packagesResponse] = await Promise.all([
+      listingService.getPostingOptions(),
+      fetchPackages({ include_inactive: 1 }),
+    ])
+    const options = postingOptionsResponse.data?.data ?? {}
     listingStatusOptions.value = options.listing_statuses ?? []
     adminListingStatusOptions.value = options.admin_listing_statuses ?? []
+    packages.value = packagesResponse?.data ?? []
   } catch (err) {
     console.error('Failed to fetch posting options:', err)
   }
@@ -135,7 +140,7 @@ function goToPage(page) {
   fetchListings()
 }
 
-watch([filterStatus, filterType, filterPriceRange, filterPackageId], () => {
+watch([filterStatus, filterType, filterPriceRange, filterPackageId, searchField], () => {
   pagination.current_page = 1
   fetchListings()
 })
@@ -166,6 +171,10 @@ onMounted(async () => {
       v-model:search-field="searchField"
       v-model:status="filterStatus"
       v-model:type="filterType"
+      v-model:price-range="filterPriceRange"
+      v-model:package-id="filterPackageId"
+      :packages="packages"
+      :status-counts="statusCounts"
       :status-options="listingStatusOptions"
     />
 
