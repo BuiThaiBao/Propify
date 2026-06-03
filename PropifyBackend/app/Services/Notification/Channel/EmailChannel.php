@@ -6,6 +6,7 @@ use App\Enums\MailType;
 use App\Enums\NotificationChannelType;
 use App\Enums\NotificationType;
 use App\Mail\AppointmentBookedMail;
+use App\Mail\AppointmentExpiredMail;
 use App\Mail\AppointmentStatusUpdatedMail;
 use App\Mail\Auth\ForgotPasswordMail;
 use App\Mail\Auth\VerifyEmailMail;
@@ -40,6 +41,7 @@ final class EmailChannel implements NotificationChannel
             ),
             NotificationType::APPOINTMENT_BOOKED => new AppointmentBookedMail($user, $data),
             NotificationType::APPOINTMENT_STATUS_UPDATED => new AppointmentStatusUpdatedMail($data),
+            NotificationType::APPOINTMENT_EXPIRED => new AppointmentExpiredMail($user, $data),
             default => throw new \InvalidArgumentException("Unsupported mail template: {$type->value}"),
         };
 

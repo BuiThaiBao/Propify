@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Enums\BookingStatus;
+use App\Events\Appointment\AppointmentBookingExpired;
 use App\Models\AppointmentBooking;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -15,19 +16,12 @@ final class AutoCancelExpiredBookingJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    /**
-     * Số lần thử lại nếu job thất bại.
-     */
     public int $tries = 3;
 
     public function __construct(
         private readonly int $bookingId,
     ) {}
 
-    /**
-     * Khi job được thực thi (đúng lúc confirm_deadline),
-     * kiểm tra nếu booking vẫn PENDING thì tự động hủy.
-     */
     public function handle(): void
     {
         $booking = AppointmentBooking::find($this->bookingId);
@@ -38,7 +32,6 @@ final class AutoCancelExpiredBookingJob implements ShouldQueue
             return;
         }
 
-        // Chỉ hủy nếu vẫn đang ở trạng thái PENDING
         if ($booking->status !== BookingStatus::PENDING->value) {
             Log::info("[AutoCancel] Booking #{$this->bookingId} đã chuyển sang trạng thái [{$booking->status}], bỏ qua.");
 
@@ -49,8 +42,10 @@ final class AutoCancelExpiredBookingJob implements ShouldQueue
 
         $booking->update([
             'status' => BookingStatus::EXPIRED->value,
-            'note' => $existingNote.'[Tự động hủy] Đặt lịch thất bại vì chủ tin chưa xác nhận.',
+            'note' => $existingNote.'[Tự động hủy] Lịch hẹn đã quá thời gian xác nhận và bị hủy.',
         ]);
+
+        AppointmentBookingExpired::dispatch($booking->id);
 
         Log::info("[AutoCancel] Booking #{$this->bookingId} đã bị hủy tự động do quá hạn xác nhận.");
     }

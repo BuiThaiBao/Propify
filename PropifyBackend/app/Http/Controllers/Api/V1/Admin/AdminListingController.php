@@ -33,8 +33,26 @@ final class AdminListingController extends Controller
         $status = $request->input('status');
         $demandType = $request->input('demand_type');
         $keyword = $request->input('keyword');
+        $searchField = $request->input('search_field', 'title');
+        $priceRange = $request->input('price_range');
+        $packageId = $request->input('package_id');
 
-        $paginator = $this->listingService->getAllForAdmin($status, $demandType, $keyword, $perPage);
+        $paginator = $this->listingService->getAllForAdmin(
+            status: $status,
+            demandType: $demandType,
+            keyword: $keyword,
+            perPage: $perPage,
+            searchField: $searchField,
+            priceRange: $priceRange,
+            packageId: is_numeric($packageId) ? (int) $packageId : null,
+        );
+        $statusCounts = $this->listingService->getAdminStatusCounts(
+            demandType: $demandType,
+            keyword: $keyword,
+            searchField: $searchField,
+            priceRange: $priceRange,
+            packageId: is_numeric($packageId) ? (int) $packageId : null,
+        );
 
         return ApiResponse::success(
             data: ListingResource::collection($paginator->items()),
@@ -44,6 +62,7 @@ final class AdminListingController extends Controller
                 'last_page' => $paginator->lastPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
+                'status_counts' => $statusCounts,
             ],
         );
     }

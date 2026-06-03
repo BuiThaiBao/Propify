@@ -195,9 +195,28 @@ final class ListingServiceImpl implements ListingService
         });
     }
 
-    public function getAllForAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
+    public function getAllForAdmin(
+        ?string $status,
+        ?string $demandType,
+        ?string $keyword,
+        int $perPage,
+        ?string $searchField = 'title',
+        ?string $priceRange = null,
+        ?int $packageId = null,
+    ): LengthAwarePaginator
     {
-        return $this->listingRepository->paginateAdmin($status, $demandType, $keyword, $perPage);
+        return $this->listingRepository->paginateAdmin($status, $demandType, $keyword, $perPage, $searchField, $priceRange, $packageId);
+    }
+
+    public function getAdminStatusCounts(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $searchField = 'title',
+        ?string $priceRange = null,
+        ?int $packageId = null,
+    ): array
+    {
+        return $this->listingRepository->getAdminStatusCounts($demandType, $keyword, $searchField, $priceRange, $packageId);
     }
 
     public function getMapListings(
