@@ -12,9 +12,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('listing_id')->constrained('listings')->cascadeOnDelete();
             $table->foreignId('reporter_id')->constrained('users')->cascadeOnDelete();
-            $table->string('reason', 80);
+            $table->string('reason', 80)->comment('Enum: WRONG_PRICE, WRONG_ADDRESS, SOLD_OR_RENTED, WRONG_INFORMATION, UNREACHABLE_OWNER, DUPLICATE_LISTING');
             $table->text('description')->nullable();
-            $table->string('status', 30)->default('WARNING');
+            $table->json('image_urls')->nullable();
+            $table->string('status', 30)->default('WARNING')->comment('Enum: WARNING');
             $table->timestamps();
 
             $table->index(['listing_id', 'status']);

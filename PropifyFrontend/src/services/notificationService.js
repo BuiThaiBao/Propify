@@ -1,20 +1,28 @@
 import api from "./api";
 
 const notificationService = {
-  getNotifications(params = {}) {
+  list(params = {}) {
     return api.get("/v1/notifications", { params });
   },
 
-  getUnreadCount() {
+  getNotifications(params = {}) {
+    return this.list(params);
+  },
+
+  unreadCount() {
     return api.get("/v1/notifications/unread-count");
   },
 
-  markAsRead(notificationId) {
-    return api.post(`/v1/notifications/${notificationId}/read`);
+  getUnreadCount() {
+    return this.unreadCount();
+  },
+
+  markAsRead(id) {
+    return api.patch(`/v1/notifications/${id}/read`);
   },
 
   markAllAsRead() {
-    return api.post("/v1/notifications/read-all");
+    return api.patch("/v1/notifications/read-all");
   },
 };
 

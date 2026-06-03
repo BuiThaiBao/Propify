@@ -6,7 +6,9 @@ use App\Enums\ErrorCode;
 use App\Enums\UserRole;
 use App\Exceptions\BusinessException;
 use App\Helpers\ApiResponse;
+use App\Http\Resources\AdminListingReportResource;
 use App\Http\Resources\ListingResource;
+use App\Models\Listing;
 use App\Services\Listing\ListingService;
 use App\Support\ListingPostingOptions;
 use Illuminate\Http\JsonResponse;
@@ -91,6 +93,91 @@ final class AdminListingController extends Controller
             data: new ListingResource($listing),
             message: 'Lấy chi tiết tin đăng thành công.'
         );
+    }
+
+    public function reports(Request $request, int $id): JsonResponse
+    {
+        if ($request->user()->role !== UserRole::Admin) {
+            throw new BusinessException(ErrorCode::AuthForbidden);
+        }
+
+        $listing = Listing::query()->find($id);
+
+        if ($listing === null) {
+            return ApiResponse::notFound('Không tìm thấy tin đăng.');
+        }
+
+        $reports = $listing->reports()
+            ->with('reporter')
+            ->latest()
+            ->get();
+
+        $groupedReports = $reports
+            ->groupBy(fn ($report) => $report->report_group_id ?: $this->legacyReportGroupKey($report))
+            ->map(function ($items) {
+                $first = $items->sortByDesc('created_at')->first();
+                $oldest = $items->sortBy('created_at')->first();
+                $latest = $items->sortByDesc('updated_at')->first();
+                $reasons = $items->pluck('reason')->filter()->unique()->values();
+                $imageUrls = collect($first->image_urls ?? [])
+                    ->filter()
+                    ->values()
+                    ->all();
+
+                return [
+                    'id' => $first->id,
+                    'report_group_id' => $first->report_group_id,
+                    'listing_id' => $first->listing_id,
+                    'reporter' => $first->reporter,
+                    'reasons' => $reasons,
+                    'reason_labels' => $reasons->map(fn (string $reason) => $this->reportReasonLabel($reason))->values(),
+                    'description' => $first->description,
+                    'image_urls' => $imageUrls,
+                    'status' => $first->status,
+                    'report_count' => $items->count(),
+                    'created_at' => $oldest->created_at,
+                    'updated_at' => $latest->updated_at,
+                ];
+            })
+            ->sortByDesc('created_at')
+            ->values();
+
+        return ApiResponse::success(
+            data: AdminListingReportResource::collection($groupedReports),
+            message: 'Lấy danh sách cảnh báo tin đăng thành công.',
+            meta: [
+                'total' => $groupedReports->count(),
+            ]
+        );
+    }
+
+    private function legacyReportGroupKey($report): string
+    {
+        $imageKey = md5(json_encode($report->image_urls ?? []));
+        $descriptionKey = md5((string) $report->description);
+        $createdMinute = $report->created_at?->format('Y-m-d H:i') ?? '';
+
+        return implode('|', [
+            'legacy',
+            $report->listing_id,
+            $report->reporter_id,
+            $descriptionKey,
+            $imageKey,
+            $createdMinute,
+        ]);
+    }
+
+    private function reportReasonLabel(string $reason): string
+    {
+        return match ($reason) {
+            'WRONG_PRICE' => 'Định giá chưa đúng với thực tế',
+            'WRONG_ADDRESS' => 'Địa chỉ của BĐS chưa chính xác',
+            'SOLD_OR_RENTED' => 'BĐS đã bán/đã thuê/đã sang nhượng',
+            'WRONG_INFORMATION' => 'Thông tin chưa chính xác',
+            'UNREACHABLE_OWNER' => 'Không liên lạc được với người đăng tin',
+            'DUPLICATE_LISTING' => 'Trùng với tin rao khác',
+            default => $reason,
+        };
     }
 
     public function updateVerification(Request $request, int $id): JsonResponse

@@ -48,8 +48,20 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: "/notifications",
+    name: "Notifications",
+    component: () => import("@/pages/Notifications/index.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/post-listing",
     name: "PostListing",
+    component: () => import("@/pages/Listings/PostForm.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/listings/:id/edit",
+    name: "ListingEdit",
     component: () => import("@/pages/Listings/PostForm.vue"),
     meta: { requiresAuth: true },
   },
@@ -57,12 +69,6 @@ const routes = [
     path: "/listings/:id",
     name: "ListingDetail",
     component: () => import("@/pages/Listings/Detail.vue"),
-  },
-  {
-    path: "/listings/:id/edit",
-    name: "ListingEdit",
-    component: () => import("@/pages/Listings/PostForm.vue"),
-    meta: { requiresAuth: true },
   },
   {
     path: "/pricing",
