@@ -2,8 +2,8 @@
 
 namespace App\Services\Notification;
 
-use App\Enums\MailType;
 use App\Enums\NotificationChanelType;
+use App\Enums\NotificationType;
 use App\Models\User;
 
 interface NotificationService
@@ -15,7 +15,7 @@ interface NotificationService
      */
     public function send(
         User $user,
-        MailType $template,
+        NotificationType $template,
         array $data = [],
         array $channels = [NotificationChanelType::EMAIL]
     ): void;

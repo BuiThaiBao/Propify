@@ -1108,6 +1108,7 @@
           </div>
         </div>
       </section>
+            <ProfileNotificationsPanel v-if="activeTab === 'notifications'" />
     </main>
     </div>
 
@@ -1159,6 +1160,7 @@ import recentlyViewedService from '@/services/recentlyViewedService';
 import PackageUpgradeModal from '@/components/shared/PackageUpgradeModal.vue';
 import ConfirmActionModal from '@/components/shared/ConfirmActionModal.vue';
 import AppointmentManagement from '@/components/appointments/AppointmentManagement.vue';
+import ProfileNotificationsPanel from '@/components/profile/ProfileNotificationsPanel.vue';
 import SaleCard from '@/components/shared/SaleCard.vue';
 import RentCard from '@/components/shared/RentCard.vue';
 import { buildPropertyAddress, hydrateListingAddresses } from '@/utils/addressFormatter';
@@ -1260,7 +1262,7 @@ async function uploadAvatar() {
 }
 
 // ── Tabs ──
-const validTabs = ['profile', 'listings', 'verifications', 'appointments', 'favorites', 'recently-viewed', 'password'];
+const validTabs = ['profile', 'listings', 'verifications', 'appointments', 'favorites', 'recently-viewed', 'notifications', 'password'];
 const initialTab = validTabs.includes(route.query.tab) ? route.query.tab : 'profile';
 const activeTab = ref(initialTab);
 
@@ -1291,6 +1293,8 @@ watch(
       openFavoritesTab();
     } else if (nextTab === 'recently-viewed') {
       openRecentlyViewedTab();
+    } else if (nextTab === 'notifications') {
+      openNotificationsTab();
     } else {
       activeTab.value = nextTab;
     }
@@ -1422,6 +1426,9 @@ watch(() => listingFilters.keyword, () => {
   }, 300);
 });
 
+const lockListingModalOpen = ref(false);
+const lockListingTarget = ref(null);
+const lockingListing = ref(false);
 const unlistListingModalOpen = ref(false);
 const unlistListingTarget = ref(null);
 const unlistingListing = ref(false);
@@ -1996,6 +2003,10 @@ function openRecentlyViewedTab() {
   }
 }
 
+function openNotificationsTab() {
+  activeTab.value = 'notifications';
+}
+
 async function toggleFavoriteFromViewed(item) {
   try {
     await favoriteService.toggle(item.id);
@@ -2057,6 +2068,8 @@ onMounted(async () => {
     openFavoritesTab();
   } else if (tab === 'recently-viewed') {
     openRecentlyViewedTab();
+  } else if (tab === 'notifications') {
+    openNotificationsTab();
   } else if (tab === 'password') {
     activeTab.value = 'password';
   }
@@ -2318,3 +2331,5 @@ thead tr th.col-sticky-verification {
   box-shadow: inset 1px 0 0 0 #e2e8f0, -3px 0 5px -2px rgba(0, 0, 0, 0.08);
 }
 </style>
+
+

@@ -2,8 +2,8 @@
 
 namespace App\Services\Otp\Impl;
 
-use App\Enums\MailType;
 use App\Enums\NotificationChanelType;
+use App\Enums\NotificationType;
 use App\Enums\OtpContext;
 use App\Models\User;
 use App\Services\Notification\NotificationService;
@@ -32,8 +32,8 @@ final class OtpServiceImpl implements OtpService
         $this->storage->store($key, $otp, self::OTP_TTL_SECONDS);
 
         $mailType = match ($context) {
-            OtpContext::REGISTER => MailType::VERIFY_EMAIL,
-            OtpContext::RESET_PASSWORD => MailType::FORGOT_PASSWORD,
+            OtpContext::REGISTER => NotificationType::VERIFY_EMAIL,
+            OtpContext::RESET_PASSWORD => NotificationType::FORGOT_PASSWORD,
         };
 
         $this->notificationService->send(
