@@ -10,7 +10,7 @@ export function useListingMediaUpload({ onStatus } = {}) {
     }
   }
 
-  async function uploadSingle(file, mode = "image") {
+  async function uploadSingle(file, mode = "image", { silent = false } = {}) {
     if (!file) return null;
     if (typeof file === "string") return file;
 
@@ -18,52 +18,84 @@ export function useListingMediaUpload({ onStatus } = {}) {
       throw new Error(`Dung lượng video vượt quá ${MAX_LISTING_VIDEO_SIZE_LABEL}. Vui lòng chọn video nhỏ hơn.`);
     }
 
-    notify(mode === "video" ? "Đang tải lên video..." : "Đang tải lên hình ảnh...");
+    if (!silent) {
+      notify(mode === "video" ? "Đang tải lên video..." : "Đang tải lên hình ảnh...");
+    }
+
     const res = await cloudinaryService.uploadImage(file, "listing");
     return res.secure_url;
   }
 
   async function uploadMultiple(files, mode = "image") {
-    const urls = [];
+    const uploadableFiles = Array.from(files || []).filter(Boolean);
+    if (!uploadableFiles.length) return [];
 
-    for (const file of files || []) {
-      const url = await uploadSingle(file, mode);
-      if (url) {
-        urls.push(url);
-      }
-    }
+    notify(
+      mode === "video"
+        ? "Đang tải lên video..."
+        : `Đang tải lên ${uploadableFiles.length} hình ảnh...`,
+    );
 
-    return urls;
+    const urls = await Promise.all(
+      uploadableFiles.map((file) => uploadSingle(file, mode, { silent: true })),
+    );
+
+    return urls.filter(Boolean);
   }
 
   async function uploadListingMediaPayload(payload) {
-    payload.images = await uploadMultiple(payload.images, "image");
-    payload.video = await uploadSingle(payload.video, "video");
+    const [images, video] = await Promise.all([
+      uploadMultiple(payload.images, "image"),
+      uploadSingle(payload.video, "video"),
+    ]);
+
+    payload.images = images;
+    payload.video = video;
 
     if (payload.requestVerification) {
-      payload.identityCardFront = await uploadSingle(payload.identityCardFront, "image");
-      payload.identityCardBack = await uploadSingle(payload.identityCardBack, "image");
-      payload.legalDocuments = await uploadMultiple(payload.legalDocuments, "image");
+      const [identityCardFront, identityCardBack, legalDocuments] = await Promise.all([
+        uploadSingle(payload.identityCardFront, "image"),
+        uploadSingle(payload.identityCardBack, "image"),
+        uploadMultiple(payload.legalDocuments, "image"),
+      ]);
+
+      payload.identityCardFront = identityCardFront;
+      payload.identityCardBack = identityCardBack;
+      payload.legalDocuments = legalDocuments;
     }
 
     return payload;
   }
 
   async function uploadDraftMediaPayload(payload) {
-    payload.images = await uploadMultiple(payload.images, "image");
-    payload.video = await uploadSingle(payload.video, "video");
-    payload.identityCardFront = await uploadSingle(payload.identityCardFront, "image");
-    payload.identityCardBack = await uploadSingle(payload.identityCardBack, "image");
-    payload.legalDocuments = await uploadMultiple(payload.legalDocuments, "image");
+    const [images, video, identityCardFront, identityCardBack, legalDocuments] = await Promise.all([
+      uploadMultiple(payload.images, "image"),
+      uploadSingle(payload.video, "video"),
+      uploadSingle(payload.identityCardFront, "image"),
+      uploadSingle(payload.identityCardBack, "image"),
+      uploadMultiple(payload.legalDocuments, "image"),
+    ]);
+
+    payload.images = images;
+    payload.video = video;
+    payload.identityCardFront = identityCardFront;
+    payload.identityCardBack = identityCardBack;
+    payload.legalDocuments = legalDocuments;
 
     return payload;
   }
 
   async function uploadVerificationPayload(payload) {
+    const [identityCardFront, identityCardBack, legalDocuments] = await Promise.all([
+      uploadSingle(payload.identityCardFront, "image"),
+      uploadSingle(payload.identityCardBack, "image"),
+      uploadMultiple(payload.legalDocuments, "image"),
+    ]);
+
     return {
-      identityCardFront: await uploadSingle(payload.identityCardFront, "image"),
-      identityCardBack: await uploadSingle(payload.identityCardBack, "image"),
-      legalDocuments: await uploadMultiple(payload.legalDocuments, "image"),
+      identityCardFront,
+      identityCardBack,
+      legalDocuments,
       publicInfoAgreed: payload.publicInfoAgreed,
     };
   }

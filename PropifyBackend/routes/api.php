@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\Cloudinary\CloudinaryController;
 use App\Http\Controllers\Api\V1\Geocoding\GeocodingController;
 use App\Http\Controllers\Api\V1\Listing\FavoriteController;
 use App\Http\Controllers\Api\V1\Listing\ListingController;
+use App\Http\Controllers\Api\V1\Listing\ListingPostingOptionsController;
 use App\Http\Controllers\Api\V1\Listing\ListingUpgradeController;
 use App\Http\Controllers\Api\V1\Listing\RecentlyViewedController;
 use App\Http\Controllers\Api\V1\Listing\ViewTrackingController;
@@ -183,6 +184,7 @@ Route::get('v1/payments/vnpay/return', VnpayReturnController::class)
 Route::prefix('v1/listings')->as('listings.')->group(function () {
     Route::get('/', [ListingController::class, 'index'])->name('index');
     Route::get('/map', [ListingController::class, 'mapListings'])->name('map');
+    Route::get('/posting-options', ListingPostingOptionsController::class)->name('posting-options');
     Route::get('/{id}', [ListingController::class, 'show'])->where('id', '[0-9]+')->name('show');
 
     // View tracking — public, throttle 60/min/IP

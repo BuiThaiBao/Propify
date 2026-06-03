@@ -12,6 +12,10 @@ export const listingService = {
   getListingDetail(id) {
     return api.get(`/v1/admin/listings/${id}`)
   },
+
+  getPostingOptions() {
+    return api.get('/v1/listings/posting-options')
+  },
   
   /**
    * Thay đổi trạng thái tin đăng (Dành cho admin)

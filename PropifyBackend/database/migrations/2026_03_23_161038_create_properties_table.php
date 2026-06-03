@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('properties', function (Blueprint $table) {
             $table->id();
             $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
-            $table->string('type', 50)->comment('APARTMENT, HOUSE, LAND, OFFICE, ROOM...');
+            $table->string('type', 50)->comment('Enum: APARTMENT, HOUSE, LAND, OFFICE, ROOM');
             $table->string('province_code', 20);
             $table->string('ward_code', 20)->nullable();
             $table->string('street_code', 255)->nullable();
@@ -28,13 +28,13 @@ return new class extends Migration
             $table->decimal('facade_width', 6, 2)->nullable();
             $table->decimal('depth', 6, 2)->nullable();
             $table->decimal('road_width', 6, 2)->nullable();
-            $table->string('direction_code', 30)->nullable();
-            $table->string('balcony_direction_code', 30)->nullable();
-            $table->string('furniture_status', 30)->nullable()->comment('NONE, BASIC, FULL');
+            $table->string('direction_code', 30)->nullable()->comment('Enum: N, NE, E, SE, S, SW, W, NW');
+            $table->string('balcony_direction_code', 30)->nullable()->comment('Enum: N, NE, E, SE, S, SW, W, NW');
+            $table->string('furniture_status', 30)->nullable()->comment('Enum: FULL, BASIC, NONE');
             $table->text('contact_name')->nullable();
             $table->string('contact_phone', 20)->nullable();
             $table->string('contact_email', 255)->nullable();
-            $table->string('poster_type', 20)->nullable()->comment('OWNER, BROKER');
+            $table->string('poster_type', 20)->nullable()->comment('Enum: OWNER, BROKER');
             $table->json('meta')->nullable();
 
             $table->decimal('lat', 10, 8)->nullable();

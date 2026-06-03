@@ -1,21 +1,23 @@
 <script setup>
+import { computed } from 'vue'
 import { Search, Filter, ChevronDown } from 'lucide-vue-next'
 
 const props = defineProps({
   search: String,
   status: String,
   type: String,
+  statusOptions: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['update:search', 'update:status', 'update:type'])
 
-const statusOptions = [
+const statusOptions = computed(() => [
   { value: 'all', label: 'Tất cả trạng thái' },
-  { value: 'approved', label: 'Đã duyệt' },
-  { value: 'pending', label: 'Chờ duyệt' },
-  { value: 'rejected', label: 'Từ chối' },
-  { value: 'locked', label: 'Đã khóa' },
-]
+  ...props.statusOptions,
+])
 
 const typeOptions = [
   { value: 'all', label: 'Tất cả loại' },

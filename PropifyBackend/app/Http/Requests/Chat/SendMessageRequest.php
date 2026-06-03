@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Chat;
 
+use App\Support\ListingPostingOptions;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -15,7 +16,7 @@ final class SendMessageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => ['sometimes', 'string', Rule::in(['text', 'image', 'file'])],
+            'type' => ['sometimes', 'string', Rule::in(ListingPostingOptions::values('message_types'))],
             'body' => ['required_if:type,text', 'nullable', 'string', 'max:5000'],
             'file_url' => ['required_if:type,image,file', 'nullable', 'string', 'url'],
         ];

@@ -410,6 +410,11 @@
                     <span class="font-medium text-sm">{{ item.views ?? 0 }}</span>
                   </div>
                 </td>
+                <td class="px-3 py-4 whitespace-nowrap col-sticky-verification">
+                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', verificationBadgeClass(item.isVerified)]">
+                    {{ item.isVerified ? 'Đã xác thực' : 'Chưa xác thực' }}
+                  </span>
+                </td>
                 <td class="px-3 py-4 whitespace-nowrap col-sticky-status">
                   <span :class="['rounded-full px-2 py-1 text-xs font-medium', statusBadgeClass(item.status)]">
                     {{ statusLabel(item.status) }}
@@ -419,7 +424,6 @@
                   <button @click.stop="toggleDropdown(item.id, $event)" class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center mx-auto">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
                   </button>
-                  
                   <Teleport to="body">
                     <div v-if="openDropdownId === item.id" :style="{ top: dropdownStyle.top, left: dropdownStyle.left }" class="absolute w-[200px] bg-white border border-slate-100 shadow-xl rounded-xl py-2 z-[9999] text-left">
                       <button class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('edit', item)">
@@ -477,22 +481,22 @@
         </div>
 
         <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
-          <p>Tổng cộng {{ listingPagination.total }} tin</p>
+          <p>Tổng cộng {{ verificationPagination.total }} tin</p>
           <div class="flex items-center gap-2">
             <button
               type="button"
               class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50"
-              :disabled="listingPagination.currentPage <= 1 || listingsLoading"
-              @click="loadMyListings(listingPagination.currentPage - 1)"
+              :disabled="verificationPagination.currentPage <= 1 || verificationLoading"
+              @click="loadVerificationListings(verificationPagination.currentPage - 1)"
             >
               Trước
             </button>
-            <span>Trang {{ listingPagination.currentPage }}/{{ listingPagination.lastPage }}</span>
+            <span>Trang {{ verificationPagination.currentPage }}/{{ verificationPagination.lastPage }}</span>
             <button
               type="button"
               class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50"
-              :disabled="listingPagination.currentPage >= listingPagination.lastPage || listingsLoading"
-              @click="loadMyListings(listingPagination.currentPage + 1)"
+              :disabled="verificationPagination.currentPage >= verificationPagination.lastPage || verificationLoading"
+              @click="loadVerificationListings(verificationPagination.currentPage + 1)"
             >
               Sau
             </button>
@@ -1331,11 +1335,7 @@ function handleDropdownAction(action, item) {
       alert('Chỉ có thể đăng tin nháp.');
     }
   } else if (action === 'unpublish') {
-    if (item.status === 'ACTIVE') openUnlistListingModal(item);
-    else alert('Chỉ có thể gỡ tin đang đăng.');
-  } else if (action === 'lock') {
-    if (item.status === 'ACTIVE') openLockListingModal(item);
-    else alert('Chỉ có thể khóa tin đang đăng.');
+    openUnlistListingModal(item);
   } else {
     alert('Tính năng đang phát triển');
   }
@@ -1354,6 +1354,7 @@ const listingPagination = reactive({
   lastPage: 1,
   total: 0,
 });
+const listingStatusOptions = ref([]);
 
 const statusCounts = reactive({
   ALL: 0,
@@ -1421,9 +1422,6 @@ watch(() => listingFilters.keyword, () => {
   }, 300);
 });
 
-const lockListingModalOpen = ref(false);
-const lockListingTarget = ref(null);
-const lockingListing = ref(false);
 const unlistListingModalOpen = ref(false);
 const unlistListingTarget = ref(null);
 const unlistingListing = ref(false);
@@ -1451,16 +1449,20 @@ function toggleSection(key) {
 }
 
 function statusLabel(status) {
+  return listingStatusOptions.value.find((option) => option.value === status)?.label || status;
+}
+
+function statusTabColorClass(status) {
   const map = {
-    DRAFT: 'Tin nháp',
-    PENDING: 'Chờ duyệt',
-    ACTIVE: 'Đang đăng',
-    EXPIRED: 'Hết hạn',
-    REJECTED: 'Từ chối',
-    LOCKED: 'Tin bị khóa',
-    UNLISTED: 'Đã gỡ',
+    DRAFT: 'bg-slate-400',
+    PENDING: 'bg-orange-500',
+    ACTIVE: 'bg-emerald-500',
+    EXPIRED: 'bg-slate-500',
+    REJECTED: 'bg-rose-500',
+    LOCKED: 'bg-red-600',
+    UNLISTED: 'bg-slate-500',
   };
-  return map[status] || status;
+  return map[status] || 'bg-slate-400';
 }
 
 function statusBadgeClass(status) {
@@ -1474,6 +1476,15 @@ function statusBadgeClass(status) {
     UNLISTED: 'bg-slate-100 text-slate-600',
   };
   return map[status] || 'bg-slate-100 text-slate-600';
+}
+
+async function fetchListingOptions() {
+  try {
+    const response = await listingService.getPostingOptions();
+    listingStatusOptions.value = response?.data?.data?.listing_statuses || [];
+  } catch (error) {
+    console.error('Failed to load listing options:', error);
+  }
 }
 
 function toListingCode(id) {
@@ -1604,6 +1615,9 @@ const paginatedFavoriteListings = computed(() => {
 function propertyTypeLabel(type) {
   const map = {
     APARTMENT: 'Căn hộ chung cư',
+    HOUSE: 'Nhà ở',
+    LAND: 'Đất',
+    ROOM: 'Phòng',
     PRIVATE_HOUSE: 'Nhà riêng',
     STREET_HOUSE: 'Nhà mặt phố',
     VILLA_TOWNHOUSE: 'Biệt thự liền kề',
@@ -2009,6 +2023,7 @@ const isProfileFormUnchanged = computed(() => {
 
 onMounted(async () => {
   document.addEventListener('click', closeDropdown);
+  await fetchListingOptions();
 
   // Luôn fetch fresh user để đảm bảo avatar_url mới nhất từ DB
   // (sessionStorage cache có thể không có avatar_url nếu đăng nhập trước khi tích hợp Cloudinary)

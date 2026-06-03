@@ -32,6 +32,8 @@ const loading = ref(false)
 const error = ref('')
 const activeTab = ref('info')
 const actionLoading = ref(false)
+const listingStatusOptions = ref([])
+const adminListingStatusOptions = ref([])
 const reasonModal = ref({ open: false, type: 'status', status: '', title: '', selectedReason: '', reasonDropdownOpen: false, reason: '', error: '' })
 const confirmModal = ref({ open: false, title: '', message: '', confirmText: 'Xác nhận', tone: 'primary', action: null })
 const lightbox = ref({ open: false, items: [], index: 0 })
@@ -135,6 +137,17 @@ async function fetchDetail() {
   }
 }
 
+async function fetchPostingOptions() {
+  try {
+    const res = await listingService.getPostingOptions()
+    const options = res.data?.data ?? {}
+    listingStatusOptions.value = options.listing_statuses ?? []
+    adminListingStatusOptions.value = options.admin_listing_statuses ?? []
+  } catch (err) {
+    console.error('Failed to fetch posting options:', err)
+  }
+}
+
 function formatMoney(value) {
   const amount = Number(value)
   if (!Number.isFinite(amount)) return '--'
@@ -165,13 +178,11 @@ function mapStatusKey(status) {
 }
 
 function mapStatusLabel(status) {
-  return {
-    ACTIVE: 'Đã duyệt',
-    PENDING: 'Chờ duyệt',
-    REJECTED: 'Từ chối',
-    LOCKED: 'Đã khóa',
-    EXPIRED: 'Tin hết hạn',
-  }[status] || status || 'Chờ duyệt'
+  return listingStatusOptions.value.find((option) => option.value === status)?.label || status || 'Chờ duyệt'
+}
+
+function adminStatusLabel(status) {
+  return adminListingStatusOptions.value.find((option) => option.value === status)?.label || mapStatusLabel(status)
 }
 
 function demandLabel(value) {
@@ -262,13 +273,11 @@ function furnitureLabel(value) {
 }
 
 function historyActionLabel(value) {
-  return {
-    ACTIVE: 'Duyệt tin',
-    REJECTED: 'Từ chối',
-    LOCKED: 'Khóa tin',
+  const verificationLabels = {
     VERIFY_APPROVED: 'Đã xác thực',
     VERIFY_REJECTED: 'Từ chối xác thực',
-  }[value] || value
+  }
+  return verificationLabels[value] || adminStatusLabel(value)
 }
 
 function canApprove() {
@@ -507,7 +516,10 @@ watch(() => lightbox.value.open, (isOpen) => {
   }
 })
 
-onMounted(fetchDetail)
+onMounted(async () => {
+  await fetchPostingOptions()
+  await fetchDetail()
+})
 
 onBeforeUnmount(() => {
   document.body.style.overflow = previousBodyOverflow
@@ -540,13 +552,13 @@ onBeforeUnmount(() => {
         </div>
         <div class="header-actions">
           <button v-if="canReject()" class="outline-danger" :disabled="actionLoading" @click="openReason('REJECTED')">
-            <Ban :size="15" /> Từ chối
+            <Ban :size="15" /> {{ adminStatusLabel('REJECTED') }}
           </button>
           <button v-if="canLock()" class="outline-neutral" :disabled="actionLoading" @click="openReason('LOCKED')">
-            <Lock :size="15" /> Khóa tin
+            <Lock :size="15" /> {{ adminStatusLabel('LOCKED') }}
           </button>
           <button v-if="canApprove()" class="primary-action" :disabled="actionLoading" @click="confirmStatusChange('ACTIVE')">
-            <CheckCircle :size="15" /> Duyệt tin
+            <CheckCircle :size="15" /> {{ adminStatusLabel('ACTIVE') }}
           </button>
         </div>
       </header>

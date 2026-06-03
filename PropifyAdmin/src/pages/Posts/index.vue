@@ -18,6 +18,8 @@ const loading = ref(false)
 const error = ref('')
 const actionError = ref('')
 const updatingPostId = ref(null)
+const listingStatusOptions = ref([])
+const adminListingStatusOptions = ref([])
 const pagination = reactive({
   current_page: 1,
   last_page: 1,
@@ -26,13 +28,6 @@ const pagination = reactive({
 })
 
 let searchTimer = null
-
-const statusParamMap = {
-  approved: 'ACTIVE',
-  pending: 'PENDING',
-  rejected: 'REJECTED',
-  locked: 'LOCKED',
-}
 
 const typeParamMap = {
   sale: 'SALE',
@@ -47,10 +42,21 @@ function buildParams() {
 
   const keyword = searchQuery.value.trim()
   if (keyword) params.keyword = keyword
-  if (filterStatus.value !== 'all') params.status = statusParamMap[filterStatus.value]
+  if (filterStatus.value !== 'all') params.status = filterStatus.value
   if (filterType.value !== 'all') params.demand_type = typeParamMap[filterType.value]
 
   return params
+}
+
+async function fetchPostingOptions() {
+  try {
+    const response = await listingService.getPostingOptions()
+    const options = response.data?.data ?? {}
+    listingStatusOptions.value = options.listing_statuses ?? []
+    adminListingStatusOptions.value = options.admin_listing_statuses ?? []
+  } catch (err) {
+    console.error('Failed to fetch posting options:', err)
+  }
 }
 
 async function fetchListings() {
@@ -119,7 +125,10 @@ watch(searchQuery, () => {
   }, 400)
 })
 
-onMounted(fetchListings)
+onMounted(async () => {
+  await fetchPostingOptions()
+  await fetchListings()
+})
 </script>
 
 <template>
@@ -133,6 +142,7 @@ onMounted(fetchListings)
       v-model:search="searchQuery"
       v-model:status="filterStatus"
       v-model:type="filterType"
+      :status-options="listingStatusOptions"
     />
 
     <PostsTable
@@ -141,6 +151,8 @@ onMounted(fetchListings)
       :error="error"
       :action-error="actionError"
       :updating-post-id="updatingPostId"
+      :status-options="listingStatusOptions"
+      :admin-status-options="adminListingStatusOptions"
       @change-status="updateListingStatus"
       @open-detail="openListingDetail"
     />

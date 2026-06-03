@@ -68,12 +68,9 @@
           @change="reload(1)"
         >
           <option value="">Trạng thái: Tất cả</option>
-          <option value="PENDING">Chờ duyệt</option>
-          <option value="ACTIVE">Đang đăng</option>
-          <option value="REJECTED">Từ chối</option>
-          <option value="LOCKED">Tin bị khóa</option>
-          <option value="DRAFT">Tin nháp</option>
-          <option value="EXPIRED">Hết hạn</option>
+          <option v-for="option in listingStatusOptions" :key="option.value" :value="option.value">
+            {{ option.label }}
+          </option>
         </select>
 
         <select
@@ -240,6 +237,7 @@ const authStore = useAuthStore();
 
 const loading = ref(false);
 const rows = ref([]);
+const listingStatusOptions = ref([]);
 
 const filters = reactive({
   keyword: "",
@@ -256,11 +254,7 @@ const pagination = reactive({
 
 const statusTabs = computed(() => [
   { value: "", label: "Tất cả" },
-  { value: "PENDING", label: "Chờ duyệt" },
-  { value: "ACTIVE", label: "Tin đang đăng" },
-  { value: "DRAFT", label: "Tin nháp" },
-  { value: "REJECTED", label: "Từ chối" },
-  { value: "LOCKED", label: "Tin bị khóa" },
+  ...listingStatusOptions.value,
 ]);
 
 function formatCurrency(value) {
@@ -279,15 +273,7 @@ function buildAddress(property) {
 }
 
 function statusLabel(status) {
-  const map = {
-    DRAFT: "Tin nháp",
-    PENDING: "Chờ duyệt",
-    ACTIVE: "Đang đăng",
-    EXPIRED: "Hết hạn",
-    REJECTED: "Từ chối",
-    LOCKED: "Tin bị khóa",
-  };
-  return map[status] || status;
+  return listingStatusOptions.value.find((option) => option.value === status)?.label || status;
 }
 
 function statusBadgeClass(status) {
@@ -381,7 +367,17 @@ function goToEdit(id) {
   router.push('/listings/' + id + '/edit');
 }
 
-onMounted(() => {
+async function fetchListingOptions() {
+  try {
+    const response = await listingService.getPostingOptions();
+    listingStatusOptions.value = response?.data?.data?.listing_statuses || [];
+  } catch (error) {
+    console.error("Failed to load listing options:", error);
+  }
+}
+
+onMounted(async () => {
+  await fetchListingOptions();
   reload(1);
 });
 </script>
