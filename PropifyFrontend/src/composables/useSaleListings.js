@@ -5,10 +5,11 @@ import listingService from '@/services/listingService';
 import { hydrateListingAddresses } from '@/utils/addressFormatter';
 import { listingKeys } from '@/composables/queryKeys';
 
-async function fetchSalePage(page, keyword, posterType, minPrice, maxPrice, minArea, maxArea, sortBy) {
+async function fetchSalePage(page, keyword, searchField, posterType, minPrice, maxPrice, minArea, maxArea, sortBy) {
   const response = await listingService.getPublicListings({
     demand_type: 'SALE',
     keyword: keyword?.trim() || undefined,
+    search_field: searchField && searchField !== 'all' ? searchField : undefined,
     per_page: 10,
     page,
     poster_type: posterType || undefined,
@@ -33,6 +34,7 @@ export function useSaleListings() {
   const enabled = ref(false);
   const currentPage = ref(1);
   const searchKeyword = ref(route?.query?.q || '');
+  const searchField = ref(String(route?.query?.search_field || 'all'));
 
   watch(
     () => route?.query?.q,
@@ -50,6 +52,13 @@ export function useSaleListings() {
       }
     }
   );
+  watch(
+    () => route?.query?.search_field,
+    (newVal) => {
+      searchField.value = String(newVal || 'all');
+      currentPage.value = 1;
+    }
+  );
 
   // Filter states
   const posterType = ref(''); // '', 'OWNER', 'BROKER'
@@ -62,6 +71,7 @@ export function useSaleListings() {
   const queryKey = computed(() => listingKeys.publicList({
     demand_type: 'SALE',
     keyword: searchKeyword.value.trim(),
+    search_field: searchField.value !== 'all' ? searchField.value : undefined,
     per_page: 10,
     page: currentPage.value,
     poster_type: posterType.value || undefined,
@@ -77,6 +87,7 @@ export function useSaleListings() {
     queryFn: () => fetchSalePage(
       currentPage.value,
       searchKeyword.value,
+      searchField.value,
       posterType.value,
       minPrice.value,
       maxPrice.value,
@@ -128,20 +139,38 @@ export function useSaleListings() {
   });
 
   watch(
-    () => [enabled.value, currentPage.value, searchKeyword.value, lastPage.value, posterType.value, minPrice.value, maxPrice.value, minArea.value, maxArea.value, sortBy.value],
-    ([isEnabled, page, keyword, totalPages, pType, minP, maxP, minA, maxA, sBy]) => {
+    () => [enabled.value, currentPage.value, searchKeyword.value, searchField.value, lastPage.value, posterType.value, minPrice.value, maxPrice.value, minArea.value, maxArea.value, sortBy.value],
+    ([isEnabled, page, keyword, selectedField, totalPages, pType, minP, maxP, minA, maxA, sBy]) => {
       if (!isEnabled) return;
-      prefetchNextPage(page, keyword, totalPages, pType, minP, maxP, minA, maxA, sBy);
+      prefetchNextPage(page, keyword, selectedField, totalPages, pType, minP, maxP, minA, maxA, sBy);
     },
   );
 
   // Reset page when filters change
   watch(
-    () => [posterType.value, minPrice.value, maxPrice.value, minArea.value, maxArea.value, sortBy.value],
+    () => [posterType.value, minPrice.value, maxPrice.value, minArea.value, maxArea.value, sortBy.value, searchField.value],
     () => {
       currentPage.value = 1;
     }
   );
+  watch(searchField, (nextField) => {
+    const currentField = String(route?.query?.search_field || 'all');
+    const normalizedNextField = String(nextField || 'all');
+    const currentKeyword = String(route?.query?.q || '');
+
+    searchKeyword.value = '';
+    currentPage.value = 1;
+
+    if (currentField === normalizedNextField && currentKeyword === '') return;
+
+    router.replace({
+      query: {
+        ...route.query,
+        q: undefined,
+        search_field: normalizedNextField !== 'all' ? normalizedNextField : undefined,
+      },
+    }).catch(() => {});
+  });
   watch(sortBy, (nextSort) => {
     const currentSort = String(route?.query?.sort || '');
     const normalizedNextSort = String(nextSort || '');
@@ -176,6 +205,7 @@ export function useSaleListings() {
       } else {
         delete nextQuery.q;
       }
+      nextQuery.search_field = searchField.value !== 'all' ? searchField.value : undefined;
 
       router.replace({
         query: nextQuery,
@@ -189,7 +219,7 @@ export function useSaleListings() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function prefetchNextPage(page, keyword, totalPages, pType, minP, maxP, minA, maxA, sBy) {
+  function prefetchNextPage(page, keyword, selectedField, totalPages, pType, minP, maxP, minA, maxA, sBy) {
     const nextPage = Number(page) + 1;
     if (nextPage > Number(totalPages || 1)) return;
 
@@ -197,6 +227,7 @@ export function useSaleListings() {
       queryKey: listingKeys.publicList({
         demand_type: 'SALE',
         keyword: keyword?.trim(),
+        search_field: selectedField && selectedField !== 'all' ? selectedField : undefined,
         per_page: 10,
         page: nextPage,
         poster_type: pType || undefined,
@@ -206,7 +237,7 @@ export function useSaleListings() {
         max_area: maxA !== null ? maxA : undefined,
         sort: sBy || undefined,
       }),
-      queryFn: () => fetchSalePage(nextPage, keyword, pType, minP, maxP, minA, maxA, sBy),
+      queryFn: () => fetchSalePage(nextPage, keyword, selectedField, pType, minP, maxP, minA, maxA, sBy),
       staleTime: 60 * 1000,
     });
   }
@@ -218,6 +249,7 @@ export function useSaleListings() {
     currentPage,
     lastPage,
     searchKeyword,
+    searchField,
     saleSuggestions,
     visiblePages,
     posterType,

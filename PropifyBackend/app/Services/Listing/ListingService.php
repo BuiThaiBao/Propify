@@ -34,6 +34,7 @@ interface ListingService
         ?string $demandType,
         ?string $keyword,
         int $perPage,
+        ?string $searchField = null,
         ?string $posterType = null,
         ?float $minPrice = null,
         ?float $maxPrice = null,
@@ -44,6 +45,7 @@ interface ListingService
     public function getMapListings(
         ?string $demandType,
         ?string $keyword,
+        ?string $searchField = null,
         ?string $posterType = null,
         ?float $minPrice = null,
         ?float $maxPrice = null,
