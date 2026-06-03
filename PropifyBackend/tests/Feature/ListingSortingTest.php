@@ -103,9 +103,10 @@ class ListingSortingTest extends TestCase
         $owner = User::query()->create(['phone' => '0900000006']);
         $package = Package::query()->create(['name' => 'Normal 5', 'slug' => 'normal-5', 'priority' => 1, 'price' => 0]);
 
-        $provinceListing = $this->createActiveListing($owner->id, 1000000, $package->id, 10, now()->subHour(), null, [
-            'province' => 'Thành phố Hồ Chí Minh',
+        $addressListing = $this->createActiveListing($owner->id, 1000000, $package->id, 10, now()->subHour(), null, [
+            'province' => 'Thành phố Hà Nội',
             'ward' => 'Phường Bến Nghé',
+            'street_code' => 'Le Loi',
             'project_name' => 'Saigon Centre',
             'address_detail' => '65 Le Loi',
         ]);
@@ -117,17 +118,17 @@ class ListingSortingTest extends TestCase
             'address_detail' => '12 Bach Dang',
         ]);
 
-        $provinceResponse = $this->getJson('/api/v1/listings?keyword=ho%20chi%20minh&search_field=province');
-        $provinceResponse->assertOk();
-        $provinceIds = array_map('intval', $provinceResponse->json('data.*.id'));
-        $this->assertContains($provinceListing->id, $provinceIds);
-        $this->assertNotContains($projectListing->id, $provinceIds);
+        $addressResponse = $this->getJson('/api/v1/listings?keyword=ben%20nghe&search_field=address');
+        $addressResponse->assertOk();
+        $addressIds = array_map('intval', $addressResponse->json('data.*.id'));
+        $this->assertContains($addressListing->id, $addressIds);
+        $this->assertNotContains($projectListing->id, $addressIds);
 
         $projectResponse = $this->getJson('/api/v1/listings?keyword=ho%20chi%20minh&search_field=project_name');
         $projectResponse->assertOk();
         $projectIds = array_map('intval', $projectResponse->json('data.*.id'));
         $this->assertContains($projectListing->id, $projectIds);
-        $this->assertNotContains($provinceListing->id, $projectIds);
+        $this->assertNotContains($addressListing->id, $projectIds);
     }
 
     private function createActiveListing(int $ownerId, float $price, ?int $packageId, int $score, $publishedAt, $submittedAt = null, array $propertyOverrides = []): Listing

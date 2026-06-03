@@ -126,11 +126,8 @@ const selectedSearchFieldLabel = computed(() => {
 const effectivePlaceholder = computed(() => {
   const placeholders = {
     all: 'Tìm kiếm theo tên, địa chỉ, dự án...',
-    province: 'Tìm theo tỉnh/thành phố...',
-    ward: 'Tìm theo phường/xã...',
-    street_code: 'Tìm theo tên đường...',
+    address: 'Tìm theo phường/xã, đường, địa chỉ chi tiết...',
     project_name: 'Tìm theo tên dự án...',
-    address_detail: 'Tìm theo địa chỉ chi tiết...',
   };
 
   if (props.searchField && placeholders[props.searchField]) {
