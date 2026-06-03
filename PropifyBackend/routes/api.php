@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\V1\Package\PackageController;
 use App\Http\Controllers\Api\V1\Package\PackageDurationOptionController;
 use App\Http\Controllers\Api\V1\Package\PackagePricingController;
 use App\Http\Controllers\Api\V1\Payment\VnpayReturnController;
+use App\Http\Controllers\Api\V1\Project\ProjectSearchController;
 use App\Http\Controllers\Api\V1\User\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -213,6 +214,10 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
             ->where('id', '[0-9]+')
             ->name('upgrade');
     });
+});
+
+Route::prefix('v1/projects')->as('projects.')->group(function () {
+    Route::get('/search', ProjectSearchController::class)->name('search');
 });
 
 Route::prefix('v1/amenities')->as('amenities.')->group(function () {

@@ -46,7 +46,7 @@
           <div class="relative flex items-center gap-1" ref="accountDropdownRef">
             <router-link
               to="/profile?tab=favorites"
-              @click="accountMenuOpen = false"
+              @click="accountMenuOpen = false; notificationMenuOpen = false"
               class="inline-flex h-9 w-9 items-center justify-center text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/15"
               title="Yêu thích"
             >
@@ -151,7 +151,7 @@
               </div>
             </div>
             <button
-              @click="accountMenuOpen = !accountMenuOpen"
+              @click="toggleAccountMenu"
               class="inline-flex h-9 w-9 items-center justify-center text-white/80 hover:text-white transition-colors rounded-lg hover:bg-white/15"
               title="Tài khoản"
             >
@@ -602,6 +602,19 @@ watch(
       subscribeNotifications();
     }
   },
+);
+
+function toggleAccountMenu() {
+  accountMenuOpen.value = !accountMenuOpen.value;
+  notificationMenuOpen.value = false;
+}
+
+watch(
+  () => route.fullPath,
+  () => {
+    accountMenuOpen.value = false;
+    notificationMenuOpen.value = false;
+  }
 );
 </script>
 
