@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api\V1\Listing;
 use App\Helpers\ApiResponse;
 use App\Http\Requests\Listing\CreateListingRequest;
 use App\Http\Requests\Listing\GetMyListingsRequest;
+use App\Http\Requests\Listing\StoreListingLockAppealRequest;
 use App\Http\Requests\Listing\StoreListingReportRequest;
 use App\Http\Resources\ListingResource;
 use App\Http\Resources\MapListingResource;
 use App\Models\Listing;
 use App\Services\Listing\ListingService;
+use App\Services\Listing\Appeals\CreateListingLockAppealCommand;
 use App\Services\Listing\Reports\ReportListingCommand;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,6 +21,7 @@ final class ListingController
     public function __construct(
         private readonly ListingService $listingService,
         private readonly ReportListingCommand $reportListingCommand,
+        private readonly CreateListingLockAppealCommand $createListingLockAppealCommand,
     ) {}
 
     public function store(CreateListingRequest $request): JsonResponse
@@ -169,6 +172,41 @@ final class ListingController
                 'status' => 'WARNING',
             ],
             message: 'Cảm ơn bạn đã phản hồi.'
+        );
+    }
+
+    public function appealLock(StoreListingLockAppealRequest $request, int $id): JsonResponse
+    {
+        $listing = Listing::query()->find($id);
+
+        if ($listing === null) {
+            return ApiResponse::notFound('Không tìm thấy tin đăng.');
+        }
+
+        if ((int) $listing->owner_id !== (int) $request->user()->id) {
+            return ApiResponse::forbidden('Bạn không có quyền phản ánh tin đăng này.');
+        }
+
+        if ($listing->status !== 'LOCKED') {
+            return ApiResponse::error('Chỉ có thể phản ánh tin đang bị khóa.', 422);
+        }
+
+        if ($this->createListingLockAppealCommand->hasPendingAppeal($request->user(), $listing)) {
+            return ApiResponse::error('Bạn đã gửi phản ánh cho tin này và đang chờ xử lý.', 409);
+        }
+
+        $appeal = $this->createListingLockAppealCommand->handle(
+            $request->user(),
+            $listing,
+            $request->validated('reason')
+        );
+
+        return ApiResponse::created(
+            data: [
+                'id' => $appeal->id,
+                'status' => $appeal->status,
+            ],
+            message: 'Đã gửi phản ánh. Quản trị viên sẽ xem xét tin của bạn.'
         );
     }
 

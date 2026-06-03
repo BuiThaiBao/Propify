@@ -992,6 +992,7 @@ const submitLoadingLabel = computed(() => (isVerificationOnlyMode.value ? 'Đang
 const isHydratingEdit = ref(false);
 const isSyncingAdminFromMap = ref(false);
 const initialEditSnapshot = ref("");
+const editListingStatus = ref("");
 const editLoading = ref(false);
 const loading = ref(false);
 const savingDraft = ref(false);
@@ -1190,14 +1191,18 @@ const isEditDirty = computed(() => {
   if (isHydratingEdit.value || editLoading.value || !initialEditSnapshot.value) return false;
   return createEditSnapshot() !== initialEditSnapshot.value;
 });
-const canSubmitListing = computed(() => !formBusy.value && (!isEditMode.value || isEditDirty.value));
+const isUnlistedRelistingMode = computed(() => isEditMode.value && editListingStatus.value === 'UNLISTED');
+const isRelistingMode = computed(() => isEditMode.value && ['UNLISTED', 'REJECTED'].includes(editListingStatus.value));
+const canSubmitListing = computed(() => !formBusy.value && (!isEditMode.value || isUnlistedRelistingMode.value || isEditDirty.value));
 const submitButtonText = computed(() => {
   if (savingDraft.value) return 'Đang lưu nháp...';
   if (loading.value) {
     if (isVerificationOnlyMode.value) return 'Đang lưu xác thực...';
+    if (isRelistingMode.value) return 'Đang đăng lại tin...';
     return isEditMode.value ? 'Đang cập nhật tin...' : 'Đang đăng tin...';
   }
   if (isVerificationOnlyMode.value) return 'Lưu xác thực';
+  if (isRelistingMode.value) return 'Đăng lại tin';
   return isEditMode.value ? 'Cập nhật tin' : 'Đăng tin';
 });
 
@@ -1605,6 +1610,7 @@ async function loadListingForEdit() {
     clearSubmitError();
 
     const p = data.property || {};
+    editListingStatus.value = data.status || '';
     const inputValue = (value) => (value === null || value === undefined ? '' : String(value));
     const arrayValue = (value) => {
       if (Array.isArray(value)) return value;
@@ -3153,6 +3159,7 @@ function clearMapMarker() {
 
 function resetFormState() {
   initialEditSnapshot.value = "";
+  editListingStatus.value = "";
   clearImagePreviews();
   clearIdCardPreviews();
   clearLegalDocumentPreviews();
@@ -3243,7 +3250,7 @@ async function submitListing() {
     return;
   }
 
-  if (isEditMode.value && !isEditDirty.value) {
+  if (isEditMode.value && !isUnlistedRelistingMode.value && !isEditDirty.value) {
     return;
   }
 
@@ -3292,7 +3299,7 @@ async function submitListing() {
     await listingMediaUpload.uploadListingMediaPayload(form);
 
     // 4. Submit to Backend
-    pushToast(isEditMode.value ? 'Đang cập nhật tin đăng...' : 'Đang gửi tin đăng...', 'info', 2500);
+    pushToast(isRelistingMode.value ? 'Đang đăng lại tin...' : (isEditMode.value ? 'Đang cập nhật tin đăng...' : 'Đang gửi tin đăng...'), 'info', 2500);
     console.log('Submitting listing payload', JSON.parse(JSON.stringify(form)));
     let response;
     if (isEditMode.value) {
@@ -3317,7 +3324,10 @@ async function submitListing() {
 
     clearSubmitError();
     clearDraft();
-    pushToast(response.data?.message || (isEditMode.value ? 'Cập nhật tin thành công' : 'Đăng tin thành công. Tin đăng chờ duyệt'), 'success');
+    const successMessage = isRelistingMode.value
+      ? 'Đăng lại tin thành công. Tin đăng đang chờ duyệt.'
+      : (response.data?.message || (isEditMode.value ? 'Cập nhật tin thành công' : 'Đăng tin thành công. Tin đăng chờ duyệt'));
+    pushToast(successMessage, 'success');
     resetForm();
     // Redirect đến trang danh sách tin đăng
     router.push('/profile?tab=listings');

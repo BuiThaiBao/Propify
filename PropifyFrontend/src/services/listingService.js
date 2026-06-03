@@ -50,6 +50,10 @@ const listingService = {
     return api.post(`/v1/listings/${id}/reports`, payload);
   },
 
+  appealLock(id, payload) {
+    return api.post(`/v1/listings/${id}/lock-appeals`, payload);
+  },
+
   create(payload) {
     return api.post("/v1/listings", buildListingPayload(payload));
   },
