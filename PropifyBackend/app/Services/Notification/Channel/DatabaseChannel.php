@@ -39,6 +39,9 @@ final class DatabaseChannel implements NotificationChannel
             NotificationType::PACKAGE_UPGRADED => 'Nâng cấp gói tin thành công',
             NotificationType::PACKAGE_EXPIRING => 'Gói tin sắp hết hạn',
             NotificationType::APPOINTMENT_BOOKED => 'Có người đặt lịch xem nhà',
+            NotificationType::APPOINTMENT_STATUS_UPDATED => ($data['status'] ?? null) === 'APPROVED'
+                ? 'Lịch hẹn đã được chấp nhận'
+                : 'Lịch hẹn đã bị từ chối',
         };
     }
 
@@ -62,6 +65,17 @@ final class DatabaseChannel implements NotificationChannel
                 $data['listing_title'] ?? 'Tin đăng',
                 $data['meet_time'] ?? 'thời gian chưa xác định'
             ),
+            NotificationType::APPOINTMENT_STATUS_UPDATED => ($data['status'] ?? null) === 'APPROVED'
+                ? sprintf(
+                    'Lịch hẹn xem tin "%s" vào %s đã được chấp nhận.',
+                    $data['listing_title'] ?? 'Tin đăng',
+                    $data['meet_time'] ?? 'thời gian chưa xác định'
+                )
+                : sprintf(
+                    'Lịch hẹn xem tin "%s" vào %s đã bị từ chối.',
+                    $data['listing_title'] ?? 'Tin đăng',
+                    $data['meet_time'] ?? 'thời gian chưa xác định'
+                ),
         };
     }
 }

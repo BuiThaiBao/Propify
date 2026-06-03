@@ -6,6 +6,7 @@ use App\DTOs\Appointment\CreateBookingDto;
 use App\Enums\BookingStatus;
 use App\Enums\ErrorCode;
 use App\Events\Appointment\AppointmentBooked;
+use App\Events\Appointment\AppointmentBookingStatusUpdated;
 use App\Exceptions\BusinessException;
 use App\Jobs\AutoCancelExpiredBookingJob;
 use App\Models\AppointmentBooking;
@@ -173,6 +174,10 @@ final class AppointmentBookingServiceImpl implements AppointmentBookingService
         }
 
         $booking->update($updateData);
+
+        if (in_array($status, [BookingStatus::APPROVED->value, BookingStatus::CANCELLED_BY_POSTER->value], true)) {
+            AppointmentBookingStatusUpdated::dispatch($booking->id, $status);
+        }
 
         // 5. Load relationships để resource trả về đầy đủ
         $booking->load('slot.listing');

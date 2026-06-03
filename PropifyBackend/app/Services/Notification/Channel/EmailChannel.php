@@ -6,6 +6,7 @@ use App\Enums\MailType;
 use App\Enums\NotificationChannelType;
 use App\Enums\NotificationType;
 use App\Mail\AppointmentBookedMail;
+use App\Mail\AppointmentStatusUpdatedMail;
 use App\Mail\Auth\ForgotPasswordMail;
 use App\Mail\Auth\VerifyEmailMail;
 use App\Mail\Auth\WelcomeMail;
@@ -38,6 +39,7 @@ final class EmailChannel implements NotificationChannel
                 expiresAt: Carbon::parse($data['package_expires_at'] ?? now()),
             ),
             NotificationType::APPOINTMENT_BOOKED => new AppointmentBookedMail($user, $data),
+            NotificationType::APPOINTMENT_STATUS_UPDATED => new AppointmentStatusUpdatedMail($data),
             default => throw new \InvalidArgumentException("Unsupported mail template: {$type->value}"),
         };
 

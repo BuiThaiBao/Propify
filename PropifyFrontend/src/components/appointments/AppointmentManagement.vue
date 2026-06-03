@@ -30,7 +30,14 @@
 
     <!-- Booking list -->
     <div v-else class="flex flex-col gap-3">
-      <div v-for="booking in filteredBookings" :key="booking.id" class="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-md hover:border-slate-300 transition-all">
+      <div
+        v-for="booking in filteredBookings"
+        :key="booking.id"
+        :class="[
+          'bg-white border rounded-xl p-5 hover:shadow-md transition-all',
+          bookingCardClass(booking),
+        ]"
+      >
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1 min-w-0">
             <div class="flex items-center flex-wrap gap-2 mb-2">
@@ -50,6 +57,12 @@
               <span class="inline-flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> {{ formatDate(booking.meet_time) }}</span>
               <span class="inline-flex items-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> {{ formatTime(booking.start_time) }} - {{ formatTime(booking.end_time) }}</span>
             </div>
+            <p
+              v-if="bookingStatusHint(booking)"
+              :class="['mt-2 text-xs font-semibold', bookingStatusHint(booking).class]"
+            >
+              {{ bookingStatusHint(booking).text }}
+            </p>
             <p v-if="booking.note" class="text-xs text-slate-400 mt-1 italic">{{ getNoteLabel(booking) }}: {{ getDisplayNote(booking) }}</p>
           </div>
           <div class="flex items-center gap-2 shrink-0">
@@ -139,9 +152,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { useAuthStore } from '@/stores/auth';
+import { getEcho } from '@/plugins/echo';
 import appointmentService from '@/services/appointmentService';
 
+const authStore = useAuthStore();
 const activeView = ref('my');
 const activeFilter = ref('ALL');
 const loading = ref(false);
@@ -160,6 +176,7 @@ const toastVisible = ref(false);
 const toastOk = ref(true);
 const toastTitle = ref('');
 const toastMsg = ref('');
+let subscribedChannelName = null;
 
 const rejectReasons = [
   'Trùng lịch đột xuất',
@@ -213,6 +230,44 @@ function statusBadge(s) {
   }[s] || { label: s, class: 'bg-slate-100 text-slate-600' };
 }
 
+function bookingCardClass(booking) {
+  if (activeView.value !== 'my') {
+    return 'border-slate-200 hover:border-slate-300';
+  }
+
+  if (booking.status === 'APPROVED') {
+    return 'border-emerald-200 bg-emerald-50/40 hover:border-emerald-300';
+  }
+
+  if (booking.status === 'CANCELLED_BY_POSTER') {
+    return 'border-rose-200 bg-rose-50/50 hover:border-rose-300';
+  }
+
+  return 'border-slate-200 hover:border-slate-300';
+}
+
+function bookingStatusHint(booking) {
+  if (activeView.value !== 'my') {
+    return null;
+  }
+
+  if (booking.status === 'APPROVED') {
+    return {
+      text: 'Chủ nhà đã chấp nhận lịch hẹn này. Bạn có thể đến đúng khung giờ đã hẹn.',
+      class: 'text-emerald-700',
+    };
+  }
+
+  if (booking.status === 'CANCELLED_BY_POSTER') {
+    return {
+      text: 'Chủ nhà đã từ chối lịch hẹn này. Bạn nên chọn khung giờ khác hoặc liên hệ lại.',
+      class: 'text-rose-700',
+    };
+  }
+
+  return null;
+}
+
 function formatDate(t) { if (!t) return ''; const d = new Date(t); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
 function formatTime(t) { return t ? t.substring(0,5) : ''; }
 
@@ -264,7 +319,81 @@ async function doCancel() {
 
 function toast(ok, title, msg = '') { toastOk.value = ok; toastTitle.value = title; toastMsg.value = msg; toastVisible.value = true; setTimeout(() => { toastVisible.value = false; }, ok ? 1200 : 3000); }
 
-onMounted(() => { fetchBookings(); });
+function syncFilterForUpdatedBooking(status) {
+  if (activeView.value !== 'my') {
+    return;
+  }
+
+  if (activeFilter.value === 'ALL' || activeFilter.value === status) {
+    return;
+  }
+
+  if (status === 'APPROVED' || status === 'CANCELLED_BY_POSTER') {
+    activeFilter.value = status;
+  }
+}
+
+function leaveAppointmentChannel() {
+  const echo = getEcho();
+  if (echo && subscribedChannelName) {
+    echo.leave(subscribedChannelName);
+  }
+  subscribedChannelName = null;
+}
+
+function subscribeAppointmentUpdates() {
+  const echo = getEcho();
+  const userId = authStore.user?.id;
+
+  if (!echo || !userId) {
+    return;
+  }
+
+  const channelName = `user.${userId}`;
+
+  if (subscribedChannelName === channelName) {
+    return;
+  }
+
+  leaveAppointmentChannel();
+
+  echo.private(channelName).listen('.notification.sent', async (event) => {
+    const notification = event?.notification;
+
+    if (!notification || notification.type !== 'appointment_status_updated') {
+      return;
+    }
+
+    if (activeView.value !== 'my') {
+      return;
+    }
+
+    syncFilterForUpdatedBooking(notification.data?.status);
+    await fetchBookings();
+
+    if (notification.title) {
+      toast(true, notification.title, notification.content || '');
+    }
+  });
+
+  subscribedChannelName = channelName;
+}
+
+onMounted(() => {
+  fetchBookings();
+  subscribeAppointmentUpdates();
+});
+
+onUnmounted(() => {
+  leaveAppointmentChannel();
+});
+
+watch(
+  () => authStore.user?.id,
+  () => {
+    subscribeAppointmentUpdates();
+  },
+);
 </script>
 
 <style scoped>
