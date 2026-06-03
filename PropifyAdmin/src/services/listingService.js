@@ -13,6 +13,10 @@ export const listingService = {
     return api.get(`/v1/admin/listings/${id}`)
   },
 
+  getListingReports(id) {
+    return api.get(`/v1/admin/listings/${id}/reports`)
+  },
+
   getPostingOptions() {
     return api.get('/v1/listings/posting-options')
   },

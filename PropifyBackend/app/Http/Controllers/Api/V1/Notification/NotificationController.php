@@ -3,28 +3,41 @@
 namespace App\Http\Controllers\Api\V1\Notification;
 
 use App\Helpers\ApiResponse;
-use App\Models\Notification;
+use App\Http\Resources\NotificationResource;
+use App\Services\Notification\InAppNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 
-final class NotificationController
+final class NotificationController extends Controller
 {
+    public function __construct(
+        private readonly InAppNotificationService $notificationService,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
-        $perPage = max(1, min((int) $request->integer('per_page', 10), 50));
-        $user = $request->user();
-        $notifications = $user->notifications()->latest()->paginate($perPage);
+        $validated = $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
+            'unread' => ['nullable', 'boolean'],
+        ]);
+
+        $paginator = $this->notificationService->paginateForUser(
+            userId: (int) $request->user()->id,
+            perPage: (int) ($validated['per_page'] ?? 15),
+            unreadOnly: (bool) ($validated['unread'] ?? false),
+        );
 
         return ApiResponse::success(
-            data: $notifications->items(),
+            data: NotificationResource::collection($paginator->items()),
+            message: 'Lấy danh sách thông báo thành công.',
             meta: [
-                'current_page' => $notifications->currentPage(),
-                'last_page' => $notifications->lastPage(),
-                'per_page' => $notifications->perPage(),
-                'total' => $notifications->total(),
-                'unread_count' => $user->notifications()->unread()->count(),
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'unread_count' => $this->notificationService->unreadCount((int) $request->user()->id),
             ],
-            message: 'Lấy danh sách thông báo thành công.'
         );
     }
 
@@ -32,36 +45,29 @@ final class NotificationController
     {
         return ApiResponse::success(
             data: [
-                'unread_count' => $request->user()->notifications()->unread()->count(),
+                'count' => $this->notificationService->unreadCount((int) $request->user()->id),
             ],
-            message: 'Lấy số lượng thông báo chưa đọc thành công.'
+            message: 'Lấy số thông báo chưa đọc thành công.',
         );
     }
 
     public function markAsRead(Request $request, string $id): JsonResponse
     {
-        $notification = Notification::query()
-            ->where('user_id', $request->user()->id)
-            ->where('id', $id)
-            ->firstOrFail();
-
-        if (! $notification->read_at) {
-            $notification->forceFill(['read_at' => now()])->save();
-        }
+        $notification = $this->notificationService->markAsRead((int) $request->user()->id, $id);
 
         return ApiResponse::success(
-            data: $notification->fresh(),
-            message: 'Đã đánh dấu thông báo là đã đọc.'
+            data: new NotificationResource($notification),
+            message: 'Đã đánh dấu thông báo là đã đọc.',
         );
     }
 
     public function markAllAsRead(Request $request): JsonResponse
     {
-        $request->user()
-            ->notifications()
-            ->unread()
-            ->update(['read_at' => now()]);
+        $updated = $this->notificationService->markAllAsRead((int) $request->user()->id);
 
-        return ApiResponse::success(message: 'Đã đánh dấu tất cả thông báo là đã đọc.');
+        return ApiResponse::success(
+            data: ['updated' => $updated],
+            message: 'Đã đánh dấu tất cả thông báo là đã đọc.',
+        );
     }
 }

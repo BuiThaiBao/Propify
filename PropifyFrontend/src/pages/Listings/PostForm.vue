@@ -16,7 +16,7 @@
       ]" />
       <h1 class="mt-2 text-[24px] font-extrabold tracking-tight text-slate-900">{{ pageTitle }}</h1>
 
-      <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,760px)_330px] lg:justify-center">
+      <div :class="['mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,760px)_330px] lg:justify-center', loading && 'form-interaction-locked']">
       <form class="space-y-4 lg:w-[760px]" @submit.prevent="isVerificationOnlyMode ? submitVerificationOnly() : submitListing()">
         <template v-if="!isVerificationOnlyMode">
         <section class="section-card" data-score-section="media">
@@ -670,19 +670,21 @@
           <div class="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-sky-300 hover:text-sky-600"
+              :disabled="formBusy"
+              class="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-sky-300 hover:text-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
               @click="openBackConfirm"
             >
               Quay lại
             </button>
             <button
               type="button"
-              class="rounded-xl border border-sky-200 bg-sky-50 px-5 py-2.5 text-sm font-semibold text-sky-600 transition hover:bg-sky-100"
+              :disabled="formBusy"
+              class="rounded-xl border border-sky-200 bg-sky-50 px-5 py-2.5 text-sm font-semibold text-sky-600 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
               @click="openPreview"
             >
               Xem trước tin đăng
             </button>
-            <button type="submit" :disabled="formBusy" class="ml-auto rounded-xl bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60">
+            <button type="submit" :disabled="!canSubmitListing" class="ml-auto rounded-xl bg-sky-500 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60">
               {{ submitButtonText }}
             </button>
           </div>
@@ -868,7 +870,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import Breadcrumb from "@/components/shared/Breadcrumb.vue";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -989,6 +991,8 @@ const submitButtonLabel = computed(() => (isVerificationOnlyMode.value ? 'Gửi 
 const submitLoadingLabel = computed(() => (isVerificationOnlyMode.value ? 'Đang lưu xác thực...' : 'Đang đăng tin...'));
 const isHydratingEdit = ref(false);
 const isSyncingAdminFromMap = ref(false);
+const initialEditSnapshot = ref("");
+const editListingStatus = ref("");
 const editLoading = ref(false);
 const loading = ref(false);
 const savingDraft = ref(false);
@@ -1093,14 +1097,112 @@ const listingMediaUpload = useListingMediaUpload({
   onStatus: (message) => pushToast(message, "info", 1200),
 });
 
+function snapshotValue(value) {
+  if (value instanceof File) {
+    return {
+      fileName: value.name,
+      fileSize: value.size,
+      fileType: value.type,
+      lastModified: value.lastModified,
+    };
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => snapshotValue(item));
+  }
+
+  if (value && typeof value === "object") {
+    return Object.keys(value)
+      .sort()
+      .reduce((result, key) => {
+        result[key] = snapshotValue(value[key]);
+        return result;
+      }, {});
+  }
+
+  return value ?? "";
+}
+
+function getAppointmentRowsSnapshot() {
+  const normalizeSlot = (slot) => ({
+    day_of_week: Number(slot.day_of_week),
+    start_time: String(slot.start_time || "").slice(0, 8),
+    end_time: String(slot.end_time || "").slice(0, 8),
+  });
+  const sortSlots = (slots) => slots
+    .map(normalizeSlot)
+    .filter((slot) => Number.isFinite(slot.day_of_week) && slot.start_time && slot.end_time)
+    .sort((a, b) =>
+      a.day_of_week - b.day_of_week ||
+      a.start_time.localeCompare(b.start_time) ||
+      a.end_time.localeCompare(b.end_time),
+    );
+
+  if (appointmentForm.value?.getFormData) {
+    return snapshotValue(sortSlots(appointmentForm.value.getFormData()));
+  }
+
+  const pendingSlots = [];
+  (pendingAppointmentRows.value || []).forEach((row) => {
+    (row.selected_days || []).forEach((day) => {
+      pendingSlots.push({
+        day_of_week: day,
+        start_time: row.start_time,
+        end_time: row.end_time,
+      });
+    });
+  });
+
+  return snapshotValue(sortSlots(pendingSlots));
+}
+
+function createEditSnapshot() {
+  const normalizeFieldForSnapshot = (key, value) => {
+    if ((key === "lat" || key === "lng") && value !== "" && value !== null && value !== undefined) {
+      const numericValue = Number(value);
+      return Number.isFinite(numericValue) ? numericValue.toFixed(7) : value;
+    }
+
+    return value;
+  };
+
+  const formSnapshot = Object.keys(createInitialState())
+    .sort()
+    .reduce((result, key) => {
+      result[key] = snapshotValue(normalizeFieldForSnapshot(key, form[key]));
+      return result;
+    }, {});
+
+  return JSON.stringify({
+    form: formSnapshot,
+    selectedAmenities: snapshotValue([...selectedAmenities.value].sort()),
+    publicInfoAgreed: Boolean(publicInfoAgreed.value),
+    appointmentSlots: getAppointmentRowsSnapshot(),
+  });
+}
+
+function captureInitialEditSnapshot() {
+  initialEditSnapshot.value = createEditSnapshot();
+}
+
 const formBusy = computed(() => loading.value || savingDraft.value);
+const isEditDirty = computed(() => {
+  if (!isEditMode.value) return true;
+  if (isHydratingEdit.value || editLoading.value || !initialEditSnapshot.value) return false;
+  return createEditSnapshot() !== initialEditSnapshot.value;
+});
+const isUnlistedRelistingMode = computed(() => isEditMode.value && editListingStatus.value === 'UNLISTED');
+const isRelistingMode = computed(() => isEditMode.value && ['UNLISTED', 'REJECTED'].includes(editListingStatus.value));
+const canSubmitListing = computed(() => !formBusy.value && (!isEditMode.value || isUnlistedRelistingMode.value || isEditDirty.value));
 const submitButtonText = computed(() => {
   if (savingDraft.value) return 'Đang lưu nháp...';
   if (loading.value) {
     if (isVerificationOnlyMode.value) return 'Đang lưu xác thực...';
+    if (isRelistingMode.value) return 'Đang đăng lại tin...';
     return isEditMode.value ? 'Đang cập nhật tin...' : 'Đang đăng tin...';
   }
   if (isVerificationOnlyMode.value) return 'Lưu xác thực';
+  if (isRelistingMode.value) return 'Đăng lại tin';
   return isEditMode.value ? 'Cập nhật tin' : 'Đăng tin';
 });
 
@@ -1330,6 +1432,9 @@ watch(appointmentForm, (v) => {
   if (v && pendingAppointmentRows.value) {
     setAppointmentRows(pendingAppointmentRows.value);
     pendingAppointmentRows.value = null;
+    if (isEditMode.value && !isHydratingEdit.value && !initialEditSnapshot.value) {
+      nextTick(captureInitialEditSnapshot);
+    }
   }
 });
 
@@ -1505,6 +1610,7 @@ async function loadListingForEdit() {
     clearSubmitError();
 
     const p = data.property || {};
+    editListingStatus.value = data.status || '';
     const inputValue = (value) => (value === null || value === undefined ? '' : String(value));
     const arrayValue = (value) => {
       if (Array.isArray(value)) return value;
@@ -1676,6 +1782,9 @@ async function loadListingForEdit() {
         }
       }, 500);
     }
+
+    await nextTick();
+    captureInitialEditSnapshot();
   } catch (err) {
     console.error('Failed to load listing for edit:', err);
     setSubmitError('Không thể tải dữ liệu tin đăng để chỉnh sửa.');
@@ -3049,6 +3158,8 @@ function clearMapMarker() {
 }
 
 function resetFormState() {
+  initialEditSnapshot.value = "";
+  editListingStatus.value = "";
   clearImagePreviews();
   clearIdCardPreviews();
   clearLegalDocumentPreviews();
@@ -3139,6 +3250,10 @@ async function submitListing() {
     return;
   }
 
+  if (isEditMode.value && !isUnlistedRelistingMode.value && !isEditDirty.value) {
+    return;
+  }
+
   // Validate required fields first
   touchAllRequired();
   const requiredErrors = getRequiredFieldErrors();
@@ -3184,7 +3299,7 @@ async function submitListing() {
     await listingMediaUpload.uploadListingMediaPayload(form);
 
     // 4. Submit to Backend
-    pushToast(isEditMode.value ? 'Đang cập nhật tin đăng...' : 'Đang gửi tin đăng...', 'info', 2500);
+    pushToast(isRelistingMode.value ? 'Đang đăng lại tin...' : (isEditMode.value ? 'Đang cập nhật tin đăng...' : 'Đang gửi tin đăng...'), 'info', 2500);
     console.log('Submitting listing payload', JSON.parse(JSON.stringify(form)));
     let response;
     if (isEditMode.value) {
@@ -3209,7 +3324,10 @@ async function submitListing() {
 
     clearSubmitError();
     clearDraft();
-    pushToast(response.data?.message || (isEditMode.value ? 'Cập nhật tin thành công' : 'Đăng tin thành công. Tin đăng chờ duyệt'), 'success');
+    const successMessage = isRelistingMode.value
+      ? 'Đăng lại tin thành công. Tin đăng đang chờ duyệt.'
+      : (response.data?.message || (isEditMode.value ? 'Cập nhật tin thành công' : 'Đăng tin thành công. Tin đăng chờ duyệt'));
+    pushToast(successMessage, 'success');
     resetForm();
     // Redirect đến trang danh sách tin đăng
     router.push('/profile?tab=listings');
@@ -3264,6 +3382,11 @@ async function submitListing() {
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
 }
 
+.form-interaction-locked {
+  pointer-events: none;
+  user-select: none;
+}
+
 .preview-overlay {
   position: fixed;
   inset: 0;
@@ -3276,7 +3399,7 @@ async function submitListing() {
 }
 
 .preview-modal {
-  width: min(1120px, 100%);
+  width: min(1400px, calc(100vw - 48px));
   max-height: calc(100vh - 48px);
   overflow: hidden;
   border-radius: 18px;

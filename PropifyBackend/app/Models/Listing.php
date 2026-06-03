@@ -129,4 +129,9 @@ final class Listing extends Model
     {
         return $this->hasMany(ListingReport::class, 'listing_id');
     }
+
+    public function lockAppeals(): HasMany
+    {
+        return $this->hasMany(ListingLockAppeal::class, 'listing_id');
+    }
 }

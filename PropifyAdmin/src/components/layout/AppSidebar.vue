@@ -10,6 +10,7 @@ import {
   Settings,
   BarChart3,
   History,
+  Receipt,
   ChevronLeft,
   Building2,
   LogOut,
@@ -26,6 +27,7 @@ const menuItems = [
   { title: 'Quản lý gói tin', url: '/packages', icon: Package },
   { title: 'Quản lý tài khoản', url: '/users', icon: Users },
   { title: 'Audit logs', url: '/audit-logs', icon: History },
+  { title: 'Lịch sử giao dịch', url: '/transactions', icon: Receipt },
   { title: 'Tiện ích hệ thống', url: '/utilities', icon: Settings },
   { title: 'Doanh thu & báo cáo', url: '/revenue', icon: BarChart3 },
 ]

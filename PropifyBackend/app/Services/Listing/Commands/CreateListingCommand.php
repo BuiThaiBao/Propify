@@ -206,7 +206,8 @@ final class CreateListingCommand
             $score += 10;
         }
 
-        $hasFullInfo = ($dto->price > 0)
+        $hasValidPrice = $dto->isNegotiable || ($dto->price !== null && $dto->price > 0);
+        $hasFullInfo = $hasValidPrice
             && ($dto->area > 0)
             && (! empty($dto->addressDetail) || ! empty($dto->projectName));
 

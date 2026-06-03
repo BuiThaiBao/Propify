@@ -194,7 +194,7 @@
                   Chỉnh sửa
                 </button>
                 <button type="button" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-white text-sky-500 border-[1.5px] border-sky-500 hover:bg-sky-50 transition-all" @click="activeTab = 'password'">
-                  Đổi mật khẩu
+                  {{ authStore.user?.has_password ? 'Đổi mật khẩu' : 'Cập nhật mật khẩu' }}
                 </button>
               </template>
               <template v-else>
@@ -358,13 +358,13 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                         Gỡ tin đăng
                       </button>
-                      <button v-if="item.status !== 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('lock', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        Khóa tin đăng
-                      </button>
-                      <button v-if="item.status === 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unlock', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
-                        Mở khóa tin đăng
+                      <button
+                        v-if="item.status === 'LOCKED'"
+                        class="w-full text-left px-4 py-2.5 text-[0.85rem] text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors"
+                        @click.stop="handleDropdownAction('appeal-lock', item)"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M12 7v5"/><path d="M12 15h.01"/></svg>
+                        Khiếu nại
                       </button>
                     </div>
                   </Teleport>
@@ -537,13 +537,13 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
                         Gỡ tin đăng
                       </button>
-                      <button v-if="item.status !== 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('lock', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        Khóa tin đăng
-                      </button>
-                      <button v-if="item.status === 'LOCKED'" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('unlock', item)">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
-                        Mở khóa tin đăng
+                      <button
+                        v-if="item.status === 'LOCKED'"
+                        class="w-full text-left px-4 py-2.5 text-[0.85rem] text-rose-600 hover:bg-rose-50 flex items-center gap-3 transition-colors"
+                        @click.stop="handleDropdownAction('appeal-lock', item)"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/><path d="M12 7v5"/><path d="M12 15h.01"/></svg>
+                        Khiếu nại
                       </button>
                     </div>
                   </Teleport>
@@ -583,7 +583,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
-          Đổi mật khẩu
+          {{ authStore.user?.has_password ? 'Đổi mật khẩu' : 'Cập nhật mật khẩu' }}
         </h2>
 
         <div v-if="passwordMessage" :class="['rounded-lg px-4 py-3 text-sm mb-5',
@@ -593,7 +593,7 @@
 
         <form @submit.prevent="handleChangePassword" class="flex flex-col gap-5">
           <!-- Current password -->
-          <div class="flex flex-col gap-1.5">
+          <div v-if="authStore.user?.has_password" class="flex flex-col gap-1.5">
             <label for="currentPassword" class="text-[0.85rem] font-semibold text-slate-700 after:content-['*'] after:text-red-500 after:ml-1">Mật khẩu hiện tại</label>
             <div class="relative">
               <input
@@ -652,7 +652,7 @@
               Hủy
             </button>
             <button type="submit" class="px-6 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-br from-sky-500 to-sky-600 text-white hover:from-sky-600 hover:to-sky-700 hover:shadow-lg hover:shadow-sky-500/30 transition-all disabled:opacity-60 disabled:cursor-not-allowed" :disabled="passwordLoading || !isPasswordFormValid">
-              {{ passwordLoading ? 'Đang xử lý...' : 'Cập nhật mật khẩu' }}
+              {{ passwordLoading ? 'Đang xử lý...' : (authStore.user?.has_password ? 'Cập nhật mật khẩu' : 'Tạo mật khẩu mới') }}
             </button>
           </div>
         </form>
@@ -1007,18 +1007,6 @@
     </div>
 
     <ConfirmActionModal
-      :open="lockListingModalOpen"
-      title="Xác nhận khóa tin"
-      :message="lockListingModalMessage"
-      confirm-text="Xác nhận khóa"
-      cancel-text="Hủy"
-      :loading="lockingListing"
-      loading-text="Đang khóa..."
-      @confirm="handleConfirmLockListing"
-      @cancel="closeLockListingModal"
-    />
-
-    <ConfirmActionModal
       :open="unlistListingModalOpen"
       title="Xác nhận gỡ tin"
       :message="unlistListingModalMessage"
@@ -1029,6 +1017,33 @@
       @confirm="handleConfirmUnlistListing"
       @cancel="closeUnlistListingModal"
     />
+
+    <Teleport to="body">
+      <div v-if="lockAppealModalOpen" class="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-900/35 px-4">
+        <div class="w-full max-w-[520px] rounded-xl bg-white p-6 shadow-2xl">
+          <h3 class="text-lg font-bold text-slate-800">Khiếu nại tin bị khóa</h3>
+          <p class="mt-1 text-sm text-slate-400">{{ lockAppealTarget?.title || lockAppealTarget?.code }}</p>
+
+          <div class="mt-5 rounded-lg border border-sky-100 bg-sky-50 px-4 py-3 text-sm leading-6 text-slate-700">
+            <p>Để khiếu nại về tin đăng bị khóa, vui lòng gửi email cho Propify theo địa chỉ:</p>
+            <a class="mt-2 inline-block font-bold text-sky-600 hover:text-sky-700" href="mailto:contact@renthouse.vn">
+              contact@renthouse.vn
+            </a>
+            <p class="mt-2 text-xs text-slate-500">Bạn nên đính kèm mã tin và mô tả ngắn gọn để bộ phận hỗ trợ kiểm tra nhanh hơn.</p>
+          </div>
+
+          <div class="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              class="rounded-lg bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
+              @click="closeLockAppealModal"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <!-- Package Upgrade Modal -->
     <PackageUpgradeModal
@@ -1162,6 +1177,8 @@ const initialTab = validTabs.includes(route.query.tab) ? route.query.tab : 'prof
 const activeTab = ref(initialTab);
 
 watch(activeTab, (newTab) => {
+  if (route.name !== 'Profile') return;
+
   const query = { ...route.query };
   if (newTab === 'profile') {
     delete query.tab;
@@ -1215,7 +1232,7 @@ function closeDropdown() {
 
 function openListingEdit(item) {
   if (!item?.id) return;
-  router.push('/listings/' + item.id + '/edit');
+  router.push({ name: 'ListingEdit', params: { id: item.id } });
 }
 
 function handleDropdownAction(action, item) {
@@ -1223,7 +1240,7 @@ function handleDropdownAction(action, item) {
   if (action === 'edit') {
     openListingEdit(item);
   } else if (action === 'verify') {
-    router.push({ path: '/listings/' + item.id + '/edit', query: { mode: 'verification' } });
+    router.push({ name: 'ListingEdit', params: { id: item.id }, query: { mode: 'verification' } });
   } else if (action === 'upgrade') {
     if (item.status === 'ACTIVE') openUpgradeModal(item);
     else alert('Chỉ có thể nâng cấp tin đang đăng.');
@@ -1235,6 +1252,8 @@ function handleDropdownAction(action, item) {
     }
   } else if (action === 'unpublish') {
     openUnlistListingModal(item);
+  } else if (action === 'appeal-lock') {
+    openLockAppealModal(item);
   } else {
     alert('Tính năng đang phát triển');
   }
@@ -1327,6 +1346,8 @@ const lockingListing = ref(false);
 const unlistListingModalOpen = ref(false);
 const unlistListingTarget = ref(null);
 const unlistingListing = ref(false);
+const lockAppealModalOpen = ref(false);
+const lockAppealTarget = ref(null);
 const listingActionMessage = ref('');
 const listingActionSuccess = ref(false);
 const favoritesLoaded = ref(false);
@@ -1695,55 +1716,6 @@ function openVerificationsTab() {
   }
 }
 
-const lockListingModalMessage = computed(() => {
-  if (!lockListingTarget.value) {
-    return 'Bạn có chắc chắn muốn khóa tin này không?';
-  }
-
-  return `Bạn có chắc chắn muốn khóa tin "${lockListingTarget.value.title}" không?`;
-});
-
-function openLockListingModal(item) {
-  lockListingTarget.value = item;
-  lockListingModalOpen.value = true;
-}
-
-function closeLockListingModal() {
-  if (lockingListing.value) {
-    return;
-  }
-
-  lockListingModalOpen.value = false;
-  lockListingTarget.value = null;
-}
-
-async function handleConfirmLockListing() {
-  if (!lockListingTarget.value) {
-    return;
-  }
-
-  lockingListing.value = true;
-  listingActionMessage.value = '';
-
-  try {
-    await listingService.lock(lockListingTarget.value.id);
-    listingActionSuccess.value = true;
-    listingActionMessage.value = 'Khóa tin đăng thành công.';
-    lockListingModalOpen.value = false;
-    lockListingTarget.value = null;
-    if (activeTab.value === 'verifications') {
-      await loadVerificationListings(verificationPagination.currentPage);
-    } else {
-      await loadMyListings(listingPagination.currentPage);
-    }
-  } catch (error) {
-    listingActionSuccess.value = false;
-    listingActionMessage.value = error?.response?.data?.message || 'Không thể khóa tin đăng. Vui lòng thử lại.';
-  } finally {
-    lockingListing.value = false;
-  }
-}
-
 const unlistListingModalMessage = computed(() => {
   if (!unlistListingTarget.value) {
     return 'Bạn có chắc chắn muốn gỡ tin này không?';
@@ -1791,6 +1763,22 @@ async function handleConfirmUnlistListing() {
   } finally {
     unlistingListing.value = false;
   }
+}
+
+function openLockAppealModal(item) {
+  if (item?.status !== 'LOCKED') {
+    listingActionSuccess.value = false;
+    listingActionMessage.value = 'Chỉ có thể phản ánh tin đang bị khóa.';
+    return;
+  }
+
+  lockAppealTarget.value = item;
+  lockAppealModalOpen.value = true;
+}
+
+function closeLockAppealModal() {
+  lockAppealModalOpen.value = false;
+  lockAppealTarget.value = null;
 }
 
 function openListingsTab() {
@@ -2081,14 +2069,15 @@ const passwordForm = reactive({
 });
 
 const isPasswordFormValid = computed(() => {
+  const hasPassword = authStore.user?.has_password;
   const current = passwordForm.currentPassword.trim();
   const pwd = passwordForm.newPassword.trim();
   const confirm = passwordForm.newPasswordConfirmation.trim();
   
-  if (!current || !pwd || !confirm) return false;
+  if ((hasPassword && !current) || !pwd || !confirm) return false;
   if (pwd.length < 8) return false;
   if (!/[a-z]/.test(pwd) || !/[A-Z]/.test(pwd) || !/[0-9]/.test(pwd)) return false;
-  if (current === pwd) return false;
+  if (hasPassword && current === pwd) return false;
   if (pwd !== confirm) return false;
   
   return true;
@@ -2117,7 +2106,7 @@ watch(
         passwordMessage.value = 'Mật khẩu phải chứa chữ hoa, chữ thường và chữ số.';
         return;
       }
-      if (current && current === pwd) {
+      if (authStore.user?.has_password && current && current === pwd) {
         passwordMessage.value = 'Mật khẩu mới không trùng với mật khẩu cũ.';
         return;
       }
@@ -2155,10 +2144,24 @@ async function handleChangePassword() {
   passwordMessage.value = '';
 
   try {
+    const wasSocialLoginWithoutPassword = !authStore.user?.has_password;
     await userService.changePassword(passwordForm);
-    passwordSuccess.value = true;
-    passwordMessage.value = 'Đổi mật khẩu thành công!';
+    
+    // Fetch updated user to sync has_password state
+    try {
+      await authStore.fetchUser();
+    } catch (e) {
+      console.error('Failed to sync user state:', e);
+    }
+
     resetPasswordForm();
+
+    // Redirect to profile tab and show success message
+    activeTab.value = 'profile';
+    profileSuccess.value = true;
+    profileMessage.value = wasSocialLoginWithoutPassword 
+      ? 'Cập nhật mật khẩu thành công!' 
+      : 'Đổi mật khẩu thành công!';
   } catch (error) {
     passwordSuccess.value = false;
     const data = error.response?.data;

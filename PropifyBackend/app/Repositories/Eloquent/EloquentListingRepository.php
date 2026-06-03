@@ -112,6 +112,7 @@ final class EloquentListingRepository implements ListingRepository
         ?string $demandType,
         ?string $keyword,
         int $perPage,
+        ?string $searchField = null,
         ?string $posterType = null,
         ?float $minPrice = null,
         ?float $maxPrice = null,
@@ -137,7 +138,7 @@ final class EloquentListingRepository implements ListingRepository
             ->when($demandType, function ($query) use ($demandType) {
                 $query->where('listings.demand_type', $demandType);
             })
-            ->when($keyword, function ($query) use ($keyword) {
+            ->when($keyword, function ($query) use ($keyword, $searchField) {
                 $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
 
                 if ($normalizedKeyword === null) {
@@ -146,14 +147,7 @@ final class EloquentListingRepository implements ListingRepository
 
                 $like = '%'.$normalizedKeyword.'%';
 
-                $query->where(function ($subQuery) use ($like, $normalizedKeyword) {
-                    $subQuery
-                        ->whereRaw($this->normalizeSearchExpression('listings.title').' LIKE ?', [$like])
-                        ->orWhereRaw($this->normalizeSearchExpression('listings.description').' LIKE ?', [$like])
-                        ->orWhereHas('property', function ($propertyQuery) use ($normalizedKeyword) {
-                            $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword);
-                        });
-                });
+                $this->applyPublicKeywordConstraint($query, $normalizedKeyword, $like, $searchField);
             })
             ->when($hasPropertyFilters, function ($query) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
                 $query->whereHas('property', function ($q) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
@@ -261,6 +255,7 @@ final class EloquentListingRepository implements ListingRepository
     public function getMapListings(
         ?string $demandType,
         ?string $keyword,
+        ?string $searchField = null,
         ?string $posterType = null,
         ?float $minPrice = null,
         ?float $maxPrice = null,
@@ -278,7 +273,13 @@ final class EloquentListingRepository implements ListingRepository
             ])
             ->where('status', 'ACTIVE')
             ->when($demandType, fn ($query) => $query->where('demand_type', $demandType))
-            ->when($like, function ($query) use ($like, $normalizedKeyword) {
+            ->when($like, function ($query) use ($like, $normalizedKeyword, $searchField) {
+                if ($this->isSpecificPropertySearchField($searchField)) {
+                    $query->whereHas('property', fn ($propertyQuery) => $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword, $searchField));
+
+                    return;
+                }
+
                 $query->where(function ($subQuery) use ($like, $normalizedKeyword) {
                     $subQuery
                         ->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like])
@@ -433,8 +434,17 @@ final class EloquentListingRepository implements ListingRepository
         };
     }
 
-    private function applyPropertySearchConstraint(Builder $query, string $normalizedKeyword): void
+    private function applyPropertySearchConstraint(Builder $query, string $normalizedKeyword, ?string $searchField = null): void
     {
+        if ($this->isSpecificPropertySearchField($searchField)) {
+            $query->whereRaw(
+                $this->normalizeSearchExpression('properties.'.$searchField).' LIKE ?',
+                ['%'.$normalizedKeyword.'%'],
+            );
+
+            return;
+        }
+
         $tokens = $this->tokenize($normalizedKeyword);
 
         if ($this->shouldUseFullTextSearch($tokens)) {
@@ -484,5 +494,30 @@ final class EloquentListingRepository implements ListingRepository
             preg_split('/\s+/u', $keyword) ?: [],
             static fn (string $token) => $token !== '',
         ));
+    }
+
+    private function applyPublicKeywordConstraint(Builder $query, string $normalizedKeyword, string $like, ?string $searchField = null): void
+    {
+        if ($this->isSpecificPropertySearchField($searchField)) {
+            $query->whereHas('property', function ($propertyQuery) use ($normalizedKeyword, $searchField) {
+                $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword, $searchField);
+            });
+
+            return;
+        }
+
+        $query->where(function ($subQuery) use ($like, $normalizedKeyword) {
+            $subQuery
+                ->whereRaw($this->normalizeSearchExpression('listings.title').' LIKE ?', [$like])
+                ->orWhereRaw($this->normalizeSearchExpression('listings.description').' LIKE ?', [$like])
+                ->orWhereHas('property', function ($propertyQuery) use ($normalizedKeyword) {
+                    $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword);
+                });
+        });
+    }
+
+    private function isSpecificPropertySearchField(?string $searchField): bool
+    {
+        return in_array($searchField, ['province', 'ward', 'street_code', 'project_name', 'address_detail'], true);
     }
 }

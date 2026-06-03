@@ -162,6 +162,7 @@ final class ListingServiceImpl implements ListingService
         ?string $demandType,
         ?string $keyword,
         int $perPage,
+        ?string $searchField = null,
         ?string $posterType = null,
         ?float $minPrice = null,
         ?float $maxPrice = null,
@@ -175,6 +176,7 @@ final class ListingServiceImpl implements ListingService
             'sort' => $sortBy,
             'demand_type' => $demandType,
             'keyword' => $keyword,
+            'search_field' => $searchField,
             'per_page' => $perPage,
             'page' => $page,
             'poster_type' => $posterType,
@@ -185,10 +187,10 @@ final class ListingServiceImpl implements ListingService
         ]));
 
         return Cache::tags(['listings:public'])->remember($cacheKey, 300, function () use (
-            $strategy, $demandType, $keyword, $perPage, $posterType, $minPrice, $maxPrice, $minArea, $maxArea
+            $strategy, $demandType, $keyword, $perPage, $searchField, $posterType, $minPrice, $maxPrice, $minArea, $maxArea
         ) {
             return $this->listingRepository->paginatePublic(
-                $strategy, $demandType, $keyword, $perPage, $posterType, $minPrice, $maxPrice, $minArea, $maxArea
+                $strategy, $demandType, $keyword, $perPage, $searchField, $posterType, $minPrice, $maxPrice, $minArea, $maxArea
             );
         });
     }
@@ -220,6 +222,7 @@ final class ListingServiceImpl implements ListingService
     public function getMapListings(
         ?string $demandType,
         ?string $keyword,
+        ?string $searchField = null,
         ?string $posterType = null,
         ?float $minPrice = null,
         ?float $maxPrice = null,
@@ -230,6 +233,7 @@ final class ListingServiceImpl implements ListingService
             'version' => 3,
             'demand_type' => $demandType,
             'keyword' => $keyword,
+            'search_field' => $searchField,
             'poster_type' => $posterType,
             'min_price' => $minPrice,
             'max_price' => $maxPrice,
@@ -240,6 +244,7 @@ final class ListingServiceImpl implements ListingService
         return Cache::tags(['listings:public'])->remember($cacheKey, 300, fn () => $this->listingRepository->getMapListings(
             demandType: $demandType,
             keyword: $keyword,
+            searchField: $searchField,
             posterType: $posterType,
             minPrice: $minPrice,
             maxPrice: $maxPrice,
@@ -465,7 +470,8 @@ final class ListingServiceImpl implements ListingService
         }
 
         // Thông tin đầy đủ: giá > 0, diện tích > 0, có địa chỉ
-        $hasFullInfo = ($dto->price > 0)
+        $hasValidPrice = $dto->isNegotiable || ($dto->price !== null && $dto->price > 0);
+        $hasFullInfo = $hasValidPrice
             && ($dto->area > 0)
             && (! empty($dto->addressDetail) || ! empty($dto->projectName));
         if ($hasFullInfo) {

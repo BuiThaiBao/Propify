@@ -8,6 +8,7 @@ use App\Models\Listing;
 use App\Models\ListingReport;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 final readonly class ReportListingCommand
 {
@@ -32,12 +33,16 @@ final readonly class ReportListingCommand
 
         $this->validationChain->validate($context);
 
+        $reportGroupId = (string) Str::uuid();
+
         return collect($context->reasons)
             ->map(fn (string $reason) => ListingReport::query()->create([
                 'listing_id' => $listing->id,
                 'reporter_id' => $reporter->id,
+                'report_group_id' => $reportGroupId,
                 'reason' => $reason,
                 'description' => $context->description ?: self::reasonDescription($reason),
+                'image_urls' => array_values($payload['image_urls'] ?? []),
                 'status' => ListingReport::STATUS_WARNING,
             ]));
     }

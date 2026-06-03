@@ -16,6 +16,7 @@ import {
   Info,
   Lock,
   MapPin,
+  MessageSquareWarning,
   ShieldCheck,
   Unlock,
   User,
@@ -32,6 +33,10 @@ const listing = ref(null)
 const loading = ref(false)
 const error = ref('')
 const activeTab = ref('info')
+const listingReports = ref([])
+const reportsLoading = ref(false)
+const reportsLoaded = ref(false)
+const reportsError = ref('')
 const actionLoading = ref(false)
 const listingStatusOptions = ref([])
 const adminListingStatusOptions = ref([])
@@ -81,6 +86,7 @@ const images = computed(() => post.value?.images ?? [])
 const videos = computed(() => post.value?.videos ?? [])
 const docs = computed(() => post.value?.verification_documents ?? [])
 const histories = computed(() => post.value?.status_histories ?? [])
+const warningCount = computed(() => listingReports.value.length)
 const mediaItems = computed(() => [
   ...images.value.map((image) => ({ type: 'image', url: image.url, title: post.value?.title || 'Hình ảnh' })),
   ...videos.value.map((video) => ({ type: 'video', url: video.url, title: 'Video đính kèm' })),
@@ -131,11 +137,31 @@ async function fetchDetail() {
     if (listing.value?.demand_type === 'RENT') {
       activeTab.value = 'info'
     }
+    reportsLoaded.value = false
+    listingReports.value = []
+    fetchListingReports()
   } catch (err) {
     console.error('Failed to fetch listing detail:', err)
     error.value = err.response?.data?.message || 'Không thể tải chi tiết tin đăng.'
   } finally {
     loading.value = false
+  }
+}
+
+async function fetchListingReports() {
+  if (!route.params.id) return
+
+  reportsLoading.value = true
+  reportsError.value = ''
+  try {
+    const res = await listingService.getListingReports(route.params.id)
+    listingReports.value = res.data?.data ?? []
+    reportsLoaded.value = true
+  } catch (err) {
+    console.error('Failed to fetch listing reports:', err)
+    reportsError.value = err.response?.data?.message || 'Không thể tải cảnh báo tin đăng.'
+  } finally {
+    reportsLoading.value = false
   }
 }
 
@@ -193,6 +219,40 @@ function mapStatusLabel(status) {
 
 function adminStatusLabel(status) {
   return adminListingStatusOptions.value.find((option) => option.value === status)?.label || mapStatusLabel(status)
+}
+
+function reportStatusLabel(status) {
+  return {
+    WARNING: 'Mới',
+    NEW: 'Mới',
+    PROCESSING: 'Đang xử lý',
+    RESOLVED: 'Đã xử lý',
+    REJECTED: 'Bỏ qua',
+  }[status] || status || 'Mới'
+}
+
+function reportStatusClass(status) {
+  return {
+    WARNING: 'new',
+    NEW: 'new',
+    PROCESSING: 'processing',
+    RESOLVED: 'resolved',
+    REJECTED: 'rejected',
+  }[status] || 'new'
+}
+
+function reporterInitials(report) {
+  const name = report?.reporter?.full_name || report?.reporter?.email || 'U'
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(-2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'U'
+}
+
+function reportImages(report) {
+  return Array.isArray(report?.image_urls) ? report.image_urls.filter(Boolean) : []
 }
 
 function demandLabel(value) {
@@ -586,6 +646,10 @@ onBeforeUnmount(() => {
       <div class="tabs">
         <button :class="{ active: activeTab === 'info' }" @click="activeTab = 'info'">Thông tin</button>
         <button v-if="isSaleListing" :class="{ active: activeTab === 'verify' }" @click="activeTab = 'verify'">Xác thực</button>
+        <button :class="{ active: activeTab === 'warnings' }" @click="activeTab = 'warnings'">
+          Cảnh báo
+          <span v-if="warningCount" class="tab-count">{{ warningCount }}</span>
+        </button>
         <button :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">Lịch sử</button>
       </div>
 
@@ -730,6 +794,53 @@ onBeforeUnmount(() => {
         </article>
       </section>
 
+      <section v-else-if="activeTab === 'warnings'" class="section-stack">
+        <article class="detail-card">
+          <h2><MessageSquareWarning :size="16" /> Cảnh báo từ người dùng ({{ warningCount }})</h2>
+
+          <div v-if="reportsLoading" class="state-box">Đang tải cảnh báo...</div>
+          <div v-else-if="reportsError" class="state-box error">{{ reportsError }}</div>
+          <div v-else-if="listingReports.length" class="warning-list">
+            <article v-for="report in listingReports" :key="report.report_group_id || report.id" class="warning-card">
+              <div class="warning-avatar">
+                <img v-if="report.reporter?.avatar_url" :src="report.reporter.avatar_url" :alt="report.reporter.full_name || 'Người dùng'" />
+                <span v-else>{{ reporterInitials(report) }}</span>
+              </div>
+
+              <div class="warning-body">
+                <div class="warning-head">
+                  <div>
+                    <div class="warning-user-row">
+                      <strong>{{ report.reporter?.full_name || report.reporter?.email || `User #${report.reporter?.id || '--'}` }}</strong>
+                      <span class="warning-status" :class="reportStatusClass(report.status)">{{ reportStatusLabel(report.status) }}</span>
+                    </div>
+                    <div class="warning-reasons">
+                      <span v-for="label in report.reason_labels" :key="label">{{ label }}</span>
+                    </div>
+                  </div>
+                  <time>{{ formatDateTime(report.created_at) }}</time>
+                </div>
+
+                <p v-if="report.description" class="warning-description">{{ report.description }}</p>
+
+                <div v-if="reportImages(report).length" class="warning-images">
+                  <button
+                    v-for="(image, index) in reportImages(report)"
+                    :key="image"
+                    type="button"
+                    class="warning-image"
+                    @click="openLightbox(reportImages(report).map((url) => ({ type: 'image', url, title: 'Ảnh cảnh báo' })), index)"
+                  >
+                    <img :src="image" alt="Ảnh cảnh báo" />
+                  </button>
+                </div>
+              </div>
+            </article>
+          </div>
+          <p v-else class="muted">Tin đăng này chưa có cảnh báo từ người dùng.</p>
+        </article>
+      </section>
+
       <section v-else-if="activeTab === 'history'" class="section-stack">
         <article class="detail-card">
           <h2><FileCheck :size="16" /> Lịch sử xử lý</h2>
@@ -871,6 +982,7 @@ onBeforeUnmount(() => {
 .tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: #f1f5f9; margin-bottom: 18px; }
 .tabs button { border: 0; border-radius: 999px; padding: 9px 18px; background: transparent; color: #64748b; font-weight: 700; cursor: pointer; }
 .tabs button.active { background: #fff; color: #0f172a; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08); }
+.tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; margin-left: 6px; border-radius: 999px; background: #fee2e2; color: #ef4444; font-size: 11px; font-weight: 800; }
 .section-stack { display: grid; gap: 18px; }
 .detail-card { min-width: 0; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03); }
 .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
@@ -909,6 +1021,27 @@ onBeforeUnmount(() => {
 .history-item { border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; }
 .history-item span { display: block; color: #64748b; font-size: 12px; margin-top: 4px; }
 .history-item p { margin: 8px 0 0; color: #334155; }
+.warning-list { display: grid; gap: 12px; }
+.warning-card { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 12px; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; background: #fff; }
+.warning-avatar { width: 36px; height: 36px; border-radius: 999px; overflow: hidden; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+.warning-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.warning-body { min-width: 0; }
+.warning-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
+.warning-head time { color: #64748b; font-size: 12px; white-space: nowrap; }
+.warning-user-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.warning-user-row strong { font-size: 14px; color: #0f172a; }
+.warning-status { border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 800; }
+.warning-status.new { background: #fee2e2; color: #ef4444; }
+.warning-status.processing { background: #fef3c7; color: #d97706; }
+.warning-status.resolved { background: #dcfce7; color: #16a34a; }
+.warning-status.rejected { background: #f1f5f9; color: #64748b; }
+.warning-reasons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.warning-reasons span { color: #ef4444; font-size: 12px; font-weight: 700; }
+.warning-description { margin: 10px 0 0; color: #334155; line-height: 1.6; font-size: 13px; }
+.warning-images { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.warning-image { width: 120px; height: 88px; border: 0; border-radius: 10px; padding: 0; overflow: hidden; background: #f1f5f9; cursor: zoom-in; }
+.warning-image img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.warning-image:hover img { filter: brightness(0.94); }
 .primary-action, .outline-danger, .outline-neutral { height: 40px; display: inline-flex; align-items: center; gap: 7px; border-radius: 9px; padding: 0 14px; font-size: 14px; font-weight: 500; cursor: pointer; }
 .primary-action { border: 1px solid #0ea5e9; background: #0ea5e9; color: #fff; }
 .outline-danger { border: 1px solid #ef4444; background: #fff; color: #ef4444; }

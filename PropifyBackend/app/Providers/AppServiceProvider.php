@@ -2,11 +2,11 @@
 
 namespace App\Providers;
 
-use App\Events\Auth\PasswordChanged;
-use App\Events\Auth\UserRegistered;
 use App\Events\Appointment\AppointmentBooked;
 use App\Events\Appointment\AppointmentBookingExpired;
 use App\Events\Appointment\AppointmentBookingStatusUpdated;
+use App\Events\Auth\PasswordChanged;
+use App\Events\Auth\UserRegistered;
 use App\Events\Listing\FavoriteToggled;
 use App\Events\Listing\ListingPackageExpiring;
 use App\Events\Listing\ListingPackageUpgraded;
@@ -15,11 +15,12 @@ use App\Events\Listing\ListingVerificationRequested;
 use App\Events\Package\PackageCreated;
 use App\Events\Package\PackageStatusChanged;
 use App\Events\User\ProfileUpdated;
-use App\Listeners\Auth\SendWelcomeNotification;
 use App\Listeners\Appointment\SendAppointmentBookedNotification;
 use App\Listeners\Appointment\SendAppointmentBookingExpiredNotification;
 use App\Listeners\Appointment\SendAppointmentBookingStatusNotification;
+use App\Listeners\Auth\SendWelcomeNotification;
 use App\Listeners\Listing\ClearPublicListingCache;
+use App\Listeners\Listing\CreateListingNotification;
 use App\Listeners\Listing\LogListingPackageUpgrade;
 use App\Listeners\Listing\LogListingSaved;
 use App\Listeners\Listing\SendPackageExpiringNotification;
@@ -100,8 +101,8 @@ use App\Services\ViewTracking\Impl\ViewTrackingServiceImpl;
 use App\Services\ViewTracking\ViewTrackingService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 final class AppServiceProvider extends ServiceProvider
 {
@@ -217,6 +218,7 @@ final class AppServiceProvider extends ServiceProvider
         Event::listen(UserRegistered::class, SendWelcomeNotification::class);
         Event::listen(ListingSaved::class, ClearPublicListingCache::class);
         Event::listen(ListingSaved::class, LogListingSaved::class);
+        Event::listen(ListingSaved::class, CreateListingNotification::class);
         Event::listen(ListingPackageUpgraded::class, ClearPublicListingCache::class);
         Event::listen(ListingPackageUpgraded::class, LogListingPackageUpgrade::class);
         Event::listen(ListingPackageUpgraded::class, SendPackageUpgradeNotification::class);

@@ -47,7 +47,7 @@
         </div>
       </div>
 
-      <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,820px)_360px] xl:grid-cols-[minmax(0,860px)_370px]">
+      <div class="detail-main-grid grid items-start gap-6 lg:grid-cols-[minmax(0,820px)_360px] xl:grid-cols-[minmax(0,860px)_370px]">
         <div class="min-w-0">
 
           <section v-if="displayImages.length" class="detail-card !p-0 border-slate-200/60 overflow-hidden mb-3">
@@ -114,7 +114,7 @@
           <section v-if="isEmbedded" class="mt-[18px] rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
             <div class="border-b border-slate-100 pb-4">
               <h2 class="text-[26px] font-extrabold text-sky-500">
-                {{ formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT'" class="text-sm font-medium text-slate-500">/tháng</span>
+                {{ listing.property?.is_negotiable ? 'Giá thương lượng' : formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT' && !listing.property?.is_negotiable" class="text-sm font-medium text-slate-500">/tháng</span>
               </h2>
               <div class="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                 <span class="flex items-center gap-1.5">
@@ -242,7 +242,7 @@
               <img :src="flagIcon" class="detail-title-icon" alt="" />
               Báo cáo tin đăng
             </h2>
-            <form @submit.prevent="submitListingReport">
+            <form @submit.prevent="openReportModal">
               <div class="grid gap-3 sm:grid-cols-2">
                 <label v-for="option in reportOptions" :key="option.value" class="flex items-center gap-2 text-xs text-slate-500">
                   <input v-model="selectedReportReasons" type="checkbox" name="listing-report" :value="option.value" class="h-3.5 w-3.5 rounded border-slate-300 accent-sky-500" />
@@ -264,7 +264,7 @@
           <section v-if="!isEmbedded" class="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
             <div class="border-b border-slate-100 pb-4">
               <h2 class="text-[26px] font-extrabold text-sky-500">
-                {{ formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT'" class="text-sm font-medium text-slate-500">/tháng</span>
+                {{ listing.property?.is_negotiable ? 'Giá thương lượng' : formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT' && !listing.property?.is_negotiable" class="text-sm font-medium text-slate-500">/tháng</span>
               </h2>
               <div v-if="summaryStats.length" class="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                 <span v-if="hasPositiveValue(listing.property?.bedrooms)" class="flex items-center gap-1.5">
@@ -367,6 +367,70 @@
 
     <Teleport to="body">
       <div
+        v-if="reportModalOpen"
+        class="report-modal-backdrop"
+        role="dialog"
+        aria-modal="true"
+        @click.self="closeReportModal"
+      >
+        <form class="report-modal" @submit.prevent="submitListingReport">
+          <div class="report-modal-icon" aria-hidden="true">
+            <span class="report-modal-icon-card"></span>
+            <span class="report-modal-icon-info">i</span>
+          </div>
+          <h2 class="report-modal-title">Báo cáo tin đăng</h2>
+          <p class="report-modal-subtitle">Bạn có chắc chắn muốn báo cáo tin đăng?</p>
+
+          <div class="report-reason-box">
+            <div v-for="reason in selectedReportReasonLabels" :key="reason" class="report-reason-line">
+              <span aria-hidden="true">⚠</span>
+              <span>{{ reason }}</span>
+            </div>
+          </div>
+
+          <label class="report-detail-field">
+            <span>Lý do chi tiết <b>*</b>:</span>
+            <textarea
+              v-model.trim="reportDescription"
+              :disabled="reportSubmitting"
+              maxlength="1000"
+            ></textarea>
+          </label>
+
+          <div class="report-upload-box">
+            <input
+              ref="reportImageInput"
+              type="file"
+              accept="image/*"
+              multiple
+              class="hidden"
+              :disabled="reportSubmitting"
+              @change="handleReportImagesSelected"
+            />
+            <div v-if="reportImagePreviews.length" class="report-preview-list">
+              <figure v-for="(preview, index) in reportImagePreviews" :key="preview.url" class="report-preview-item">
+                <img :src="preview.url" alt="" />
+                <button type="button" :disabled="reportSubmitting" @click="removeReportImage(index)">×</button>
+              </figure>
+            </div>
+            <button type="button" class="report-upload-button" :disabled="reportSubmitting || reportImages.length >= 5" @click="triggerReportImageInput">
+              Bấm để tải ảnh
+            </button>
+            <p v-if="reportUploadError" class="report-upload-error">{{ reportUploadError }}</p>
+          </div>
+
+          <div class="report-modal-actions">
+            <button type="button" class="report-back-button" :disabled="reportSubmitting" @click="closeReportModal">Quay lại</button>
+            <button type="submit" class="report-submit-button" :disabled="reportSubmitting">
+              {{ reportSubmitting ? 'Đang gửi...' : 'Gửi phản ánh' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div
         v-if="imageLightboxOpen"
         class="image-lightbox"
         role="dialog"
@@ -424,6 +488,7 @@ import { useFavoriteListings } from '@/composables/useFavoriteListings';
 import { ChevronLeft, ChevronRight, Heart } from 'lucide-vue-next';
 import listingService from '@/services/listingService';
 import recentlyViewedService from '@/services/recentlyViewedService';
+import cloudinaryService from '@/services/cloudinaryService';
 import AppointmentBookingPopup from '@/components/appointments/AppointmentBookingPopup.vue';
 import Login from '@/pages/Auth/Login.vue';
 import Register from '@/pages/Auth/Register.vue';
@@ -508,6 +573,12 @@ const mapMode = ref('standard');
 const isMap3dEnabled = ref(false);
 const selectedReportReasons = ref([]);
 const reportSubmitting = ref(false);
+const reportModalOpen = ref(false);
+const reportDescription = ref('');
+const reportImages = ref([]);
+const reportImagePreviews = ref([]);
+const reportImageInput = ref(null);
+const reportUploadError = ref('');
 const relatedListings = ref([]);
 const toasts = ref([]);
 let toastIdCounter = 1;
@@ -641,12 +712,101 @@ const reportOptions = [
   { value: 'DUPLICATE_LISTING', label: 'Trùng với tin rao khác' },
 ];
 
+const selectedReportReasonLabels = computed(() =>
+  reportOptions
+    .filter((option) => selectedReportReasons.value.includes(option.value))
+    .map((option) => option.label),
+);
+
 async function loadRelatedListings() {
   const current = listing.value;
   if (!current?.id || !current?.demand_type || !current?.property?.province_code) {
     relatedListings.value = [];
     return;
   }
+
+  try {
+    const response = await listingService.getPublicListings({
+      demand_type: current.demand_type,
+      per_page: 24,
+    });
+    const items = response.data?.data || [];
+    await hydrateListingAddresses(items);
+
+    relatedListings.value = selectRelatedListings(current, items, {
+      limit: 4,
+      formatPrice,
+    });
+  } catch (err) {
+    console.error('Failed to load related listings:', err);
+    relatedListings.value = [];
+  }
+
+}
+
+function unusedTriggerReportImageInput() {
+  reportImageInput.value?.click();
+}
+
+function unusedHandleReportImagesSelected(event) {
+  reportUploadError.value = '';
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+
+  const availableSlots = Math.max(0, 5 - reportImages.value.length);
+  const selectedFiles = files.slice(0, availableSlots);
+  if (files.length > availableSlots) {
+    reportUploadError.value = 'Tá»‘i Ä‘a 5 áº£nh minh chá»©ng.';
+  }
+
+  selectedFiles.forEach((file) => {
+    if (!file.type?.startsWith('image/')) {
+      reportUploadError.value = 'Vui lÃ²ng chá»n Ä‘Ãºng tá»‡p áº£nh.';
+      return;
+    }
+
+    reportImages.value.push(file);
+    reportImagePreviews.value.push({
+      file,
+      url: URL.createObjectURL(file),
+    });
+  });
+
+  event.target.value = '';
+}
+
+function unusedRemoveReportImage(index) {
+  const [preview] = reportImagePreviews.value.splice(index, 1);
+  if (preview?.url) URL.revokeObjectURL(preview.url);
+  reportImages.value.splice(index, 1);
+}
+
+function unusedResetReportModalState() {
+  reportDescription.value = '';
+  reportImages.value = [];
+  reportImagePreviews.value.forEach((preview) => {
+    if (preview?.url) URL.revokeObjectURL(preview.url);
+  });
+  reportImagePreviews.value = [];
+  reportUploadError.value = '';
+}
+
+async function unusedUploadReportImages() {
+  if (!reportImages.value.length) return [];
+  const uploads = await Promise.all(
+    reportImages.value.map((file) => cloudinaryService.uploadImage(file, 'listing')),
+  );
+  return uploads.map((item) => item.secure_url).filter(Boolean);
+}
+
+async function unusedSubmitListingReport() {
+  if (!reportDescription.value.trim()) {
+    reportUploadError.value = 'Vui lÃ²ng nháº­p lÃ½ do chi tiáº¿t.';
+    return;
+  }
+
+  reportModalOpen.value = true;
+  return;
 
   try {
     const response = await listingService.getPublicListings({
@@ -752,7 +912,7 @@ async function updateDescriptionToggle() {
   descriptionCanToggle.value = lineCount > 3 || text.length > 180;
 }
 
-async function submitListingReport() {
+async function openReportModal() {
   if (selectedReportReasons.value.length === 0) {
     pushToast('Vui lòng chọn ít nhất một lý do báo cáo.', 'warning');
     return;
@@ -762,6 +922,10 @@ async function submitListingReport() {
     pushToast('Không tìm thấy tin đăng.', 'error');
     return;
   }
+
+  reportUploadError.value = '';
+  reportModalOpen.value = true;
+  return;
 
   try {
     reportSubmitting.value = true;
@@ -773,6 +937,93 @@ async function submitListingReport() {
     selectedReportReasons.value = [];
   } catch (err) {
     pushToast(err.response?.data?.message || 'Hệ thống bận, vui lòng gửi báo cáo sau.', 'error');
+  } finally {
+    reportSubmitting.value = false;
+  }
+}
+
+function closeReportModal() {
+  if (reportSubmitting.value) return;
+  reportModalOpen.value = false;
+  resetReportModalState();
+}
+
+function triggerReportImageInput() {
+  reportImageInput.value?.click();
+}
+
+function handleReportImagesSelected(event) {
+  reportUploadError.value = '';
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+
+  const availableSlots = Math.max(0, 5 - reportImages.value.length);
+  const selectedFiles = files.slice(0, availableSlots);
+  if (files.length > availableSlots) {
+    reportUploadError.value = 'Tá»‘i Ä‘a 5 áº£nh minh chá»©ng.';
+  }
+
+  selectedFiles.forEach((file) => {
+    if (!file.type?.startsWith('image/')) {
+      reportUploadError.value = 'Vui lÃ²ng chá»n Ä‘Ãºng tá»‡p áº£nh.';
+      return;
+    }
+
+    reportImages.value.push(file);
+    reportImagePreviews.value.push({
+      file,
+      url: URL.createObjectURL(file),
+    });
+  });
+
+  event.target.value = '';
+}
+
+function removeReportImage(index) {
+  const [preview] = reportImagePreviews.value.splice(index, 1);
+  if (preview?.url) URL.revokeObjectURL(preview.url);
+  reportImages.value.splice(index, 1);
+}
+
+function resetReportModalState() {
+  reportDescription.value = '';
+  reportImages.value = [];
+  reportImagePreviews.value.forEach((preview) => {
+    if (preview?.url) URL.revokeObjectURL(preview.url);
+  });
+  reportImagePreviews.value = [];
+  reportUploadError.value = '';
+}
+
+async function uploadReportImages() {
+  if (!reportImages.value.length) return [];
+  const uploads = await Promise.all(
+    reportImages.value.map((file) => cloudinaryService.uploadImage(file, 'listing')),
+  );
+  return uploads.map((item) => item.secure_url).filter(Boolean);
+}
+
+async function submitListingReport() {
+  if (!reportDescription.value.trim()) {
+    reportUploadError.value = 'Vui lÃ²ng nháº­p lÃ½ do chi tiáº¿t.';
+    return;
+  }
+
+  try {
+    reportSubmitting.value = true;
+    const imageUrls = await uploadReportImages();
+    const response = await listingService.report(listing.value.id, {
+      reasons: selectedReportReasons.value,
+      description: reportDescription.value,
+      image_urls: imageUrls,
+    });
+
+    pushToast(response.data?.message || 'Cáº£m Æ¡n báº¡n Ä‘Ã£ pháº£n há»“i.', 'success');
+    selectedReportReasons.value = [];
+    reportModalOpen.value = false;
+    resetReportModalState();
+  } catch (err) {
+    pushToast(err.response?.data?.message || 'Há»‡ thá»‘ng báº­n, vui lÃ²ng gá»­i bÃ¡o cÃ¡o sau.', 'error');
   } finally {
     reportSubmitting.value = false;
   }
@@ -1306,10 +1557,11 @@ onUnmounted(() => {
   position: fixed;
   top: 88px;
   right: 14px;
-  z-index: 1300;
+  z-index: 1900;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  pointer-events: none;
 }
 
 .toast-item {
@@ -1321,6 +1573,7 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 700;
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  pointer-events: auto;
 }
 
 .toast-success {
@@ -1345,6 +1598,234 @@ onUnmounted(() => {
   background: #fef2f2;
   color: #b91c1c;
   border-color: #fecaca;
+}
+
+.report-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.22);
+  padding: 24px;
+  backdrop-filter: blur(2px);
+}
+
+.report-modal {
+  width: min(760px, 100%);
+  border-radius: 10px;
+  background: #fff;
+  padding: 34px 42px 20px;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.18);
+}
+
+.report-modal-icon {
+  position: relative;
+  margin: 0 auto 18px;
+  height: 60px;
+  width: 76px;
+  color: #0ea5e9;
+}
+
+.report-modal-icon-card {
+  position: absolute;
+  left: 4px;
+  top: 3px;
+  height: 48px;
+  width: 54px;
+  border: 4px solid currentColor;
+  border-radius: 12px;
+}
+
+.report-modal-icon-card::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: 12px;
+  border-top: 4px solid currentColor;
+}
+
+.report-modal-icon-info {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  height: 42px;
+  width: 42px;
+  align-items: center;
+  justify-content: center;
+  border: 4px solid currentColor;
+  border-radius: 9999px;
+  background: #fff;
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.report-modal-title {
+  text-align: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.report-modal-subtitle {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.report-reason-box {
+  margin-top: 14px;
+  min-height: 34px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.report-reason-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+.report-detail-field {
+  margin-top: 12px;
+  display: block;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  padding: 12px;
+}
+
+.report-detail-field span {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.report-detail-field b {
+  color: #ef4444;
+}
+
+.report-detail-field textarea {
+  min-height: 78px;
+  width: 100%;
+  resize: vertical;
+  border: 0;
+  outline: none;
+  font-size: 13px;
+  color: #334155;
+}
+
+.report-upload-box {
+  margin-top: 12px;
+  min-height: 112px;
+  border: 1.5px dashed #bae6fd;
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+}
+
+.report-preview-list {
+  margin-bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.report-preview-item {
+  position: relative;
+  height: 70px;
+  width: 86px;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.report-preview-item img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.report-preview-item button {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  display: flex;
+  height: 20px;
+  width: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.report-upload-button {
+  margin-top: 36px;
+  border: 1px solid #38bdf8;
+  border-radius: 8px;
+  padding: 6px 18px;
+  color: #0ea5e9;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.report-upload-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.report-upload-error {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+.report-modal-actions {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.report-back-button,
+.report-submit-button {
+  height: 38px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.report-back-button {
+  border: 1px solid #38bdf8;
+  color: #0ea5e9;
+}
+
+.report-submit-button {
+  background: #0ea5e9;
+  color: #fff;
+}
+
+.report-back-button:disabled,
+.report-submit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .image-lightbox {
@@ -1470,6 +1951,10 @@ onUnmounted(() => {
   background: #fff;
   padding: 20px;
   box-shadow: 0 10px 28px rgba(15, 23, 42, 0.035);
+}
+
+.detail-main-grid > .min-w-0 > .detail-card:first-child {
+  margin-top: 0;
 }
 
 .detail-title {

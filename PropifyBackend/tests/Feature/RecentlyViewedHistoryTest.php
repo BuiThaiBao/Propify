@@ -14,6 +14,7 @@ final class RecentlyViewedHistoryTest extends TestCase
     use RefreshDatabase;
 
     private User $user;
+
     private int $packageId;
 
     protected function setUp(): void
