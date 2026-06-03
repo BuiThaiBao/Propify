@@ -339,6 +339,19 @@ final class EloquentListingRepository implements ListingRepository
 
     private function applyPropertySearchConstraint(Builder $query, string $normalizedKeyword, ?string $searchField = null): void
     {
+        if ($searchField === 'address') {
+            $like = '%'.$normalizedKeyword.'%';
+
+            $query->where(function ($subQuery) use ($like) {
+                $subQuery
+                    ->whereRaw($this->normalizeSearchExpression('properties.ward').' LIKE ?', [$like])
+                    ->orWhereRaw($this->normalizeSearchExpression('properties.street_code').' LIKE ?', [$like])
+                    ->orWhereRaw($this->normalizeSearchExpression('properties.address_detail').' LIKE ?', [$like]);
+            });
+
+            return;
+        }
+
         if ($this->isSpecificPropertySearchField($searchField)) {
             $query->whereRaw(
                 $this->normalizeSearchExpression('properties.'.$searchField).' LIKE ?',
@@ -421,6 +434,6 @@ final class EloquentListingRepository implements ListingRepository
 
     private function isSpecificPropertySearchField(?string $searchField): bool
     {
-        return in_array($searchField, ['province', 'ward', 'street_code', 'project_name', 'address_detail'], true);
+        return in_array($searchField, ['address', 'project_name'], true);
     }
 }

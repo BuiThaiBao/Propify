@@ -361,11 +361,8 @@ const isMapOpen = ref(false);
 const mapFilters = computed(() => ({ demand_type: 'SALE', keyword: searchKeyword.value, poster_type: posterType.value, min_price: minPrice.value, max_price: maxPrice.value, min_area: minArea.value, max_area: maxArea.value }));
 const searchFieldOptions = [
   { value: 'all', label: 'Tất cả' },
-  { value: 'province', label: 'Tỉnh/Thành phố' },
-  { value: 'ward', label: 'Phường/Xã' },
-  { value: 'street_code', label: 'Đường' },
+  { value: 'address', label: 'Địa chỉ' },
   { value: 'project_name', label: 'Dự án' },
-  { value: 'address_detail', label: 'Địa chỉ chi tiết' },
 ];
 
 // Custom UI Filter presets
