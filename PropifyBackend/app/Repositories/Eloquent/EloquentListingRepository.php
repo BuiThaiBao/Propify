@@ -174,9 +174,16 @@ final class EloquentListingRepository implements ListingRepository
         return $query->paginate($perPage);
     }
 
-    public function paginateAdmin(?string $status, ?string $demandType, ?string $keyword, int $perPage): LengthAwarePaginator
-    {
-        return Listing::query()
+    public function paginateAdmin(
+        ?string $status,
+        ?string $demandType,
+        ?string $keyword,
+        int $perPage,
+        ?string $searchField = 'title',
+        ?string $priceRange = null,
+        ?int $packageId = null,
+    ): LengthAwarePaginator {
+        return $this->buildAdminBaseQuery($demandType, $keyword, $searchField, $priceRange, $packageId)
             ->with([
                 'property.attributes.group',
                 'images',
@@ -188,9 +195,7 @@ final class EloquentListingRepository implements ListingRepository
                 'approver',
                 'package',
             ])
-            ->where('status', '!=', 'DRAFT')
             ->when($status && $status !== 'all', function ($query) use ($status) {
-                // If filtering by specific status, do exact match except for 'all'
                 $query->where('status', strtoupper($status));
             })
             ->when($demandType && $demandType !== 'all', function ($query) use ($demandType) {
@@ -224,6 +229,27 @@ final class EloquentListingRepository implements ListingRepository
             })
             ->orderByDesc('id')
             ->paginate($perPage);
+    }
+
+    public function getAdminStatusCounts(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $searchField = 'title',
+        ?string $priceRange = null,
+        ?int $packageId = null,
+    ): array {
+        $counts = $this->buildAdminBaseQuery($demandType, $keyword, $searchField, $priceRange, $packageId)
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        return [
+            'all' => (int) $counts->sum(),
+            'pending' => (int) ($counts['PENDING'] ?? 0),
+            'approved' => (int) ($counts['ACTIVE'] ?? 0),
+            'rejected' => (int) ($counts['REJECTED'] ?? 0),
+            'locked' => (int) ($counts['LOCKED'] ?? 0),
+        ];
     }
 
     public function getMapListings(
@@ -282,6 +308,77 @@ final class EloquentListingRepository implements ListingRepository
             })
             ->orderByDesc('id')
             ->get();
+    }
+
+    private function buildAdminBaseQuery(
+        ?string $demandType,
+        ?string $keyword,
+        ?string $searchField = 'title',
+        ?string $priceRange = null,
+        ?int $packageId = null,
+    ) {
+        return Listing::query()
+            ->whereNotIn('status', ['DRAFT', 'UNLISTED'])
+            ->when($demandType && $demandType !== 'all', function ($query) use ($demandType) {
+                $query->where('demand_type', strtoupper($demandType));
+            })
+            ->when($packageId, function ($query) use ($packageId) {
+                $query->where('package_id', $packageId);
+            })
+            ->when($priceRange && $priceRange !== 'all', function ($query) use ($priceRange) {
+                $query->whereHas('property', function ($propertyQuery) use ($priceRange) {
+                    match ($priceRange) {
+                        'under_1b' => $propertyQuery->where('price', '<', 1000000000),
+                        '1b_3b' => $propertyQuery->whereBetween('price', [1000000000, 3000000000]),
+                        '3b_5b' => $propertyQuery->whereBetween('price', [3000000000, 5000000000]),
+                        '5b_10b' => $propertyQuery->whereBetween('price', [5000000000, 10000000000]),
+                        'over_10b' => $propertyQuery->where('price', '>', 10000000000),
+                        default => null,
+                    };
+                });
+            })
+            ->when($keyword, function ($query) use ($keyword, $searchField) {
+                $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
+
+                if ($normalizedKeyword === null) {
+                    return;
+                }
+
+                $like = '%'.$normalizedKeyword.'%';
+                $isRent = str_contains($normalizedKeyword, 'cho') || str_contains($normalizedKeyword, 'thue');
+                $isSale = str_contains($normalizedKeyword, 'mua') || str_contains($normalizedKeyword, 'ban');
+
+                $query->where(function ($subQuery) use ($like, $isRent, $isSale, $searchField) {
+                    if ($searchField === 'owner') {
+                        $subQuery->whereHas('owner', function ($ownerQuery) use ($like) {
+                            $ownerQuery
+                                ->whereRaw($this->normalizeSearchExpression('full_name').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('email').' LIKE ?', [$like])
+                                ->orWhere('phone', 'like', $like);
+                        });
+                    } elseif ($searchField === 'address') {
+                        $subQuery->whereHas('property', function ($propertyQuery) use ($like) {
+                            $propertyQuery
+                                ->whereRaw($this->normalizeSearchExpression('address_detail').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('project_name').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('street_code').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('province_code').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('ward_code').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('province').' LIKE ?', [$like])
+                                ->orWhereRaw($this->normalizeSearchExpression('ward').' LIKE ?', [$like]);
+                        });
+                    } else {
+                        $subQuery->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like]);
+
+                        if ($isRent) {
+                            $subQuery->orWhere('demand_type', 'RENT');
+                        }
+                        if ($isSale) {
+                            $subQuery->orWhere('demand_type', 'SALE');
+                        }
+                    }
+                });
+            });
     }
 
     public function updateProperty(int $id, array $attributes): Property

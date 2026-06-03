@@ -4,9 +4,14 @@ namespace Tests\Feature;
 
 use App\Enums\BookingStatus;
 use App\Enums\NotificationType;
+use App\DTOs\Appointment\CreateBookingDto;
 use App\Events\Appointment\AppointmentBooked;
+use App\Events\Appointment\AppointmentBookingExpired;
+use App\Jobs\AutoCancelExpiredBookingJob;
 use App\Listeners\Appointment\SendAppointmentBookedNotification;
+use App\Listeners\Appointment\SendAppointmentBookingExpiredNotification;
 use App\Mail\AppointmentBookedMail;
+use App\Mail\AppointmentExpiredMail;
 use App\Mail\AppointmentStatusUpdatedMail;
 use App\Models\AppointmentBooking;
 use App\Models\AppointmentSlot;
@@ -16,7 +21,10 @@ use App\Models\Property;
 use App\Models\User;
 use App\Services\Appointment\AppointmentBookingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 final class AppointmentBookingNotificationTest extends TestCase
@@ -158,18 +166,95 @@ final class AppointmentBookingNotificationTest extends TestCase
         });
     }
 
-    private function createBookingFixture(): array
+    public function test_viewer_can_book_same_slot_again_after_cancelled_or_expired_booking(): void
     {
+        Queue::fake();
+        Event::fake();
+
+        foreach ([
+            BookingStatus::CANCELLED_BY_VIEWER,
+            BookingStatus::CANCELLED_BY_POSTER,
+            BookingStatus::EXPIRED,
+        ] as $status) {
+            [$poster, $viewer, $booking] = $this->createBookingFixture($status);
+
+            $created = app(AppointmentBookingService::class)->createBooking(new CreateBookingDto(
+                slotId: (int) $booking->slot_id,
+                viewerId: (int) $viewer->id,
+                date: $booking->meet_time->toDateString(),
+                fullName: 'Viewer',
+                phone: '0901000012',
+                email: 'viewer-fixture@example.com',
+                note: 'Dat lai lich',
+            ));
+
+            $this->assertSame(BookingStatus::PENDING->value, $created->status);
+            $this->assertSame((int) $booking->slot_id, (int) $created->slot_id);
+            $this->assertSame($booking->meet_time->format('Y-m-d H:i:s'), $created->meet_time->format('Y-m-d H:i:s'));
+            $this->assertNotSame((int) $booking->id, (int) $created->id);
+        }
+    }
+
+    public function test_auto_cancel_expired_booking_dispatches_expired_event(): void
+    {
+        Event::fake([AppointmentBookingExpired::class]);
+
+        [, , $booking] = $this->createBookingFixture();
+
+        (new AutoCancelExpiredBookingJob($booking->id))->handle();
+
+        $booking->refresh();
+
+        $this->assertSame(BookingStatus::EXPIRED->value, $booking->status);
+
+        Event::assertDispatched(AppointmentBookingExpired::class, function (AppointmentBookingExpired $event) use ($booking) {
+            return $event->bookingId === $booking->id;
+        });
+    }
+
+    public function test_expired_booking_notification_is_sent_to_viewer_and_poster(): void
+    {
+        Mail::fake();
+
+        [$poster, $viewer, $booking] = $this->createBookingFixture(BookingStatus::EXPIRED);
+
+        $listener = $this->app->make(SendAppointmentBookingExpiredNotification::class);
+        $listener->handle(new AppointmentBookingExpired($booking->id));
+
+        $this->assertSame(2, Notification::query()
+            ->where('type', NotificationType::APPOINTMENT_EXPIRED->value)
+            ->whereIn('user_id', [$poster->id, $viewer->id])
+            ->count());
+
+        Mail::assertQueued(AppointmentExpiredMail::class, function (AppointmentExpiredMail $mail) use ($poster) {
+            return $mail->hasTo($poster->email);
+        });
+
+        Mail::assertQueued(AppointmentExpiredMail::class, function (AppointmentExpiredMail $mail) use ($viewer) {
+            return $mail->hasTo($viewer->email);
+        });
+    }
+
+    private function createBookingFixture(BookingStatus $status = BookingStatus::PENDING): array
+    {
+        static $sequence = 0;
+
+        $sequence++;
+        $posterEmail = "poster-fixture-{$sequence}@example.com";
+        $viewerEmail = "viewer-fixture-{$sequence}@example.com";
+        $posterPhone = '090100'.str_pad((string) ($sequence * 2 + 10), 4, '0', STR_PAD_LEFT);
+        $viewerPhone = '090100'.str_pad((string) ($sequence * 2 + 11), 4, '0', STR_PAD_LEFT);
+
         $poster = User::query()->create([
             'full_name' => 'Poster',
-            'phone' => '0901000011',
-            'email' => 'poster-fixture@example.com',
+            'phone' => $posterPhone,
+            'email' => $posterEmail,
         ]);
 
         $viewer = User::query()->create([
             'full_name' => 'Viewer',
-            'phone' => '0901000012',
-            'email' => 'viewer-fixture@example.com',
+            'phone' => $viewerPhone,
+            'email' => $viewerEmail,
         ]);
 
         $property = Property::query()->create([
@@ -179,8 +264,8 @@ final class AppointmentBookingNotificationTest extends TestCase
             'price' => 2500000000,
             'poster_type' => 'OWNER',
             'contact_name' => 'Poster',
-            'contact_phone' => '0901000011',
-            'contact_email' => 'poster-fixture@example.com',
+            'contact_phone' => $posterPhone,
+            'contact_email' => $posterEmail,
         ]);
 
         $listing = Listing::query()->create([
@@ -202,15 +287,17 @@ final class AppointmentBookingNotificationTest extends TestCase
             'is_active' => true,
         ]);
 
+        $meetTime = Carbon::now()->next(Carbon::TUESDAY)->setTime(9, 0);
+
         $booking = AppointmentBooking::query()->create([
             'slot_id' => $slot->id,
             'viewer_id' => $viewer->id,
-            'meet_time' => now()->addDay(),
+            'meet_time' => $meetTime,
             'full_name' => 'Viewer',
-            'phone_number' => '0901000012',
-            'email' => 'viewer-fixture@example.com',
+            'phone_number' => $viewerPhone,
+            'email' => $viewerEmail,
             'note' => 'Hen xem nha',
-            'status' => BookingStatus::PENDING->value,
+            'status' => $status->value,
             'is_deleted' => false,
             'confirm_deadline' => now()->addHours(6),
             'is_urgent' => false,

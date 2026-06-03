@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Events\Appointment\AppointmentBooked;
+use App\Events\Appointment\AppointmentBookingExpired;
 use App\Events\Appointment\AppointmentBookingStatusUpdated;
 use App\Events\Auth\PasswordChanged;
 use App\Events\Auth\UserRegistered;
@@ -15,6 +16,7 @@ use App\Events\Package\PackageCreated;
 use App\Events\Package\PackageStatusChanged;
 use App\Events\User\ProfileUpdated;
 use App\Listeners\Appointment\SendAppointmentBookedNotification;
+use App\Listeners\Appointment\SendAppointmentBookingExpiredNotification;
 use App\Listeners\Appointment\SendAppointmentBookingStatusNotification;
 use App\Listeners\Auth\SendWelcomeNotification;
 use App\Listeners\Listing\ClearPublicListingCache;
@@ -223,6 +225,7 @@ final class AppServiceProvider extends ServiceProvider
         Event::listen(ListingPackageExpiring::class, SendPackageExpiringNotification::class);
         Event::listen(AppointmentBooked::class, SendAppointmentBookedNotification::class);
         Event::listen(AppointmentBookingStatusUpdated::class, SendAppointmentBookingStatusNotification::class);
+        Event::listen(AppointmentBookingExpired::class, SendAppointmentBookingExpiredNotification::class);
         Event::listen(FavoriteToggled::class, static function () {});
         Event::listen(ListingVerificationRequested::class, static function () {});
         Event::listen(ProfileUpdated::class, static function () {});

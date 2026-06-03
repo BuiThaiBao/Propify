@@ -75,6 +75,10 @@ final class AppointmentBookingServiceImpl implements AppointmentBookingService
             ->where('slot_id', $dto->slotId)
             ->where('meet_time', $meetTime)
             ->where('is_deleted', false)
+            ->whereIn('status', [
+                BookingStatus::PENDING->value,
+                BookingStatus::APPROVED->value,
+            ])
             ->exists();
 
         if ($exists) {

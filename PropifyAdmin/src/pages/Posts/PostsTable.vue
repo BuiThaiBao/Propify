@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { Ban, CheckCircle, ChevronDown, Info, Lock, MoreHorizontal } from 'lucide-vue-next'
+import { Ban, CheckCircle, ChevronDown, Info, Lock, MoreHorizontal, Unlock } from 'lucide-vue-next'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 
 const props = defineProps({
@@ -190,7 +190,7 @@ function toggleAllVisible() {
 function getActions(post) {
   const actions = []
 
-  if (['PENDING', 'LOCKED', 'REJECTED'].includes(post.status)) {
+  if (post.status === 'PENDING') {
     actions.push({
       label: adminStatusLabel('ACTIVE'),
       status: 'ACTIVE',
@@ -199,7 +199,7 @@ function getActions(post) {
     })
   }
 
-  if (post.status === 'ACTIVE') {
+  if (['ACTIVE', 'REJECTED'].includes(post.status)) {
     actions.push({
       label: adminStatusLabel('LOCKED'),
       status: 'LOCKED',
@@ -208,7 +208,16 @@ function getActions(post) {
     })
   }
 
-  if (['PENDING', 'ACTIVE'].includes(post.status)) {
+  if (post.status === 'LOCKED') {
+    actions.push({
+      label: 'Mở khóa',
+      status: 'ACTIVE',
+      icon: Unlock,
+      className: 'approve-action',
+    })
+  }
+
+  if (post.status === 'PENDING') {
     actions.push({
       label: adminStatusLabel('REJECTED'),
       status: 'REJECTED',

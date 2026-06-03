@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <Transition name="popup-fade">
-      <div v-if="visible" class="popup-overlay" @click.self="close">
+      <div v-if="visible" class="popup-overlay">
         <div class="popup-container">
           <!-- Header -->
           <div class="popup-header">
@@ -131,7 +131,7 @@
 
     <!-- Confirm Dialog -->
     <Transition name="popup-fade">
-      <div v-if="confirmVisible" class="dialog-overlay" @click.self="confirmVisible = false">
+      <div v-if="confirmVisible" class="dialog-overlay">
         <div class="dialog-box">
           <button class="dialog-close" @click="confirmVisible = false">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>

@@ -42,6 +42,7 @@ final class DatabaseChannel implements NotificationChannel
             NotificationType::APPOINTMENT_STATUS_UPDATED => ($data['status'] ?? null) === 'APPROVED'
                 ? 'Lịch hẹn đã được chấp nhận'
                 : 'Lịch hẹn đã bị từ chối',
+            NotificationType::APPOINTMENT_EXPIRED => 'Lịch hẹn đã quá thời gian xác nhận',
         };
     }
 
@@ -76,6 +77,11 @@ final class DatabaseChannel implements NotificationChannel
                     $data['listing_title'] ?? 'Tin đăng',
                     $data['meet_time'] ?? 'thời gian chưa xác định'
                 ),
+            NotificationType::APPOINTMENT_EXPIRED => sprintf(
+                'Lịch hẹn xem tin "%s" vào %s đã quá thời gian xác nhận và bị hủy tự động.',
+                $data['listing_title'] ?? 'Tin đăng',
+                $data['meet_time'] ?? 'thời gian chưa xác định'
+            ),
         };
     }
 }
