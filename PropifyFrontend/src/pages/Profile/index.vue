@@ -268,8 +268,8 @@
                 <th class="px-3 py-4 whitespace-nowrap">Ngày đăng</th>
                 <th class="px-3 py-4 min-w-[180px]">Địa chỉ</th>
                 <th class="px-3 py-4 whitespace-nowrap">Giá</th>
-                <th class="px-3 py-4 whitespace-nowrap">Gói tin</th>
                 <th class="px-3 py-4 text-center whitespace-nowrap">Hiển thị</th>
+                <th class="px-3 py-4 whitespace-nowrap col-sticky-package">Gói tin</th>
                 <th class="px-3 py-4 whitespace-nowrap col-sticky-status">Trạng thái</th>
                 <th class="pl-3 pr-5 py-4 w-12 text-center col-sticky-actions"></th>
               </tr>
@@ -294,19 +294,14 @@
                 <td class="px-3 py-4 text-slate-500">{{ item.address }}</td>
                 <td class="px-3 py-4 font-semibold text-slate-700 whitespace-nowrap">{{ item.price }}</td>
                 <td class="px-3 py-4 whitespace-nowrap">
-                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', packageBadgeClass(item.package)]">
-                    {{ packageLabel(item.package) }}
-                  </span>
-                </td>
-                <td class="px-3 py-4 whitespace-nowrap">
                   <div class="flex items-center justify-center gap-1.5 text-slate-500">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                     <span class="font-medium text-sm">{{ item.views ?? 0 }}</span>
                   </div>
                 </td>
-                <td class="px-3 py-4 whitespace-nowrap col-sticky-verification">
-                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', verificationBadgeClass(item.isVerified)]">
-                    {{ item.isVerified ? 'Đã xác thực' : 'Chưa xác thực' }}
+                <td class="px-3 py-4 whitespace-nowrap col-sticky-package">
+                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', packageBadgeClass(item.package)]">
+                    {{ packageLabel(item.package) }}
                   </span>
                 </td>
                 <td class="px-3 py-4 whitespace-nowrap col-sticky-status">
@@ -446,9 +441,9 @@
                 <th class="px-3 py-4 whitespace-nowrap">Ngày đăng</th>
                 <th class="px-3 py-4 min-w-[180px]">Địa chỉ</th>
                 <th class="px-3 py-4 whitespace-nowrap">Giá</th>
-                <th class="px-3 py-4 whitespace-nowrap">Gói tin</th>
                 <th class="px-3 py-4 text-center whitespace-nowrap">Hiển thị</th>
                 <th class="px-3 py-4 whitespace-nowrap col-sticky-verification">Xác thực</th>
+                <th class="px-3 py-4 whitespace-nowrap col-sticky-package">Gói tin</th>
                 <th class="px-3 py-4 whitespace-nowrap col-sticky-status">Trạng thái</th>
                 <th class="pl-3 pr-5 py-4 w-12 text-center col-sticky-actions"></th>
               </tr>
@@ -473,11 +468,6 @@
                 <td class="px-3 py-4 text-slate-500">{{ item.address }}</td>
                 <td class="px-3 py-4 font-semibold text-slate-700 whitespace-nowrap">{{ item.price }}</td>
                 <td class="px-3 py-4 whitespace-nowrap">
-                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', packageBadgeClass(item.package)]">
-                    {{ packageLabel(item.package) }}
-                  </span>
-                </td>
-                <td class="px-3 py-4 whitespace-nowrap">
                   <div class="flex items-center justify-center gap-1.5 text-slate-500">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                     <span class="font-medium text-sm">{{ item.views ?? 0 }}</span>
@@ -486,6 +476,11 @@
                 <td class="px-3 py-4 whitespace-nowrap col-sticky-verification">
                   <span :class="['rounded-full px-2 py-1 text-xs font-semibold', verificationBadgeClass(item.isVerified)]">
                     {{ item.isVerified ? 'Đã xác thực' : 'Chưa xác thực' }}
+                  </span>
+                </td>
+                <td class="px-3 py-4 whitespace-nowrap col-sticky-package">
+                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', packageBadgeClass(item.package)]">
+                    {{ packageLabel(item.package) }}
                   </span>
                 </td>
                 <td class="px-3 py-4 whitespace-nowrap col-sticky-status">
@@ -2174,6 +2169,7 @@ async function handleChangePassword() {
 
 <style scoped>
 .col-sticky-id,
+.col-sticky-package,
 .col-sticky-verification,
 .col-sticky-status,
 .col-sticky-actions {
@@ -2181,6 +2177,7 @@ async function handleChangePassword() {
   z-index: 10;
 }
 
+.col-sticky-package,
 .col-sticky-verification,
 .col-sticky-status,
 .col-sticky-actions {
@@ -2193,6 +2190,7 @@ async function handleChangePassword() {
 }
 
 thead tr th.col-sticky-id,
+thead tr th.col-sticky-package,
 thead tr th.col-sticky-verification,
 thead tr th.col-sticky-status,
 thead tr th.col-sticky-actions {
@@ -2201,6 +2199,7 @@ thead tr th.col-sticky-actions {
 }
 
 tbody tr td.col-sticky-id,
+tbody tr td.col-sticky-package,
 tbody tr td.col-sticky-verification,
 tbody tr td.col-sticky-status,
 tbody tr td.col-sticky-actions {
@@ -2209,6 +2208,7 @@ tbody tr td.col-sticky-actions {
 }
 
 tbody tr:hover td.col-sticky-id,
+tbody tr:hover td.col-sticky-package,
 tbody tr:hover td.col-sticky-verification,
 tbody tr:hover td.col-sticky-status,
 tbody tr:hover td.col-sticky-actions {
@@ -2235,8 +2235,19 @@ tbody tr:hover td.col-sticky-actions {
   max-width: 120px;
 }
 
-.col-sticky-verification {
+.col-sticky-package {
   right: 168px;
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
+  box-shadow: inset 1px 0 0 0 #e2e8f0, -3px 0 5px -2px rgba(0, 0, 0, 0.08);
+}
+thead tr th.col-sticky-package {
+  box-shadow: inset 1px 0 0 0 #e2e8f0, -3px 0 5px -2px rgba(0, 0, 0, 0.08);
+}
+
+.col-sticky-verification {
+  right: 268px;
   width: 120px;
   min-width: 120px;
   max-width: 120px;

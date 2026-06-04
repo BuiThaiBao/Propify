@@ -99,6 +99,7 @@ const props = defineProps({
   placeholder: { type: String, default: 'Tìm kiếm theo tên, địa chỉ, dự án...' },
   suggestions: { type: Array, default: () => [] },
   searchFieldOptions: { type: Array, default: () => [] },
+  pinned: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue', 'update:searchField', 'search', 'select-suggestion']);
@@ -204,13 +205,16 @@ function handleScroll() {
 }
 
 onMounted(() => {
-  lastScrollY = window.scrollY;
-  window.addEventListener('scroll', handleScroll, { passive: true });
+  if (!props.pinned) {
+    lastScrollY = window.scrollY;
+    window.addEventListener('scroll', handleScroll, { passive: true });
+  }
 });
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll);
-  clearTimeout(hideTimer);
+  if (!props.pinned) {
+    window.removeEventListener('scroll', handleScroll);
+    clearTimeout(hideTimer);
+  }
 });
 </script>
-
