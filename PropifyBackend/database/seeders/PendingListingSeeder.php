@@ -68,7 +68,7 @@ class PendingListingSeeder extends Seeder
                     'status' => 'PENDING',
                     'submitted_at' => now(),
                     'views' => 0,
-                    'is_verified' => false,
+                    'is_verified' => 'UNVERIFIED',
                     'has_video' => false,
                     'score' => rand(0, 10),
                     'appointment_contact_name' => $user->full_name,

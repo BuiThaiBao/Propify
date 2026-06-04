@@ -3,6 +3,7 @@
 namespace App\Services\Listing\Verification\Impl;
 
 use App\Enums\ErrorCode;
+use App\Enums\ListingVerificationStatus;
 use App\Events\Listing\ListingVerificationRequested;
 use App\Exceptions\BusinessException;
 use App\Models\Listing;
@@ -10,6 +11,7 @@ use App\Models\ListingStatusHistory;
 use App\Models\User;
 use App\Repositories\ListingRepository;
 use App\Services\Listing\Verification\ListingVerificationService;
+use App\Support\ListingVerificationStatusResolver;
 use Illuminate\Support\Facades\DB;
 
 final class ListingVerificationServiceImpl implements ListingVerificationService
@@ -23,7 +25,7 @@ final class ListingVerificationServiceImpl implements ListingVerificationService
         $updated = DB::transaction(function () use ($user, $listingId, $documents) {
             $listing = Listing::query()->lockForUpdate()->findOrFail($listingId);
 
-            if ($listing->is_verified) {
+            if ($listing->is_verified === ListingVerificationStatus::VERIFIED) {
                 throw new BusinessException(ErrorCode::BadRequest, 'Tin dang nay da duoc xac thuc.');
             }
 
@@ -31,13 +33,28 @@ final class ListingVerificationServiceImpl implements ListingVerificationService
                 throw new BusinessException(ErrorCode::AuthForbidden);
             }
 
+            if ($listing->demand_type === 'RENT') {
+                throw new BusinessException(ErrorCode::BadRequest, 'Tin cho thue khong ho tro xac thuc bat dong san.');
+            }
+
             $identityCardFront = $documents['identity_card_front'] ?? null;
             $identityCardBack = $documents['identity_card_back'] ?? null;
             $legalDocuments = $documents['legal_documents'] ?? [];
-            $requestVerification = (bool) ($identityCardFront || $identityCardBack || count($legalDocuments) > 0);
+            if (! ListingVerificationStatusResolver::hasCompleteDocuments($identityCardFront, $identityCardBack, $legalDocuments)) {
+                throw new BusinessException(ErrorCode::ValidationError, 'Can tai len day du CCCD mat truoc, mat sau va it nhat mot anh giay to phap ly de gui yeu cau xac thuc.');
+            }
+
+            $requestVerification = true;
 
             $this->listingRepository->updateListing($listing->id, [
                 'request_verification' => $requestVerification,
+                'is_verified' => ListingVerificationStatusResolver::forSubmission(
+                    $listing->demand_type,
+                    $identityCardFront,
+                    $identityCardBack,
+                    $legalDocuments,
+                    $listing->is_verified,
+                )->value,
             ]);
 
             if ($listing->property_id) {
@@ -111,7 +128,9 @@ final class ListingVerificationServiceImpl implements ListingVerificationService
                 throw new BusinessException(ErrorCode::ListingNotFound);
             }
 
-            $listing->is_verified = $isVerified;
+            $listing->is_verified = $isVerified
+                ? ListingVerificationStatus::VERIFIED
+                : ListingVerificationStatus::REJECTED;
             $listing->save();
 
             ListingStatusHistory::create([

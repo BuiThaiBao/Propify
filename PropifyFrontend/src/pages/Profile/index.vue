@@ -305,8 +305,8 @@
                   </div>
                 </td>
                 <td class="px-3 py-4 whitespace-nowrap col-sticky-verification">
-                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', verificationBadgeClass(item.isVerified)]">
-                    {{ item.isVerified ? 'Đã xác thực' : 'Chưa xác thực' }}
+                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', verificationBadgeClass(item.verificationStatus)]">
+                    {{ verificationStatusLabel(item.verificationStatus) }}
                   </span>
                 </td>
                 <td class="px-3 py-4 whitespace-nowrap col-sticky-status">
@@ -328,7 +328,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                         Nâng cấp gói tin
                       </button>
-                      <button v-if="!item.isVerified" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('verify', item)">
+                      <button v-if="canRequestVerification(item)" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('verify', item)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
                         Xác thực BĐS
                       </button>
@@ -346,10 +346,10 @@
                         Đăng tin
                       </button>
                       <button
-                        :disabled="item.status !== 'ACTIVE'"
+                        :disabled="!canUnlistListing(item)"
                         :class="[
                           'w-full text-left px-4 py-2.5 text-[0.85rem] flex items-center gap-3 transition-colors',
-                          item.status === 'ACTIVE'
+                          canUnlistListing(item)
                             ? 'text-slate-700 hover:bg-slate-50'
                             : 'cursor-not-allowed text-slate-300 bg-slate-50'
                         ]"
@@ -484,8 +484,8 @@
                   </div>
                 </td>
                 <td class="px-3 py-4 whitespace-nowrap col-sticky-verification">
-                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', verificationBadgeClass(item.isVerified)]">
-                    {{ item.isVerified ? 'Đã xác thực' : 'Chưa xác thực' }}
+                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', verificationBadgeClass(item.verificationStatus)]">
+                    {{ verificationStatusLabel(item.verificationStatus) }}
                   </span>
                 </td>
                 <td class="px-3 py-4 whitespace-nowrap col-sticky-status">
@@ -507,7 +507,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
                         Nâng cấp gói tin
                       </button>
-                      <button v-if="!item.isVerified" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('verify', item)">
+                      <button v-if="canRequestVerification(item)" class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors" @click.stop="handleDropdownAction('verify', item)">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
                         Xác thực BĐS
                       </button>
@@ -525,10 +525,10 @@
                         Đăng tin
                       </button>
                       <button
-                        :disabled="item.status !== 'ACTIVE'"
+                        :disabled="!canUnlistListing(item)"
                         :class="[
                           'w-full text-left px-4 py-2.5 text-[0.85rem] flex items-center gap-3 transition-colors',
-                          item.status === 'ACTIVE'
+                          canUnlistListing(item)
                             ? 'text-slate-700 hover:bg-slate-50'
                             : 'cursor-not-allowed text-slate-300 bg-slate-50'
                         ]"
@@ -1235,6 +1235,10 @@ function openListingEdit(item) {
   router.push({ name: 'ListingEdit', params: { id: item.id } });
 }
 
+function canUnlistListing(item) {
+  return ['ACTIVE', 'PENDING'].includes(item?.status);
+}
+
 function handleDropdownAction(action, item) {
   closeDropdown();
   if (action === 'edit') {
@@ -1444,8 +1448,33 @@ function packageBadgeClass(pkg) {
   return 'bg-slate-100 text-slate-600';
 }
 
-function verificationBadgeClass(isVerified) {
-  return isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600';
+function normalizeVerificationStatus(value) {
+  if (value === true || Number(value) === 1) return 'VERIFIED';
+  if (value === false || value === null || value === undefined || value === '' || Number(value) === 0) return 'UNVERIFIED';
+  return String(value).toUpperCase();
+}
+
+function verificationStatusLabel(status) {
+  return {
+    UNVERIFIED: 'Chưa xác thực',
+    REQUESTED: 'Yêu cầu xác thực',
+    VERIFIED: 'Đã xác thực',
+    REJECTED: 'Đã từ chối',
+  }[normalizeVerificationStatus(status)] || 'Chưa xác thực';
+}
+
+function verificationBadgeClass(status) {
+  return {
+    UNVERIFIED: 'bg-slate-100 text-slate-600',
+    REQUESTED: 'bg-amber-100 text-amber-700',
+    VERIFIED: 'bg-emerald-100 text-emerald-700',
+    REJECTED: 'bg-red-100 text-red-700',
+  }[normalizeVerificationStatus(status)] || 'bg-slate-100 text-slate-600';
+}
+
+function canRequestVerification(item) {
+  return item?.demandType !== 'RENT'
+    && ['UNVERIFIED', 'REJECTED'].includes(normalizeVerificationStatus(item?.verificationStatus));
 }
 
 function normalizeListings(items) {
@@ -1462,7 +1491,8 @@ function normalizeListings(items) {
       price: formatCurrency(item?.property?.price),
       status: item.status,
       package: item.package || null,
-      isVerified: Boolean(item.is_verified),
+      verificationStatus: normalizeVerificationStatus(item.is_verified),
+      demandType: item.demand_type,
       views: item.views ?? 0,
     };
   });
@@ -1484,7 +1514,7 @@ function normalizeFavoriteListings(items) {
       publishedAt: item.published_at || item.submitted_at || item.created_at,
       submittedAt: item.submitted_at || item.created_at,
       views: item.views ?? 0,
-      isVerified: Boolean(item.is_verified),
+      verificationStatus: normalizeVerificationStatus(item.is_verified),
       package: item.package || null,
       score: item.score ?? 8.0,
     };
@@ -1538,6 +1568,7 @@ const paginatedFavoriteListings = computed(() => {
 function propertyTypeLabel(type) {
   const map = {
     APARTMENT: 'Căn hộ chung cư',
+    MINI_APARTMENT: 'Chung cư mini',
     HOUSE: 'Nhà ở',
     LAND: 'Đất',
     ROOM: 'Phòng',
@@ -1545,8 +1576,12 @@ function propertyTypeLabel(type) {
     STREET_HOUSE: 'Nhà mặt phố',
     VILLA_TOWNHOUSE: 'Biệt thự liền kề',
     SHOPHOUSE: 'Shophouse',
+    KIOSK: 'Ki-ốt',
     RENT_ROOM: 'Phòng trọ',
+    BOARDING_HOUSE: 'Nhà trọ',
     OFFICE: 'Văn phòng',
+    RESORT: 'Khu nghỉ dưỡng',
+    RESTAURANT_HOTEL: 'Nhà hàng - Khách sạn',
   };
   return map[type] || type || 'BĐS';
 }
@@ -1576,7 +1611,7 @@ function timeAgo(dateStr) {
 
 function isVerified(item) {
   const value = item?.is_verified ?? item?.isVerified;
-  return value === true || Number(value) === 1;
+  return normalizeVerificationStatus(value) === 'VERIFIED';
 }
 
 function isFavorite(item) {
