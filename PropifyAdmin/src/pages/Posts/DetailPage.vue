@@ -100,6 +100,9 @@ const statusKey = computed(() => mapStatusKey(post.value?.status))
 const statusLabel = computed(() => mapStatusLabel(post.value?.status))
 const verificationKey = computed(() => post.value?.is_verified ? 'approved' : 'locked')
 const verificationLabel = computed(() => post.value?.is_verified ? 'Đã xác thực' : 'Chưa xác thực')
+const canShowVerificationActions = computed(() => {
+  return isSaleListing.value && post.value?.status === 'ACTIVE' && docs.value.length > 0
+})
 const mapSrc = computed(() => {
   const lat = property.value?.lat
   const lng = property.value?.lng
@@ -370,7 +373,7 @@ function canReject() {
 }
 
 function canLock() {
-  return ['ACTIVE', 'REJECTED'].includes(post.value?.status)
+  return post.value?.status === 'ACTIVE'
 }
 
 function canUnlock() {
@@ -738,7 +741,6 @@ onBeforeUnmount(() => {
             <div class="info-item"><span>Tầng</span><strong>{{ displayValue(property.floor_number) }}</strong></div>
             <div class="info-item"><span>Mặt tiền</span><strong>{{ formatMetric(property.facade_width, 'm') }}</strong></div>
             <div class="info-item"><span>Chiều sâu</span><strong>{{ formatMetric(property.depth, 'm') }}</strong></div>
-            <div class="info-item"><span>Đường rộng</span><strong>{{ formatMetric(property.road_width, 'm') }}</strong></div>
             <div class="info-item"><span>Hướng nhà</span><strong>{{ directionLabel(property.direction_code) }}</strong></div>
             <div class="info-item"><span>Hướng ban công</span><strong>{{ directionLabel(property.balcony_direction_code) }}</strong></div>
             <div class="info-item"><span>Nội thất</span><strong>{{ furnitureLabel(property.furniture_status) }}</strong></div>
@@ -777,7 +779,7 @@ onBeforeUnmount(() => {
         <article class="detail-card">
           <div class="card-head">
             <h2><ShieldCheck :size="16" /> Giấy tờ pháp lý</h2>
-            <div v-if="docs.length" class="verification-actions">
+            <div v-if="canShowVerificationActions" class="verification-actions">
               <button class="outline-danger" :disabled="actionLoading" @click="openVerificationReject">
                 <Ban :size="15" /> Từ chối
               </button>

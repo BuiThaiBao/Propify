@@ -210,7 +210,7 @@ function getActions(post) {
     })
   }
 
-  if (['ACTIVE', 'REJECTED'].includes(post.status)) {
+  if (post.status === 'ACTIVE') {
     actions.push({
       label: adminStatusLabel('LOCKED'),
       status: 'LOCKED',
@@ -468,6 +468,7 @@ onBeforeUnmount(() => {
             </td>
             <td class="sticky-right sticky-action action-cell">
               <button
+                v-if="getActions(post).length"
                 class="more-btn"
                 :disabled="updatingPostId === post.id"
                 :aria-label="`Mở thao tác tin đăng ${post.id}`"
