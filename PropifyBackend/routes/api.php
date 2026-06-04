@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\V1\Package\PackagePricingController;
 use App\Http\Controllers\Api\V1\Payment\VnpayReturnController;
 use App\Http\Controllers\Api\V1\Project\ProjectSearchController;
 use App\Http\Controllers\Api\V1\User\UserController;
+use App\Http\Controllers\Api\V1\User\UserTransactionController;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -113,6 +114,8 @@ Route::prefix('v1/user')->as('user.')->middleware('auth:api')->group(function ()
     Route::put('/change-password', [UserController::class, 'changePassword'])->name('password.change');
     // Tìm user theo SĐT để bắt đầu chat
     Route::get('/search', [UserController::class, 'searchByPhone'])->name('search');
+    // Lịch sử giao dịch của user
+    Route::get('/transactions', [UserTransactionController::class, 'index'])->name('transactions.index');
 });
 
 // ==================== CLOUDINARY ROUTES ====================

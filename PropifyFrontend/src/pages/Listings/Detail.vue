@@ -229,6 +229,30 @@
               <button v-if="hasLatLng" type="button" class="absolute left-3 top-[52px] z-10 rounded-lg border border-white/70 px-3 py-2 text-xs font-semibold shadow-sm" :class="isMap3dEnabled ? 'bg-sky-500/95 text-white' : 'bg-white/95 text-slate-700'" @click.stop="toggleMap3d">
                 {{ isMap3dEnabled ? '2D' : '3D' }}
               </button>
+              <button v-if="hasLatLng" type="button" class="absolute right-3 bottom-3 z-10 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white/95 px-3 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-white transition" @click.stop="openMapModal">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+                </svg>
+                Phóng to
+              </button>
+              
+              <!-- Chú giải bản đồ (Legend overlay) -->
+              <div v-if="hasLatLng" class="absolute right-3 top-[120px] z-10 bg-white/95 backdrop-blur-sm border border-slate-200/60 rounded-xl p-3 shadow-md text-[10px] font-bold text-slate-600 flex flex-col gap-2 pointer-events-none select-none max-w-[145px]">
+                <div class="font-bold border-b border-slate-100 pb-1 text-slate-800 text-[11px] mb-0.5">Chú giải bản đồ</div>
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full border border-white bg-[#2563eb] shrink-0"></span>
+                  <span>Trường học</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full border border-white bg-[#ef6f6c] shrink-0"></span>
+                  <span>Bệnh viện, y tế</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full border border-white bg-[#f59e0b] shrink-0"></span>
+                  <span>Cửa hàng, siêu thị</span>
+                </div>
+              </div>
+
               <div v-show="hasLatLng" ref="mapElement" class="h-full w-full"></div>
               <div v-if="!hasLatLng" class="flex h-full w-full flex-col items-center justify-center text-sm text-slate-400">
                 <div class="mb-2 text-4xl">⌖</div>
@@ -459,6 +483,63 @@
       </div>
     </Teleport>
 
+    <!-- Fullscreen Map Modal -->
+    <Teleport to="body">
+      <div
+        v-if="mapModalOpen"
+        class="fixed inset-0 z-[2000] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 md:p-10"
+        role="dialog"
+        aria-modal="true"
+        @click.self="closeMapModal"
+      >
+        <div class="relative w-full h-full max-w-[1200px] max-h-[85vh] bg-white rounded-2xl overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
+          <!-- Header of modal -->
+          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white">
+            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <img :src="mapSectionIcon" class="h-4.5 w-4.5 object-contain" alt="" />
+              Bản đồ chi tiết bất động sản
+            </h3>
+            <button
+              type="button"
+              class="text-slate-400 hover:text-slate-600 transition text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100"
+              @click="closeMapModal"
+              aria-label="Đóng bản đồ"
+            >
+              &times;
+            </button>
+          </div>
+          <!-- Map container in modal -->
+          <div class="relative flex-1 bg-slate-50">
+            <button type="button" class="absolute left-3 top-3 z-10 rounded-lg border border-white/70 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50" @click.stop="toggleModalMapMode">
+              {{ modalMapMode === 'satellite' ? 'Bản đồ' : 'Vệ tinh' }}
+            </button>
+            <button type="button" class="absolute left-3 top-[52px] z-10 rounded-lg border border-white/70 px-3 py-2 text-xs font-semibold shadow-sm hover:bg-slate-50" :class="isModalMap3dEnabled ? 'bg-sky-500 text-white border-transparent' : 'bg-white/95 text-slate-700'" @click.stop="toggleModalMap3d">
+              {{ isModalMap3dEnabled ? '2D' : '3D' }}
+            </button>
+
+            <!-- Chú giải bản đồ modal (Legend overlay in modal) -->
+            <div class="absolute right-3 top-[120px] z-10 bg-white/95 backdrop-blur-sm border border-slate-200/60 rounded-xl p-3.5 shadow-md text-[11px] font-bold text-slate-600 flex flex-col gap-2 pointer-events-none select-none max-w-[170px]">
+              <div class="font-bold border-b border-slate-100 pb-1.5 text-slate-800 text-[12px] mb-0.5">Chú giải bản đồ</div>
+              <div class="flex items-center gap-2.5">
+                <span class="w-3 h-3 rounded-full border border-white bg-[#2563eb] shrink-0"></span>
+                <span>Trường học</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span class="w-3 h-3 rounded-full border border-white bg-[#ef6f6c] shrink-0"></span>
+                <span>Bệnh viện, y tế</span>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <span class="w-3 h-3 rounded-full border border-white bg-[#f59e0b] shrink-0"></span>
+                <span>Cửa hàng, siêu thị</span>
+              </div>
+            </div>
+
+            <div ref="modalMapElement" class="h-full w-full"></div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- Floating Save Listing Button -->
     <div
       v-if="listing && !loading && isEmbedded"
@@ -571,6 +652,10 @@ const showRegisterPopup = ref(false);
 const openAppointmentAfterAuth = ref(false);
 const mapMode = ref('standard');
 const isMap3dEnabled = ref(false);
+const mapModalOpen = ref(false);
+const modalMapMode = ref('standard');
+const isModalMap3dEnabled = ref(false);
+const modalMapElement = ref(null);
 const selectedReportReasons = ref([]);
 const reportSubmitting = ref(false);
 const reportModalOpen = ref(false);
@@ -583,6 +668,9 @@ const relatedListings = ref([]);
 const toasts = ref([]);
 let toastIdCounter = 1;
 let map = null;
+let modalMap = null;
+let propertyMarker = null;
+let modalPropertyMarker = null;
 
 const SATELLITE_LAYER_ID = 'satellite-base';
 const SATELLITE_SOURCE_ID = 'satellite';
@@ -1474,7 +1562,15 @@ function initMap() {
     pitch: 0,
     maxPitch: 55,
     antialias: true,
-    cooperativeGestures: false,
+    cooperativeGestures: true,
+    attributionControl: false,
+  });
+
+  map.on('click', (e) => {
+    const originalTarget = e.originalEvent.target;
+    if (originalTarget && originalTarget.tagName === 'CANVAS') {
+      openMapModal();
+    }
   });
 
   map.addControl(
@@ -1484,12 +1580,27 @@ function initMap() {
     'top-right'
   );
 
+  map.addControl(new maplibregl.AttributionControl(), 'bottom-left');
+
   map.scrollZoom.enable();
   map.doubleClickZoom.enable();
   map.touchZoomRotate.enable();
 
   map.on('load', () => {
     setMapMode(mapMode.value);
+
+    // Hide vector property marker layers to replace with custom HTML pin marker
+    ['property-marker', 'property-marker-shadow', 'property-label', 'property-radius-glow'].forEach((layerId) => {
+      if (map.getLayer(layerId)) {
+        map.setLayoutProperty(layerId, 'visibility', 'none');
+      }
+    });
+
+    // Add custom HTML property marker
+    const markerEl = createCustomPropertyMarkerElement();
+    propertyMarker = new maplibregl.Marker({ element: markerEl, anchor: 'bottom' })
+      .setLngLat([lng, lat])
+      .addTo(map);
 
     map.setFeatureState(
       {
@@ -1542,11 +1653,233 @@ watch(
   }
 );
 
+function openMapModal() {
+  mapModalOpen.value = true;
+  modalMapMode.value = mapMode.value;
+  isModalMap3dEnabled.value = isMap3dEnabled.value;
+  nextTick(() => {
+    setTimeout(() => initModalMap(), 200);
+  });
+}
+
+function closeMapModal() {
+  if (modalMap) {
+    modalMap.remove();
+    modalMap = null;
+  }
+  if (modalPropertyMarker) {
+    modalPropertyMarker.remove();
+    modalPropertyMarker = null;
+  }
+  mapModalOpen.value = false;
+}
+
+function createCustomPropertyMarkerElement() {
+  const el = document.createElement('div');
+  el.className = 'custom-property-marker';
+
+  if (!document.getElementById('custom-marker-tooltip-style')) {
+    const style = document.createElement('style');
+    style.id = 'custom-marker-tooltip-style';
+    style.innerHTML = `
+      .custom-property-marker {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+      }
+      .custom-marker-pin {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+      }
+      .custom-marker-pin:hover {
+        transform: scale(1.1);
+      }
+      .custom-marker-label {
+        position: absolute;
+        bottom: 36px;
+        background: #0f172a;
+        color: #ffffff;
+        font-size: 10px;
+        font-weight: 700;
+        padding: 4px 8px;
+        border-radius: 6px;
+        box-shadow: 0 4px 8px rgba(15, 23, 42, 0.15);
+        white-space: nowrap;
+        pointer-events: none;
+      }
+      .custom-marker-label::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border-width: 4px;
+        border-style: solid;
+        border-color: #0f172a transparent transparent transparent;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  const pin = document.createElement('div');
+  pin.className = 'custom-marker-pin';
+  pin.innerHTML = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0ea5e9" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px; filter: drop-shadow(0px 4px 8px rgba(15, 23, 42, 0.3));">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+      <circle cx="12" cy="10" r="3" fill="#ffffff" stroke="none"></circle>
+    </svg>
+  `;
+  el.appendChild(pin);
+
+  const label = document.createElement('div');
+  label.className = 'custom-marker-label';
+  label.innerText = 'BĐS đang xem';
+  el.appendChild(label);
+
+  return el;
+}
+
+function initModalMap() {
+  if (!modalMapElement.value || modalMap) return;
+  const lat = Number(listing.value.property.lat);
+  const lng = Number(listing.value.property.lng);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+  modalMap = new maplibregl.Map({
+    container: modalMapElement.value,
+    style: buildRealEstateMapStyle(lat, lng),
+    center: [lng, lat],
+    zoom: 15.5,
+    minZoom: 5,
+    maxZoom: 20,
+    pitch: isModalMap3dEnabled.value ? STANDARD_MAP_PITCH : TOP_DOWN_MAP_PITCH,
+    maxPitch: 55,
+    antialias: true,
+    cooperativeGestures: false,
+    attributionControl: false,
+  });
+
+  modalMap.addControl(
+    new maplibregl.NavigationControl({
+      visualizePitch: true,
+    }),
+    'top-right'
+  );
+
+  modalMap.addControl(new maplibregl.AttributionControl(), 'bottom-left');
+
+  modalMap.on('load', () => {
+    setModalMapMode(modalMapMode.value);
+
+    // Hide vector property marker layers to replace with custom HTML pin marker
+    ['property-marker', 'property-marker-shadow', 'property-label', 'property-radius-glow'].forEach((layerId) => {
+      if (modalMap.getLayer(layerId)) {
+        modalMap.setLayoutProperty(layerId, 'visibility', 'none');
+      }
+    });
+
+    // Add custom HTML property marker in modal
+    const markerEl = createCustomPropertyMarkerElement();
+    modalPropertyMarker = new maplibregl.Marker({ element: markerEl, anchor: 'bottom' })
+      .setLngLat([lng, lat])
+      .addTo(modalMap);
+
+    modalMap.setFeatureState(
+      {
+        source: 'property',
+        id: 'selected-property',
+      },
+      {
+        selected: true,
+      }
+    );
+  });
+}
+
+function setModalMapMode(mode) {
+  modalMapMode.value = mode;
+
+  if (!modalMap?.getLayer(SATELLITE_LAYER_ID)) return;
+
+  const isSatellite = mode === 'satellite';
+  const pitch = isSatellite || !isModalMap3dEnabled.value ? TOP_DOWN_MAP_PITCH : STANDARD_MAP_PITCH;
+
+  modalMap.setLayoutProperty(
+    SATELLITE_LAYER_ID,
+    'visibility',
+    isSatellite ? 'visible' : 'none'
+  );
+
+  SATELLITE_HIDDEN_BASE_LAYERS.forEach((layerId) => {
+    if (!modalMap.getLayer(layerId)) return;
+    modalMap.setLayoutProperty(layerId, 'visibility', isSatellite ? 'none' : 'visible');
+  });
+
+  modalMap.easeTo({
+    pitch,
+    duration: 450,
+    essential: true,
+  });
+}
+
+function toggleModalMapMode() {
+  setModalMapMode(modalMapMode.value === 'satellite' ? 'standard' : 'satellite');
+}
+
+function toggleModalMap3d() {
+  if (!modalMap) return;
+
+  isModalMap3dEnabled.value = !isModalMap3dEnabled.value;
+
+  if (isModalMap3dEnabled.value && modalMapMode.value === 'satellite') {
+    setModalMapMode('standard');
+    return;
+  }
+
+  const camera = isModalMap3dEnabled.value
+    ? {
+        center: modalMap.getCenter(),
+        zoom: Math.max(modalMap.getZoom(), 15.5),
+        bearing: modalMap.getBearing(),
+        pitch: STANDARD_MAP_PITCH,
+      }
+    : {
+        center: modalMap.getCenter(),
+        zoom: modalMap.getZoom(),
+        bearing: 0,
+        pitch: TOP_DOWN_MAP_PITCH,
+      };
+
+  modalMap.easeTo({
+    ...camera,
+    duration: 500,
+    essential: true,
+  });
+}
+
 onUnmounted(() => {
   window.removeEventListener('resize', updateDescriptionToggle);
   if (map) {
     map.remove();
     map = null;
+  }
+  if (modalMap) {
+    modalMap.remove();
+    modalMap = null;
+  }
+  if (propertyMarker) {
+    propertyMarker.remove();
+    propertyMarker = null;
+  }
+  if (modalPropertyMarker) {
+    modalPropertyMarker.remove();
+    modalPropertyMarker = null;
   }
   document.body.style.overflow = '';
 });
@@ -2055,5 +2388,9 @@ onUnmounted(() => {
 .overflow-x-auto::-webkit-scrollbar-thumb {
   background-color: #cbd5e1;
   border-radius: 10px;
+}
+
+.detail-card :deep(.maplibregl-canvas) {
+  cursor: zoom-in;
 }
 </style>

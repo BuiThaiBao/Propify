@@ -117,7 +117,13 @@
         Thông báo
       </button>
 
-      <button class="flex items-center gap-2.5 w-full px-5 py-3.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-sky-500 transition-all text-left">
+      <button
+        :class="['flex items-center gap-2.5 w-full px-5 py-3.5 text-sm transition-all text-left',
+          activeTab === 'transactions'
+            ? 'bg-gradient-to-r from-sky-100 to-sky-50 text-sky-500 font-semibold border-l-[3px] border-sky-500'
+            : 'text-slate-600 hover:bg-slate-50 hover:text-sky-500']"
+        @click="$emit('open-transactions')"
+      >
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
         </svg>
@@ -152,5 +158,6 @@ defineEmits([
   'open-favorites',
   'open-recently-viewed',
   'open-notifications',
+  'open-transactions',
 ]);
 </script>

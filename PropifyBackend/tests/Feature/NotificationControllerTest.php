@@ -57,7 +57,7 @@ final class NotificationControllerTest extends TestCase
         ]);
 
         $response = $this->actingAs($user, 'api')
-            ->postJson("/api/v1/notifications/{$notification->id}/read");
+            ->patchJson("/api/v1/notifications/{$notification->id}/read");
 
         $response->assertOk();
         $this->assertNotNull($notification->fresh()->read_at);
@@ -81,7 +81,7 @@ final class NotificationControllerTest extends TestCase
         ]);
 
         $response = $this->actingAs($user, 'api')
-            ->postJson('/api/v1/notifications/read-all');
+            ->patchJson('/api/v1/notifications/read-all');
 
         $response->assertOk();
         $this->assertSame(0, $user->notifications()->unread()->count());
@@ -109,6 +109,6 @@ final class NotificationControllerTest extends TestCase
             ->getJson('/api/v1/notifications/unread-count');
 
         $response->assertOk();
-        $response->assertJsonPath('data.unread_count', 1);
+        $response->assertJsonPath('data.count', 1);
     }
 }
