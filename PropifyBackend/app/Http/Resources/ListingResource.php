@@ -64,7 +64,6 @@ final class ListingResource extends JsonResource
                 'balconies' => $this->property?->balconies,
                 'facade_width' => $this->property?->facade_width,
                 'depth' => $this->property?->depth,
-                'road_width' => $this->property?->road_width,
                 'direction_code' => $this->property?->direction_code,
                 'balcony_direction_code' => $this->property?->balcony_direction_code,
                 'furniture_status' => $this->property?->furniture_status,

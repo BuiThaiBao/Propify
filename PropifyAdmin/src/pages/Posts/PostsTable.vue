@@ -123,13 +123,19 @@ function formatDateTime(value) {
 
 function formatPropertyType(type) {
   const labels = {
-    APARTMENT: 'Chung cư',
+    APARTMENT: 'Căn hộ chung cư',
     HOUSE: 'Nhà riêng',
-    VILLA: 'Biệt thự',
-    LAND: 'Đất nền',
-    TOWNHOUSE: 'Liền kề',
-    HOTEL: 'Khách sạn',
-    RESORT: 'Resort',
+    PRIVATE_HOUSE: 'Nhà riêng',
+    STREET_HOUSE: 'Nhà mặt phố',
+    MINI_APARTMENT: 'Chung cư mini',
+    VILLA_TOWNHOUSE: 'Biệt thự, liền kề',
+    SHOPHOUSE: 'Shophouse',
+    KIOSK: 'Ki-ốt',
+    OFFICE: 'Văn phòng',
+    RESORT: 'Khu nghỉ dưỡng',
+    RESTAURANT_HOTEL: 'Nhà hàng, khách sạn',
+    RENT_ROOM: 'Phòng trọ',
+    BOARDING_HOUSE: 'Nhà trọ',
   }
 
   if (!type) return '--'
@@ -199,7 +205,7 @@ function getActions(post) {
     })
   }
 
-  if (['ACTIVE', 'REJECTED'].includes(post.status)) {
+  if (post.status === 'ACTIVE') {
     actions.push({
       label: adminStatusLabel('LOCKED'),
       status: 'LOCKED',
@@ -457,6 +463,7 @@ onBeforeUnmount(() => {
             </td>
             <td class="sticky-right sticky-action action-cell">
               <button
+                v-if="getActions(post).length"
                 class="more-btn"
                 :disabled="updatingPostId === post.id"
                 :aria-label="`Mở thao tác tin đăng ${post.id}`"
