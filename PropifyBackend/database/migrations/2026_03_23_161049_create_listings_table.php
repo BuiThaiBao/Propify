@@ -19,7 +19,7 @@ return new class extends Migration
             // Gói tin có thể null nếu tin thường
             $table->foreignId('package_id')->nullable()->constrained('packages');
             $table->integer('score')->default(0);
-            $table->boolean('is_verified')->default(false);
+            $table->string('is_verified', 30)->default('UNVERIFIED')->comment('Enum: UNVERIFIED, REQUESTED, VERIFIED, REJECTED');
             $table->boolean('has_video')->default(false);
             $table->boolean('request_verification')->default(false);
             $table->text('rejection_reason')->nullable();

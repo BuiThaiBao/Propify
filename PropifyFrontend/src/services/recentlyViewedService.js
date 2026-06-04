@@ -22,7 +22,7 @@ export default {
       status: listing.status,
       published_at: listing.published_at || listing.submitted_at || null,
       views: listing.views || 0,
-      is_verified: listing.is_verified || false,
+      is_verified: listing.is_verified ?? 'UNVERIFIED',
       package: listing.package || null,
       property: {
         type: listing.property?.type || null,

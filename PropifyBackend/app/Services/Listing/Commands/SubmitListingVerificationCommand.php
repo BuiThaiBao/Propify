@@ -8,6 +8,7 @@ use App\Exceptions\BusinessException;
 use App\Models\Listing;
 use App\Models\User;
 use App\Repositories\ListingRepository;
+use App\Support\ListingVerificationStatusResolver;
 use Illuminate\Support\Facades\DB;
 
 final class SubmitListingVerificationCommand
@@ -25,13 +26,28 @@ final class SubmitListingVerificationCommand
                 throw new BusinessException(ErrorCode::AuthForbidden);
             }
 
+            if ($listing->demand_type === 'RENT') {
+                throw new BusinessException(ErrorCode::BadRequest, 'Tin cho thue khong ho tro xac thuc bat dong san.');
+            }
+
             $identityCardFront = $payload['identity_card_front'] ?? null;
             $identityCardBack = $payload['identity_card_back'] ?? null;
             $legalDocuments = $payload['legal_documents'] ?? [];
-            $requestVerification = (bool) ($identityCardFront || $identityCardBack || count($legalDocuments) > 0);
+            if (! ListingVerificationStatusResolver::hasCompleteDocuments($identityCardFront, $identityCardBack, $legalDocuments)) {
+                throw new BusinessException(ErrorCode::ValidationError, 'Can tai len day du CCCD mat truoc, mat sau va it nhat mot anh giay to phap ly de gui yeu cau xac thuc.');
+            }
+
+            $requestVerification = true;
 
             $this->listingRepository->updateListing($listing->id, [
                 'request_verification' => $requestVerification,
+                'is_verified' => ListingVerificationStatusResolver::forSubmission(
+                    $listing->demand_type,
+                    $identityCardFront,
+                    $identityCardBack,
+                    $legalDocuments,
+                    $listing->is_verified,
+                )->value,
             ]);
 
             if ($listing->property_id) {

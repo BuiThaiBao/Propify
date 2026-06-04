@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ListingVerificationStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -45,7 +46,7 @@ final class Listing extends Model
     protected $casts = [
         'score' => 'integer',
         'views' => 'integer',
-        'is_verified' => 'boolean',
+        'is_verified' => ListingVerificationStatus::class,
         'has_video' => 'boolean',
         'request_verification' => 'boolean',
         'appointment_at' => 'datetime',

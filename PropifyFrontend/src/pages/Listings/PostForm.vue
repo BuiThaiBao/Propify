@@ -563,7 +563,7 @@
           <AppointmentSlotsForm ref="appointmentForm" />
         </template>
 
-        <section class="section-card">
+        <section v-if="form.demandType !== 'RENT'" class="section-card">
           <button type="button" class="appointment-header" @click="showVerificationSection = !showVerificationSection">
             <span class="inline-flex items-center gap-2">
               <img :src="homeImageIcon" alt="verify" class="h-5 w-5" />
@@ -585,10 +585,17 @@
             </p>
 
             <div class="grid grid-cols-2 gap-3">
-              <label class="file-box">
+              <label class="file-box group">
                 <div v-if="frontCardPreviewUrl" class="file-box-inner">
                   <img :src="frontCardPreviewUrl" alt="CCCD mặt trước" class="id-preview" />
                   <span class="text-xs text-slate-500">Mặt trước</span>
+                  <button
+                    type="button"
+                    class="verification-image-remove"
+                    title="Xóa ảnh CCCD mặt trước"
+                    aria-label="Xóa ảnh CCCD mặt trước"
+                    @click.stop.prevent="removeFrontCard"
+                  >×</button>
                 </div>
                 <div v-else class="file-box-inner">
                   <img :src="plusImageIcon" alt="plus" class="h-6 w-6 opacity-70" />
@@ -596,10 +603,17 @@
                 </div>
                 <input class="hidden" type="file" accept="image/*" @change="onFrontCardChange" />
               </label>
-              <label class="file-box">
+              <label class="file-box group">
                 <div v-if="backCardPreviewUrl" class="file-box-inner">
                   <img :src="backCardPreviewUrl" alt="CCCD mặt sau" class="id-preview" />
                   <span class="text-xs text-slate-500">Mặt sau</span>
+                  <button
+                    type="button"
+                    class="verification-image-remove"
+                    title="Xóa ảnh CCCD mặt sau"
+                    aria-label="Xóa ảnh CCCD mặt sau"
+                    @click.stop.prevent="removeBackCard"
+                  >×</button>
                 </div>
                 <div v-else class="file-box-inner">
                   <img :src="plusImageIcon" alt="plus" class="h-6 w-6 opacity-70" />
@@ -905,6 +919,7 @@ function createEmptyPostingOptions() {
     property_types: {
       sale: [],
       rent: [],
+      legacy: [],
     },
     legal_paper_types: [],
     quick_numbers: [],
@@ -1445,8 +1460,21 @@ onBeforeUnmount(() => {
 });
 
 const shouldRequestVerification = computed(() => {
-  return Boolean(form.identityCardFront || form.identityCardBack || (form.legalDocuments && form.legalDocuments.length));
+  if (form.demandType === 'RENT') return false;
+
+  return Boolean(
+    form.identityCardFront
+    && form.identityCardBack
+    && Array.isArray(form.legalDocuments)
+    && form.legalDocuments.length > 0
+  );
 });
+
+const hasAnyVerificationDocuments = computed(() => Boolean(
+  form.identityCardFront
+  || form.identityCardBack
+  || (Array.isArray(form.legalDocuments) && form.legalDocuments.length > 0)
+));
 
 const titleCount = computed(() => normalizeSingleLineText(form.title).length);
 const descriptionCount = computed(() => normalizeMultilineText(form.description).length);
@@ -1469,9 +1497,20 @@ const priceSuggestions = computed(() => {
 
 const showPriceSuggestions = computed(() => priceFocused.value && priceSuggestions.value.length > 0);
 
-const currentPropertyTypeOptions = computed(() =>
-  form.demandType === "RENT" ? rentPropertyTypeOptions.value : salePropertyTypeOptions.value,
-);
+const currentPropertyTypeOptions = computed(() => {
+  const options = form.demandType === "RENT"
+    ? rentPropertyTypeOptions.value
+    : salePropertyTypeOptions.value;
+
+  if (!isEditMode.value || !form.propertyType || options.some((option) => option.value === form.propertyType)) {
+    return options;
+  }
+
+  const legacyOption = (postingOptions.value.property_types?.legacy || [])
+    .find((option) => option.value === form.propertyType);
+
+  return legacyOption ? [...options, legacyOption] : options;
+});
 
 const selectedProvinceName = computed(() => {
   const item = provinces.value.find((province) => String(province.code) === form.provinceCode);
@@ -1502,8 +1541,11 @@ const previewListing = computed(() => buildListingPreview({
 
 watch(
   () => form.demandType,
-  () => {
+  (demandType) => {
     ensurePropertyTypeOption();
+    if (demandType === 'RENT') {
+      clearVerificationData();
+    }
   },
 );
 
@@ -2575,6 +2617,26 @@ async function onBackCardChange(event) {
   }
 }
 
+function removeFrontCard() {
+  if (frontCardPreviewUrl.value && String(frontCardPreviewUrl.value).startsWith('blob:')) {
+    URL.revokeObjectURL(frontCardPreviewUrl.value);
+  }
+  frontCardPreviewUrl.value = '';
+  form.identityCardFront = null;
+  verificationUploadError.value = '';
+  pushToast('Đã xóa ảnh CCCD mặt trước', 'success');
+}
+
+function removeBackCard() {
+  if (backCardPreviewUrl.value && String(backCardPreviewUrl.value).startsWith('blob:')) {
+    URL.revokeObjectURL(backCardPreviewUrl.value);
+  }
+  backCardPreviewUrl.value = '';
+  form.identityCardBack = null;
+  verificationUploadError.value = '';
+  pushToast('Đã xóa ảnh CCCD mặt sau', 'success');
+}
+
 async function onLegalDocumentsChange(event) {
   verificationUploadError.value = "";
   const files = event.target.files ? Array.from(event.target.files) : [];
@@ -3145,6 +3207,17 @@ function clearLegalDocumentPreviews() {
   legalDocumentPreviews.value = [];
 }
 
+function clearVerificationData() {
+  clearIdCardPreviews();
+  clearLegalDocumentPreviews();
+  form.identityCardFront = null;
+  form.identityCardBack = null;
+  form.legalDocuments = [];
+  form.requestVerification = false;
+  publicInfoAgreed.value = false;
+  verificationUploadError.value = "";
+}
+
 function clearMapMarker() {
   form.lat = "";
   form.lng = "";
@@ -3202,15 +3275,37 @@ onBeforeUnmount(() => {
   clearIdCardPreviews();
 });
 
+function validateCompleteVerificationDocuments(requireVerification) {
+  if (form.demandType === 'RENT') return true;
+  if (!requireVerification && !hasAnyVerificationDocuments.value) return true;
+  if (shouldRequestVerification.value) {
+    verificationUploadError.value = "";
+    return true;
+  }
+
+  const missing = [];
+  if (!form.identityCardFront) missing.push('CCCD/CMND mặt trước');
+  if (!form.identityCardBack) missing.push('CCCD/CMND mặt sau');
+  if (!Array.isArray(form.legalDocuments) || form.legalDocuments.length === 0) {
+    missing.push('ít nhất một ảnh giấy tờ pháp lý');
+  }
+
+  const message = `Vui lòng tải lên ${missing.join(', ')} để gửi yêu cầu xác thực.`;
+  verificationUploadError.value = message;
+  setSubmitError(message);
+  pushToast(message, 'error', 5000);
+  showVerificationSection.value = true;
+
+  return false;
+}
+
 async function submitVerificationOnly() {
   if (loading.value) {
     pushToast('Bạn đã nhấn lưu quá nhanh', 'warning');
     return;
   }
 
-  if (!form.identityCardFront || !form.identityCardBack) {
-    setSubmitError('Vui lòng tải lên CCCD/CMND mặt trước và mặt sau.');
-    pushToast(submitError.value, 'error');
+  if (!validateCompleteVerificationDocuments(true)) {
     return;
   }
 
@@ -3259,6 +3354,10 @@ async function submitListing() {
   const requiredErrors = getRequiredFieldErrors();
   if (requiredErrors.length) {
     showMissingRequiredToast(requiredErrors);
+    return;
+  }
+
+  if (!validateCompleteVerificationDocuments(false)) {
     return;
   }
 
@@ -3910,6 +4009,7 @@ async function submitListing() {
 }
 
 .file-box {
+  position: relative;
   display: flex;
   min-height: 96px;
   align-items: center;
@@ -3920,10 +4020,47 @@ async function submitListing() {
 }
 
 .file-box-inner {
+  position: relative;
   display: inline-flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
+}
+
+.verification-image-remove {
+  position: absolute;
+  right: -12px;
+  top: -8px;
+  z-index: 2;
+  display: flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.file-box:hover .verification-image-remove,
+.verification-image-remove:focus-visible {
+  opacity: 1;
+}
+
+.verification-image-remove:hover {
+  background: #dc2626;
+}
+
+@media (hover: none) {
+  .verification-image-remove {
+    opacity: 1;
+  }
 }
 
 .preview-grid {

@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('properties', function (Blueprint $table) {
             $table->id();
             $table->foreignId('owner_id')->constrained('users')->cascadeOnDelete();
-            $table->string('type', 50)->comment('Enum: APARTMENT, HOUSE, LAND, OFFICE, ROOM');
+            $table->string('type', 50)->comment('Enum: APARTMENT, PRIVATE_HOUSE, STREET_HOUSE, MINI_APARTMENT, VILLA_TOWNHOUSE, SHOPHOUSE, KIOSK, OFFICE, RESORT, RESTAURANT_HOTEL, RENT_ROOM, BOARDING_HOUSE; Legacy: HOUSE, LAND, ROOM');
             $table->string('province_code', 20);
             $table->string('ward_code', 20)->nullable();
             $table->string('street_code', 255)->nullable();

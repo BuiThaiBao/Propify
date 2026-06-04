@@ -10,6 +10,7 @@ use App\Repositories\ListingRepository;
 use App\Services\Listing\State\ListingStatusStateFactory;
 use App\Services\Listing\Validation\ListingSubmissionValidationContext;
 use App\Services\Listing\Validation\ListingSubmissionValidationPipeline;
+use App\Support\ListingVerificationStatusResolver;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -52,7 +53,12 @@ final class CreateListingCommand
                 'status' => $listingStatus,
                 'package_id' => $dto->packageId,
                 'score' => $this->calculateContentScore($dto),
-                'is_verified' => false,
+                'is_verified' => ListingVerificationStatusResolver::forSubmission(
+                    $dto->demandType,
+                    $dto->identityCardFront,
+                    $dto->identityCardBack,
+                    $dto->legalDocuments,
+                )->value,
                 'has_video' => $dto->video !== null,
                 'request_verification' => $dto->requestVerification,
                 'rent_min_term' => $dto->rentMinTerm,
