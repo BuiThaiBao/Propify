@@ -5,6 +5,7 @@
       v-model:search-field="searchField"
       :search-field-options="searchFieldOptions"
       :suggestions="saleSuggestions"
+      :pinned="true"
       @search="onSearch"
       @select-suggestion="onSearch"
     />
