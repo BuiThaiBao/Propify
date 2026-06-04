@@ -29,7 +29,7 @@
           :listing-id="item.id"
           :to="'/listings/' + item.id"
           :image="getThumb(item)"
-          :verified="item.is_verified"
+          :verified="isVerified(item)"
           :type="propertyTypeLabel(item.property?.type)"
           :title="item.title"
           :location="item.property?.full_address || item.property?.address_detail || ''"
@@ -75,7 +75,7 @@
           :listing-id="item.id"
           :to="'/listings/' + item.id"
           :image="getThumb(item)"
-          :verified="item.is_verified"
+          :verified="isVerified(item)"
           :type="propertyTypeLabel(item.property?.type)"
           :title="item.title"
           :location="item.property?.full_address || item.property?.address_detail || ''"
@@ -115,7 +115,7 @@
           :listing-id="item.id"
           :to="'/listings/' + item.id"
           :image="getThumb(item)"
-          :verified="item.is_verified"
+          :verified="isVerified(item)"
           :type="propertyTypeLabel(item.property?.type)"
           :title="item.title"
           :location="item.property?.full_address || item.property?.address_detail || ''"
@@ -157,7 +157,7 @@
           :listing-id="item.id"
           :to="'/listings/' + item.id"
           :image="getThumb(item)"
-          :verified="item.is_verified"
+          :verified="isVerified(item)"
           :type="propertyTypeLabel(item.property?.type)"
           :title="item.title"
           :location="item.property?.full_address || item.property?.address_detail || ''"
@@ -242,9 +242,15 @@ function formatPrice(value) {
   return value.toLocaleString('vi-VN') + ' đ';
 }
 
+function isVerified(item) {
+  const value = item?.is_verified;
+  return value === true || Number(value) === 1 || String(value).toUpperCase() === 'VERIFIED';
+}
+
 function propertyTypeLabel(type) {
   const map = {
     APARTMENT: 'Căn hộ chung cư',
+    MINI_APARTMENT: 'Chung cư mini',
     HOUSE: 'Nhà ở',
     LAND: 'Đất',
     ROOM: 'Phòng',
@@ -252,8 +258,12 @@ function propertyTypeLabel(type) {
     STREET_HOUSE: 'Nhà mặt phố',
     VILLA_TOWNHOUSE: 'Biệt thự liền kề',
     SHOPHOUSE: 'Shophouse',
+    KIOSK: 'Ki-ốt',
     RENT_ROOM: 'Phòng trọ',
+    BOARDING_HOUSE: 'Nhà trọ',
     OFFICE: 'Văn phòng',
+    RESORT: 'Khu nghỉ dưỡng',
+    RESTAURANT_HOTEL: 'Nhà hàng - Khách sạn',
   };
   return map[type] || type || 'BĐS';
 }

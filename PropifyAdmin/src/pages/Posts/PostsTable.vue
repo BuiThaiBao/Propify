@@ -123,19 +123,24 @@ function formatDateTime(value) {
 
 function formatPropertyType(type) {
   const labels = {
-    APARTMENT: 'Căn hộ chung cư',
+    APARTMENT: 'Chung cư',
+    MINI_APARTMENT: 'Chung cư mini',
     HOUSE: 'Nhà riêng',
     PRIVATE_HOUSE: 'Nhà riêng',
     STREET_HOUSE: 'Nhà mặt phố',
-    MINI_APARTMENT: 'Chung cư mini',
-    VILLA_TOWNHOUSE: 'Biệt thự, liền kề',
+    VILLA: 'Biệt thự',
+    VILLA_TOWNHOUSE: 'Biệt thự liền kề',
     SHOPHOUSE: 'Shophouse',
     KIOSK: 'Ki-ốt',
+    LAND: 'Đất nền',
+    TOWNHOUSE: 'Liền kề',
     OFFICE: 'Văn phòng',
-    RESORT: 'Khu nghỉ dưỡng',
-    RESTAURANT_HOTEL: 'Nhà hàng, khách sạn',
+    ROOM: 'Phòng',
     RENT_ROOM: 'Phòng trọ',
     BOARDING_HOUSE: 'Nhà trọ',
+    HOTEL: 'Khách sạn',
+    RESORT: 'Resort',
+    RESTAURANT_HOTEL: 'Nhà hàng - Khách sạn',
   }
 
   if (!type) return '--'

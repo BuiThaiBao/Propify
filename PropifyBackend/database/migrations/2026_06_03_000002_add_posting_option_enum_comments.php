@@ -11,7 +11,7 @@ return new class extends Migration
             return;
         }
 
-        DB::statement('ALTER TABLE properties MODIFY type VARCHAR(50) NOT NULL COMMENT '.$this->quote('Enum: APARTMENT, HOUSE, LAND, OFFICE, ROOM'));
+        DB::statement('ALTER TABLE properties MODIFY type VARCHAR(50) NOT NULL COMMENT '.$this->quote('Enum: APARTMENT, PRIVATE_HOUSE, STREET_HOUSE, MINI_APARTMENT, VILLA_TOWNHOUSE, SHOPHOUSE, KIOSK, OFFICE, RESORT, RESTAURANT_HOTEL, RENT_ROOM, BOARDING_HOUSE; Legacy: HOUSE, LAND, ROOM'));
         DB::statement('ALTER TABLE properties MODIFY direction_code VARCHAR(30) NULL COMMENT '.$this->quote('Enum: N, NE, E, SE, S, SW, W, NW'));
         DB::statement('ALTER TABLE properties MODIFY balcony_direction_code VARCHAR(30) NULL COMMENT '.$this->quote('Enum: N, NE, E, SE, S, SW, W, NW'));
         DB::statement('ALTER TABLE properties MODIFY furniture_status VARCHAR(30) NULL COMMENT '.$this->quote('Enum: FULL, BASIC, NONE'));
@@ -21,6 +21,7 @@ return new class extends Migration
 
         DB::statement('ALTER TABLE listings MODIFY demand_type VARCHAR(20) NOT NULL COMMENT '.$this->quote('Enum: SALE, RENT'));
         DB::statement('ALTER TABLE listings MODIFY status VARCHAR(255) NOT NULL DEFAULT \'DRAFT\' COMMENT '.$this->quote('Enum: DRAFT, PENDING, ACTIVE, EXPIRED, REJECTED, LOCKED, UNLISTED'));
+        DB::statement('ALTER TABLE listings MODIFY is_verified VARCHAR(30) NOT NULL DEFAULT \'UNVERIFIED\' COMMENT '.$this->quote('Enum: UNVERIFIED, REQUESTED, VERIFIED, REJECTED'));
         DB::statement('ALTER TABLE listings MODIFY rent_min_term VARCHAR(50) NULL COMMENT '.$this->quote('Enum: 1_month, 3_months, 6_months, 1_year'));
         DB::statement('ALTER TABLE listings MODIFY rent_payment_interval VARCHAR(50) NULL COMMENT '.$this->quote('Enum: monthly, quarter, half_year, yearly'));
         DB::statement('ALTER TABLE listings MODIFY rent_deposit VARCHAR(50) NULL COMMENT '.$this->quote('Enum: none, 1_month, 3_months, 6_months, 1_year'));

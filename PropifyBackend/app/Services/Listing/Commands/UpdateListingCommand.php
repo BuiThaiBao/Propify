@@ -10,6 +10,7 @@ use App\Models\Listing;
 use App\Models\User;
 use App\Repositories\ListingRepository;
 use App\Services\Listing\State\ListingStatusStateFactory;
+use App\Support\ListingVerificationStatusResolver;
 use Illuminate\Support\Facades\DB;
 
 final class UpdateListingCommand
@@ -35,6 +36,13 @@ final class UpdateListingCommand
             }
 
             $listingStatus = $this->statusStateFactory->initialForSave($dto->saveAsDraft)->value();
+            $verificationStatus = ListingVerificationStatusResolver::forSubmission(
+                $dto->demandType,
+                $dto->identityCardFront,
+                $dto->identityCardBack,
+                $dto->legalDocuments,
+                $listing->is_verified,
+            );
 
             $this->listingRepository->updateListing($listing->id, [
                 'demand_type' => $dto->demandType,
@@ -43,6 +51,7 @@ final class UpdateListingCommand
                 'status' => $listingStatus,
                 'has_video' => $dto->video !== null,
                 'request_verification' => $dto->requestVerification,
+                'is_verified' => $verificationStatus->value,
                 'rent_min_term' => $dto->rentMinTerm,
                 'rent_payment_interval' => $dto->rentPaymentInterval,
                 'rent_deposit' => $dto->rentDeposit,
@@ -144,6 +153,8 @@ final class UpdateListingCommand
     private function replaceVerificationDocuments(Listing $listing, CreateListingDto $dto): void
     {
         if (! $dto->requestVerification) {
+            $this->listingRepository->deleteVerificationDocuments($listing->id);
+
             return;
         }
 
