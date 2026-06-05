@@ -488,6 +488,7 @@ function formatPrice(value) {
 function propertyTypeLabel(type) {
   const map = {
     APARTMENT: 'Căn hộ chung cư',
+    MINI_APARTMENT: 'Chung cư mini',
     HOUSE: 'Nhà ở',
     LAND: 'Đất',
     ROOM: 'Phòng',
@@ -495,8 +496,12 @@ function propertyTypeLabel(type) {
     STREET_HOUSE: 'Nhà mặt phố',
     VILLA_TOWNHOUSE: 'Biệt thự liền kề',
     SHOPHOUSE: 'Shophouse',
+    KIOSK: 'Ki-ốt',
     RENT_ROOM: 'Phòng trọ',
+    BOARDING_HOUSE: 'Nhà trọ',
     OFFICE: 'Văn phòng',
+    RESORT: 'Khu nghỉ dưỡng',
+    RESTAURANT_HOTEL: 'Nhà hàng - Khách sạn',
   };
   return map[type] || type || 'BĐS';
 }
@@ -517,7 +522,7 @@ function timeAgo(dateStr) {
 
 function isVerified(item) {
   const value = item?.is_verified;
-  return value === true || Number(value) === 1;
+  return value === true || Number(value) === 1 || String(value).toUpperCase() === 'VERIFIED';
 }
 
 </script>

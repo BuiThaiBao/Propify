@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Enums\ListingVerificationStatus;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -24,7 +25,9 @@ final class ListingResource extends JsonResource
                 'priority' => $this->package->priority,
                 'price' => $this->package->price,
             ] : null,
-            'is_verified' => $this->is_verified,
+            'is_verified' => $this->is_verified instanceof ListingVerificationStatus
+                ? $this->is_verified->value
+                : $this->is_verified,
             'views' => $this->views ?? 0,
             'package_expires_at' => $this->package_expires_at?->toIso8601String(),
             'is_favorited' => (bool) ($this->is_favorited ?? false),
@@ -64,7 +67,6 @@ final class ListingResource extends JsonResource
                 'balconies' => $this->property?->balconies,
                 'facade_width' => $this->property?->facade_width,
                 'depth' => $this->property?->depth,
-                'road_width' => $this->property?->road_width,
                 'direction_code' => $this->property?->direction_code,
                 'balcony_direction_code' => $this->property?->balcony_direction_code,
                 'furniture_status' => $this->property?->furniture_status,

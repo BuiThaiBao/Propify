@@ -60,7 +60,7 @@
                 @click="openImageLightbox(activeImageIndex)"
               />
               <div class="absolute left-3 top-3 flex gap-2">
-                <span v-if="listing.is_verified" class="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">Đã xác thực</span>
+                <span v-if="isListingVerified" class="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">Đã xác thực</span>
                 <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
               </div>
               <button v-if="displayImages.length > 1" class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur hover:bg-black/45" aria-label="Ảnh trước" @click.stop="prevImage">
@@ -398,16 +398,13 @@
         @click.self="closeReportModal"
       >
         <form class="report-modal" @submit.prevent="submitListingReport">
-          <div class="report-modal-icon" aria-hidden="true">
-            <span class="report-modal-icon-card"></span>
-            <span class="report-modal-icon-info">i</span>
-          </div>
+          <img :src="reportInfoIcon" class="report-modal-icon" alt="" aria-hidden="true" />
           <h2 class="report-modal-title">Báo cáo tin đăng</h2>
           <p class="report-modal-subtitle">Bạn có chắc chắn muốn báo cáo tin đăng?</p>
 
           <div class="report-reason-box">
             <div v-for="reason in selectedReportReasonLabels" :key="reason" class="report-reason-line">
-              <span aria-hidden="true">⚠</span>
+              <img :src="reportWarningIcon" alt="" aria-hidden="true" />
               <span>{{ reason }}</span>
             </div>
           </div>
@@ -421,7 +418,15 @@
             ></textarea>
           </label>
 
-          <div class="report-upload-box">
+          <div
+            class="report-upload-box"
+            :class="{ 'report-upload-box-disabled': reportSubmitting || reportImages.length >= 5 }"
+            role="button"
+            tabindex="0"
+            @click="triggerReportImageInput"
+            @keydown.enter.prevent="triggerReportImageInput"
+            @keydown.space.prevent="triggerReportImageInput"
+          >
             <input
               ref="reportImageInput"
               type="file"
@@ -434,10 +439,11 @@
             <div v-if="reportImagePreviews.length" class="report-preview-list">
               <figure v-for="(preview, index) in reportImagePreviews" :key="preview.url" class="report-preview-item">
                 <img :src="preview.url" alt="" />
-                <button type="button" :disabled="reportSubmitting" @click="removeReportImage(index)">×</button>
+                <button type="button" :disabled="reportSubmitting" @click.stop="removeReportImage(index)">×</button>
               </figure>
             </div>
-            <button type="button" class="report-upload-button" :disabled="reportSubmitting || reportImages.length >= 5" @click="triggerReportImageInput">
+            <img v-else :src="reportUploadIcon" class="report-upload-icon" alt="" aria-hidden="true" />
+            <button type="button" class="report-upload-button" :disabled="reportSubmitting || reportImages.length >= 5" @click.stop="triggerReportImageInput">
               Bấm để tải ảnh
             </button>
             <p v-if="reportUploadError" class="report-upload-error">{{ reportUploadError }}</p>
@@ -575,6 +581,9 @@ import Login from '@/pages/Auth/Login.vue';
 import Register from '@/pages/Auth/Register.vue';
 import { buildPropertyAddress, hydrateListingAddresses, hydratePropertyAddress } from '@/utils/addressFormatter';
 import { selectRelatedListings } from '@/utils/relatedListingStrategies';
+import reportInfoIcon from '@/assets/images/details/report/image1.png';
+import reportWarningIcon from '@/assets/images/details/report/image2.png';
+import reportUploadIcon from '@/assets/images/details/report/image3.png';
 import * as L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import maplibregl from 'maplibre-gl';
@@ -623,6 +632,10 @@ const isEmbedded = ref(false);
 const loading = ref(!props.previewMode);
 const error = ref('');
 const listing = ref(props.previewListing || {});
+const isListingVerified = computed(() => {
+  const value = listing.value?.is_verified;
+  return value === true || Number(value) === 1 || String(value).toUpperCase() === 'VERIFIED';
+});
 
 const detailCrumbs = computed(() => {
   const list = [
@@ -650,6 +663,7 @@ const showAppointmentPopup = ref(false);
 const showLoginPopup = ref(false);
 const showRegisterPopup = ref(false);
 const openAppointmentAfterAuth = ref(false);
+const openReportAfterAuth = ref(false);
 const mapMode = ref('standard');
 const isMap3dEnabled = ref(false);
 const mapModalOpen = ref(false);
@@ -981,15 +995,22 @@ function closeAuthPopup() {
   showLoginPopup.value = false;
   showRegisterPopup.value = false;
   openAppointmentAfterAuth.value = false;
+  openReportAfterAuth.value = false;
 }
 
-function handleAuthSuccess() {
+async function handleAuthSuccess() {
   showLoginPopup.value = false;
   showRegisterPopup.value = false;
 
   if (openAppointmentAfterAuth.value) {
     openAppointmentAfterAuth.value = false;
     showAppointmentPopup.value = true;
+  }
+
+  if (openReportAfterAuth.value) {
+    openReportAfterAuth.value = false;
+    await nextTick();
+    openReportModal();
   }
 }
 
@@ -1001,6 +1022,14 @@ async function updateDescriptionToggle() {
 }
 
 async function openReportModal() {
+  if (!authStore.isAuthenticated) {
+    openReportAfterAuth.value = true;
+    showRegisterPopup.value = false;
+    showLoginPopup.value = true;
+    pushToast('Vui lòng đăng nhập để gửi phản ánh.', 'error', 3500);
+    return;
+  }
+
   if (selectedReportReasons.value.length === 0) {
     pushToast('Vui lòng chọn ít nhất một lý do báo cáo.', 'warning');
     return;
@@ -1037,6 +1066,7 @@ function closeReportModal() {
 }
 
 function triggerReportImageInput() {
+  if (reportSubmitting.value || reportImages.value.length >= 5) return;
   reportImageInput.value?.click();
 }
 
@@ -1138,6 +1168,7 @@ function formatPhone(phone) {
 function propertyTypeLabel(type) {
   const map = {
     APARTMENT: 'Căn hộ chung cư',
+    MINI_APARTMENT: 'Chung cư mini',
     HOUSE: 'Nhà ở',
     LAND: 'Đất',
     ROOM: 'Phòng',
@@ -1145,8 +1176,12 @@ function propertyTypeLabel(type) {
     STREET_HOUSE: 'Nhà mặt phố',
     VILLA_TOWNHOUSE: 'Biệt thự liền kề',
     SHOPHOUSE: 'Shophouse',
+    KIOSK: 'Ki-ốt',
     RENT_ROOM: 'Phòng trọ',
+    BOARDING_HOUSE: 'Nhà trọ',
     OFFICE: 'Văn phòng',
+    RESORT: 'Khu nghỉ dưỡng',
+    RESTAURANT_HOTEL: 'Nhà hàng - Khách sạn',
   };
   return map[type] || type;
 }
@@ -1940,110 +1975,85 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(15, 23, 42, 0.22);
-  padding: 24px;
-  backdrop-filter: blur(2px);
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.38);
+  padding: 28px;
+  backdrop-filter: blur(4px);
 }
 
 .report-modal {
-  width: min(760px, 100%);
-  border-radius: 10px;
+  width: min(680px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border-radius: 14px;
   background: #fff;
-  padding: 34px 42px 20px;
-  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.18);
+  padding: 28px 32px 20px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.26);
 }
 
 .report-modal-icon {
-  position: relative;
-  margin: 0 auto 18px;
-  height: 60px;
-  width: 76px;
-  color: #0ea5e9;
-}
-
-.report-modal-icon-card {
-  position: absolute;
-  left: 4px;
-  top: 3px;
-  height: 48px;
-  width: 54px;
-  border: 4px solid currentColor;
-  border-radius: 12px;
-}
-
-.report-modal-icon-card::before {
-  content: "";
-  position: absolute;
-  left: -4px;
-  right: -4px;
-  top: 12px;
-  border-top: 4px solid currentColor;
-}
-
-.report-modal-icon-info {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  height: 42px;
-  width: 42px;
-  align-items: center;
-  justify-content: center;
-  border: 4px solid currentColor;
-  border-radius: 9999px;
-  background: #fff;
-  font-size: 27px;
-  font-weight: 800;
-  line-height: 1;
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 14px;
+  object-fit: contain;
 }
 
 .report-modal-title {
   text-align: center;
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 800;
   color: #1e293b;
 }
 
 .report-modal-subtitle {
-  margin-top: 8px;
+  margin-top: 7px;
   text-align: center;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #1e293b;
 }
 
 .report-reason-box {
-  margin-top: 14px;
-  min-height: 34px;
+  margin-top: 16px;
+  min-height: 42px;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  padding: 8px 12px;
+  border-radius: 10px;
+  padding: 9px 14px;
+  display: grid;
+  place-items: center;
 }
 
 .report-reason-line {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 13px;
   font-weight: 700;
   color: #ef4444;
+}
+
+.report-reason-line img {
+  width: 17px;
+  height: 17px;
+  object-fit: contain;
 }
 
 .report-detail-field {
   margin-top: 12px;
   display: block;
   border: 1px solid #e2e8f0;
-  border-radius: 9px;
+  border-radius: 10px;
   padding: 12px;
 }
 
 .report-detail-field span {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   font-size: 13px;
   font-weight: 700;
-  color: #334155;
+  color: #1e293b;
 }
 
 .report-detail-field b {
@@ -2051,26 +2061,46 @@ onUnmounted(() => {
 }
 
 .report-detail-field textarea {
-  min-height: 78px;
+  min-height: 82px;
   width: 100%;
   resize: vertical;
   border: 0;
   outline: none;
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.6;
   color: #334155;
 }
 
 .report-upload-box {
   margin-top: 12px;
-  min-height: 112px;
-  border: 1.5px dashed #bae6fd;
-  border-radius: 10px;
+  min-height: 122px;
+  border: 2px dashed #bfdbfe;
+  border-radius: 12px;
   padding: 14px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.report-upload-box:hover,
+.report-upload-box:focus-visible {
+  border-color: #38bdf8;
+  background: #f0f9ff;
+  outline: none;
+}
+
+.report-upload-box-disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .report-preview-list {
-  margin-bottom: 12px;
+  width: 100%;
+  margin-bottom: 16px;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -2079,8 +2109,8 @@ onUnmounted(() => {
 
 .report-preview-item {
   position: relative;
-  height: 70px;
-  width: 86px;
+  height: 86px;
+  width: 110px;
   overflow: hidden;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
@@ -2108,13 +2138,20 @@ onUnmounted(() => {
   line-height: 1;
 }
 
+.report-upload-icon {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
 .report-upload-button {
-  margin-top: 36px;
+  margin-top: 9px;
   border: 1px solid #38bdf8;
   border-radius: 8px;
-  padding: 6px 18px;
+  padding: 7px 20px;
+  background: #fff;
   color: #0ea5e9;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -2131,34 +2168,80 @@ onUnmounted(() => {
 }
 
 .report-modal-actions {
-  margin-top: 18px;
+  margin-top: 16px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 12px;
 }
 
 .report-back-button,
 .report-submit-button {
-  height: 38px;
-  border-radius: 8px;
+  height: 40px;
+  border-radius: 10px;
   font-size: 13px;
   font-weight: 800;
 }
 
 .report-back-button {
   border: 1px solid #38bdf8;
+  background: #fff;
   color: #0ea5e9;
 }
 
 .report-submit-button {
   background: #0ea5e9;
   color: #fff;
+  box-shadow: 0 8px 18px rgba(14, 165, 233, 0.24);
 }
 
 .report-back-button:disabled,
 .report-submit-button:disabled {
   cursor: not-allowed;
   opacity: 0.65;
+}
+
+@media (max-width: 640px) {
+  .report-modal-backdrop {
+    align-items: flex-start;
+    padding: 16px;
+  }
+
+  .report-modal {
+    margin: auto 0;
+    padding: 28px 18px 18px;
+    border-radius: 14px;
+  }
+
+  .report-modal-icon {
+    width: 68px;
+    height: 68px;
+    margin-bottom: 16px;
+  }
+
+  .report-modal-title {
+    font-size: 20px;
+  }
+
+  .report-modal-subtitle {
+    font-size: 14px;
+  }
+
+  .report-reason-line {
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .report-detail-field textarea {
+    min-height: 100px;
+  }
+
+  .report-upload-box {
+    min-height: 150px;
+  }
+
+  .report-modal-actions {
+    grid-template-columns: 1fr;
+  }
 }
 
 .image-lightbox {

@@ -4,6 +4,7 @@ namespace App\Http\Requests\Listing;
 
 use App\DTOs\Listing\CreateListingDto;
 use App\Support\ListingPostingOptions;
+use App\Support\ListingVerificationStatusResolver;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -133,15 +134,23 @@ final class CreateListingRequest extends FormRequest
                 }
             }
 
-            $requestVerification = filter_var($this->input('request_verification', false), FILTER_VALIDATE_BOOLEAN);
+            $identityCardFront = $this->input('identity_card_front');
+            $identityCardBack = $this->input('identity_card_back');
+            $legalDocuments = (array) $this->input('legal_documents', []);
+            $hasAnyVerificationDocuments = $this->input('demand_type') !== 'RENT'
+                && ListingVerificationStatusResolver::hasAnyDocuments($identityCardFront, $identityCardBack, $legalDocuments);
 
-            if ($requestVerification) {
+            if ($hasAnyVerificationDocuments) {
                 if (! $this->input('identity_card_front')) {
                     $validator->errors()->add('identity_card_front', 'Can tai len anh CCCD mat truoc de gui yeu cau xac thuc.');
                 }
 
                 if (! $this->input('identity_card_back')) {
                     $validator->errors()->add('identity_card_back', 'Can tai len anh CCCD mat sau de gui yeu cau xac thuc.');
+                }
+
+                if ($legalDocuments === []) {
+                    $validator->errors()->add('legal_documents', 'Can tai len it nhat mot anh giay to phap ly de gui yeu cau xac thuc.');
                 }
             }
         });
@@ -152,6 +161,15 @@ final class CreateListingRequest extends FormRequest
         $validated = $this->validated();
         $isDraft = (bool) ($validated['save_as_draft'] ?? false);
         $isNegotiable = (bool) ($validated['is_negotiable'] ?? false);
+        $isRent = ($validated['demand_type'] ?? null) === 'RENT';
+        $identityCardFront = $isRent ? null : ($validated['identity_card_front'] ?? null);
+        $identityCardBack = $isRent ? null : ($validated['identity_card_back'] ?? null);
+        $legalDocuments = $isRent ? [] : ($validated['legal_documents'] ?? []);
+        $requestVerification = ! $isRent && ListingVerificationStatusResolver::hasCompleteDocuments(
+            $identityCardFront,
+            $identityCardBack,
+            $legalDocuments,
+        );
 
         return new CreateListingDto(
             demandType: $validated['demand_type'] ?? ListingPostingOptions::firstValue('demand_types'),
@@ -191,10 +209,10 @@ final class CreateListingRequest extends FormRequest
             amenities: array_values(array_map('strval', $validated['amenities'] ?? [])),
             legalPaperTypes: array_values(array_map('strval', $validated['legal_paper_types'] ?? [])),
             publicInfoAgreed: (bool) ($validated['public_info_agreed'] ?? false),
-            requestVerification: (bool) ($validated['request_verification'] ?? false),
-            identityCardFront: $validated['identity_card_front'] ?? null,
-            identityCardBack: $validated['identity_card_back'] ?? null,
-            legalDocuments: $validated['legal_documents'] ?? [],
+            requestVerification: $requestVerification,
+            identityCardFront: $identityCardFront,
+            identityCardBack: $identityCardBack,
+            legalDocuments: $legalDocuments,
             appointmentAt: $validated['appointment_at'] ?? null,
             appointmentDays: array_map('intval', $validated['appointment_days'] ?? []),
             appointmentTimeSlot: $validated['appointment_time_slot'] ?? null,

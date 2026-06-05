@@ -5,7 +5,7 @@
   <!-- Search bar: fixed, trượt lên/xuống bằng translateY -->
   <div
     class="fixed left-0 right-0 z-40 bg-white border-b border-gray-100 shadow-sm transition-transform duration-300 ease-in-out"
-    :style="{ top: '64px', transform: visible ? 'translateY(0)' : 'translateY(-100%)' }"
+    :style="{ top: '64px', transform: pinned || visible ? 'translateY(0)' : 'translateY(-100%)' }"
   >
     <div class="max-w-7xl mx-auto px-4 md:px-8">
       <div class="flex items-center h-16 divide-x divide-gray-100">
@@ -212,9 +212,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  if (!props.pinned) {
-    window.removeEventListener('scroll', handleScroll);
-    clearTimeout(hideTimer);
-  }
+  window.removeEventListener('scroll', handleScroll);
+  clearTimeout(hideTimer);
 });
 </script>
