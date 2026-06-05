@@ -38,6 +38,20 @@ export function createEcho(token) {
 export function initEcho(token) {
   if (echoInstance) return echoInstance; // Đã có connection → giữ nguyên
   echoInstance = createEcho(token);
+
+  const pusher = echoInstance.connector?.pusher;
+  if (pusher?.connection) {
+    pusher.connection.bind('unavailable', () => {
+      console.warn('[Echo] Connection unavailable');
+    });
+    pusher.connection.bind('connected', () => {
+      console.log('[Echo] Connected/Reconnected');
+    });
+    pusher.connection.bind('failed', () => {
+      console.error('[Echo] Connection failed permanently');
+    });
+  }
+
   return echoInstance;
 }
 

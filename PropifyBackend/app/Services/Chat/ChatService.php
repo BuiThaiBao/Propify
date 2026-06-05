@@ -2,8 +2,11 @@
 
 namespace App\Services\Chat;
 
+use App\DTOs\Chat\CreateGroupDto;
 use App\DTOs\Chat\GetOrCreateConversationDto;
+use App\DTOs\Chat\GroupMemberDto;
 use App\DTOs\Chat\SendMessageDto;
+use App\DTOs\Chat\UpdateGroupDto;
 use App\Models\Conversation;
 use App\Models\Message;
 use Illuminate\Contracts\Pagination\CursorPaginator;
@@ -39,4 +42,18 @@ interface ChatService
      * Đánh dấu tất cả messages trong conversation là đã đọc cho user.
      */
     public function markAsRead(int $conversationId, int $userId): void;
+
+    public function createGroup(CreateGroupDto $dto): Conversation;
+
+    public function updateGroup(UpdateGroupDto $dto): Conversation;
+
+    public function addGroupMembers(GroupMemberDto $dto): Conversation;
+
+    public function removeGroupMember(int $conversationId, int $actorId, int $userId): Conversation;
+
+    public function transferGroupAdmin(int $conversationId, int $actorId, int $userId): Conversation;
+
+    public function leaveGroup(int $conversationId, int $userId): void;
+
+    public function getGroupMembers(int $conversationId, int $userId): Collection;
 }

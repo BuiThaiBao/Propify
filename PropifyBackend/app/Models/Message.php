@@ -16,11 +16,13 @@ final class Message extends Model
         'type',
         'body',
         'file_url',
+        'metadata',
     ];
 
     protected $casts = [
         'type' => MessageType::class,
         'is_deleted' => 'boolean',
+        'metadata' => 'array',
     ];
 
     // ==================== Relationships ====================

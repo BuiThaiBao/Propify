@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 import AppHeader from '@/components/common/AppHeader.vue';
-import FloatingChat from '@/components/chat/FloatingChat.vue';
+import FloatingChat from '@/components/chat/floating/FloatingChat.vue';
 import { useAuthStore } from '@/stores/auth';
 
 const isEmbedded = ref(false);

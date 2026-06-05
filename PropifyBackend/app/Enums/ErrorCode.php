@@ -58,6 +58,14 @@ enum ErrorCode: int
     // ==================== Chat (7xxx) ====================
     case ConversationNotFound = 7001;
     case UnauthorizedConversationAccess = 7002;
+    case GroupNotFound = 7003;
+    case NotGroupAdmin = 7004;
+    case AlreadyGroupMember = 7005;
+    case NotGroupMember = 7006;
+    case CannotRemoveSelf = 7007;
+    case GroupMemberLimitReached = 7008;
+    case LastAdminCannotLeave = 7009;
+    case CannotModifyPrivateChat = 7010;
 
     // ==================== Server (5xxx) ====================
     case ServerError = 5001;
@@ -99,6 +107,14 @@ enum ErrorCode: int
             self::AppointmentSlotNotFound => 'Bạn không có cấu hình lịch hẹn nào cho bài đăng này hoặc bạn không có quyền truy cập',
             self::ConversationNotFound => 'Cuộc trò chuyện không tồn tại',
             self::UnauthorizedConversationAccess => 'Bạn không có quyền truy cập vào cuộc trò chuyện này',
+            self::GroupNotFound => 'Không tìm thấy nhóm chat',
+            self::NotGroupAdmin => 'Bạn không phải quản trị viên của nhóm',
+            self::AlreadyGroupMember => 'Người dùng đã là thành viên của nhóm',
+            self::NotGroupMember => 'Người dùng không thuộc nhóm',
+            self::CannotRemoveSelf => 'Không thể tự xóa chính mình khỏi nhóm bằng thao tác này',
+            self::GroupMemberLimitReached => 'Nhóm đã đạt giới hạn thành viên',
+            self::LastAdminCannotLeave => 'Quản trị viên cuối cùng không thể rời nhóm',
+            self::CannotModifyPrivateChat => 'Không thể chỉnh sửa cuộc trò chuyện riêng tư',
             self::BookingSelfSlot => 'Bạn không thể đặt lịch hẹn cho chính bài đăng của mình',
             self::BookingInvalidDate => 'Ngày hoặc giờ hẹn không hợp lệ',
             self::BookingSlotNotFound => 'Khung giờ hẹn không tồn tại hoặc đã bị vô hiệu hóa',
@@ -150,9 +166,12 @@ enum ErrorCode: int
             self::ResourceNotFound,
             self::ListingNotFound,
             self::AppointmentSlotNotFound,
-            self::ConversationNotFound => Response::HTTP_NOT_FOUND,
+            self::ConversationNotFound,
+            self::GroupNotFound => Response::HTTP_NOT_FOUND,
 
-            self::UnauthorizedConversationAccess => Response::HTTP_FORBIDDEN,
+            self::UnauthorizedConversationAccess,
+            self::NotGroupAdmin,
+            self::CannotRemoveSelf => Response::HTTP_FORBIDDEN,
             self::AppointmentSlotNotFound => Response::HTTP_NOT_FOUND,
 
             self::BookingSelfSlot => Response::HTTP_FORBIDDEN,
@@ -196,6 +215,11 @@ enum ErrorCode: int
             self::ListingUpgradeNotAllowed => Response::HTTP_UNPROCESSABLE_ENTITY,
             self::ListingNotOwned => Response::HTTP_FORBIDDEN,
             self::PackagePricingNotFound => Response::HTTP_NOT_FOUND,
+            self::AlreadyGroupMember,
+            self::NotGroupMember,
+            self::GroupMemberLimitReached,
+            self::LastAdminCannotLeave,
+            self::CannotModifyPrivateChat => Response::HTTP_UNPROCESSABLE_ENTITY,
 
             self::ServerError,
             self::AuthRegisterFailed,

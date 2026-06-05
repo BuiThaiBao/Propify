@@ -13,15 +13,20 @@
       <aside class="w-[320px] min-w-[320px] bg-white border-r border-gray-200 flex flex-col overflow-hidden"
         :class="{ 'max-md:hidden': activeConversation && isMobile }">
         <div class="px-5 py-4 border-b border-gray-100">
-          <h2 class="flex items-center gap-2.5 text-lg font-bold text-gray-900 m-0">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            Tin nhắn
-            <span v-if="totalUnread > 0" class="bg-blue-500 text-white text-[0.7rem] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
-              {{ totalUnread }}
-            </span>
-          </h2>
+          <div class="flex items-center justify-between gap-3">
+            <h2 class="flex items-center gap-2.5 text-lg font-bold text-gray-900 m-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Tin nhắn
+              <span v-if="totalUnread > 0" class="bg-blue-500 text-white text-[0.7rem] font-bold px-2 py-0.5 rounded-full min-w-[20px] text-center">
+                {{ totalUnread }}
+              </span>
+            </h2>
+            <button class="rounded-xl bg-blue-600 text-white border-none px-3 py-2 text-sm cursor-pointer" @click="showCreateGroup = true">
+              Tạo nhóm
+            </button>
+          </div>
         </div>
         <ConversationList :conversations="conversations" :active-id="activeConversation?.id" :loading="loadingConversations" @select="openConversation" />
       </aside>
@@ -46,18 +51,33 @@
           <button v-if="isMobile" class="bg-transparent border-none text-gray-500 cursor-pointer p-1 rounded-lg hover:bg-gray-100 flex items-center" @click="activeConversation = null">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
-          <div class="size-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm">
+          <GroupAvatar
+            v-if="activeConversation.type === 'group'"
+            :avatar-url="activeConversation.group?.avatar_url"
+            :members="groupMembers"
+            size="md"
+          />
+          <div v-else class="size-10 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-sm font-bold text-white shrink-0 shadow-sm">
             <img v-if="activeConversation.other_user?.avatar_url" :src="activeConversation.other_user.avatar_url" :alt="activeConversation.other_user.full_name" class="w-full h-full object-cover" />
             <span v-else>{{ getInitials(activeConversation.other_user?.full_name) }}</span>
           </div>
           <div class="flex-1">
-            <div class="text-[0.95rem] font-semibold text-gray-900">{{ activeConversation.other_user?.full_name }}</div>
+            <div class="text-[0.95rem] font-semibold text-gray-900">{{ activeDisplayName }}</div>
             <div v-if="isPartnerTyping" class="flex items-center gap-1 mt-0.5">
               <span class="typing-dot"/><span class="typing-dot"/><span class="typing-dot"/>
               <span class="text-[0.72rem] text-blue-500 ml-0.5">đang nhập...</span>
             </div>
-            <div v-else class="text-[0.72rem] text-green-500 font-medium">Đang hoạt động</div>
+            <div v-else class="text-[0.72rem] text-green-500 font-medium">
+              {{ activeConversation.type === 'group' ? `${groupMembers.length} thành viên` : 'Đang hoạt động' }}
+            </div>
           </div>
+          <button
+            v-if="activeConversation.type === 'group'"
+            class="rounded-xl border border-gray-200 bg-white text-gray-600 px-3 py-2 text-sm cursor-pointer"
+            @click="showGroupInfo = true"
+          >
+            Quản lý nhóm
+          </button>
         </div>
 
         <!-- Messages -->
@@ -78,6 +98,20 @@
       </template>
     </main>
     </div>
+    <CreateGroupModal v-model="showCreateGroup" @created="handleCreateGroup" />
+    <GroupInfoPanel
+      :visible="showGroupInfo"
+      :conversation="activeConversation"
+      :members="groupMembers"
+      :loading-members="loadingMembers"
+      :is-admin="isGroupAdmin"
+      @close="showGroupInfo = false"
+      @leave="handleLeaveGroup"
+      @add-members="handleAddMembers"
+      @remove-member="handleRemoveMember"
+      @transfer-admin="handleTransferAdmin"
+      @update-group="handleUpdateGroup"
+    />
   </div>
 </template>
 
@@ -86,27 +120,49 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useWindowSize } from '@vueuse/core';
 import { useChatStore } from '@/stores/chat';
 import { useAuthStore } from '@/stores/auth';
-import ConversationList from '@/components/chat/ConversationList.vue';
-import MessageBubble from '@/components/chat/MessageBubble.vue';
-import ChatInput from '@/components/chat/ChatInput.vue';
+import ConversationList from '@/components/chat/shared/ConversationList.vue';
+import MessageBubble from '@/components/chat/shared/MessageBubble.vue';
+import ChatInput from '@/components/chat/shared/ChatInput.vue';
 import Breadcrumb from '@/components/shared/Breadcrumb.vue';
+import { useChatFormatters } from '@/composables/useChatFormatters';
+import GroupAvatar from '@/components/chat/group/GroupAvatar.vue';
+import CreateGroupModal from '@/components/chat/group/CreateGroupModal.vue';
+import GroupInfoPanel from '@/components/chat/group/GroupInfoPanel.vue';
 
 const chatStore = useChatStore();
 const authStore = useAuthStore();
-const { conversations, activeConversation, messages, loadingConversations, loadingMessages, sending, hasMore, typingUsers, totalUnread, loadConversations, openConversation, loadMoreMessages, sendMessage, sendTypingIndicator } = chatStore;
+const { conversations, activeConversation, messages, loadingConversations, loadingMessages, sending, hasMore, typingUsers, totalUnread, groupMembers, loadingMembers, activeDisplayName, isGroupAdmin, loadConversations, openConversation, loadMoreMessages, sendMessage, sendTypingIndicator, createGroup, addGroupMembers, removeGroupMember, transferGroupAdmin, leaveGroup, updateGroup } = chatStore;
 const currentUserId = computed(() => authStore.user?.id);
 const { width } = useWindowSize();
 const isMobile = computed(() => width.value < 768);
 const messagesContainer = ref(null);
 const isPartnerTyping = computed(() => typingUsers.size > 0);
-
-function getInitials(name) {
-  if (!name) return '?';
-  return name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
-}
+const { initials: getInitials } = useChatFormatters();
+const showCreateGroup = ref(false);
+const showGroupInfo = ref(false);
 async function handleSend(body) { await sendMessage(body); scrollToBottom(); }
 let typingTimeout = null;
 function handleTyping() { sendTypingIndicator(); clearTimeout(typingTimeout); typingTimeout = setTimeout(() => {}, 3000); }
+async function handleCreateGroup(payload) {
+  await createGroup(payload.name, payload.memberIds);
+  showCreateGroup.value = false;
+}
+async function handleAddMembers(userIds) {
+  await addGroupMembers(userIds);
+}
+async function handleRemoveMember(userId) {
+  await removeGroupMember(userId);
+}
+async function handleTransferAdmin(userId) {
+  await transferGroupAdmin(userId);
+}
+async function handleLeaveGroup() {
+  await leaveGroup();
+  showGroupInfo.value = false;
+}
+async function handleUpdateGroup(payload) {
+  await updateGroup(payload);
+}
 function scrollToBottom(smooth = true) {
   nextTick(() => { if (messagesContainer.value) messagesContainer.value.scrollTo({ top: messagesContainer.value.scrollHeight, behavior: smooth ? 'smooth' : 'instant' }); });
 }

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\GoogleController;
 use App\Http\Controllers\Api\V1\Chat\ChatController;
+use App\Http\Controllers\Api\V1\Chat\GroupChatController;
 use App\Http\Controllers\Api\V1\Cloudinary\CloudinaryController;
 use App\Http\Controllers\Api\V1\Geocoding\GeocodingController;
 use App\Http\Controllers\Api\V1\Listing\FavoriteController;
@@ -177,6 +178,16 @@ Route::prefix('v1/chat')->as('chat.')->middleware('auth:api')->group(function ()
     // Đánh dấu đã đọc
     Route::post('/conversations/{conversationId}/read', [ChatController::class, 'markAsRead'])
         ->name('conversations.read');
+
+    Route::prefix('/groups')->as('groups.')->group(function () {
+        Route::post('/', [GroupChatController::class, 'create'])->name('create');
+        Route::put('/{conversationId}', [GroupChatController::class, 'update'])->name('update');
+        Route::get('/{conversationId}/members', [GroupChatController::class, 'getMembers'])->name('members.index');
+        Route::post('/{conversationId}/members', [GroupChatController::class, 'addMembers'])->name('members.add');
+        Route::delete('/{conversationId}/members/{userId}', [GroupChatController::class, 'removeMember'])->name('members.remove');
+        Route::post('/{conversationId}/members/{userId}/transfer-admin', [GroupChatController::class, 'transferAdmin'])->name('members.transfer-admin');
+        Route::post('/{conversationId}/leave', [GroupChatController::class, 'leave'])->name('leave');
+    });
 });
 
 // ==================== GEOCODING PROXY ROUTES (public — no auth needed) ====================
