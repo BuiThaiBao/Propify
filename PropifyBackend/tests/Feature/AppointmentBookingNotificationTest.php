@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\DTOs\Appointment\CreateBookingDto;
 use App\Enums\BookingStatus;
 use App\Enums\NotificationType;
-use App\DTOs\Appointment\CreateBookingDto;
 use App\Events\Appointment\AppointmentBooked;
 use App\Events\Appointment\AppointmentBookingExpired;
 use App\Jobs\AutoCancelExpiredBookingJob;

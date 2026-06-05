@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 final class ListingLockAppeal extends Model
 {
     public const STATUS_PENDING = 'PENDING';
+
     public const STATUS_REVIEWED = 'REVIEWED';
+
     public const STATUS_REJECTED = 'REJECTED';
+
     public const STATUS_RESOLVED = 'RESOLVED';
 
     protected $table = 'listing_lock_appeals';

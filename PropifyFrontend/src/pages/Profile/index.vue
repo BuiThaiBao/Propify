@@ -18,6 +18,7 @@
       @open-favorites="openFavoritesTab"
       @open-recently-viewed="openRecentlyViewedTab"
       @open-notifications="openNotificationsTab"
+      @open-transactions="openTransactionsTab"
     />
 
     <!-- Main Content -->
@@ -1004,6 +1005,140 @@
         </div>
       </section>
             <ProfileNotificationsPanel v-if="activeTab === 'notifications'" />
+
+            <!-- ===== TRANSACTION HISTORY TAB ===== -->
+            <section v-if="activeTab === 'transactions'" class="bg-white rounded-xl shadow-sm p-8">
+              <h2 class="text-xl font-bold text-slate-800 mb-6">Lịch sử giao dịch</h2>
+
+              <div class="flex flex-col gap-4">
+                <!-- Status Filters -->
+                <div class="flex flex-wrap gap-2 border-b border-slate-100 pb-4 mb-2">
+                  <button
+                    type="button"
+                    class="px-4 py-2 rounded-full text-xs font-semibold border transition-all"
+                    :class="transactionFilters.status === '' ? 'bg-sky-500 text-white border-sky-500' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'"
+                    @click="transactionFilters.status = ''; loadTransactions(1)"
+                  >
+                    Tất cả
+                  </button>
+                  <button
+                    type="button"
+                    class="px-4 py-2 rounded-full text-xs font-semibold border transition-all"
+                    :class="transactionFilters.status === 'SUCCESS' ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'"
+                    @click="transactionFilters.status = 'SUCCESS'; loadTransactions(1)"
+                  >
+                    Thành công
+                  </button>
+                  <button
+                    type="button"
+                    class="px-4 py-2 rounded-full text-xs font-semibold border transition-all"
+                    :class="transactionFilters.status === 'PENDING' ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'"
+                    @click="transactionFilters.status = 'PENDING'; loadTransactions(1)"
+                  >
+                    Đang xử lý
+                  </button>
+                  <button
+                    type="button"
+                    class="px-4 py-2 rounded-full text-xs font-semibold border transition-all"
+                    :class="transactionFilters.status === 'FAILED' ? 'bg-rose-500 text-white border-rose-500' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'"
+                    @click="transactionFilters.status = 'FAILED'; loadTransactions(1)"
+                  >
+                    Thất bại
+                  </button>
+                  <button
+                    type="button"
+                    class="px-4 py-2 rounded-full text-xs font-semibold border transition-all"
+                    :class="transactionFilters.status === 'EXPIRED' ? 'bg-slate-500 text-white border-slate-500' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'"
+                    @click="transactionFilters.status = 'EXPIRED'; loadTransactions(1)"
+                  >
+                    Hết hạn
+                  </button>
+                </div>
+
+                <!-- Transactions Table -->
+                <div class="overflow-x-auto rounded-lg border border-slate-200">
+                  <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 text-left text-xs text-slate-500">
+                      <tr>
+                        <th class="px-4 py-3.5 whitespace-nowrap">Mã giao dịch</th>
+                        <th class="px-4 py-3.5 min-w-[120px]">Gói tin</th>
+                        <th class="px-4 py-3.5 min-w-[200px]">Tin đăng</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap">Số tiền</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap">Thời hạn</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap">Phương thức</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap">Thời gian</th>
+                        <th class="px-4 py-3.5 whitespace-nowrap">Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-if="transactionsLoading">
+                        <td class="px-4 py-6 text-center text-slate-400" colspan="8">Đang tải dữ liệu...</td>
+                      </tr>
+                      <tr v-else-if="transactions.length === 0">
+                        <td class="px-4 py-6 text-center text-slate-400" colspan="8">Không có lịch sử giao dịch nào.</td>
+                      </tr>
+                      <tr v-else v-for="item in transactions" :key="item.id" class="border-t border-slate-100 hover:bg-slate-50/50 transition">
+                        <td class="px-4 py-4 font-mono text-xs font-semibold text-slate-700 whitespace-nowrap">
+                          {{ item.vnp_txn_ref || '#' + item.id }}
+                        </td>
+                        <td class="px-4 py-4 whitespace-nowrap">
+                          <span :class="['rounded-full px-2 py-1 text-xs font-semibold', packageBadgeClass(item.package)]">
+                            {{ item.package?.name || 'Gói tin' }}
+                          </span>
+                        </td>
+                        <td class="px-4 py-4 text-slate-700 font-medium">
+                          <router-link v-if="item.listing" :to="'/listings/' + item.listing.id" class="text-sky-600 hover:underline">
+                            {{ item.listing.title }}
+                          </router-link>
+                          <span v-else class="text-slate-400">(Tin đăng đã bị xóa)</span>
+                        </td>
+                        <td class="px-4 py-4 font-bold text-slate-800 whitespace-nowrap">
+                          {{ formatTransactionAmount(item.amount) }}
+                        </td>
+                        <td class="px-4 py-4 text-slate-600 whitespace-nowrap">
+                          {{ item.duration_days }} ngày
+                        </td>
+                        <td class="px-4 py-4 text-slate-500 whitespace-nowrap">
+                          {{ item.payment_method || 'VNPay' }}
+                        </td>
+                        <td class="px-4 py-4 text-slate-500 whitespace-nowrap">
+                          {{ formatTransactionDate(item.transaction_date || item.created_at) }}
+                        </td>
+                        <td class="px-4 py-4 whitespace-nowrap">
+                          <span :class="['rounded-full px-2.5 py-1 text-xs font-semibold', transactionStatusBadgeClass(item.status)]">
+                            {{ transactionStatusLabel(item.status) }}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Pagination -->
+                <div v-if="transactionsPagination.lastPage > 1" class="mt-4 flex items-center justify-between gap-3 text-sm text-slate-500">
+                  <p>Tổng cộng {{ transactionsPagination.total }} giao dịch</p>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50 hover:bg-slate-50 transition"
+                      :disabled="transactionsPagination.currentPage <= 1 || transactionsLoading"
+                      @click="loadTransactions(transactionsPagination.currentPage - 1)"
+                    >
+                      Trước
+                    </button>
+                    <span>Trang {{ transactionsPagination.currentPage }}/{{ transactionsPagination.lastPage }}</span>
+                    <button
+                      type="button"
+                      class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50 hover:bg-slate-50 transition"
+                      :disabled="transactionsPagination.currentPage >= transactionsPagination.lastPage || transactionsLoading"
+                      @click="loadTransactions(transactionsPagination.currentPage + 1)"
+                    >
+                      Sau
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
     </main>
     </div>
 
@@ -1173,7 +1308,7 @@ async function uploadAvatar() {
 }
 
 // ── Tabs ──
-const validTabs = ['profile', 'listings', 'verifications', 'appointments', 'favorites', 'recently-viewed', 'notifications', 'password'];
+const validTabs = ['profile', 'listings', 'verifications', 'appointments', 'favorites', 'recently-viewed', 'notifications', 'password', 'transactions'];
 const initialTab = validTabs.includes(route.query.tab) ? route.query.tab : 'profile';
 const activeTab = ref(initialTab);
 
@@ -1208,6 +1343,8 @@ watch(
       openRecentlyViewedTab();
     } else if (nextTab === 'notifications') {
       openNotificationsTab();
+    } else if (nextTab === 'transactions') {
+      openTransactionsTab();
     } else {
       activeTab.value = nextTab;
     }
@@ -1924,6 +2061,92 @@ function openRecentlyViewedTab() {
 
 function openNotificationsTab() {
   activeTab.value = 'notifications';
+}
+
+// ── Transactions ──
+const transactions = ref([]);
+const transactionsLoading = ref(false);
+const transactionsLoaded = ref(false);
+const transactionsPagination = ref({
+  currentPage: 1,
+  lastPage: 1,
+  perPage: 10,
+  total: 0,
+});
+const transactionFilters = ref({
+  status: '',
+});
+
+async function loadTransactions(page = 1) {
+  transactionsLoading.value = true;
+  try {
+    const response = await userService.getTransactions({
+      page,
+      per_page: transactionsPagination.value.perPage,
+      status: transactionFilters.value.status || undefined,
+    });
+
+    const data = response?.data?.data || [];
+    const meta = response?.data?.meta || {};
+
+    transactions.value = data;
+    transactionsPagination.value.currentPage = Number(meta.current_page || 1);
+    transactionsPagination.value.lastPage = Number(meta.last_page || 1);
+    transactionsPagination.value.total = Number(meta.total || 0);
+
+    transactionsLoaded.value = true;
+  } catch (error) {
+    console.error(error);
+    transactions.value = [];
+    transactionsPagination.value.currentPage = 1;
+    transactionsPagination.value.lastPage = 1;
+    transactionsPagination.value.total = 0;
+  } finally {
+    transactionsLoading.value = false;
+  }
+}
+
+function openTransactionsTab() {
+  activeTab.value = 'transactions';
+  if (!transactionsLoaded.value) {
+    loadTransactions(1);
+  }
+}
+
+function formatTransactionAmount(value) {
+  const num = Number(value || 0);
+  return `${num.toLocaleString('vi-VN')} đ`;
+}
+
+function formatTransactionDate(dateStr) {
+  if (!dateStr) return '--';
+  return new Date(dateStr).toLocaleString('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function transactionStatusLabel(status) {
+  const map = {
+    PENDING: 'Chờ thanh toán',
+    SUCCESS: 'Thành công',
+    FAILED: 'Thất bại',
+    EXPIRED: 'Hết hạn',
+  };
+  return map[status] || status;
+}
+
+function transactionStatusBadgeClass(status) {
+  const map = {
+    PENDING: 'bg-amber-100 text-amber-700',
+    SUCCESS: 'bg-emerald-100 text-emerald-700',
+    FAILED: 'bg-rose-100 text-rose-700',
+    EXPIRED: 'bg-slate-100 text-slate-600',
+  };
+  return map[status] || 'bg-slate-100 text-slate-600';
 }
 
 async function toggleFavoriteFromViewed(item) {

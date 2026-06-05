@@ -203,8 +203,7 @@ final class ListingServiceImpl implements ListingService
         ?string $searchField = 'title',
         ?string $priceRange = null,
         ?int $packageId = null,
-    ): LengthAwarePaginator
-    {
+    ): LengthAwarePaginator {
         return $this->listingRepository->paginateAdmin($status, $demandType, $keyword, $perPage, $searchField, $priceRange, $packageId);
     }
 
@@ -214,8 +213,7 @@ final class ListingServiceImpl implements ListingService
         ?string $searchField = 'title',
         ?string $priceRange = null,
         ?int $packageId = null,
-    ): array
-    {
+    ): array {
         return $this->listingRepository->getAdminStatusCounts($demandType, $keyword, $searchField, $priceRange, $packageId);
     }
 

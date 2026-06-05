@@ -23,6 +23,7 @@ final class MessageResource extends JsonResource
             'type' => $this->type?->value ?? $this->type,
             'body' => $this->body,
             'file_url' => $this->file_url,
+            'metadata' => $this->metadata,
             'created_at' => $this->created_at?->toIso8601String(),
         ];
     }

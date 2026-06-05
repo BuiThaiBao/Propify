@@ -75,6 +75,38 @@ const chatService = {
   searchUserByPhone(phone) {
     return api.get('/v1/user/search', { params: { phone } });
   },
+
+  createGroup(name, memberIds, avatarUrl = null) {
+    return api.post('/v1/chat/groups', {
+      name,
+      member_ids: memberIds,
+      avatar_url: avatarUrl,
+    });
+  },
+
+  updateGroup(conversationId, data) {
+    return api.put(`/v1/chat/groups/${conversationId}`, data);
+  },
+
+  getGroupMembers(conversationId) {
+    return api.get(`/v1/chat/groups/${conversationId}/members`);
+  },
+
+  addGroupMembers(conversationId, userIds) {
+    return api.post(`/v1/chat/groups/${conversationId}/members`, { user_ids: userIds });
+  },
+
+  removeGroupMember(conversationId, userId) {
+    return api.delete(`/v1/chat/groups/${conversationId}/members/${userId}`);
+  },
+
+  transferGroupAdmin(conversationId, userId) {
+    return api.post(`/v1/chat/groups/${conversationId}/members/${userId}/transfer-admin`);
+  },
+
+  leaveGroup(conversationId) {
+    return api.post(`/v1/chat/groups/${conversationId}/leave`);
+  },
 };
 
 export default chatService;

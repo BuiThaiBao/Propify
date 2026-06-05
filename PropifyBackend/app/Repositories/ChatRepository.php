@@ -2,7 +2,9 @@
 
 namespace App\Repositories;
 
+use App\Enums\ConversationRole;
 use App\Models\Conversation;
+use App\Models\ConversationParticipant;
 use App\Models\Message;
 use Illuminate\Contracts\Pagination\CursorPaginator;
 use Illuminate\Database\Eloquent\Collection;
@@ -69,4 +71,22 @@ interface ChatRepository
      * Trả về Conversation nếu hợp lệ, null nếu không có quyền.
      */
     public function conversationBelongsToUser(int $conversationId, int $userId): ?Conversation;
+
+    public function createGroupConversation(int $creatorId, string $name, ?string $avatarUrl): Conversation;
+
+    public function addParticipants(int $conversationId, array $userIds, ConversationRole $role = ConversationRole::Member): void;
+
+    public function removeParticipant(int $conversationId, int $userId): void;
+
+    public function updateConversation(int $conversationId, array $data): Conversation;
+
+    public function getParticipants(int $conversationId): Collection;
+
+    public function getParticipant(int $conversationId, int $userId): ?ConversationParticipant;
+
+    public function countParticipants(int $conversationId): int;
+
+    public function updateParticipantRole(int $conversationId, int $userId, ConversationRole $role): void;
+
+    public function getAdminCount(int $conversationId): int;
 }

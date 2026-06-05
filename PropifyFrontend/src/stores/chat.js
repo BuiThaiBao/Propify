@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { computed, ref } from 'vue';
 import chatService from '@/services/chatService';
 import { getEcho } from '@/plugins/echo';
 import { useAuthStore } from '@/stores/auth';
+import { useMessageQueue } from '@/composables/useMessageQueue';
+import { LRUCache } from '@/utils/LRUCache';
 
 export const useChatStore = defineStore('chat', () => {
-  // ============ STATE ============
   const conversations = ref([]);
   const activeConversation = ref(null);
   const messages = ref([]);
@@ -15,23 +16,38 @@ export const useChatStore = defineStore('chat', () => {
   const nextCursor = ref(null);
   const hasMore = ref(false);
   const typingUsers = ref(new Set());
-  /** FloatingChat widget đang mở và hiển thị conversation không */
   const isChatVisible = ref(false);
+  const groupMembers = ref([]);
+  const loadingMembers = ref(false);
+  const { queue, isOnline, enqueue, remove, setupListeners } = useMessageQueue();
 
-  /**
-   * Map<conversationId, EchoChannel> — subscribe tất cả conversations.
-   * Mỗi channel handle cả notification lẫn hiển thị message (nếu đang active).
-   */
   const channels = new Map();
-
-  // ============ GETTERS ============
+  const messageCache = new LRUCache(20);
   const totalUnread = computed(() =>
-    conversations.value.reduce((sum, c) => sum + (c.unread_count ?? 0), 0),
+    conversations.value.reduce((sum, item) => sum + (item.unread_count ?? 0), 0),
   );
+  const activeDisplayName = computed(() => {
+    const conversation = activeConversation.value;
+    if (!conversation) return '';
+    if (conversation.type === 'group') return conversation.group?.name ?? 'Nhóm chat';
+    return conversation.other_user?.full_name ?? 'Người dùng';
+  });
+  const activeDisplayAvatar = computed(() => {
+    const conversation = activeConversation.value;
+    if (!conversation) return null;
+    return conversation.type === 'group'
+      ? conversation.group?.avatar_url ?? null
+      : conversation.other_user?.avatar_url ?? null;
+  });
+  const isGroupConversation = computed(() => activeConversation.value?.type === 'group');
+  const myRole = computed(() => activeConversation.value?.group?.my_role ?? null);
+  const isGroupAdmin = computed(() => myRole.value === 'admin');
 
-  // ============ NOTIFICATION HELPERS ============
+  let loadingPromise = null;
+  let conversationsLoaded = false;
+  let openingConversationId = null;
+  let queueListenersInitialized = false;
 
-  /** Beep ngắn bằng Web Audio API — không cần file âm thanh */
   function playNotificationSound() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -47,11 +63,10 @@ export const useChatStore = defineStore('chat', () => {
       osc.start(ctx.currentTime);
       osc.stop(ctx.currentTime + 0.3);
     } catch {
-      // browser block hoặc không hỗ trợ
+      // ignore
     }
   }
 
-  /** Hiển thị OS notification. Xin quyền lần đầu tự động. */
   async function showBrowserNotification(senderName, body) {
     if (!('Notification' in window)) return;
     if (Notification.permission === 'default') {
@@ -68,73 +83,56 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
-  // ============ ACTIONS ============
-
-  /** Flag + promise lock — ngăn gọi API trùng hoàn toàn */
-  let _loadingPromise = null;
-  let _conversationsLoaded = false;
-
-  /**
-   * Tải danh sách conversations và subscribe WebSocket cho tất cả.
-   * - Nếu đã load rồi → skip (trừ khi force=true)
-   * - Nếu đang load → trả về promise đang chạy
-   */
   async function loadConversations(force = false) {
-    if (_conversationsLoaded && !force) return;
-    if (_loadingPromise) return _loadingPromise;
+    if (conversationsLoaded && !force) return;
+    if (loadingPromise) return loadingPromise;
 
     loadingConversations.value = true;
-    _loadingPromise = (async () => {
+    loadingPromise = (async () => {
       try {
         const res = await chatService.getConversations();
         conversations.value = res.data.data ?? [];
-        conversations.value.forEach((c) => subscribeChannel(c.id));
-        _conversationsLoaded = true;
+        conversations.value.forEach((conversation) => subscribeChannel(conversation.id));
+        conversationsLoaded = true;
       } finally {
         loadingConversations.value = false;
-        _loadingPromise = null;
+        loadingPromise = null;
       }
     })();
 
-    return _loadingPromise;
+    return loadingPromise;
   }
 
-  /**
-   * Lấy hoặc tạo conversation với user, rồi mở nó.
-   */
   async function openConversationWith(otherUserId, listingId = null) {
     const res = await chatService.getOrCreateConversation(otherUserId, listingId);
     const conversation = res.data.data;
+    const existing = conversations.value.find((item) => item.id === conversation.id);
 
-    const existing = conversations.value.find((c) => c.id === conversation.id);
     if (!existing) {
       conversations.value.unshift(conversation);
-      subscribeChannel(conversation.id); // subscribe conversation mới
+      subscribeChannel(conversation.id);
     }
 
     await openConversation(conversation);
     return conversation;
   }
 
-  /**
-   * Cache tin nhắn per conversation để không phải gọi API lại mỗi lần chuyển.
-   * Map<conversationId, { msgs: [], cursor: string|null, hasMore: boolean }>
-   */
-  const messageCache = new Map();
+  async function createGroup(name, memberIds, avatarUrl = null) {
+    const res = await chatService.createGroup(name, memberIds, avatarUrl);
+    const conversation = res.data.data;
+    conversations.value.unshift(conversation);
+    subscribeChannel(conversation.id);
+    await openConversation(conversation);
+    return conversation;
+  }
 
-  /** Lock mở conversation — ngăn gọi trùng cùng conversation */
-  let _openingConvId = null;
-
-  /**
-   * Mở một conversation — dùng cache nếu có, nếu không thì tải từ API.
-   * Deduplicate: skip nếu đang mở cùng conversation.
-   */
   async function openConversation(conversation) {
-    if (_openingConvId === conversation.id) return; // đang mở rồi
-    _openingConvId = conversation.id;
+    if (openingConversationId === conversation.id) return;
+    openingConversationId = conversation.id;
 
     activeConversation.value = conversation;
     typingUsers.value = new Set();
+    groupMembers.value = [];
 
     const cached = messageCache.get(conversation.id);
     if (cached) {
@@ -147,18 +145,128 @@ export const useChatStore = defineStore('chat', () => {
       hasMore.value = false;
       await loadMessages(conversation.id);
     }
-    // Server tự markAsRead khi loadMessages (trang đầu) → chỉ reset UI
-    const conv = conversations.value.find((c) => c.id === conversation.id);
-    if (conv) conv.unread_count = 0;
-    _openingConvId = null;
+
+    const localConversation = conversations.value.find((item) => item.id === conversation.id);
+    if (localConversation) localConversation.unread_count = 0;
+    if (conversation.type === 'group') {
+      await loadGroupMembers(conversation.id);
+    }
+
+    openingConversationId = null;
   }
 
-  /**
-   * Subscribe WebSocket channel cho một conversation.
-   * Gọi một lần duy nhất per conversation — handle cả notification + hiển thị.
-   */
+  async function loadGroupMembers(conversationId) {
+    loadingMembers.value = true;
+    try {
+      const res = await chatService.getGroupMembers(conversationId);
+      groupMembers.value = res.data?.data ?? [];
+    } finally {
+      loadingMembers.value = false;
+    }
+  }
+
+  async function addGroupMembers(userIds) {
+    if (!activeConversation.value) return;
+    const res = await chatService.addGroupMembers(activeConversation.value.id, userIds);
+    activeConversation.value = res.data.data;
+    await loadGroupMembers(activeConversation.value.id);
+    await loadConversations(true);
+  }
+
+  async function removeGroupMember(userId) {
+    if (!activeConversation.value) return;
+    const res = await chatService.removeGroupMember(activeConversation.value.id, userId);
+    activeConversation.value = res.data.data;
+    groupMembers.value = groupMembers.value.filter((member) => member.id !== userId);
+    await loadConversations(true);
+  }
+
+  async function transferGroupAdmin(userId) {
+    if (!activeConversation.value) return;
+    const res = await chatService.transferGroupAdmin(activeConversation.value.id, userId);
+    activeConversation.value = res.data.data;
+    await loadGroupMembers(activeConversation.value.id);
+    await loadConversations(true);
+    return activeConversation.value;
+  }
+
+  async function leaveGroup() {
+    if (!activeConversation.value) return;
+    const conversationId = activeConversation.value.id;
+    await chatService.leaveGroup(conversationId);
+    conversations.value = conversations.value.filter((item) => item.id !== conversationId);
+    activeConversation.value = null;
+    groupMembers.value = [];
+  }
+
+  async function updateGroup(data) {
+    if (!activeConversation.value) return;
+    const res = await chatService.updateGroup(activeConversation.value.id, data);
+    const updated = res.data.data;
+    activeConversation.value = updated;
+    const index = conversations.value.findIndex((item) => item.id === updated.id);
+    if (index !== -1) conversations.value[index] = updated;
+    return updated;
+  }
+
+  function buildOptimisticMessage(body, status = 'sending', id = `temp-${Date.now()}`) {
+    const authStore = useAuthStore();
+
+    return {
+      id,
+      conversation_id: activeConversation.value?.id,
+      sender: {
+        id: authStore.user.id,
+        full_name: authStore.user.full_name,
+        avatar_url: authStore.user.avatar_url,
+      },
+      type: 'text',
+      body: body.trim(),
+      file_url: null,
+      created_at: new Date().toISOString(),
+      _status: status,
+    };
+  }
+
+  function saveCache(conversationId) {
+    if (!conversationId) return;
+    messageCache.set(conversationId, {
+      msgs: [...messages.value],
+      cursor: nextCursor.value,
+      hasMore: hasMore.value,
+    });
+  }
+
+  function replaceMessageStatus(messageId, status) {
+    const index = messages.value.findIndex((message) => message.id === messageId);
+    if (index !== -1) {
+      messages.value[index] = { ...messages.value[index], _status: status };
+      saveCache(activeConversation.value?.id ?? messages.value[index].conversation_id);
+    }
+  }
+
+  async function flushQueuedMessage(item) {
+    const res = await chatService.sendTextMessage(item.conversationId, item.body);
+    const realMsg = res.data.data;
+
+    const index = messages.value.findIndex((message) => message.id === item.localId);
+    if (index !== -1) {
+      messages.value[index] = { ...realMsg, _status: 'sent' };
+    }
+
+    updateConversationLastMessage(item.conversationId, realMsg);
+    saveCache(item.conversationId);
+    remove(item.id);
+  }
+
+  function ensureQueueListeners() {
+    if (queueListenersInitialized) return;
+    setupListeners(flushQueuedMessage);
+    queueListenersInitialized = true;
+  }
+
   function subscribeChannel(conversationId) {
-    if (channels.has(conversationId)) return; // đã subscribe rồi
+    if (channels.has(conversationId)) return;
 
     const echo = getEcho();
     if (!echo) return;
@@ -170,36 +278,34 @@ export const useChatStore = defineStore('chat', () => {
       .listen('.message.sent', (event) => {
         const incomingMsg = event.message;
 
-        // Bỏ qua message của chính mình (đã có qua optimistic UI)
         if (incomingMsg.sender?.id === authStore.user?.id) return;
 
-        const isActivConv = activeConversation.value?.id === conversationId && isChatVisible.value;
+        const isActive = activeConversation.value?.id === conversationId && isChatVisible.value;
 
-        if (isActivConv) {
-          // Đang xem conversation này — thêm vào UI nếu chưa có
-          const exists = messages.value.some((m) => m.id === incomingMsg.id);
+        if (isActive) {
+          const exists = messages.value.some((message) => message.id === incomingMsg.id);
           if (!exists) {
             messages.value.push({ ...incomingMsg, _status: 'received' });
             saveCache(conversationId);
           }
           updateConversationLastMessage(conversationId, incomingMsg);
           markAsRead(conversationId);
-        } else {
-          // Không xem → tăng unread + thông báo + sound
-          updateConversationLastMessage(conversationId, incomingMsg);
-          const conv = conversations.value.find((c) => c.id === conversationId);
-          if (conv) conv.unread_count = (conv.unread_count ?? 0) + 1;
-
-          playNotificationSound();
-
-          const senderName = incomingMsg.sender?.full_name ?? 'Ai đó';
-          const preview = incomingMsg.type === 'image'
-            ? '📷 Đã gửi ảnh'
-            : incomingMsg.type === 'file'
-              ? '📎 Đã gửi tệp'
-              : (incomingMsg.body ?? '');
-          showBrowserNotification(senderName, preview);
+          return;
         }
+
+        updateConversationLastMessage(conversationId, incomingMsg);
+        const conversation = conversations.value.find((item) => item.id === conversationId);
+        if (conversation) conversation.unread_count = (conversation.unread_count ?? 0) + 1;
+
+        playNotificationSound();
+
+        const senderName = incomingMsg.sender?.full_name ?? 'Ai đó';
+        const preview = incomingMsg.type === 'image'
+          ? '📷 Đã gửi ảnh'
+          : incomingMsg.type === 'file'
+            ? '📎 Đã gửi tệp'
+            : (incomingMsg.body ?? '');
+        showBrowserNotification(senderName, preview);
       })
       .listenForWhisper('typing', (event) => {
         if (activeConversation.value?.id !== conversationId) return;
@@ -213,9 +319,6 @@ export const useChatStore = defineStore('chat', () => {
     channels.set(conversationId, channel);
   }
 
-  /**
-   * Tải messages với cursor pagination.
-   */
   async function loadMessages(conversationId, cursor = null) {
     loadingMessages.value = true;
     try {
@@ -231,81 +334,53 @@ export const useChatStore = defineStore('chat', () => {
 
       nextCursor.value = data.meta?.next_cursor ?? null;
       hasMore.value = data.meta?.has_more ?? false;
-
-      // Lưu vào cache
       saveCache(conversationId);
     } finally {
       loadingMessages.value = false;
     }
   }
 
-  /** Lưu state tin nhắn hiện tại vào cache */
-  function saveCache(convId) {
-    messageCache.set(convId, {
-      msgs: [...messages.value],
-      cursor: nextCursor.value,
-      hasMore: hasMore.value,
-    });
-  }
-
-  /**
-   * Load thêm messages cũ (infinite scroll lên trên).
-   */
   async function loadMoreMessages() {
     if (!hasMore.value || !nextCursor.value || !activeConversation.value) return;
     await loadMessages(activeConversation.value.id, nextCursor.value);
   }
 
-  /**
-   * Gửi tin nhắn với Optimistic UI.
-   */
   async function sendMessage(body) {
     if (!activeConversation.value || !body.trim()) return;
 
-    const authStore = useAuthStore();
-    const tempId = `temp-${Date.now()}`;
+    ensureQueueListeners();
 
-    const optimisticMsg = {
-      id: tempId,
-      conversation_id: activeConversation.value.id,
-      sender: {
-        id: authStore.user.id,
-        full_name: authStore.user.full_name,
-        avatar_url: authStore.user.avatar_url,
-      },
-      type: 'text',
-      body: body.trim(),
-      file_url: null,
-      created_at: new Date().toISOString(),
-      _status: 'sending',
-    };
+    const tempId = `temp-${Date.now()}`;
+    const initialStatus = isOnline.value ? 'sending' : 'queued';
+    const optimisticMsg = buildOptimisticMessage(body, initialStatus, tempId);
     messages.value.push(optimisticMsg);
+    updateConversationLastMessage(activeConversation.value.id, optimisticMsg);
+    saveCache(activeConversation.value.id);
+
+    if (!isOnline.value) {
+      enqueue(activeConversation.value.id, body.trim(), { localId: tempId });
+      return;
+    }
 
     sending.value = true;
     try {
       const res = await chatService.sendTextMessage(activeConversation.value.id, body.trim());
       const realMsg = res.data.data;
 
-      const idx = messages.value.findIndex((m) => m.id === tempId);
-      if (idx !== -1) {
-        messages.value[idx] = { ...realMsg, _status: 'sent' };
+      const index = messages.value.findIndex((message) => message.id === tempId);
+      if (index !== -1) {
+        messages.value[index] = { ...realMsg, _status: 'sent' };
       }
 
       updateConversationLastMessage(activeConversation.value.id, realMsg);
       saveCache(activeConversation.value.id);
     } catch {
-      const idx = messages.value.findIndex((m) => m.id === tempId);
-      if (idx !== -1) {
-        messages.value[idx]._status = 'error';
-      }
+      replaceMessageStatus(tempId, 'error');
     } finally {
       sending.value = false;
     }
   }
 
-  /**
-   * Whisper typing event.
-   */
   function sendTypingIndicator() {
     const authStore = useAuthStore();
     if (!activeConversation.value) return;
@@ -318,70 +393,64 @@ export const useChatStore = defineStore('chat', () => {
     });
   }
 
-  /**
-   * Hủy subscribe conversation đang active (giữ lại các channel khác).
-   * @deprecated Giờ dùng channels Map, không cần unsubscribe từng cái
-   */
   function unsubscribeActive() {
     activeConversation.value = null;
+    groupMembers.value = [];
   }
 
-  /**
-   * Đánh dấu đã đọc — throttle 3s per conversation.
-   */
-  const _readTimestamps = new Map();
+  const readTimestamps = new Map();
   async function markAsRead(conversationId) {
     const now = Date.now();
-    const lastRead = _readTimestamps.get(conversationId) ?? 0;
-    if (now - lastRead < 3000) return; // skip nếu vừa gọi < 3s trước
-    _readTimestamps.set(conversationId, now);
+    const lastRead = readTimestamps.get(conversationId) ?? 0;
+    if (now - lastRead < 3000) return;
+    readTimestamps.set(conversationId, now);
 
-    const conv = conversations.value.find((c) => c.id === conversationId);
-    if (conv) conv.unread_count = 0;
+    const conversation = conversations.value.find((item) => item.id === conversationId);
+    if (conversation) conversation.unread_count = 0;
+
     try {
       await chatService.markAsRead(conversationId);
     } catch {
-      // silent fail
+      // ignore
     }
   }
 
-  /**
-   * Cập nhật last_message và đưa conversation lên đầu list.
-   */
   function updateConversationLastMessage(conversationId, msg) {
-    const conv = conversations.value.find((c) => c.id === conversationId);
-    if (conv) {
-      conv.last_message = {
-        body: msg.body,
-        type: msg.type,
-        sender_id: msg.sender?.id ?? msg.sender_id,
-        sender_name: msg.sender?.full_name ?? msg.sender_name,
-        created_at: msg.created_at,
-      };
-      const idx = conversations.value.indexOf(conv);
-      if (idx > 0) {
-        conversations.value.splice(idx, 1);
-        conversations.value.unshift(conv);
-      }
+    const conversation = conversations.value.find((item) => item.id === conversationId);
+    if (!conversation) return;
+
+    conversation.last_message = {
+      body: msg.body,
+      type: msg.type,
+      sender_id: msg.sender?.id ?? msg.sender_id,
+      sender_name: msg.sender?.full_name ?? msg.sender_name,
+      created_at: msg.created_at,
+      metadata: msg.metadata ?? null,
+    };
+
+    const index = conversations.value.indexOf(conversation);
+    if (index > 0) {
+      conversations.value.splice(index, 1);
+      conversations.value.unshift(conversation);
     }
   }
 
-  /**
-   * Reset toàn bộ state và unsubscribe tất cả channels (khi logout).
-   */
   function reset() {
     const echo = getEcho();
     if (echo) {
-      channels.forEach((_, convId) => {
-        echo.leave(`conversation.${convId}`);
+      channels.forEach((_, conversationId) => {
+        echo.leave(`conversation.${conversationId}`);
       });
     }
+
     channels.clear();
     messageCache.clear();
-    _conversationsLoaded = false;
+    queue.value = [];
+    conversationsLoaded = false;
     conversations.value = [];
     activeConversation.value = null;
     messages.value = [];
+    groupMembers.value = [];
     nextCursor.value = null;
     hasMore.value = false;
     typingUsers.value = new Set();
@@ -399,9 +468,25 @@ export const useChatStore = defineStore('chat', () => {
     typingUsers,
     totalUnread,
     isChatVisible,
+    queue,
+    isOnline,
+    groupMembers,
+    loadingMembers,
+    activeDisplayName,
+    activeDisplayAvatar,
+    isGroupConversation,
+    myRole,
+    isGroupAdmin,
     loadConversations,
     openConversationWith,
+    createGroup,
     openConversation,
+    loadGroupMembers,
+    addGroupMembers,
+    removeGroupMember,
+    transferGroupAdmin,
+    leaveGroup,
+    updateGroup,
     loadMoreMessages,
     sendMessage,
     sendTypingIndicator,

@@ -34,6 +34,14 @@ const userService = {
       new_password_confirmation: data.newPasswordConfirmation,
     });
   },
+
+  /**
+   * Lấy lịch sử giao dịch của user đang đăng nhập.
+   * @param {{ status?: string, page?: number }} params
+   */
+  getTransactions(params = {}) {
+    return api.get("/v1/user/transactions", { params });
+  },
 };
 
 export default userService;

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ConversationType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -13,9 +14,17 @@ final class Conversation extends Model
     protected $table = 'conversations';
 
     protected $fillable = [
+        'type',
+        'name',
+        'avatar_url',
+        'creator_id',
         'participant_a_id', // min(user_a, user_b) — normalized
         'participant_b_id', // max(user_a, user_b) — normalized
         'listing_id',
+    ];
+
+    protected $casts = [
+        'type' => ConversationType::class,
     ];
 
     // ==================== Relationships ====================
@@ -30,6 +39,11 @@ final class Conversation extends Model
         return $this->belongsTo(User::class, 'participant_b_id');
     }
 
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'creator_id');
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class, 'conversation_id');
@@ -38,7 +52,7 @@ final class Conversation extends Model
     public function participants(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'conversation_participants', 'conversation_id', 'user_id')
-            ->withPivot(['last_read_at', 'last_seen_at'])
+            ->withPivot(['role', 'nickname', 'joined_at', 'last_read_at', 'last_seen_at'])
             ->withTimestamps();
     }
 
@@ -63,10 +77,24 @@ final class Conversation extends Model
      */
     public function getOtherParticipant(int $currentUserId): ?User
     {
+        if ($this->isGroup()) {
+            return null;
+        }
+
         if ($this->participant_a_id === $currentUserId) {
             return $this->participantB;
         }
 
         return $this->participantA;
+    }
+
+    public function isGroup(): bool
+    {
+        return $this->type === ConversationType::Group;
+    }
+
+    public function isPrivate(): bool
+    {
+        return ! $this->isGroup();
     }
 }
