@@ -270,7 +270,6 @@
                 <th class="px-3 py-4 min-w-[180px]">Địa chỉ</th>
                 <th class="px-3 py-4 whitespace-nowrap">Giá</th>
                 <th class="px-3 py-4 text-center whitespace-nowrap">Hiển thị</th>
-                <th class="px-3 py-4 whitespace-nowrap col-sticky-verification">Xác thực</th>
                 <th class="px-3 py-4 whitespace-nowrap col-sticky-package">Gói tin</th>
                 <th class="px-3 py-4 whitespace-nowrap col-sticky-status">Trạng thái</th>
                 <th class="pl-3 pr-5 py-4 w-12 text-center col-sticky-actions"></th>
@@ -278,10 +277,10 @@
             </thead>
             <tbody>
               <tr v-if="listingsLoading">
-                <td class="px-3 py-6 text-center text-slate-400" colspan="13">Đang tải dữ liệu...</td>
+                <td class="px-3 py-6 text-center text-slate-400" colspan="12">Đang tải dữ liệu...</td>
               </tr>
               <tr v-else-if="myListings.length === 0">
-                <td class="px-3 py-6 text-center text-slate-400" colspan="13">Bạn chưa có tin đăng nào.</td>
+                <td class="px-3 py-6 text-center text-slate-400" colspan="12">Bạn chưa có tin đăng nào.</td>
               </tr>
               <tr v-for="item in myListings" :key="item.id" class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group" @click="openListingEdit(item)">
                 <td class="px-3 py-4 font-medium text-sky-600 group-hover:underline whitespace-nowrap col-sticky-id">{{ item.id }}</td>
@@ -300,11 +299,6 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
                     <span class="font-medium text-sm">{{ item.views ?? 0 }}</span>
                   </div>
-                </td>
-                <td class="px-3 py-4 whitespace-nowrap col-sticky-verification">
-                  <span :class="['rounded-full px-2 py-1 text-xs font-semibold', verificationBadgeClass(item.verificationStatus)]">
-                    {{ verificationStatusLabel(item.verificationStatus) }}
-                  </span>
                 </td>
                 <td class="px-3 py-4 whitespace-nowrap col-sticky-package">
                   <span :class="['rounded-full px-2 py-1 text-xs font-semibold', packageBadgeClass(item.package)]">
