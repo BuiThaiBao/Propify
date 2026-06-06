@@ -1,0 +1,17 @@
+[     229ms] [WARNING] [Vue Router warn]: No match found for location with path "/news" @ http://127.0.0.1:4173/@vite/client:509
+[     230ms] [WARNING] [Vue Router warn]: No match found for location with path "/contact" @ http://127.0.0.1:4173/@vite/client:509
+[     235ms] [WARNING] [Vue Router warn]: The `next()` callback in navigation guards is deprecated. Return the value instead of calling `next(value)`. @ http://127.0.0.1:4173/@vite/client:509
+[     239ms] [WARNING] [Vue Router warn]: No match found for location with path "/news" @ http://127.0.0.1:4173/@vite/client:509
+[     240ms] [WARNING] [Vue Router warn]: No match found for location with path "/contact" @ http://127.0.0.1:4173/@vite/client:509
+[     251ms] [WARNING] [Vue Router warn]: No match found for location with path "/listings" @ http://127.0.0.1:4173/@vite/client:509
+[     251ms] [WARNING] [Vue Router warn]: No match found for location with path "/listings" @ http://127.0.0.1:4173/@vite/client:509
+[     252ms] [WARNING] [Vue Router warn]: No match found for location with path "/listings" @ http://127.0.0.1:4173/@vite/client:509
+[     252ms] [WARNING] [Vue Router warn]: No match found for location with path "/listings" @ http://127.0.0.1:4173/@vite/client:509
+[    4929ms] [ERROR] Access to XMLHttpRequest at 'http://localhost:8000/api/v1/listings?demand_type=SALE&per_page=6' from origin 'http://127.0.0.1:4173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:4173/:0
+[    4930ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8000/api/v1/listings?demand_type=SALE&per_page=6:0
+[    8936ms] [ERROR] Access to XMLHttpRequest at 'http://localhost:8000/api/v1/listings?demand_type=RENT&per_page=6' from origin 'http://127.0.0.1:4173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:4173/:0
+[    8937ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8000/api/v1/listings?demand_type=RENT&per_page=6:0
+[   12391ms] [ERROR] Access to XMLHttpRequest at 'http://localhost:8000/api/v1/listings?demand_type=SALE&per_page=6' from origin 'http://127.0.0.1:4173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:4173/:0
+[   12392ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8000/api/v1/listings?demand_type=SALE&per_page=6:0
+[   15551ms] [ERROR] Access to XMLHttpRequest at 'http://localhost:8000/api/v1/listings?demand_type=RENT&per_page=6' from origin 'http://127.0.0.1:4173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:4173/:0
+[   15551ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8000/api/v1/listings?demand_type=RENT&per_page=6:0

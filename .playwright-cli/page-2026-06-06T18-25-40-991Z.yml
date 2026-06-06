@@ -1,0 +1,126 @@
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - link "Propify" [ref=e5] [cursor=pointer]:
+        - /url: /
+        - img [ref=e6]
+        - generic [ref=e10]: Propify
+      - generic [ref=e11]:
+        - link "Trang chủ" [ref=e12] [cursor=pointer]:
+          - /url: /
+        - link "Mua bán" [ref=e13] [cursor=pointer]:
+          - /url: /sales
+        - link "Cho thuê" [ref=e14] [cursor=pointer]:
+          - /url: /rent
+        - link "Bảng giá" [ref=e15] [cursor=pointer]:
+          - /url: /pricing
+        - link "Tin tức" [ref=e16] [cursor=pointer]:
+          - /url: /news
+        - link "Liên hệ" [ref=e17] [cursor=pointer]:
+          - /url: /contact
+      - generic [ref=e18]:
+        - button "Đăng nhập" [ref=e19] [cursor=pointer]
+        - button "Đăng tin" [ref=e20] [cursor=pointer]
+  - generic [ref=e21]:
+    - generic [ref=e22]:
+      - img "Modern property" [ref=e24]
+      - generic [ref=e27]:
+        - paragraph [ref=e28]: Nền tảng cho thuê bất động sản hàng đầu
+        - heading "Tìm ngôi nhà mơ ước của bạn" [level=1] [ref=e29]:
+          - text: Tìm ngôi nhà
+          - text: mơ ước của bạn
+        - paragraph [ref=e30]: Khám phá hàng ngàn tin đăng cho thuê được xác thực. Từ căn hộ cao cấp đến nhà phố yên tĩnh.
+        - generic [ref=e31]:
+          - button "Mua bán" [ref=e32] [cursor=pointer]
+          - button "Cho thuê" [ref=e33] [cursor=pointer]
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - img [ref=e37]
+            - textbox "Nhập địa điểm, quận, đường..." [ref=e40]
+          - button "Tìm kiếm" [ref=e42] [cursor=pointer]:
+            - img [ref=e43]
+            - text: Tìm kiếm
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - paragraph [ref=e48]: 12,847
+            - paragraph [ref=e49]: Tin đăng
+          - generic [ref=e50]:
+            - paragraph [ref=e51]: 3,291
+            - paragraph [ref=e52]: Chủ nhà
+          - generic [ref=e53]:
+            - paragraph [ref=e54]: 98.5%
+            - paragraph [ref=e55]: Hài lòng
+    - generic [ref=e56]:
+      - generic [ref=e57]:
+        - paragraph [ref=e58]: Mua bán
+        - generic [ref=e59]:
+          - heading "Tin mua bán bất động sản" [level=2] [ref=e60]
+          - link "Xem tất cả" [ref=e61] [cursor=pointer]:
+            - /url: /sales
+            - text: Xem tất cả
+            - img [ref=e62]
+      - generic [ref=e66]:
+        - paragraph [ref=e67]: Cho thuê
+        - generic [ref=e68]:
+          - heading "Tin cho thuê bất động sản" [level=2] [ref=e69]
+          - link "Xem tất cả" [ref=e70] [cursor=pointer]:
+            - /url: /rent
+            - text: Xem tất cả
+            - img [ref=e71]
+      - generic [ref=e75]:
+        - heading "Tin đăng yêu thích" [level=2] [ref=e77]:
+          - img [ref=e78]
+          - text: Tin đăng yêu thích
+        - generic [ref=e80]: Bạn chưa lưu tin yêu thích nào.
+    - main
+    - contentinfo [ref=e81]:
+      - generic [ref=e82]:
+        - generic [ref=e83]:
+          - generic [ref=e84]:
+            - generic [ref=e85]:
+              - img [ref=e86]
+              - generic [ref=e90]: Propify
+            - paragraph [ref=e91]: Nền tảng cho thuê bất động sản uy tín hàng đầu Việt Nam. Kết nối chủ nhà và khách thuê một cách nhanh chóng.
+          - generic [ref=e92]:
+            - heading "Khám phá" [level=4] [ref=e93]
+            - list [ref=e94]:
+              - listitem [ref=e95]:
+                - link "Căn hộ" [ref=e96] [cursor=pointer]:
+                  - /url: /listings
+              - listitem [ref=e97]:
+                - link "Nhà phố" [ref=e98] [cursor=pointer]:
+                  - /url: /listings
+              - listitem [ref=e99]:
+                - link "Biệt thự" [ref=e100] [cursor=pointer]:
+                  - /url: /listings
+              - listitem [ref=e101]:
+                - link "Phòng trọ" [ref=e102] [cursor=pointer]:
+                  - /url: /listings
+          - generic [ref=e103]:
+            - heading "Hỗ trợ" [level=4] [ref=e104]
+            - list [ref=e105]:
+              - listitem [ref=e106]:
+                - link "Hướng dẫn sử dụng" [ref=e107] [cursor=pointer]:
+                  - /url: /
+              - listitem [ref=e108]:
+                - link "Chính sách bảo mật" [ref=e109] [cursor=pointer]:
+                  - /url: /
+              - listitem [ref=e110]:
+                - link "Điều khoản dịch vụ" [ref=e111] [cursor=pointer]:
+                  - /url: /
+              - listitem [ref=e112]:
+                - link "FAQ" [ref=e113] [cursor=pointer]:
+                  - /url: /
+          - generic [ref=e114]:
+            - heading "Liên hệ" [level=4] [ref=e115]
+            - list [ref=e116]:
+              - listitem [ref=e117]:
+                - generic [ref=e118]: 📧
+                - text: contact@renthouse.vn
+              - listitem [ref=e119]:
+                - generic [ref=e120]: 📞
+                - text: 0901 234 567
+              - listitem [ref=e121]:
+                - generic [ref=e122]: 📍
+                - text: 123 Nguyễn Huệ, Q.1, TP. HCM
+        - generic [ref=e123]: © 2026 Propify. Tất cả quyền được bảo lưu.

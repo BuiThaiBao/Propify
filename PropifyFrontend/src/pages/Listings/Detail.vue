@@ -1,5 +1,11 @@
 <template>
-  <main :class="(previewMode || isEmbedded) ? 'min-h-0 bg-[#f6f9fc] pb-6 pt-0' : 'min-h-screen bg-[#f6f9fc] pb-14 pt-24'">
+  <main
+    :class="
+      previewMode || isEmbedded
+        ? 'min-h-0 bg-[#f6f9fc] pb-6 pt-0'
+        : 'min-h-screen bg-[#f6f9fc] pb-14 pt-24'
+    "
+  >
     <div class="toast-stack">
       <div
         v-for="toast in toasts"
@@ -11,25 +17,59 @@
     </div>
 
     <div v-if="loading" class="flex min-h-[50vh] items-center justify-center">
-      <div class="h-10 w-10 animate-spin rounded-full border-4 border-sky-500 border-t-transparent"></div>
+      <div
+        class="h-10 w-10 animate-spin rounded-full border-4 border-sky-500 border-t-transparent"
+      ></div>
     </div>
 
-    <div v-else-if="error" class="mx-auto mt-10 max-w-[1120px] px-4 text-center text-red-500">
+    <div
+      v-else-if="error"
+      class="mx-auto mt-10 max-w-[1120px] px-4 text-center text-red-500"
+    >
       <p class="text-xl font-bold">{{ error }}</p>
-      <button class="mt-4 rounded-lg bg-sky-500 px-6 py-2 text-white" @click="router.push('/')">Về trang chủ</button>
+      <button
+        class="mt-4 rounded-lg bg-sky-500 px-6 py-2 text-white"
+        @click="router.push('/')"
+      >
+        Về trang chủ
+      </button>
     </div>
 
-    <div v-else-if="listing" :class="previewMode ? 'mx-auto w-full max-w-[1280px] px-0' : 'mx-auto w-full max-w-[1280px] px-4 lg:px-8'">
+    <div
+      v-else-if="listing"
+      :class="
+        previewMode
+          ? 'mx-auto w-full max-w-[1280px] px-0'
+          : 'mx-auto w-full max-w-[1280px] px-4 lg:px-8'
+      "
+    >
       <div class="mb-5 flex items-start justify-between gap-4">
         <div class="min-w-0">
           <Breadcrumb v-if="!isEmbedded" :crumbs="detailCrumbs" />
-          <h1 class="mt-3 text-[24px] font-extrabold leading-tight text-slate-900">{{ listing.title }}</h1>
+          <h1
+            class="mt-3 text-[24px] font-extrabold leading-tight text-slate-900"
+          >
+            {{ listing.title }}
+          </h1>
           <p class="mt-1 flex items-center gap-2 text-xs text-slate-500">
             <span class="inline-flex items-center gap-1.5">
-              <img :src="calendarIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
-              Ngày đăng: {{ formatDate(listing.published_at || listing.submitted_at || listing.created_at) }}
+              <img
+                :src="calendarIcon"
+                class="h-3.5 w-3.5 object-contain opacity-70"
+                alt=""
+              />
+              Ngày đăng:
+              {{
+                formatDate(
+                  listing.published_at ||
+                    listing.submitted_at ||
+                    listing.created_at,
+                )
+              }}
             </span>
-            <span v-if="listing.views != null">• {{ listing.views }} lượt xem</span>
+            <span v-if="listing.views != null"
+              >• {{ listing.views }} lượt xem</span
+            >
           </p>
         </div>
         <div class="hidden shrink-0 items-center gap-2 sm:flex">
@@ -39,7 +79,10 @@
             aria-label="Yêu thích"
             @click="toggleFavorite(listing)"
           >
-            <Heart class="h-4 w-4" :fill="isFavorite(listing) ? 'currentColor' : 'none'" />
+            <Heart
+              class="h-4 w-4"
+              :fill="isFavorite(listing) ? 'currentColor' : 'none'"
+            />
           </button>
           <button class="detail-icon-button" aria-label="Chia sẻ">
             <img :src="shareIcon" class="h-4 w-4" alt="" />
@@ -47,10 +90,14 @@
         </div>
       </div>
 
-      <div class="detail-main-grid grid items-start gap-6 lg:grid-cols-[minmax(0,820px)_360px] xl:grid-cols-[minmax(0,860px)_370px]">
+      <div
+        class="detail-main-grid grid items-start gap-6 lg:grid-cols-[minmax(0,820px)_360px] xl:grid-cols-[minmax(0,860px)_370px]"
+      >
         <div class="min-w-0">
-
-          <section v-if="displayImages.length" class="detail-card !p-0 border-slate-200/60 overflow-hidden mb-3">
+          <section
+            v-if="displayImages.length"
+            class="detail-card !p-0 border-slate-200/60 overflow-hidden mb-3"
+          >
             <div class="relative overflow-hidden bg-slate-200">
               <img
                 v-if="activeImage"
@@ -60,16 +107,35 @@
                 @click="openImageLightbox(activeImageIndex)"
               />
               <div class="absolute left-3 top-3 flex gap-2">
-                <span v-if="isListingVerified" class="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white">Đã xác thực</span>
-                <span class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
+                <span
+                  v-if="isListingVerified"
+                  class="rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-white"
+                  >Đã xác thực</span
+                >
+                <span
+                  class="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700"
+                  >{{ propertyTypeLabel(listing.property?.type) }}</span
+                >
               </div>
-              <button v-if="displayImages.length > 1" class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur hover:bg-black/45" aria-label="Ảnh trước" @click.stop="prevImage">
+              <button
+                v-if="displayImages.length > 1"
+                class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur hover:bg-black/45"
+                aria-label="Ảnh trước"
+                @click.stop="prevImage"
+              >
                 <ChevronLeft class="h-5 w-5" />
               </button>
-              <button v-if="displayImages.length > 1" class="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur hover:bg-black/45" aria-label="Ảnh sau" @click.stop="nextImage">
+              <button
+                v-if="displayImages.length > 1"
+                class="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur hover:bg-black/45"
+                aria-label="Ảnh sau"
+                @click.stop="nextImage"
+              >
                 <ChevronRight class="h-5 w-5" />
               </button>
-              <div class="absolute bottom-3 left-3 rounded-full bg-slate-900/70 px-3 py-1 text-xs font-semibold text-white">
+              <div
+                class="absolute bottom-3 left-3 rounded-full bg-slate-900/70 px-3 py-1 text-xs font-semibold text-white"
+              >
                 Hình ảnh {{ activeImageIndex + 1 }}/{{ displayImages.length }}
               </div>
             </div>
@@ -78,7 +144,11 @@
                 v-for="(img, idx) in displayImages"
                 :key="idx"
                 class="h-[54px] w-[70px] shrink-0 overflow-hidden rounded-lg border bg-white transition"
-                :class="activeImageIndex === idx ? 'border-sky-500 ring-2 ring-sky-100' : 'border-slate-200 opacity-80 hover:opacity-100'"
+                :class="
+                  activeImageIndex === idx
+                    ? 'border-sky-500 ring-2 ring-sky-100'
+                    : 'border-slate-200 opacity-80 hover:opacity-100'
+                "
                 @click="activeImageIndex = idx"
               >
                 <img :src="img.url" class="h-full w-full object-cover" alt="" />
@@ -102,69 +172,142 @@
               <button
                 type="button"
                 class="detail-toggle-button"
-                :aria-label="descriptionExpanded ? 'Thu gọn mô tả' : 'Xem thêm mô tả'"
+                :aria-label="
+                  descriptionExpanded ? 'Thu gọn mô tả' : 'Xem thêm mô tả'
+                "
                 @click="descriptionExpanded = !descriptionExpanded"
               >
-                <span>{{ descriptionExpanded ? 'Thu gọn' : 'Xem thêm' }}</span>
+                <span>{{ descriptionExpanded ? "Thu gọn" : "Xem thêm" }}</span>
               </button>
             </div>
           </section>
 
           <!-- Contact & Price details immediately after description when embedded from map -->
-          <section v-if="isEmbedded" class="mt-[18px] rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+          <section
+            v-if="isEmbedded"
+            class="mt-[18px] rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]"
+          >
             <div class="border-b border-slate-100 pb-4">
               <h2 class="text-[26px] font-extrabold text-sky-500">
-                {{ listing.property?.is_negotiable ? 'Giá thương lượng' : formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT' && !listing.property?.is_negotiable" class="text-sm font-medium text-slate-500">/tháng</span>
+                {{
+                  listing.property?.is_negotiable
+                    ? "Giá thương lượng"
+                    : formatPrice(listing.property?.price)
+                }}<span
+                  v-if="
+                    listing.demand_type === 'RENT' &&
+                    !listing.property?.is_negotiable
+                  "
+                  class="text-sm font-medium text-slate-500"
+                  >/tháng</span
+                >
               </h2>
-              <div class="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+              <div
+                class="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500"
+              >
                 <span class="flex items-center gap-1.5">
-                  <img :src="bedIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                  <img
+                    :src="bedIcon"
+                    class="h-3.5 w-3.5 object-contain opacity-70"
+                    alt=""
+                  />
                   {{ listing.property?.bedrooms || 0 }} PN
                 </span>
                 <span class="flex items-center gap-1.5">
-                  <img :src="bathIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                  <img
+                    :src="bathIcon"
+                    class="h-3.5 w-3.5 object-contain opacity-70"
+                    alt=""
+                  />
                   {{ listing.property?.bathrooms || 0 }} WC
                 </span>
                 <span class="flex items-center gap-1.5">
-                  <img :src="areaIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                  <img
+                    :src="areaIcon"
+                    class="h-3.5 w-3.5 object-contain opacity-70"
+                    alt=""
+                  />
                   {{ listing.property?.area || 0 }} m²
                 </span>
               </div>
             </div>
 
             <div class="py-4 text-xs">
-              <p class="mb-3 font-semibold text-slate-800">Thông tin của bất động sản</p>
+              <p class="mb-3 font-semibold text-slate-800">
+                Thông tin của bất động sản
+              </p>
               <div class="space-y-3">
                 <div class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
                   <span class="whitespace-nowrap text-slate-400">Loại BĐS</span>
-                  <span class="truncate text-right text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
+                  <span class="truncate text-right text-slate-700">{{
+                    propertyTypeLabel(listing.property?.type)
+                  }}</span>
                 </div>
                 <div class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
                   <span class="whitespace-nowrap text-slate-400">Địa chỉ</span>
-                  <span class="truncate text-right text-sky-500">{{ fullAddress }}</span>
+                  <span class="truncate text-right text-sky-500">{{
+                    fullAddress
+                  }}</span>
                 </div>
               </div>
             </div>
 
-            <div class="mb-4 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
-              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 font-bold text-white">
-                {{ (listing.owner?.full_name || listing.property?.contact_name || 'U').charAt(0).toUpperCase() }}
+            <div
+              class="mb-4 flex items-center gap-3 rounded-xl bg-slate-50 p-3"
+            >
+              <div
+                class="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 font-bold text-white"
+              >
+                {{
+                  (
+                    listing.owner?.full_name ||
+                    listing.property?.contact_name ||
+                    "U"
+                  )
+                    .charAt(0)
+                    .toUpperCase()
+                }}
               </div>
               <div class="min-w-0">
-                <p class="truncate text-sm font-semibold text-slate-800">{{ listing.property?.contact_name || listing.owner?.full_name }}</p>
-                <p class="text-xs text-slate-500">{{ listing.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới' }}</p>
+                <p class="truncate text-sm font-semibold text-slate-800">
+                  {{
+                    listing.property?.contact_name || listing.owner?.full_name
+                  }}
+                </p>
+                <p class="text-xs text-slate-500">
+                  {{
+                    listing.property?.poster_type === "OWNER"
+                      ? "Chủ nhà"
+                      : "Môi giới"
+                  }}
+                </p>
               </div>
-              <button class="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-sky-100" aria-label="Nhắn tin chủ nhà">
+              <button
+                class="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-sky-100"
+                aria-label="Nhắn tin chủ nhà"
+              >
                 <img :src="chatIcon" class="h-4 w-4" alt="" />
               </button>
             </div>
 
             <div class="space-y-2">
-              <a v-if="contactPhone" :href="`tel:${contactPhone}`" class="flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600">
-                <img :src="callIcon" class="detail-action-icon mr-2 h-3.5 w-3.5" alt="" />
+              <a
+                v-if="contactPhone"
+                :href="`tel:${contactPhone}`"
+                class="flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600"
+              >
+                <img
+                  :src="callIcon"
+                  class="detail-action-icon mr-2 h-3.5 w-3.5"
+                  alt=""
+                />
                 Liên hệ chủ nhà
               </a>
-              <button v-if="!previewMode" class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600" @click="openAppointmentBooking">
+              <button
+                v-if="!previewMode"
+                class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600"
+                @click="openAppointmentBooking"
+              >
                 <img :src="calendarIcon" class="mr-2 h-3.5 w-3.5" alt="" />
                 Đặt lịch xem nhà
               </button>
@@ -177,7 +320,11 @@
               Thông tin chi tiết
             </h2>
             <div class="space-y-0">
-              <div v-for="row in detailRowPairs" :key="row.map((item) => item.label).join('-')" class="grid gap-x-10 sm:grid-cols-2">
+              <div
+                v-for="row in detailRowPairs"
+                :key="row.map((item) => item.label).join('-')"
+                class="grid gap-x-10 sm:grid-cols-2"
+              >
                 <div
                   v-for="item in row"
                   :key="item.label || 'empty-detail-cell'"
@@ -185,11 +332,20 @@
                   :class="item.empty && 'hidden sm:block'"
                 >
                   <template v-if="!item.empty">
-                  <span class="flex min-w-0 items-center gap-2 text-slate-500">
-                    <img :src="item.icon" class="h-4 w-4 shrink-0 object-contain opacity-75" alt="" />
-                    <span class="leading-5">{{ item.label }}</span>
-                  </span>
-                  <span class="text-right font-medium leading-5 text-slate-800">{{ item.value }}</span>
+                    <span
+                      class="flex min-w-0 items-center gap-2 text-slate-500"
+                    >
+                      <img
+                        :src="item.icon"
+                        class="h-4 w-4 shrink-0 object-contain opacity-75"
+                        alt=""
+                      />
+                      <span class="leading-5">{{ item.label }}</span>
+                    </span>
+                    <span
+                      class="text-right font-medium leading-5 text-slate-800"
+                      >{{ item.value }}</span
+                    >
                   </template>
                 </div>
               </div>
@@ -207,7 +363,11 @@
                 :key="amenity"
                 class="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-500"
               >
-                <img :src="amenityCheckIcon" class="h-3.5 w-3.5 object-contain" alt="" />
+                <img
+                  :src="amenityCheckIcon"
+                  class="h-3.5 w-3.5 object-contain"
+                  alt=""
+                />
                 {{ amenity }}
               </span>
             </div>
@@ -218,43 +378,99 @@
               <img :src="mapSectionIcon" class="detail-title-icon" alt="" />
               Vị trí bản đồ
             </h2>
-            <p v-if="fullAddress" class="mb-3 flex items-center gap-1.5 text-xs text-slate-500">
+            <p
+              v-if="fullAddress"
+              class="mb-3 flex items-center gap-1.5 text-xs text-slate-500"
+            >
               <img :src="pointIcon" class="h-3.5 w-3.5 object-contain" alt="" />
               {{ fullAddress }}
             </p>
-            <div class="relative h-[360px] w-full overflow-hidden rounded-xl bg-slate-100">
-              <button v-if="hasLatLng" type="button" class="absolute left-3 top-3 z-10 rounded-lg border border-white/70 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm" @click.stop="toggleMapMode">
-                {{ mapMode === 'satellite' ? 'Bản đồ' : 'Vệ tinh' }}
+            <div
+              class="relative h-[360px] w-full overflow-hidden rounded-xl bg-slate-100"
+            >
+              <button
+                v-if="hasLatLng"
+                type="button"
+                class="absolute left-3 top-3 z-10 rounded-lg border border-white/70 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm"
+                @click.stop="toggleMapMode"
+              >
+                {{ mapMode === "satellite" ? "Bản đồ" : "Vệ tinh" }}
               </button>
-              <button v-if="hasLatLng" type="button" class="absolute left-3 top-[52px] z-10 rounded-lg border border-white/70 px-3 py-2 text-xs font-semibold shadow-sm" :class="isMap3dEnabled ? 'bg-sky-500/95 text-white' : 'bg-white/95 text-slate-700'" @click.stop="toggleMap3d">
-                {{ isMap3dEnabled ? '2D' : '3D' }}
+              <button
+                v-if="hasLatLng"
+                type="button"
+                class="absolute left-3 top-[52px] z-10 rounded-lg border border-white/70 px-3 py-2 text-xs font-semibold shadow-sm"
+                :class="
+                  isMap3dEnabled
+                    ? 'bg-sky-500/95 text-white'
+                    : 'bg-white/95 text-slate-700'
+                "
+                @click.stop="toggleMap3d"
+              >
+                {{ isMap3dEnabled ? "2D" : "3D" }}
               </button>
-              <button v-if="hasLatLng" type="button" class="absolute right-3 bottom-3 z-10 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white/95 px-3 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-white transition" @click.stop="openMapModal">
-                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+              <button
+                v-if="hasLatLng"
+                type="button"
+                class="absolute right-3 bottom-3 z-10 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white/95 px-3 py-2 text-xs font-bold text-slate-700 shadow-sm hover:bg-white transition"
+                @click.stop="openMapModal"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-3.5 h-3.5 text-slate-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"
+                  />
                 </svg>
                 Phóng to
               </button>
-              
+
               <!-- Chú giải bản đồ (Legend overlay) -->
-              <div v-if="hasLatLng" class="absolute right-3 top-[120px] z-10 bg-white/95 backdrop-blur-sm border border-slate-200/60 rounded-xl p-3 shadow-md text-[10px] font-bold text-slate-600 flex flex-col gap-2 pointer-events-none select-none max-w-[145px]">
-                <div class="font-bold border-b border-slate-100 pb-1 text-slate-800 text-[11px] mb-0.5">Chú giải bản đồ</div>
+              <div
+                v-if="hasLatLng"
+                class="absolute right-3 top-[120px] z-10 bg-white/95 backdrop-blur-sm border border-slate-200/60 rounded-xl p-3 shadow-md text-[10px] font-bold text-slate-600 flex flex-col gap-2 pointer-events-none select-none max-w-[145px]"
+              >
+                <div
+                  class="font-bold border-b border-slate-100 pb-1 text-slate-800 text-[11px] mb-0.5"
+                >
+                  Chú giải bản đồ
+                </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full border border-white bg-[#2563eb] shrink-0"></span>
+                  <span
+                    class="w-2.5 h-2.5 rounded-full border border-white bg-[#2563eb] shrink-0"
+                  ></span>
                   <span>Trường học</span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full border border-white bg-[#ef6f6c] shrink-0"></span>
+                  <span
+                    class="w-2.5 h-2.5 rounded-full border border-white bg-[#ef6f6c] shrink-0"
+                  ></span>
                   <span>Bệnh viện, y tế</span>
                 </div>
                 <div class="flex items-center gap-2">
-                  <span class="w-2.5 h-2.5 rounded-full border border-white bg-[#f59e0b] shrink-0"></span>
+                  <span
+                    class="w-2.5 h-2.5 rounded-full border border-white bg-[#f59e0b] shrink-0"
+                  ></span>
                   <span>Cửa hàng, siêu thị</span>
                 </div>
               </div>
 
-              <div v-show="hasLatLng" ref="mapElement" class="h-full w-full"></div>
-              <div v-if="!hasLatLng" class="flex h-full w-full flex-col items-center justify-center text-sm text-slate-400">
+              <div
+                v-show="hasLatLng"
+                ref="mapElement"
+                class="h-full w-full"
+              ></div>
+              <div
+                v-if="!hasLatLng"
+                class="flex h-full w-full flex-col items-center justify-center text-sm text-slate-400"
+              >
                 <div class="mb-2 text-4xl">⌖</div>
                 Bản đồ sẽ hiển thị tại đây
               </div>
@@ -268,85 +484,191 @@
             </h2>
             <form @submit.prevent="openReportModal">
               <div class="grid gap-3 sm:grid-cols-2">
-                <label v-for="option in reportOptions" :key="option.value" class="flex items-center gap-2 text-xs text-slate-500">
-                  <input v-model="selectedReportReasons" type="checkbox" name="listing-report" :value="option.value" class="h-3.5 w-3.5 rounded border-slate-300 accent-sky-500" />
+                <label
+                  v-for="option in reportOptions"
+                  :key="option.value"
+                  class="flex items-center gap-2 text-xs text-slate-500"
+                >
+                  <input
+                    v-model="selectedReportReasons"
+                    type="checkbox"
+                    name="listing-report"
+                    :value="option.value"
+                    class="h-3.5 w-3.5 rounded border-slate-300 accent-sky-500"
+                  />
                   <span>{{ option.label }}</span>
                 </label>
               </div>
               <button
                 type="submit"
                 class="mt-4 rounded-lg border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-                :disabled="reportSubmitting || selectedReportReasons.length === 0"
+                :disabled="
+                  reportSubmitting || selectedReportReasons.length === 0
+                "
               >
-                {{ reportSubmitting ? 'Đang gửi...' : 'Gửi phản ánh' }}
+                {{ reportSubmitting ? "Đang gửi..." : "Gửi phản ánh" }}
               </button>
             </form>
           </section>
         </div>
 
         <aside class="space-y-5 lg:sticky lg:top-24">
-          <section v-if="!isEmbedded" class="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]">
+          <section
+            v-if="!isEmbedded"
+            class="rounded-[14px] border border-slate-200 bg-white p-5 shadow-[0_10px_28px_rgba(15,23,42,0.04)]"
+          >
             <div class="border-b border-slate-100 pb-4">
               <h2 class="text-[26px] font-extrabold text-sky-500">
-                {{ listing.property?.is_negotiable ? 'Giá thương lượng' : formatPrice(listing.property?.price) }}<span v-if="listing.demand_type === 'RENT' && !listing.property?.is_negotiable" class="text-sm font-medium text-slate-500">/tháng</span>
+                {{
+                  listing.property?.is_negotiable
+                    ? "Giá thương lượng"
+                    : formatPrice(listing.property?.price)
+                }}<span
+                  v-if="
+                    listing.demand_type === 'RENT' &&
+                    !listing.property?.is_negotiable
+                  "
+                  class="text-sm font-medium text-slate-500"
+                  >/tháng</span
+                >
               </h2>
-              <div v-if="summaryStats.length" class="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                <span v-if="hasPositiveValue(listing.property?.bedrooms)" class="flex items-center gap-1.5">
-                  <img :src="bedIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+              <div
+                v-if="summaryStats.length"
+                class="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-slate-500"
+              >
+                <span
+                  v-if="hasPositiveValue(listing.property?.bedrooms)"
+                  class="flex items-center gap-1.5"
+                >
+                  <img
+                    :src="bedIcon"
+                    class="h-3.5 w-3.5 object-contain opacity-70"
+                    alt=""
+                  />
                   {{ listing.property.bedrooms }} PN
                 </span>
-                <span v-if="hasPositiveValue(listing.property?.bathrooms)" class="flex items-center gap-1.5">
-                  <img :src="bathIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                <span
+                  v-if="hasPositiveValue(listing.property?.bathrooms)"
+                  class="flex items-center gap-1.5"
+                >
+                  <img
+                    :src="bathIcon"
+                    class="h-3.5 w-3.5 object-contain opacity-70"
+                    alt=""
+                  />
                   {{ listing.property.bathrooms }} WC
                 </span>
-                <span v-if="hasPositiveValue(listing.property?.area)" class="flex items-center gap-1.5">
-                  <img :src="areaIcon" class="h-3.5 w-3.5 object-contain opacity-70" alt="" />
+                <span
+                  v-if="hasPositiveValue(listing.property?.area)"
+                  class="flex items-center gap-1.5"
+                >
+                  <img
+                    :src="areaIcon"
+                    class="h-3.5 w-3.5 object-contain opacity-70"
+                    alt=""
+                  />
                   {{ listing.property.area }} m²
                 </span>
               </div>
             </div>
 
             <div class="py-4 text-xs">
-              <p class="mb-3 font-semibold text-slate-800">Thông tin của bất động sản</p>
+              <p class="mb-3 font-semibold text-slate-800">
+                Thông tin của bất động sản
+              </p>
               <div class="space-y-3">
-                <div v-if="listing.property?.type" class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
+                <div
+                  v-if="listing.property?.type"
+                  class="grid grid-cols-[86px_minmax(0,1fr)] gap-3"
+                >
                   <span class="whitespace-nowrap text-slate-400">Loại BĐS</span>
-                  <span class="truncate text-right text-slate-700">{{ propertyTypeLabel(listing.property?.type) }}</span>
+                  <span class="truncate text-right text-slate-700">{{
+                    propertyTypeLabel(listing.property?.type)
+                  }}</span>
                 </div>
-                <div v-if="fullAddress" class="grid grid-cols-[86px_minmax(0,1fr)] gap-3">
+                <div
+                  v-if="fullAddress"
+                  class="grid grid-cols-[86px_minmax(0,1fr)] gap-3"
+                >
                   <span class="whitespace-nowrap text-slate-400">Địa chỉ</span>
-                  <span class="truncate text-right text-sky-500" :title="fullAddress">{{ fullAddress }}</span>
+                  <span
+                    class="truncate text-right text-sky-500"
+                    :title="fullAddress"
+                    >{{ fullAddress }}</span
+                  >
                 </div>
               </div>
             </div>
 
-            <div class="mb-4 flex items-center gap-3 rounded-xl bg-slate-50 p-3">
-              <div class="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 font-bold text-white">
-                {{ (listing.owner?.full_name || listing.property?.contact_name || 'U').charAt(0).toUpperCase() }}
+            <div
+              class="mb-4 flex items-center gap-3 rounded-xl bg-slate-50 p-3"
+            >
+              <div
+                class="flex h-10 w-10 items-center justify-center rounded-full bg-sky-500 font-bold text-white"
+              >
+                {{
+                  (
+                    listing.owner?.full_name ||
+                    listing.property?.contact_name ||
+                    "U"
+                  )
+                    .charAt(0)
+                    .toUpperCase()
+                }}
               </div>
               <div class="min-w-0">
-                <p class="truncate text-sm font-semibold text-slate-800">{{ listing.property?.contact_name || listing.owner?.full_name }}</p>
-                <p class="text-xs text-slate-500">{{ listing.property?.poster_type === 'OWNER' ? 'Chủ nhà' : 'Môi giới' }}</p>
+                <p class="truncate text-sm font-semibold text-slate-800">
+                  {{
+                    listing.property?.contact_name || listing.owner?.full_name
+                  }}
+                </p>
+                <p class="text-xs text-slate-500">
+                  {{
+                    listing.property?.poster_type === "OWNER"
+                      ? "Chủ nhà"
+                      : "Môi giới"
+                  }}
+                </p>
               </div>
-              <button class="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-sky-100" aria-label="Nhắn tin chủ nhà">
+              <button
+                class="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-sky-100"
+                aria-label="Nhắn tin chủ nhà"
+              >
                 <img :src="chatIcon" class="h-4 w-4" alt="" />
               </button>
             </div>
 
             <div class="space-y-2">
-              <a v-if="contactPhone" :href="`tel:${contactPhone}`" class="flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600">
-                <img :src="callIcon" class="detail-action-icon mr-2 h-3.5 w-3.5" alt="" />
+              <a
+                v-if="contactPhone"
+                :href="`tel:${contactPhone}`"
+                class="flex w-full items-center justify-center rounded-lg bg-sky-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-600"
+              >
+                <img
+                  :src="callIcon"
+                  class="detail-action-icon mr-2 h-3.5 w-3.5"
+                  alt=""
+                />
                 Liên hệ chủ nhà
               </a>
-              <button v-if="!previewMode" class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600" @click="openAppointmentBooking">
+              <button
+                v-if="!previewMode"
+                class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600"
+                @click="openAppointmentBooking"
+              >
                 <img :src="calendarIcon" class="mr-2 h-3.5 w-3.5" alt="" />
                 Đặt lịch xem nhà
               </button>
             </div>
           </section>
 
-          <section v-if="relatedListings.length" class="rounded-[14px] border border-slate-200 bg-white p-5">
-            <h2 class="mb-4 text-lg font-bold text-slate-800">Tin đăng liên quan</h2>
+          <section
+            v-if="relatedListings.length"
+            class="rounded-[14px] border border-slate-200 bg-white p-5"
+          >
+            <h2 class="mb-4 text-lg font-bold text-slate-800">
+              Tin đăng liên quan
+            </h2>
             <div class="space-y-4">
               <article
                 v-for="item in relatedListings"
@@ -354,12 +676,26 @@
                 class="group flex cursor-pointer gap-3 rounded-xl p-1.5 transition hover:bg-sky-50"
                 @click="clickRelatedListing(item)"
               >
-                <img v-if="item.image" :src="item.image" class="h-[86px] w-[116px] rounded-lg object-cover" alt="" />
-                <div v-else class="h-[86px] w-[116px] shrink-0 rounded-lg bg-slate-100"></div>
+                <img
+                  v-if="item.image"
+                  :src="item.image"
+                  class="h-[86px] w-[116px] rounded-lg object-cover"
+                  alt=""
+                />
+                <div
+                  v-else
+                  class="h-[86px] w-[116px] shrink-0 rounded-lg bg-slate-100"
+                ></div>
                 <div class="min-w-0 flex-1">
-                  <h3 class="line-clamp-2 text-sm font-bold text-slate-800 group-hover:text-sky-600">{{ item.title }}</h3>
+                  <h3
+                    class="line-clamp-2 text-sm font-bold text-slate-800 group-hover:text-sky-600"
+                  >
+                    {{ item.title }}
+                  </h3>
                   <p class="mt-1 text-xs text-slate-500">{{ item.address }}</p>
-                  <p class="mt-1 text-sm font-bold text-sky-500">{{ item.price }}</p>
+                  <p class="mt-1 text-sm font-bold text-sky-500">
+                    {{ item.price }}
+                  </p>
                 </div>
               </article>
             </div>
@@ -380,13 +716,19 @@
       v-if="showLoginPopup"
       @close="closeAuthPopup"
       @success="handleAuthSuccess"
-      @switchToRegister="showLoginPopup = false; showRegisterPopup = true"
+      @switchToRegister="
+        showLoginPopup = false;
+        showRegisterPopup = true;
+      "
     />
     <Register
       v-if="showRegisterPopup"
       @close="closeAuthPopup"
       @success="handleAuthSuccess"
-      @switchToLogin="showRegisterPopup = false; showLoginPopup = true"
+      @switchToLogin="
+        showRegisterPopup = false;
+        showLoginPopup = true;
+      "
     />
 
     <Teleport to="body">
@@ -398,12 +740,23 @@
         @click.self="closeReportModal"
       >
         <form class="report-modal" @submit.prevent="submitListingReport">
-          <img :src="reportInfoIcon" class="report-modal-icon" alt="" aria-hidden="true" />
+          <img
+            :src="reportInfoIcon"
+            class="report-modal-icon"
+            alt=""
+            aria-hidden="true"
+          />
           <h2 class="report-modal-title">Báo cáo tin đăng</h2>
-          <p class="report-modal-subtitle">Bạn có chắc chắn muốn báo cáo tin đăng?</p>
+          <p class="report-modal-subtitle">
+            Bạn có chắc chắn muốn báo cáo tin đăng?
+          </p>
 
           <div class="report-reason-box">
-            <div v-for="reason in selectedReportReasonLabels" :key="reason" class="report-reason-line">
+            <div
+              v-for="reason in selectedReportReasonLabels"
+              :key="reason"
+              class="report-reason-line"
+            >
               <img :src="reportWarningIcon" alt="" aria-hidden="true" />
               <span>{{ reason }}</span>
             </div>
@@ -420,7 +773,10 @@
 
           <div
             class="report-upload-box"
-            :class="{ 'report-upload-box-disabled': reportSubmitting || reportImages.length >= 5 }"
+            :class="{
+              'report-upload-box-disabled':
+                reportSubmitting || reportImages.length >= 5,
+            }"
             role="button"
             tabindex="0"
             @click="triggerReportImageInput"
@@ -437,22 +793,56 @@
               @change="handleReportImagesSelected"
             />
             <div v-if="reportImagePreviews.length" class="report-preview-list">
-              <figure v-for="(preview, index) in reportImagePreviews" :key="preview.url" class="report-preview-item">
+              <figure
+                v-for="(preview, index) in reportImagePreviews"
+                :key="preview.url"
+                class="report-preview-item"
+              >
                 <img :src="preview.url" alt="" />
-                <button type="button" :disabled="reportSubmitting" @click.stop="removeReportImage(index)">×</button>
+                <button
+                  type="button"
+                  :disabled="reportSubmitting"
+                  @click.stop="removeReportImage(index)"
+                >
+                  ×
+                </button>
               </figure>
             </div>
-            <img v-else :src="reportUploadIcon" class="report-upload-icon" alt="" aria-hidden="true" />
-            <button type="button" class="report-upload-button" :disabled="reportSubmitting || reportImages.length >= 5" @click.stop="triggerReportImageInput">
+            <img
+              v-else
+              :src="reportUploadIcon"
+              class="report-upload-icon"
+              alt=""
+              aria-hidden="true"
+            />
+            <button
+              type="button"
+              class="report-upload-button"
+              :disabled="reportSubmitting || reportImages.length >= 5"
+              @click.stop="triggerReportImageInput"
+            >
               Bấm để tải ảnh
             </button>
-            <p v-if="reportUploadError" class="report-upload-error">{{ reportUploadError }}</p>
+            <p v-if="reportUploadError" class="report-upload-error">
+              {{ reportUploadError }}
+            </p>
           </div>
 
           <div class="report-modal-actions">
-            <button type="button" class="report-back-button" :disabled="reportSubmitting" @click="closeReportModal">Quay lại</button>
-            <button type="submit" class="report-submit-button" :disabled="reportSubmitting">
-              {{ reportSubmitting ? 'Đang gửi...' : 'Gửi phản ánh' }}
+            <button
+              type="button"
+              class="report-back-button"
+              :disabled="reportSubmitting"
+              @click="closeReportModal"
+            >
+              Quay lại
+            </button>
+            <button
+              type="submit"
+              class="report-submit-button"
+              :disabled="reportSubmitting"
+            >
+              {{ reportSubmitting ? "Đang gửi..." : "Gửi phản ánh" }}
             </button>
           </div>
         </form>
@@ -467,7 +857,12 @@
         aria-modal="true"
         @click.self="closeImageLightbox"
       >
-        <button type="button" class="image-lightbox-close" aria-label="Đóng ảnh" @click="closeImageLightbox"></button>
+        <button
+          type="button"
+          class="image-lightbox-close"
+          aria-label="Đóng ảnh"
+          @click="closeImageLightbox"
+        ></button>
         <button
           v-if="displayImages.length > 1"
           type="button"
@@ -475,7 +870,12 @@
           aria-label="Ảnh trước"
           @click.stop="prevImage"
         ></button>
-        <img v-if="activeImage" :src="activeImage" class="image-lightbox-img" alt="Listing image zoomed" />
+        <img
+          v-if="activeImage"
+          :src="activeImage"
+          class="image-lightbox-img"
+          alt="Listing image zoomed"
+        />
         <button
           v-if="displayImages.length > 1"
           type="button"
@@ -498,11 +898,21 @@
         aria-modal="true"
         @click.self="closeMapModal"
       >
-        <div class="relative w-full h-full max-w-[1200px] max-h-[85vh] bg-white rounded-2xl overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
+        <div
+          class="relative w-full h-full max-w-[1200px] max-h-[85vh] bg-white rounded-2xl overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-200"
+        >
           <!-- Header of modal -->
-          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white">
-            <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-              <img :src="mapSectionIcon" class="h-4.5 w-4.5 object-contain" alt="" />
+          <div
+            class="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-white"
+          >
+            <h3
+              class="font-bold text-slate-800 text-sm flex items-center gap-2"
+            >
+              <img
+                :src="mapSectionIcon"
+                class="h-4.5 w-4.5 object-contain"
+                alt=""
+              />
               Bản đồ chi tiết bất động sản
             </h3>
             <button
@@ -516,26 +926,51 @@
           </div>
           <!-- Map container in modal -->
           <div class="relative flex-1 bg-slate-50">
-            <button type="button" class="absolute left-3 top-3 z-10 rounded-lg border border-white/70 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50" @click.stop="toggleModalMapMode">
-              {{ modalMapMode === 'satellite' ? 'Bản đồ' : 'Vệ tinh' }}
+            <button
+              type="button"
+              class="absolute left-3 top-3 z-10 rounded-lg border border-white/70 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+              @click.stop="toggleModalMapMode"
+            >
+              {{ modalMapMode === "satellite" ? "Bản đồ" : "Vệ tinh" }}
             </button>
-            <button type="button" class="absolute left-3 top-[52px] z-10 rounded-lg border border-white/70 px-3 py-2 text-xs font-semibold shadow-sm hover:bg-slate-50" :class="isModalMap3dEnabled ? 'bg-sky-500 text-white border-transparent' : 'bg-white/95 text-slate-700'" @click.stop="toggleModalMap3d">
-              {{ isModalMap3dEnabled ? '2D' : '3D' }}
+            <button
+              type="button"
+              class="absolute left-3 top-[52px] z-10 rounded-lg border border-white/70 px-3 py-2 text-xs font-semibold shadow-sm hover:bg-slate-50"
+              :class="
+                isModalMap3dEnabled
+                  ? 'bg-sky-500 text-white border-transparent'
+                  : 'bg-white/95 text-slate-700'
+              "
+              @click.stop="toggleModalMap3d"
+            >
+              {{ isModalMap3dEnabled ? "2D" : "3D" }}
             </button>
 
             <!-- Chú giải bản đồ modal (Legend overlay in modal) -->
-            <div class="absolute right-3 top-[120px] z-10 bg-white/95 backdrop-blur-sm border border-slate-200/60 rounded-xl p-3.5 shadow-md text-[11px] font-bold text-slate-600 flex flex-col gap-2 pointer-events-none select-none max-w-[170px]">
-              <div class="font-bold border-b border-slate-100 pb-1.5 text-slate-800 text-[12px] mb-0.5">Chú giải bản đồ</div>
+            <div
+              class="absolute right-3 top-[120px] z-10 bg-white/95 backdrop-blur-sm border border-slate-200/60 rounded-xl p-3.5 shadow-md text-[11px] font-bold text-slate-600 flex flex-col gap-2 pointer-events-none select-none max-w-[170px]"
+            >
+              <div
+                class="font-bold border-b border-slate-100 pb-1.5 text-slate-800 text-[12px] mb-0.5"
+              >
+                Chú giải bản đồ
+              </div>
               <div class="flex items-center gap-2.5">
-                <span class="w-3 h-3 rounded-full border border-white bg-[#2563eb] shrink-0"></span>
+                <span
+                  class="w-3 h-3 rounded-full border border-white bg-[#2563eb] shrink-0"
+                ></span>
                 <span>Trường học</span>
               </div>
               <div class="flex items-center gap-2.5">
-                <span class="w-3 h-3 rounded-full border border-white bg-[#ef6f6c] shrink-0"></span>
+                <span
+                  class="w-3 h-3 rounded-full border border-white bg-[#ef6f6c] shrink-0"
+                ></span>
                 <span>Bệnh viện, y tế</span>
               </div>
               <div class="flex items-center gap-2.5">
-                <span class="w-3 h-3 rounded-full border border-white bg-[#f59e0b] shrink-0"></span>
+                <span
+                  class="w-3 h-3 rounded-full border border-white bg-[#f59e0b] shrink-0"
+                ></span>
                 <span>Cửa hàng, siêu thị</span>
               </div>
             </div>
@@ -567,50 +1002,55 @@
   </main>
 </template>
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import Breadcrumb from '@/components/shared/Breadcrumb.vue';
-import { useAuthStore } from '@/stores/auth';
-import { useFavoriteListings } from '@/composables/useFavoriteListings';
-import { ChevronLeft, ChevronRight, Heart } from 'lucide-vue-next';
-import listingService from '@/services/listingService';
-import recentlyViewedService from '@/services/recentlyViewedService';
-import cloudinaryService from '@/services/cloudinaryService';
-import AppointmentBookingPopup from '@/components/appointments/AppointmentBookingPopup.vue';
-import Login from '@/pages/Auth/Login.vue';
-import Register from '@/pages/Auth/Register.vue';
-import { buildPropertyAddress, hydrateListingAddresses, hydratePropertyAddress } from '@/utils/addressFormatter';
-import { selectRelatedListings } from '@/utils/relatedListingStrategies';
-import reportInfoIcon from '@/assets/images/details/report/image1.png';
-import reportWarningIcon from '@/assets/images/details/report/image2.png';
-import reportUploadIcon from '@/assets/images/details/report/image3.png';
-import * as L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
-import realEstateLightStyle from '@/assets/maps/real-estate-light.json';
-import favoriteIcon from '@/assets/images/details/favorite.png';
-import shareIcon from '@/assets/images/details/share.png';
-import callIcon from '@/assets/images/details/call.png';
-import calendarIcon from '@/assets/images/details/calander.png';
-import chatIcon from '@/assets/images/details/chat.png';
-import messagesIcon from '@/assets/images/details/messages.png';
-import propertyIcon from '@/assets/images/details/loaibds.png';
-import amenitiesIcon from '@/assets/images/details/tienich.png';
-import amenityCheckIcon from '@/assets/images/details/tienich2.png';
-import pointIcon from '@/assets/images/details/point.png';
-import flagIcon from '@/assets/images/details/flag.png';
-import descriptionIcon from '@/assets/images/details/motatindang.png';
-import detailInfoIcon from '@/assets/images/details/thontinchitiet.png';
-import mapSectionIcon from '@/assets/images/details/vitribando.png';
-import legalIcon from '@/assets/images/details/phaply.png';
-import bedIcon from '@/assets/images/details/giuong.png';
-import bathIcon from '@/assets/images/details/bontam.png';
-import areaIcon from '@/assets/images/details/shape.png';
-import directionIcon from '@/assets/images/details/huongnha.png';
-import interiorIcon from '@/assets/images/details/noithat.png';
-import roadIcon from '@/assets/images/details/duongrongvachieusau.png';
-import floorIcon from '@/assets/images/details/sotang.png';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import Breadcrumb from "@/components/shared/Breadcrumb.vue";
+import { useAuthStore } from "@/stores/auth";
+import { useFavoriteListings } from "@/composables/useFavoriteListings";
+import { ChevronLeft, ChevronRight, Heart } from "lucide-vue-next";
+import listingService from "@/services/listingService";
+import recentlyViewedService from "@/services/recentlyViewedService";
+import cloudinaryService from "@/services/cloudinaryService";
+import AppointmentBookingPopup from "@/components/appointments/AppointmentBookingPopup.vue";
+import Login from "@/pages/Auth/Login.vue";
+import Register from "@/pages/Auth/Register.vue";
+import {
+  buildPropertyAddress,
+  hydrateListingAddresses,
+  hydratePropertyAddress,
+} from "@/utils/addressFormatter";
+import { formatPrice, propertyTypeLabel } from "@/utils/listingFormatters";
+import { selectRelatedListings } from "@/utils/relatedListingStrategies";
+import reportInfoIcon from "@/assets/images/details/report/image1.png";
+import reportWarningIcon from "@/assets/images/details/report/image2.png";
+import reportUploadIcon from "@/assets/images/details/report/image3.png";
+import * as L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import realEstateLightStyle from "@/assets/maps/real-estate-light.json";
+import favoriteIcon from "@/assets/images/details/favorite.png";
+import shareIcon from "@/assets/images/details/share.png";
+import callIcon from "@/assets/images/details/call.png";
+import calendarIcon from "@/assets/images/details/calander.png";
+import chatIcon from "@/assets/images/details/chat.png";
+import messagesIcon from "@/assets/images/details/messages.png";
+import propertyIcon from "@/assets/images/details/loaibds.png";
+import amenitiesIcon from "@/assets/images/details/tienich.png";
+import amenityCheckIcon from "@/assets/images/details/tienich2.png";
+import pointIcon from "@/assets/images/details/point.png";
+import flagIcon from "@/assets/images/details/flag.png";
+import descriptionIcon from "@/assets/images/details/motatindang.png";
+import detailInfoIcon from "@/assets/images/details/thontinchitiet.png";
+import mapSectionIcon from "@/assets/images/details/vitribando.png";
+import legalIcon from "@/assets/images/details/phaply.png";
+import bedIcon from "@/assets/images/details/giuong.png";
+import bathIcon from "@/assets/images/details/bontam.png";
+import areaIcon from "@/assets/images/details/shape.png";
+import directionIcon from "@/assets/images/details/huongnha.png";
+import interiorIcon from "@/assets/images/details/noithat.png";
+import roadIcon from "@/assets/images/details/duongrongvachieusau.png";
+import floorIcon from "@/assets/images/details/sotang.png";
 
 const route = useRoute();
 const router = useRouter();
@@ -630,23 +1070,25 @@ const props = defineProps({
 
 const isEmbedded = ref(false);
 const loading = ref(!props.previewMode);
-const error = ref('');
+const error = ref("");
 const listing = ref(props.previewListing || {});
 const isListingVerified = computed(() => {
   const value = listing.value?.is_verified;
-  return value === true || Number(value) === 1 || String(value).toUpperCase() === 'VERIFIED';
+  return (
+    value === true ||
+    Number(value) === 1 ||
+    String(value).toUpperCase() === "VERIFIED"
+  );
 });
 
 const detailCrumbs = computed(() => {
-  const list = [
-    { label: 'Trang chủ', to: '/' }
-  ];
+  const list = [{ label: "Trang chủ", to: "/" }];
   if (listing.value) {
-    const isSale = listing.value.demand_type === 'SALE';
+    const isSale = listing.value.demand_type === "SALE";
     if (isSale) {
-      list.push({ label: 'Mua bán', to: '/sales' });
+      list.push({ label: "Mua bán", to: "/sales" });
     } else {
-      list.push({ label: 'Cho thuê', to: '/rent' });
+      list.push({ label: "Cho thuê", to: "/rent" });
     }
     list.push({ label: listing.value.title });
   }
@@ -664,20 +1106,20 @@ const showLoginPopup = ref(false);
 const showRegisterPopup = ref(false);
 const openAppointmentAfterAuth = ref(false);
 const openReportAfterAuth = ref(false);
-const mapMode = ref('standard');
+const mapMode = ref("standard");
 const isMap3dEnabled = ref(false);
 const mapModalOpen = ref(false);
-const modalMapMode = ref('standard');
+const modalMapMode = ref("standard");
 const isModalMap3dEnabled = ref(false);
 const modalMapElement = ref(null);
 const selectedReportReasons = ref([]);
 const reportSubmitting = ref(false);
 const reportModalOpen = ref(false);
-const reportDescription = ref('');
+const reportDescription = ref("");
 const reportImages = ref([]);
 const reportImagePreviews = ref([]);
 const reportImageInput = ref(null);
-const reportUploadError = ref('');
+const reportUploadError = ref("");
 const relatedListings = ref([]);
 const toasts = ref([]);
 let toastIdCounter = 1;
@@ -686,25 +1128,25 @@ let modalMap = null;
 let propertyMarker = null;
 let modalPropertyMarker = null;
 
-const SATELLITE_LAYER_ID = 'satellite-base';
-const SATELLITE_SOURCE_ID = 'satellite';
+const SATELLITE_LAYER_ID = "satellite-base";
+const SATELLITE_SOURCE_ID = "satellite";
 const STANDARD_MAP_PITCH = 38;
 const TOP_DOWN_MAP_PITCH = 0;
 const SATELLITE_HIDDEN_BASE_LAYERS = [
-  'landcover-park',
-  'landuse-public',
-  'water',
-  'waterway',
-  'aeroway',
-  'building-footprints',
-  'building-3d',
-  'road-minor-casing',
-  'road-minor',
-  'road-major-casing',
-  'road-major',
-  'rail-transit',
-  'place-label-city',
-  'road-label',
+  "landcover-park",
+  "landuse-public",
+  "water",
+  "waterway",
+  "aeroway",
+  "building-footprints",
+  "building-3d",
+  "road-minor-casing",
+  "road-minor",
+  "road-major-casing",
+  "road-major",
+  "rail-transit",
+  "place-label-city",
+  "road-label",
 ];
 let lastStandardCamera = null;
 
@@ -726,14 +1168,15 @@ const hasLatLng = computed(() => {
 });
 
 const fullAddress = computed(() => {
-  if (!listing.value?.property) return '';
+  if (!listing.value?.property) return "";
   const p = listing.value.property;
   return p.full_address || buildPropertyAddress(p);
 });
 
-const contactPhone = computed(() => (
-  listing.value?.property?.contact_phone || listing.value?.owner?.phone || ''
-));
+const contactPhone = computed(
+  () =>
+    listing.value?.property?.contact_phone || listing.value?.owner?.phone || "",
+);
 
 const amenities = computed(() => {
   const values = listing.value?.property?.amenities;
@@ -741,8 +1184,8 @@ const amenities = computed(() => {
 
   return values
     .map((amenity) => {
-      if (typeof amenity === 'string') return amenity.trim();
-      return amenity?.name || amenity?.label || '';
+      if (typeof amenity === "string") return amenity.trim();
+      return amenity?.name || amenity?.label || "";
     })
     .filter(Boolean);
 });
@@ -754,17 +1197,19 @@ function hasPositiveValue(value) {
 
 const summaryStats = computed(() => {
   const property = listing.value?.property || {};
-  return [property.bedrooms, property.bathrooms, property.area].filter(hasPositiveValue);
+  return [property.bedrooms, property.bathrooms, property.area].filter(
+    hasPositiveValue,
+  );
 });
 
 function hasDetailValue(value) {
   if (Array.isArray(value)) return value.length > 0;
-  if (typeof value === 'string') return value.trim() !== '';
-  if (typeof value === 'number') return value > 0;
-  return value !== null && value !== undefined && value !== '';
+  if (typeof value === "string") return value.trim() !== "";
+  if (typeof value === "number") return value > 0;
+  return value !== null && value !== undefined && value !== "";
 }
 
-function detailText(value, suffix = '') {
+function detailText(value, suffix = "") {
   return suffix ? `${value}${suffix}` : value;
 }
 
@@ -791,27 +1236,57 @@ function pairDetailItems(items) {
 const detailRowPairs = computed(() => {
   const property = listing.value?.property || {};
   return pairDetailItems([
-    detailItem('Loại BĐS', property.type, propertyIcon, propertyTypeLabel),
-    detailItem('Diện tích', property.area, areaIcon, (value) => detailText(value, ' m²')),
-    detailItem('Phòng ngủ', property.bedrooms, bedIcon, (value) => detailText(value, ' PN')),
-    detailItem('Phòng tắm', property.bathrooms, bathIcon, (value) => detailText(value, ' WC')),
-    detailItem('Hướng nhà', property.direction_code, directionIcon, directionLabel),
-    detailItem('Hướng ban công', property.balcony_direction_code, directionIcon, directionLabel),
-    detailItem('Nội thất', property.furniture_status, interiorIcon, furnitureLabel),
-    detailItem('Pháp lý', property.legal_paper_types, legalIcon, (values) => values.map((value) => legalPaperLabel(value)).join(', ')),
-    detailItem('Chiều sâu', property.depth, roadIcon, (value) => detailText(value, ' m')),
-    detailItem('Mặt tiền', property.facade_width, roadIcon, (value) => detailText(value, ' m')),
-    detailItem('Số tầng', property.floors, floorIcon),
+    detailItem("Loại BĐS", property.type, propertyIcon, propertyTypeLabel),
+    detailItem("Diện tích", property.area, areaIcon, (value) =>
+      detailText(value, " m²"),
+    ),
+    detailItem("Phòng ngủ", property.bedrooms, bedIcon, (value) =>
+      detailText(value, " PN"),
+    ),
+    detailItem("Phòng tắm", property.bathrooms, bathIcon, (value) =>
+      detailText(value, " WC"),
+    ),
+    detailItem(
+      "Hướng nhà",
+      property.direction_code,
+      directionIcon,
+      directionLabel,
+    ),
+    detailItem(
+      "Hướng ban công",
+      property.balcony_direction_code,
+      directionIcon,
+      directionLabel,
+    ),
+    detailItem(
+      "Nội thất",
+      property.furniture_status,
+      interiorIcon,
+      furnitureLabel,
+    ),
+    detailItem("Pháp lý", property.legal_paper_types, legalIcon, (values) =>
+      values.map((value) => legalPaperLabel(value)).join(", "),
+    ),
+    detailItem("Chiều sâu", property.depth, roadIcon, (value) =>
+      detailText(value, " m"),
+    ),
+    detailItem("Mặt tiền", property.facade_width, roadIcon, (value) =>
+      detailText(value, " m"),
+    ),
+    detailItem("Số tầng", property.floors, floorIcon),
   ]);
 });
 
 const reportOptions = [
-  { value: 'WRONG_PRICE', label: 'Định giá chưa đúng với thực tế' },
-  { value: 'WRONG_ADDRESS', label: 'Địa chỉ của BĐS chưa chính xác' },
-  { value: 'SOLD_OR_RENTED', label: 'BĐS đã bán/đã thuê/đã sang nhượng' },
-  { value: 'WRONG_INFORMATION', label: 'Thông tin chưa chính xác' },
-  { value: 'UNREACHABLE_OWNER', label: 'Không liên lạc được với người đăng tin' },
-  { value: 'DUPLICATE_LISTING', label: 'Trùng với tin rao khác' },
+  { value: "WRONG_PRICE", label: "Định giá chưa đúng với thực tế" },
+  { value: "WRONG_ADDRESS", label: "Địa chỉ của BĐS chưa chính xác" },
+  { value: "SOLD_OR_RENTED", label: "BĐS đã bán/đã thuê/đã sang nhượng" },
+  { value: "WRONG_INFORMATION", label: "Thông tin chưa chính xác" },
+  {
+    value: "UNREACHABLE_OWNER",
+    label: "Không liên lạc được với người đăng tin",
+  },
+  { value: "DUPLICATE_LISTING", label: "Trùng với tin rao khác" },
 ];
 
 const selectedReportReasonLabels = computed(() =>
@@ -822,7 +1297,11 @@ const selectedReportReasonLabels = computed(() =>
 
 async function loadRelatedListings() {
   const current = listing.value;
-  if (!current?.id || !current?.demand_type || !current?.property?.province_code) {
+  if (
+    !current?.id ||
+    !current?.demand_type ||
+    !current?.property?.province_code
+  ) {
     relatedListings.value = [];
     return;
   }
@@ -840,10 +1319,9 @@ async function loadRelatedListings() {
       formatPrice,
     });
   } catch (err) {
-    console.error('Failed to load related listings:', err);
+    console.error("Failed to load related listings:", err);
     relatedListings.value = [];
   }
-
 }
 
 function unusedTriggerReportImageInput() {
@@ -851,19 +1329,19 @@ function unusedTriggerReportImageInput() {
 }
 
 function unusedHandleReportImagesSelected(event) {
-  reportUploadError.value = '';
+  reportUploadError.value = "";
   const files = Array.from(event.target.files || []);
   if (!files.length) return;
 
   const availableSlots = Math.max(0, 5 - reportImages.value.length);
   const selectedFiles = files.slice(0, availableSlots);
   if (files.length > availableSlots) {
-    reportUploadError.value = 'Tá»‘i Ä‘a 5 áº£nh minh chá»©ng.';
+    reportUploadError.value = "Tá»‘i Ä‘a 5 áº£nh minh chá»©ng.";
   }
 
   selectedFiles.forEach((file) => {
-    if (!file.type?.startsWith('image/')) {
-      reportUploadError.value = 'Vui lÃ²ng chá»n Ä‘Ãºng tá»‡p áº£nh.';
+    if (!file.type?.startsWith("image/")) {
+      reportUploadError.value = "Vui lÃ²ng chá»n Ä‘Ãºng tá»‡p áº£nh.";
       return;
     }
 
@@ -874,7 +1352,7 @@ function unusedHandleReportImagesSelected(event) {
     });
   });
 
-  event.target.value = '';
+  event.target.value = "";
 }
 
 function unusedRemoveReportImage(index) {
@@ -884,26 +1362,28 @@ function unusedRemoveReportImage(index) {
 }
 
 function unusedResetReportModalState() {
-  reportDescription.value = '';
+  reportDescription.value = "";
   reportImages.value = [];
   reportImagePreviews.value.forEach((preview) => {
     if (preview?.url) URL.revokeObjectURL(preview.url);
   });
   reportImagePreviews.value = [];
-  reportUploadError.value = '';
+  reportUploadError.value = "";
 }
 
 async function unusedUploadReportImages() {
   if (!reportImages.value.length) return [];
   const uploads = await Promise.all(
-    reportImages.value.map((file) => cloudinaryService.uploadImage(file, 'listing')),
+    reportImages.value.map((file) =>
+      cloudinaryService.uploadImage(file, "listing"),
+    ),
   );
   return uploads.map((item) => item.secure_url).filter(Boolean);
 }
 
 async function unusedSubmitListingReport() {
   if (!reportDescription.value.trim()) {
-    reportUploadError.value = 'Vui lÃ²ng nháº­p lÃ½ do chi tiáº¿t.';
+    reportUploadError.value = "Vui lÃ²ng nháº­p lÃ½ do chi tiáº¿t.";
     return;
   }
 
@@ -923,21 +1403,24 @@ async function unusedSubmitListingReport() {
       formatPrice,
     });
   } catch (err) {
-    console.error('Failed to load related listings:', err);
+    console.error("Failed to load related listings:", err);
     relatedListings.value = [];
   }
 }
 
 function clickRelatedListing(item) {
   if (isEmbedded.value) {
-    window.parent.postMessage({
-      type: 'select-listing-from-detail',
-      listing: {
-        id: item.id,
-        latitude: item.latitude,
-        longitude: item.longitude,
-      }
-    }, window.location.origin);
+    window.parent.postMessage(
+      {
+        type: "select-listing-from-detail",
+        listing: {
+          id: item.id,
+          latitude: item.latitude,
+          longitude: item.longitude,
+        },
+      },
+      window.location.origin,
+    );
   } else {
     router.push(`/listings/${item.id}`);
   }
@@ -962,15 +1445,15 @@ function nextImage() {
 function openImageLightbox(index = activeImageIndex.value) {
   activeImageIndex.value = index;
   imageLightboxOpen.value = true;
-  document.body.style.overflow = 'hidden';
+  document.body.style.overflow = "hidden";
 }
 
 function closeImageLightbox() {
   imageLightboxOpen.value = false;
-  document.body.style.overflow = '';
+  document.body.style.overflow = "";
 }
 
-function pushToast(message, type = 'info', duration = 2500) {
+function pushToast(message, type = "info", duration = 2500) {
   const id = toastIdCounter++;
   toasts.value = [...toasts.value, { id, message, type }];
   setTimeout(() => {
@@ -1016,7 +1499,7 @@ async function handleAuthSuccess() {
 
 async function updateDescriptionToggle() {
   await nextTick();
-  const text = String(listing.value?.description || '').trim();
+  const text = String(listing.value?.description || "").trim();
   const lineCount = text.split(/\r?\n/).filter(Boolean).length;
   descriptionCanToggle.value = lineCount > 3 || text.length > 180;
 }
@@ -1026,21 +1509,21 @@ async function openReportModal() {
     openReportAfterAuth.value = true;
     showRegisterPopup.value = false;
     showLoginPopup.value = true;
-    pushToast('Vui lòng đăng nhập để gửi phản ánh.', 'error', 3500);
+    pushToast("Vui lòng đăng nhập để gửi phản ánh.", "error", 3500);
     return;
   }
 
   if (selectedReportReasons.value.length === 0) {
-    pushToast('Vui lòng chọn ít nhất một lý do báo cáo.', 'warning');
+    pushToast("Vui lòng chọn ít nhất một lý do báo cáo.", "warning");
     return;
   }
 
   if (!listing.value?.id) {
-    pushToast('Không tìm thấy tin đăng.', 'error');
+    pushToast("Không tìm thấy tin đăng.", "error");
     return;
   }
 
-  reportUploadError.value = '';
+  reportUploadError.value = "";
   reportModalOpen.value = true;
   return;
 
@@ -1050,10 +1533,13 @@ async function openReportModal() {
       reasons: selectedReportReasons.value,
     });
 
-    pushToast(response.data?.message || 'Cảm ơn bạn đã phản hồi.', 'success');
+    pushToast(response.data?.message || "Cảm ơn bạn đã phản hồi.", "success");
     selectedReportReasons.value = [];
   } catch (err) {
-    pushToast(err.response?.data?.message || 'Hệ thống bận, vui lòng gửi báo cáo sau.', 'error');
+    pushToast(
+      err.response?.data?.message || "Hệ thống bận, vui lòng gửi báo cáo sau.",
+      "error",
+    );
   } finally {
     reportSubmitting.value = false;
   }
@@ -1071,19 +1557,19 @@ function triggerReportImageInput() {
 }
 
 function handleReportImagesSelected(event) {
-  reportUploadError.value = '';
+  reportUploadError.value = "";
   const files = Array.from(event.target.files || []);
   if (!files.length) return;
 
   const availableSlots = Math.max(0, 5 - reportImages.value.length);
   const selectedFiles = files.slice(0, availableSlots);
   if (files.length > availableSlots) {
-    reportUploadError.value = 'Tá»‘i Ä‘a 5 áº£nh minh chá»©ng.';
+    reportUploadError.value = "Tá»‘i Ä‘a 5 áº£nh minh chá»©ng.";
   }
 
   selectedFiles.forEach((file) => {
-    if (!file.type?.startsWith('image/')) {
-      reportUploadError.value = 'Vui lÃ²ng chá»n Ä‘Ãºng tá»‡p áº£nh.';
+    if (!file.type?.startsWith("image/")) {
+      reportUploadError.value = "Vui lÃ²ng chá»n Ä‘Ãºng tá»‡p áº£nh.";
       return;
     }
 
@@ -1094,7 +1580,7 @@ function handleReportImagesSelected(event) {
     });
   });
 
-  event.target.value = '';
+  event.target.value = "";
 }
 
 function removeReportImage(index) {
@@ -1104,26 +1590,28 @@ function removeReportImage(index) {
 }
 
 function resetReportModalState() {
-  reportDescription.value = '';
+  reportDescription.value = "";
   reportImages.value = [];
   reportImagePreviews.value.forEach((preview) => {
     if (preview?.url) URL.revokeObjectURL(preview.url);
   });
   reportImagePreviews.value = [];
-  reportUploadError.value = '';
+  reportUploadError.value = "";
 }
 
 async function uploadReportImages() {
   if (!reportImages.value.length) return [];
   const uploads = await Promise.all(
-    reportImages.value.map((file) => cloudinaryService.uploadImage(file, 'listing')),
+    reportImages.value.map((file) =>
+      cloudinaryService.uploadImage(file, "listing"),
+    ),
   );
   return uploads.map((item) => item.secure_url).filter(Boolean);
 }
 
 async function submitListingReport() {
   if (!reportDescription.value.trim()) {
-    reportUploadError.value = 'Vui lÃ²ng nháº­p lÃ½ do chi tiáº¿t.';
+    reportUploadError.value = "Vui lÃ²ng nháº­p lÃ½ do chi tiáº¿t.";
     return;
   }
 
@@ -1136,85 +1624,70 @@ async function submitListingReport() {
       image_urls: imageUrls,
     });
 
-    pushToast(response.data?.message || 'Cáº£m Æ¡n báº¡n Ä‘Ã£ pháº£n há»“i.', 'success');
+    pushToast(
+      response.data?.message || "Cáº£m Æ¡n báº¡n Ä‘Ã£ pháº£n há»“i.",
+      "success",
+    );
     selectedReportReasons.value = [];
     reportModalOpen.value = false;
     resetReportModalState();
   } catch (err) {
-    pushToast(err.response?.data?.message || 'Há»‡ thá»‘ng báº­n, vui lÃ²ng gá»­i bÃ¡o cÃ¡o sau.', 'error');
+    pushToast(
+      err.response?.data?.message ||
+        "Há»‡ thá»‘ng báº­n, vui lÃ²ng gá»­i bÃ¡o cÃ¡o sau.",
+      "error",
+    );
   } finally {
     reportSubmitting.value = false;
   }
 }
 
 function formatDate(isoString) {
-  if (!isoString) return '';
+  if (!isoString) return "";
   const d = new Date(isoString);
-  return d.toLocaleDateString('vi-VN');
-}
-
-function formatPrice(value) {
-  if (!value || value <= 0) return 'Thỏa thuận';
-  if (value >= 1000000000) return (value / 1000000000).toLocaleString('vi-VN') + ' tỷ';
-  if (value >= 1000000) return (value / 1000000).toLocaleString('vi-VN') + ' triệu';
-  return value.toLocaleString('vi-VN') + ' đ';
+  return d.toLocaleDateString("vi-VN");
 }
 
 function formatPhone(phone) {
-  if (!phone) return '';
-  return phone.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3');
-}
-
-function propertyTypeLabel(type) {
-  const map = {
-    APARTMENT: 'Căn hộ chung cư',
-    MINI_APARTMENT: 'Chung cư mini',
-    HOUSE: 'Nhà ở',
-    LAND: 'Đất',
-    ROOM: 'Phòng',
-    PRIVATE_HOUSE: 'Nhà riêng',
-    STREET_HOUSE: 'Nhà mặt phố',
-    VILLA_TOWNHOUSE: 'Biệt thự liền kề',
-    SHOPHOUSE: 'Shophouse',
-    KIOSK: 'Ki-ốt',
-    RENT_ROOM: 'Phòng trọ',
-    BOARDING_HOUSE: 'Nhà trọ',
-    OFFICE: 'Văn phòng',
-    RESORT: 'Khu nghỉ dưỡng',
-    RESTAURANT_HOTEL: 'Nhà hàng - Khách sạn',
-  };
-  return map[type] || type;
+  if (!phone) return "";
+  return phone.replace(/(\d{3})(\d{3})(\d{4})/, "$1 $2 $3");
 }
 
 function directionLabel(code) {
   const map = {
-    N: 'Bắc', NE: 'Đông Bắc', E: 'Đông', SE: 'Đông Nam',
-    S: 'Nam', SW: 'Tây Nam', W: 'Tây', NW: 'Tây Bắc'
+    N: "Bắc",
+    NE: "Đông Bắc",
+    E: "Đông",
+    SE: "Đông Nam",
+    S: "Nam",
+    SW: "Tây Nam",
+    W: "Tây",
+    NW: "Tây Bắc",
   };
-  return map[code] || 'Không xác định';
+  return map[code] || "Không xác định";
 }
 
 function furnitureLabel(status) {
-  const map = { NONE: 'Cơ bản', BASIC: 'Đầy đủ', FULL: 'Cao cấp' };
+  const map = { NONE: "Cơ bản", BASIC: "Đầy đủ", FULL: "Cao cấp" };
   return map[status] || status;
 }
 
 function legalPaperLabel(value) {
   const map = {
-    LAND_USE_CERTIFICATE: 'Giấy CN QSDĐ - Sổ đỏ - Sổ hồng',
-    SALE_CONTRACT: 'Hợp đồng mua bán',
-    CAPITAL_CONTRIBUTION_CONTRACT: 'Hợp đồng góp vốn',
-    ALLOTTED_OR_SUBDIVIDED_LAND: 'Đất giao - Đất phân',
-    BORROWED_LAND: 'Đất mượn',
-    LEASED_LAND: 'Đất thuê',
-    ORIGIN_PROOF_DOCUMENT: 'Giấy tờ chứng minh nguồn gốc',
-    NO_LAND_CERTIFICATE: 'Chưa làm giấy CN QSDĐ',
-    PROCESSING_LAND_CERTIFICATE: 'Đang làm giấy CN QSDĐ',
-    APPOINTMENT_FOR_CERTIFICATE: 'Đã có giấy hẹn lấy sổ',
-    BUSINESS_TRANSFER: 'Sang nhượng doanh nghiệp',
-    SHARE_TRANSFER: 'Mua bán cổ phần',
-    INVESTMENT_COOPERATION: 'Hợp tác đầu tư',
-    HANDWRITTEN: 'Viết tay',
+    LAND_USE_CERTIFICATE: "Giấy CN QSDĐ - Sổ đỏ - Sổ hồng",
+    SALE_CONTRACT: "Hợp đồng mua bán",
+    CAPITAL_CONTRIBUTION_CONTRACT: "Hợp đồng góp vốn",
+    ALLOTTED_OR_SUBDIVIDED_LAND: "Đất giao - Đất phân",
+    BORROWED_LAND: "Đất mượn",
+    LEASED_LAND: "Đất thuê",
+    ORIGIN_PROOF_DOCUMENT: "Giấy tờ chứng minh nguồn gốc",
+    NO_LAND_CERTIFICATE: "Chưa làm giấy CN QSDĐ",
+    PROCESSING_LAND_CERTIFICATE: "Đang làm giấy CN QSDĐ",
+    APPOINTMENT_FOR_CERTIFICATE: "Đã có giấy hẹn lấy sổ",
+    BUSINESS_TRANSFER: "Sang nhượng doanh nghiệp",
+    SHARE_TRANSFER: "Mua bán cổ phần",
+    INVESTMENT_COOPERATION: "Hợp tác đầu tư",
+    HANDWRITTEN: "Viết tay",
   };
   return map[value] || value;
 }
@@ -1222,7 +1695,7 @@ function legalPaperLabel(value) {
 async function loadListing() {
   try {
     loading.value = true;
-    error.value = '';
+    error.value = "";
     const id = route.params.id;
     const response = await listingService.getById(id);
     const data = response.data.data;
@@ -1233,7 +1706,7 @@ async function loadListing() {
     await loadRelatedListings();
   } catch (err) {
     console.error(err);
-    error.value = 'Không tìm thấy tin đăng hoặc đã bị xóa.';
+    error.value = "Không tìm thấy tin đăng hoặc đã bị xóa.";
   } finally {
     loading.value = false;
     // Init map after loading is set to false so v-show renders the div
@@ -1244,7 +1717,7 @@ async function loadListing() {
     }
 
     // View tracking: track after listing load and visibility check.
-    if (listing.value?.id && listing.value?.status === 'ACTIVE') {
+    if (listing.value?.id && listing.value?.status === "ACTIVE") {
       scheduleViewTracking(listing.value.id);
     }
   }
@@ -1257,7 +1730,7 @@ watch(
     listing.value = value || {};
     relatedListings.value = [];
     loading.value = false;
-    error.value = '';
+    error.value = "";
     activeImageIndex.value = 0;
 
     if (map) {
@@ -1284,7 +1757,7 @@ watch(
     descriptionExpanded.value = false;
     updateDescriptionToggle();
   },
-  { flush: 'post' },
+  { flush: "post" },
 );
 
 watch(
@@ -1303,7 +1776,6 @@ watch(
   },
 );
 
-
 /**
  * Schedule view tracking after the listing has loaded.
  * Protection:
@@ -1312,14 +1784,14 @@ watch(
  *   - Silent fail so it does not affect UX.
  */
 function scheduleViewTracking(listingId) {
-  if (document.visibilityState !== 'visible') {
+  if (document.visibilityState !== "visible") {
     const onVisible = () => {
-      if (document.visibilityState === 'visible') {
-        document.removeEventListener('visibilitychange', onVisible);
+      if (document.visibilityState === "visible") {
+        document.removeEventListener("visibilitychange", onVisible);
         trackViewNow(listingId);
       }
     };
-    document.addEventListener('visibilitychange', onVisible);
+    document.addEventListener("visibilitychange", onVisible);
     return;
   }
 
@@ -1327,32 +1799,35 @@ function scheduleViewTracking(listingId) {
 }
 
 function trackViewNow(listingId) {
-  if (document.visibilityState !== 'visible') return;
+  if (document.visibilityState !== "visible") return;
 
   listingService.trackView(listingId).catch(() => {
     // View tracking should never affect the listing detail UX.
   });
 
   if (listing.value) {
-    recentlyViewedService.trackListingView(listing.value, authStore.isAuthenticated);
+    recentlyViewedService.trackListingView(
+      listing.value,
+      authStore.isAuthenticated,
+    );
   }
 }
 
 function replaceMapTilerKey(value, key) {
-  if (typeof value === 'string') {
-    return value.replaceAll('{MAPTILER_KEY}', key);
+  if (typeof value === "string") {
+    return value.replaceAll("{MAPTILER_KEY}", key);
   }
 
   if (Array.isArray(value)) {
     return value.map((item) => replaceMapTilerKey(item, key));
   }
 
-  if (value && typeof value === 'object') {
+  if (value && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value).map(([entryKey, entryValue]) => [
         entryKey,
         replaceMapTilerKey(entryValue, key),
-      ])
+      ]),
     );
   }
 
@@ -1361,14 +1836,14 @@ function replaceMapTilerKey(value, key) {
 
 function createPropertyFeature(lat, lng) {
   return {
-    type: 'Feature',
-    id: 'selected-property',
+    type: "Feature",
+    id: "selected-property",
     properties: {
-      label: 'BĐS đang xem',
-      title: listing.value?.title || 'BĐS đang xem',
+      label: "BĐS đang xem",
+      title: listing.value?.title || "BĐS đang xem",
     },
     geometry: {
-      type: 'Point',
+      type: "Point",
       coordinates: [lng, lat],
     },
   };
@@ -1385,18 +1860,19 @@ function createRadiusFeature(lat, lng, radiusMeters = 800) {
     const dx = radiusMeters * Math.cos(angle);
     const dy = radiusMeters * Math.sin(angle);
     const pointLat = lat + (dy / earthRadius) * (180 / Math.PI);
-    const pointLng = lng + (dx / (earthRadius * Math.cos(latRad))) * (180 / Math.PI);
+    const pointLng =
+      lng + (dx / (earthRadius * Math.cos(latRad))) * (180 / Math.PI);
     coordinates.push([pointLng, pointLat]);
   }
 
   return {
-    type: 'Feature',
+    type: "Feature",
     properties: {
       radius_meters: radiusMeters,
-      label: 'Khoảng 10 phút đi bộ',
+      label: "Khoảng 10 phút đi bộ",
     },
     geometry: {
-      type: 'Polygon',
+      type: "Polygon",
       coordinates: [coordinates],
     },
   };
@@ -1412,15 +1888,15 @@ function buildRealEstateMapStyle(lat, lng) {
   style.zoom = 15;
   style.pitch = 0;
   style.sources.property.data = {
-    type: 'FeatureCollection',
+    type: "FeatureCollection",
     features: [propertyFeature],
   };
-  style.sources['nearby-radius'].data = {
-    type: 'FeatureCollection',
+  style.sources["nearby-radius"].data = {
+    type: "FeatureCollection",
     features: [radiusFeature],
   };
   style.sources[SATELLITE_SOURCE_ID] = {
-    type: 'raster',
+    type: "raster",
     tiles: [
       `https://api.maptiler.com/maps/hybrid/256/{z}/{x}/{y}@2x.jpg?key=${mapTilerKey}`,
     ],
@@ -1429,19 +1905,19 @@ function buildRealEstateMapStyle(lat, lng) {
   };
   style.layers.splice(1, 0, {
     id: SATELLITE_LAYER_ID,
-    type: 'raster',
+    type: "raster",
     source: SATELLITE_SOURCE_ID,
     layout: {
-      visibility: 'none',
+      visibility: "none",
     },
     paint: {
-      'raster-opacity': 0.92,
-      'raster-saturation': -0.18,
-      'raster-contrast': 0.08,
-      'raster-brightness-min': 0.08,
-      'raster-brightness-max': 0.96,
-      'raster-resampling': 'linear',
-      'raster-fade-duration': 0,
+      "raster-opacity": 0.92,
+      "raster-saturation": -0.18,
+      "raster-contrast": 0.08,
+      "raster-brightness-min": 0.08,
+      "raster-brightness-max": 0.96,
+      "raster-resampling": "linear",
+      "raster-fade-duration": 0,
     },
   });
 
@@ -1453,18 +1929,25 @@ function setMapMode(mode) {
 
   if (!map?.getLayer(SATELLITE_LAYER_ID)) return;
 
-  const isSatellite = mode === 'satellite';
-  const pitch = isSatellite || !isMap3dEnabled.value ? TOP_DOWN_MAP_PITCH : STANDARD_MAP_PITCH;
+  const isSatellite = mode === "satellite";
+  const pitch =
+    isSatellite || !isMap3dEnabled.value
+      ? TOP_DOWN_MAP_PITCH
+      : STANDARD_MAP_PITCH;
 
   map.setLayoutProperty(
     SATELLITE_LAYER_ID,
-    'visibility',
-    isSatellite ? 'visible' : 'none'
+    "visibility",
+    isSatellite ? "visible" : "none",
   );
 
   SATELLITE_HIDDEN_BASE_LAYERS.forEach((layerId) => {
     if (!map.getLayer(layerId)) return;
-    map.setLayoutProperty(layerId, 'visibility', isSatellite ? 'none' : 'visible');
+    map.setLayoutProperty(
+      layerId,
+      "visibility",
+      isSatellite ? "none" : "visible",
+    );
   });
 
   map.easeTo({
@@ -1475,7 +1958,7 @@ function setMapMode(mode) {
 }
 
 function toggleMapMode() {
-  setMapMode(mapMode.value === 'satellite' ? 'standard' : 'satellite');
+  setMapMode(mapMode.value === "satellite" ? "standard" : "satellite");
 }
 
 function toggleMap3d() {
@@ -1483,8 +1966,8 @@ function toggleMap3d() {
 
   isMap3dEnabled.value = !isMap3dEnabled.value;
 
-  if (isMap3dEnabled.value && mapMode.value === 'satellite') {
-    setMapMode('standard');
+  if (isMap3dEnabled.value && mapMode.value === "satellite") {
+    setMapMode("standard");
     return;
   }
 
@@ -1525,7 +2008,7 @@ function getCurrentCamera() {
 }
 
 function toggleStandardMapPitch() {
-  if (!map || mapMode.value === 'satellite') return false;
+  if (!map || mapMode.value === "satellite") return false;
 
   const currentPitch = map.getPitch();
   const isTopDown = currentPitch <= 1;
@@ -1566,11 +2049,13 @@ function toggleStandardMapPitch() {
 function bindNavigationPitchToggle() {
   if (!mapElement.value) return;
 
-  const compassButton = mapElement.value.querySelector('.maplibregl-ctrl-compass');
+  const compassButton = mapElement.value.querySelector(
+    ".maplibregl-ctrl-compass",
+  );
   if (!compassButton) return;
 
   compassButton.addEventListener(
-    'click',
+    "click",
     (event) => {
       if (!toggleStandardMapPitch()) return;
       event.preventDefault();
@@ -1601,9 +2086,9 @@ function initMap() {
     attributionControl: false,
   });
 
-  map.on('click', (e) => {
+  map.on("click", (e) => {
     const originalTarget = e.originalEvent.target;
-    if (originalTarget && originalTarget.tagName === 'CANVAS') {
+    if (originalTarget && originalTarget.tagName === "CANVAS") {
       openMapModal();
     }
   });
@@ -1612,39 +2097,47 @@ function initMap() {
     new maplibregl.NavigationControl({
       visualizePitch: true,
     }),
-    'top-right'
+    "top-right",
   );
 
-  map.addControl(new maplibregl.AttributionControl(), 'bottom-left');
+  map.addControl(new maplibregl.AttributionControl(), "bottom-left");
 
   map.scrollZoom.enable();
   map.doubleClickZoom.enable();
   map.touchZoomRotate.enable();
 
-  map.on('load', () => {
+  map.on("load", () => {
     setMapMode(mapMode.value);
 
     // Hide vector property marker layers to replace with custom HTML pin marker
-    ['property-marker', 'property-marker-shadow', 'property-label', 'property-radius-glow'].forEach((layerId) => {
+    [
+      "property-marker",
+      "property-marker-shadow",
+      "property-label",
+      "property-radius-glow",
+    ].forEach((layerId) => {
       if (map.getLayer(layerId)) {
-        map.setLayoutProperty(layerId, 'visibility', 'none');
+        map.setLayoutProperty(layerId, "visibility", "none");
       }
     });
 
     // Add custom HTML property marker
     const markerEl = createCustomPropertyMarkerElement();
-    propertyMarker = new maplibregl.Marker({ element: markerEl, anchor: 'bottom' })
+    propertyMarker = new maplibregl.Marker({
+      element: markerEl,
+      anchor: "bottom",
+    })
       .setLngLat([lng, lat])
       .addTo(map);
 
     map.setFeatureState(
       {
-        source: 'property',
-        id: 'selected-property',
+        source: "property",
+        id: "selected-property",
       },
       {
         selected: true,
-      }
+      },
     );
 
     setTimeout(() => {
@@ -1662,10 +2155,9 @@ function initMap() {
   });
 }
 
-
 onMounted(() => {
   isEmbedded.value = window.self !== window.top;
-  window.addEventListener('resize', updateDescriptionToggle);
+  window.addEventListener("resize", updateDescriptionToggle);
   if (props.previewMode) {
     loading.value = false;
     updateDescriptionToggle();
@@ -1685,7 +2177,7 @@ watch(
     if (!props.previewMode) {
       loadFavorites();
     }
-  }
+  },
 );
 
 function openMapModal() {
@@ -1710,12 +2202,12 @@ function closeMapModal() {
 }
 
 function createCustomPropertyMarkerElement() {
-  const el = document.createElement('div');
-  el.className = 'custom-property-marker';
+  const el = document.createElement("div");
+  el.className = "custom-property-marker";
 
-  if (!document.getElementById('custom-marker-tooltip-style')) {
-    const style = document.createElement('style');
-    style.id = 'custom-marker-tooltip-style';
+  if (!document.getElementById("custom-marker-tooltip-style")) {
+    const style = document.createElement("style");
+    style.id = "custom-marker-tooltip-style";
     style.innerHTML = `
       .custom-property-marker {
         display: flex;
@@ -1761,8 +2253,8 @@ function createCustomPropertyMarkerElement() {
     document.head.appendChild(style);
   }
 
-  const pin = document.createElement('div');
-  pin.className = 'custom-marker-pin';
+  const pin = document.createElement("div");
+  pin.className = "custom-marker-pin";
   pin.innerHTML = `
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0ea5e9" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width: 32px; height: 32px; filter: drop-shadow(0px 4px 8px rgba(15, 23, 42, 0.3));">
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -1771,9 +2263,9 @@ function createCustomPropertyMarkerElement() {
   `;
   el.appendChild(pin);
 
-  const label = document.createElement('div');
-  label.className = 'custom-marker-label';
-  label.innerText = 'BĐS đang xem';
+  const label = document.createElement("div");
+  label.className = "custom-marker-label";
+  label.innerText = "BĐS đang xem";
   el.appendChild(label);
 
   return el;
@@ -1804,35 +2296,43 @@ function initModalMap() {
     new maplibregl.NavigationControl({
       visualizePitch: true,
     }),
-    'top-right'
+    "top-right",
   );
 
-  modalMap.addControl(new maplibregl.AttributionControl(), 'bottom-left');
+  modalMap.addControl(new maplibregl.AttributionControl(), "bottom-left");
 
-  modalMap.on('load', () => {
+  modalMap.on("load", () => {
     setModalMapMode(modalMapMode.value);
 
     // Hide vector property marker layers to replace with custom HTML pin marker
-    ['property-marker', 'property-marker-shadow', 'property-label', 'property-radius-glow'].forEach((layerId) => {
+    [
+      "property-marker",
+      "property-marker-shadow",
+      "property-label",
+      "property-radius-glow",
+    ].forEach((layerId) => {
       if (modalMap.getLayer(layerId)) {
-        modalMap.setLayoutProperty(layerId, 'visibility', 'none');
+        modalMap.setLayoutProperty(layerId, "visibility", "none");
       }
     });
 
     // Add custom HTML property marker in modal
     const markerEl = createCustomPropertyMarkerElement();
-    modalPropertyMarker = new maplibregl.Marker({ element: markerEl, anchor: 'bottom' })
+    modalPropertyMarker = new maplibregl.Marker({
+      element: markerEl,
+      anchor: "bottom",
+    })
       .setLngLat([lng, lat])
       .addTo(modalMap);
 
     modalMap.setFeatureState(
       {
-        source: 'property',
-        id: 'selected-property',
+        source: "property",
+        id: "selected-property",
       },
       {
         selected: true,
-      }
+      },
     );
   });
 }
@@ -1842,18 +2342,25 @@ function setModalMapMode(mode) {
 
   if (!modalMap?.getLayer(SATELLITE_LAYER_ID)) return;
 
-  const isSatellite = mode === 'satellite';
-  const pitch = isSatellite || !isModalMap3dEnabled.value ? TOP_DOWN_MAP_PITCH : STANDARD_MAP_PITCH;
+  const isSatellite = mode === "satellite";
+  const pitch =
+    isSatellite || !isModalMap3dEnabled.value
+      ? TOP_DOWN_MAP_PITCH
+      : STANDARD_MAP_PITCH;
 
   modalMap.setLayoutProperty(
     SATELLITE_LAYER_ID,
-    'visibility',
-    isSatellite ? 'visible' : 'none'
+    "visibility",
+    isSatellite ? "visible" : "none",
   );
 
   SATELLITE_HIDDEN_BASE_LAYERS.forEach((layerId) => {
     if (!modalMap.getLayer(layerId)) return;
-    modalMap.setLayoutProperty(layerId, 'visibility', isSatellite ? 'none' : 'visible');
+    modalMap.setLayoutProperty(
+      layerId,
+      "visibility",
+      isSatellite ? "none" : "visible",
+    );
   });
 
   modalMap.easeTo({
@@ -1864,7 +2371,9 @@ function setModalMapMode(mode) {
 }
 
 function toggleModalMapMode() {
-  setModalMapMode(modalMapMode.value === 'satellite' ? 'standard' : 'satellite');
+  setModalMapMode(
+    modalMapMode.value === "satellite" ? "standard" : "satellite",
+  );
 }
 
 function toggleModalMap3d() {
@@ -1872,8 +2381,8 @@ function toggleModalMap3d() {
 
   isModalMap3dEnabled.value = !isModalMap3dEnabled.value;
 
-  if (isModalMap3dEnabled.value && modalMapMode.value === 'satellite') {
-    setModalMapMode('standard');
+  if (isModalMap3dEnabled.value && modalMapMode.value === "satellite") {
+    setModalMapMode("standard");
     return;
   }
 
@@ -1899,7 +2408,7 @@ function toggleModalMap3d() {
 }
 
 onUnmounted(() => {
-  window.removeEventListener('resize', updateDescriptionToggle);
+  window.removeEventListener("resize", updateDescriptionToggle);
   if (map) {
     map.remove();
     map = null;
@@ -1916,7 +2425,7 @@ onUnmounted(() => {
     modalPropertyMarker.remove();
     modalPropertyMarker = null;
   }
-  document.body.style.overflow = '';
+  document.body.style.overflow = "";
 });
 </script>
 
@@ -2083,7 +2592,9 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color 0.2s, background-color 0.2s;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s;
 }
 
 .report-upload-box:hover,
@@ -2274,7 +2785,9 @@ onUnmounted(() => {
   background: rgba(15, 23, 42, 0.55);
   color: #fff;
   backdrop-filter: blur(10px);
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .image-lightbox-close:hover,
@@ -2399,7 +2912,10 @@ onUnmounted(() => {
   border-radius: 9999px;
   background: #fff;
   color: #64748b;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
 }
 
 .detail-icon-button:hover {
