@@ -1,105 +1,108 @@
-import { defineStore } from "pinia";
-import { ref, computed } from "vue";
-import authService from "@/services/authService";
-import { getAccessToken } from "@/utils/authCookies";
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import authService from '@/services/authService'
+import { getAccessToken } from '@/utils/authCookies'
 
-const USER_CACHE_KEY = "admin_user";
+const USER_CACHE_KEY = 'admin_user'
 
 function decodeJwtPayload(jwt) {
   try {
-    const payload = jwt.split(".")[1];
-    if (!payload) return null;
-    const base64 = payload.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(payload.length / 4) * 4, "=");
+    const payload = jwt.split('.')[1]
+    if (!payload) return null
+    const base64 = payload
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(payload.length / 4) * 4, '=')
     const json = decodeURIComponent(
       atob(base64)
-        .split("")
-        .map((char) => `%${char.charCodeAt(0).toString(16).padStart(2, "0")}`)
-        .join(""),
-    );
-    return JSON.parse(json);
+        .split('')
+        .map((char) => `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`)
+        .join(''),
+    )
+    return JSON.parse(json)
   } catch {
-    return null;
+    return null
   }
 }
 
 function roleFromToken(jwt) {
-  return decodeJwtPayload(jwt)?.role || null;
+  return decodeJwtPayload(jwt)?.role || null
 }
 
-export const useAuthStore = defineStore("auth", () => {
-  const user = ref(null);
-  const token = ref(null);
-  const loading = ref(false);
+export const useAuthStore = defineStore('auth', () => {
+  const user = ref(null)
+  const token = ref(null)
+  const loading = ref(false)
 
-  const isAuthenticated = computed(() => !!token.value);
-  const isAdmin = computed(() => user.value?.role === "ADMIN");
+  const isAuthenticated = computed(() => !!token.value)
+  const isAdmin = computed(() => user.value?.role === 'ADMIN')
 
   async function initAuth() {
-    const savedToken = getAccessToken();
-    if (!savedToken) return;
+    const savedToken = getAccessToken()
+    if (!savedToken) return
 
-    if (roleFromToken(savedToken) !== "ADMIN") {
-      clearAuth();
-      return;
+    if (roleFromToken(savedToken) !== 'ADMIN') {
+      clearAuth()
+      return
     }
 
-    token.value = savedToken;
-    sessionStorage.removeItem(USER_CACHE_KEY);
+    token.value = savedToken
+    sessionStorage.removeItem(USER_CACHE_KEY)
 
     try {
-      await fetchUser();
+      await fetchUser()
       if (!isAdmin.value) {
-        clearAuth();
+        clearAuth()
       }
     } catch {
-      clearAuth();
+      clearAuth()
     }
   }
 
   async function login(email, password) {
-    loading.value = true;
+    loading.value = true
     try {
-      await authService.login(email, password);
-      token.value = getAccessToken();
+      await authService.login(email, password)
+      token.value = getAccessToken()
 
-      if (!token.value || roleFromToken(token.value) !== "ADMIN") {
-        clearAuth();
+      if (!token.value || roleFromToken(token.value) !== 'ADMIN') {
+        clearAuth()
         return {
           success: false,
-          message: "Tài khoản không có quyền truy cập trang quản trị.",
-        };
+          message: 'Tài khoản không có quyền truy cập trang quản trị.',
+        }
       }
 
-      await fetchUser();
+      await fetchUser()
 
-      return { success: true };
+      return { success: true }
     } catch (error) {
-      const message = error.response?.data?.message || "Đăng nhập thất bại";
-      return { success: false, message };
+      const message = error.response?.data?.message || 'Đăng nhập thất bại'
+      return { success: false, message }
     } finally {
-      loading.value = false;
+      loading.value = false
     }
   }
 
   async function fetchUser() {
-    const res = await authService.getMe();
-    user.value = res.data.data;
-    sessionStorage.removeItem(USER_CACHE_KEY);
+    const res = await authService.getMe()
+    user.value = res.data.data
+    sessionStorage.removeItem(USER_CACHE_KEY)
   }
 
   async function logout() {
     try {
-      await authService.logout();
+      await authService.logout()
     } catch {
       // Always clear local auth state even when the server request fails.
     }
-    clearAuth();
+    clearAuth()
   }
 
   function clearAuth() {
-    user.value = null;
-    token.value = null;
-    sessionStorage.removeItem(USER_CACHE_KEY);
+    user.value = null
+    token.value = null
+    sessionStorage.removeItem(USER_CACHE_KEY)
   }
 
   return {
@@ -113,5 +116,5 @@ export const useAuthStore = defineStore("auth", () => {
     fetchUser,
     logout,
     clearAuth,
-  };
-});
+  }
+})

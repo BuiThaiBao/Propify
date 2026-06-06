@@ -39,8 +39,16 @@ const form = reactive({
 
 const filters = computed(() => [
   { value: 'all', label: 'Tất cả', count: amenities.value.length },
-  { value: 'with_icon', label: 'Có icon', count: amenities.value.filter((item) => item.icon).length },
-  { value: 'without_icon', label: 'Chưa có icon', count: amenities.value.filter((item) => !item.icon).length },
+  {
+    value: 'with_icon',
+    label: 'Có icon',
+    count: amenities.value.filter((item) => item.icon).length,
+  },
+  {
+    value: 'without_icon',
+    label: 'Chưa có icon',
+    count: amenities.value.filter((item) => !item.icon).length,
+  },
 ])
 
 const filteredAmenities = computed(() => {
@@ -59,7 +67,11 @@ const filteredAmenities = computed(() => {
         .filter((value) => value !== null && value !== undefined)
         .some((value) => String(value).toLowerCase().includes(normalizedKeyword))
     })
-    .sort((a, b) => Number(a.order_index || 0) - Number(b.order_index || 0) || String(a.name).localeCompare(String(b.name)))
+    .sort(
+      (a, b) =>
+        Number(a.order_index || 0) - Number(b.order_index || 0) ||
+        String(a.name).localeCompare(String(b.name)),
+    )
 })
 
 const pagedAmenities = computed(() => {
@@ -67,9 +79,15 @@ const pagedAmenities = computed(() => {
   return filteredAmenities.value.slice(start, start + perPage.value)
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredAmenities.value.length / perPage.value)))
-const visibleFrom = computed(() => (filteredAmenities.value.length === 0 ? 0 : (page.value - 1) * perPage.value + 1))
-const visibleTo = computed(() => Math.min(page.value * perPage.value, filteredAmenities.value.length))
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredAmenities.value.length / perPage.value)),
+)
+const visibleFrom = computed(() =>
+  filteredAmenities.value.length === 0 ? 0 : (page.value - 1) * perPage.value + 1,
+)
+const visibleTo = computed(() =>
+  Math.min(page.value * perPage.value, filteredAmenities.value.length),
+)
 
 onMounted(loadAmenities)
 
@@ -138,7 +156,9 @@ async function submitForm() {
     await loadAmenities()
   } catch (err) {
     const validationErrors = err.response?.data?.errors
-    error.value = validationErrors ? Object.values(validationErrors).flat().join(' ') : err.response?.data?.message || 'Không thể lưu tiện ích.'
+    error.value = validationErrors
+      ? Object.values(validationErrors).flat().join(' ')
+      : err.response?.data?.message || 'Không thể lưu tiện ích.'
   } finally {
     saving.value = false
   }
@@ -154,14 +174,20 @@ function changePage(nextPage) {
 }
 
 function nextOrderIndex() {
-  const maxOrder = amenities.value.reduce((max, amenity) => Math.max(max, Number(amenity.order_index || 0)), 0)
+  const maxOrder = amenities.value.reduce(
+    (max, amenity) => Math.max(max, Number(amenity.order_index || 0)),
+    0,
+  )
   return maxOrder + 1
 }
 </script>
 
 <template>
   <div class="amenities-page">
-    <PageHeader title="Tiện ích hệ thống" description="Quản lý danh mục tiện ích dùng chung cho bất động sản">
+    <PageHeader
+      title="Tiện ích hệ thống"
+      description="Quản lý danh mục tiện ích dùng chung cho bất động sản"
+    >
       <template #actions>
         <button class="primary-btn" id="btn-add-amenity" type="button" @click="openCreateDrawer">
           <Plus :size="17" />
@@ -240,7 +266,12 @@ function nextOrderIndex() {
               </span>
             </td>
             <td class="actions-col">
-              <button class="icon-btn" type="button" :title="`Sửa ${amenity.name}`" @click="openEditDrawer(amenity)">
+              <button
+                class="icon-btn"
+                type="button"
+                :title="`Sửa ${amenity.name}`"
+                @click="openEditDrawer(amenity)"
+              >
                 <Edit3 :size="16" />
               </button>
               <button class="icon-btn" type="button" aria-hidden="true" tabindex="-1">
@@ -253,12 +284,19 @@ function nextOrderIndex() {
 
       <footer class="table-footer">
         <span>Tất cả {{ filteredAmenities.length }} dòng</span>
-        <span v-if="filteredAmenities.length" class="range-text">{{ visibleFrom }}-{{ visibleTo }}</span>
+        <span v-if="filteredAmenities.length" class="range-text"
+          >{{ visibleFrom }}-{{ visibleTo }}</span
+        >
         <button class="pager-btn" type="button" :disabled="page <= 1" @click="changePage(page - 1)">
           <ChevronLeft :size="16" />
         </button>
         <span class="page-number">{{ page }}</span>
-        <button class="pager-btn" type="button" :disabled="page >= totalPages" @click="changePage(page + 1)">
+        <button
+          class="pager-btn"
+          type="button"
+          :disabled="page >= totalPages"
+          @click="changePage(page + 1)"
+        >
           <ChevronRight :size="16" />
         </button>
         <select v-model.number="perPage" class="per-page" @change="page = 1">
@@ -281,12 +319,22 @@ function nextOrderIndex() {
         <form class="drawer-form" @submit.prevent="submitForm">
           <label class="field">
             <span>Tên tiện ích <b>*</b></span>
-            <input v-model.trim="form.name" type="text" maxlength="255" placeholder="Nhập tên tiện ích" />
+            <input
+              v-model.trim="form.name"
+              type="text"
+              maxlength="255"
+              placeholder="Nhập tên tiện ích"
+            />
           </label>
 
           <label class="field">
             <span>Icon</span>
-            <input v-model.trim="form.icon" type="text" maxlength="255" placeholder="Wifi, Car, Pool..." />
+            <input
+              v-model.trim="form.icon"
+              type="text"
+              maxlength="255"
+              placeholder="Wifi, Car, Pool..."
+            />
           </label>
 
           <label class="field">
@@ -302,10 +350,14 @@ function nextOrderIndex() {
           </div>
 
           <footer class="drawer-actions">
-            <button class="secondary-btn" type="button" :disabled="saving" @click="closeDrawer">Quay lại</button>
+            <button class="secondary-btn" type="button" :disabled="saving" @click="closeDrawer">
+              Quay lại
+            </button>
             <button class="primary-btn primary-btn--wide" type="submit" :disabled="saving">
               <Check :size="17" />
-              <span>{{ saving ? 'Đang lưu...' : drawer.mode === 'edit' ? 'Lưu thay đổi' : 'Thêm mới' }}</span>
+              <span>{{
+                saving ? 'Đang lưu...' : drawer.mode === 'edit' ? 'Lưu thay đổi' : 'Thêm mới'
+              }}</span>
             </button>
           </footer>
         </form>

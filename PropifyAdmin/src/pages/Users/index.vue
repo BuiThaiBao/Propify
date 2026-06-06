@@ -10,19 +10,10 @@ const filterRole = ref('all')
 
 <template>
   <div>
-    <PageHeader
-      title="Quản lý tài khoản"
-      subtitle="Quản lý người dùng và môi giới trên hệ thống"
-    />
+    <PageHeader title="Quản lý tài khoản" subtitle="Quản lý người dùng và môi giới trên hệ thống" />
 
-    <UsersFilter
-      v-model:search="searchQuery"
-      v-model:role="filterRole"
-    />
+    <UsersFilter v-model:search="searchQuery" v-model:role="filterRole" />
 
-    <UsersTable
-      :search="searchQuery"
-      :filter-role="filterRole"
-    />
+    <UsersTable :search="searchQuery" :filter-role="filterRole" />
   </div>
 </template>

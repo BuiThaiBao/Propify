@@ -1,0 +1,7 @@
+[      97ms] [WARNING] [Vue Router warn]: No match found for location with path "/news" @ http://127.0.0.1:4173/@vite/client:509
+[      97ms] [WARNING] [Vue Router warn]: No match found for location with path "/contact" @ http://127.0.0.1:4173/@vite/client:509
+[      99ms] [WARNING] [Vue Router warn]: The `next()` callback in navigation guards is deprecated. Return the value instead of calling `next(value)`. @ http://127.0.0.1:4173/@vite/client:509
+[      99ms] [WARNING] [Vue Router warn]: The `next()` callback in navigation guards is deprecated. Return the value instead of calling `next(value)`. @ http://127.0.0.1:4173/@vite/client:509
+[     126ms] [WARNING] [Vue Router warn]: No match found for location with path "/news" @ http://127.0.0.1:4173/@vite/client:509
+[     126ms] [WARNING] [Vue Router warn]: No match found for location with path "/contact" @ http://127.0.0.1:4173/@vite/client:509
+[     239ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:4173/login?redirect=/post-listing:0

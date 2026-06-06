@@ -1,4 +1,4 @@
-import api from "./api";
+import api from './api'
 
 /**
  * Authentication service for PropifyAdmin.
@@ -13,7 +13,7 @@ const authService = {
    * @returns {Promise<import('axios').AxiosResponse>} Response containing { user, token_type, expires_in } and admin auth cookies
    */
   login(email, password) {
-    return api.post("/v1/auth/login", { email, password });
+    return api.post('/v1/auth/login', { email, password })
   },
 
   /**
@@ -23,7 +23,7 @@ const authService = {
    * @returns {Promise<import('axios').AxiosResponse>}
    */
   getMe() {
-    return api.get("/v1/auth/me");
+    return api.get('/v1/auth/me')
   },
 
   /**
@@ -32,7 +32,7 @@ const authService = {
    * @returns {Promise<import('axios').AxiosResponse>}
    */
   logout() {
-    return api.post("/v1/auth/logout");
+    return api.post('/v1/auth/logout')
   },
 
   /**
@@ -41,8 +41,8 @@ const authService = {
    * @returns {Promise<import('axios').AxiosResponse>}
    */
   refreshToken() {
-    return api.post("/v1/auth/refresh");
+    return api.post('/v1/auth/refresh')
   },
-};
+}
 
-export default authService;
+export default authService

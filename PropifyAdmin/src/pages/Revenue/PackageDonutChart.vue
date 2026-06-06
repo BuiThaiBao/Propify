@@ -29,7 +29,7 @@ function getArcPath(start, end, outerR, innerR) {
 }
 
 let cumulative = 0
-const arcs = packages.map(pkg => {
+const arcs = packages.map((pkg) => {
   const start = cumulative
   cumulative += pkg.value
   return {
@@ -59,14 +59,12 @@ const arcs = packages.map(pkg => {
           font-size="18"
           font-weight="700"
           fill="#0f172a"
-        >{{ total }}%</text>
-        <text
-          :x="cx"
-          :y="cy + 14"
-          text-anchor="middle"
-          font-size="10"
-          fill="#94a3b8"
-        >Tổng cộng</text>
+        >
+          {{ total }}%
+        </text>
+        <text :x="cx" :y="cy + 14" text-anchor="middle" font-size="10" fill="#94a3b8">
+          Tổng cộng
+        </text>
       </svg>
     </div>
 

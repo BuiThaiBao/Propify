@@ -13,10 +13,7 @@ const years = ['2024', '2023', '2022', '2021']
 
 <template>
   <div>
-    <PageHeader
-      title="Doanh thu & báo cáo"
-      subtitle="Thống kê doanh thu và hiệu suất hệ thống"
-    >
+    <PageHeader title="Doanh thu & báo cáo" subtitle="Thống kê doanh thu và hiệu suất hệ thống">
       <template #actions>
         <select v-model="selectedYear" class="year-select" id="year-select">
           <option v-for="y in years" :key="y" :value="y">Năm {{ y }}</option>

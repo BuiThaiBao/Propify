@@ -1,0 +1,56 @@
+- generic [active]:
+  - navigation [ref=e1]:
+    - generic [ref=e2]:
+      - link "Propify" [ref=e3] [cursor=pointer]:
+        - /url: /
+        - img [ref=e4]
+        - generic [ref=e8]: Propify
+      - generic [ref=e9]:
+        - link "Trang chủ" [ref=e10] [cursor=pointer]:
+          - /url: /
+        - link "Mua bán" [ref=e11] [cursor=pointer]:
+          - /url: /sales
+        - link "Cho thuê" [ref=e12] [cursor=pointer]:
+          - /url: /rent
+        - link "Bảng giá" [ref=e13] [cursor=pointer]:
+          - /url: /pricing
+        - link "Tin tức" [ref=e14] [cursor=pointer]:
+          - /url: /news
+        - link "Liên hệ" [ref=e15] [cursor=pointer]:
+          - /url: /contact
+      - generic [ref=e16]:
+        - button "Đăng nhập" [ref=e17] [cursor=pointer]
+        - button "Đăng tin" [ref=e18] [cursor=pointer]
+  - generic [ref=e20]:
+    - button [ref=e21] [cursor=pointer]:
+      - img [ref=e22]
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - img [ref=e27]
+        - generic [ref=e31]: Propify
+      - generic [ref=e32]: Nền tảng bất động sản
+    - heading "Xin chào," [level=1] [ref=e33]
+    - paragraph [ref=e34]: Đăng nhập hoặc tạo tài khoản
+    - generic [ref=e35]:
+      - textbox "Email của bạn" [ref=e36]
+      - generic: Email của bạn *
+      - img [ref=e38]
+    - generic [ref=e41]:
+      - textbox "Mật khẩu" [ref=e42]
+      - generic: Mật khẩu *
+      - button [ref=e43] [cursor=pointer]:
+        - img [ref=e44]
+    - button "Quên mật khẩu?" [ref=e48] [cursor=pointer]
+    - button "Tiếp tục" [disabled] [ref=e49]
+    - generic [ref=e52]: Hoặc
+    - button "Đăng nhập với Google" [ref=e54] [cursor=pointer]:
+      - img [ref=e55]
+      - text: Đăng nhập với Google
+    - paragraph [ref=e60]:
+      - text: Chưa có tài khoản?
+      - button "Đăng ký ngay" [ref=e61] [cursor=pointer]
+    - paragraph [ref=e62]:
+      - text: Bằng việc tiếp tục, bạn đã đồng ý với chúng tôi về
+      - button "Điều khoản sử dụng" [ref=e63] [cursor=pointer]
+      - text: "&"
+      - button "Chính sách bảo vệ dữ liệu cá nhân" [ref=e64] [cursor=pointer]

@@ -127,8 +127,12 @@ async function handleLogout() {
   overflow: hidden;
 }
 
-.sidebar--expanded { width: 260px; }
-.sidebar--collapsed { width: 72px; }
+.sidebar--expanded {
+  width: 260px;
+}
+.sidebar--collapsed {
+  width: 72px;
+}
 
 /* Logo */
 .sidebar-logo {
@@ -278,7 +282,9 @@ async function handleLogout() {
   font-weight: 500;
   white-space: nowrap;
   width: 100%;
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 .logout-btn:hover:not(:disabled) {

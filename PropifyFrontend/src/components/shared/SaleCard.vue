@@ -1,330 +1,61 @@
-
 <template>
-	<RouterLink :to="to" class="block no-underline text-inherit">
-	<div 
-		class="bg-white rounded flex gap-4 group overflow-hidden h-[210px] border border-transparent hover:border-slate-200 transition-colors duration-200"
-		:class="packageBorderClass"
-	>
-		<!-- Left Media Column -->
-		<div class="flex flex-col gap-2 shrink-0 w-[280px] md:w-[300px] h-full pt-[1px] pb-[1px] pl-[1px]">
-			<!-- Main Image Box -->
-			<div class="relative w-full h-0 flex-1 rounded overflow-hidden">
-				<img :src="imageList[activeImgIdx]" alt="Property" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-
-				<div v-if="packageIcon" class="absolute top-0 left-0">
-					<span class="relative inline-block">
-						<img :src="packageIcon" class="block h-[4.3rem] w-auto" alt="" />
-						<span class="absolute top-[30%] right-1 flex h-[37%] items-center justify-center px-3 text-[10px] font-extrabold tracking-wide text-white whitespace-nowrap">
-							{{ packageLabel }}
-						</span>
-					</span>
-				</div>
-
-				<!-- Image navigation arrows (visible on hover) -->
-				<div v-if="imageList.length > 1" class="absolute inset-0 flex items-center justify-between px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
-					<button 
-						type="button" 
-						@click.prevent.stop="prevImg" 
-						class="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-sm transition-all pointer-events-auto active:scale-90"
-						aria-label="Ảnh trước"
-					>
-						<ChevronLeft class="w-5 h-5" />
-					</button>
-					<button 
-						type="button" 
-						@click.prevent.stop="nextImg" 
-						class="w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center backdrop-blur-sm transition-all pointer-events-auto active:scale-90"
-						aria-label="Ảnh sau"
-					>
-						<ChevronRight class="w-5 h-5" />
-					</button>
-				</div>
-
-				<div class="absolute top-3 right-3 z-20">
-					<button
-						type="button"
-						:class="[
-							'backdrop-blur-md p-2 rounded-full transition-all shadow-sm',
-							isFavorite ? 'bg-rose-500 text-white hover:bg-rose-600' : 'bg-white/20 hover:bg-white/30 text-white'
-						]"
-						aria-label="Yêu thích"
-						@click.prevent.stop="$emit('toggleFavorite')"
-					>
-						<Heart class="w-4 h-4" :fill="isFavorite ? 'currentColor' : 'none'" />
-					</button>
-				</div>
-
-				<!-- Pagination Indicator (e.g. 1/4) -->
-				<div v-if="imageList.length > 1" class="absolute bottom-3 right-3 bg-black/50 text-white text-[10px] px-2 py-1 rounded-full backdrop-blur-sm font-medium z-20">
-					{{ activeImgIdx + 1 }}/{{ imageList.length }}
-				</div>
-
-				<!-- Dynamic Pagination Dots (only show for standard/gold packages) -->
-				<div v-if="imageList.length > 1 && !isPremium" class="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1 z-20">
-					<div 
-						v-for="(img, idx) in imageList" 
-						:key="idx" 
-						class="w-1.5 h-1.5 rounded-full transition-all duration-300 shadow-sm"
-						:class="idx === activeImgIdx ? 'bg-white scale-110' : 'bg-white/50'"
-					></div>
-				</div>
-			</div>
-
-			<!-- Premium Thumbnails Row (only show for Diamond/Ruby packages) -->
-			<div v-if="isPremium && imageList.length > 1" class="flex gap-1 h-[50px] shrink-0 w-full">
-				<div 
-					v-for="(img, idx) in previewImages" 
-					:key="idx"
-					@click.prevent.stop="activeImgIdx = idx"
-					class="relative flex-1 rounded-sm bg-slate-100 overflow-hidden cursor-pointer transition-all"
-					:class="idx === Math.min(activeImgIdx, 2) ? 'ring-2 ring-blue-500 ring-inset' : 'hover:opacity-90'"
-				>
-					<img :src="img" class="w-full h-full object-cover" alt="" />
-					<!-- Overlay on last thumb if there are more than 3 images -->
-					<div v-if="idx === 2 && imageList.length > 3" class="absolute inset-0 bg-black/60 text-white flex items-center justify-center text-[11px] font-bold">
-						+{{ remainingImagesCount }}
-					</div>
-				</div>
-			</div>
-		</div>
-
-		<div class="flex-1 flex flex-col justify-between py-3 pr-4 min-w-0">
-			<div>
-				<div class="flex items-center justify-between gap-2 mb-1.5">
-					<div class="flex items-center gap-1.5 flex-wrap">
-						<span class="border border-gray-300 text-gray-600 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-white">
-							{{ type }}
-						</span>
-						<span v-if="verified" class="border border-emerald-400 text-emerald-600 text-[11px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1 bg-emerald-50">
-							<CheckCircle class="w-3 h-3" />
-							Xác thực
-						</span>
-					</div>
-
-					<div v-if="rating" class="shrink-0 w-9 h-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center text-sm font-bold border border-sky-200">
-						{{ rating }}
-					</div>
-				</div>
-
-				<h3 class="text-[15px] font-bold text-gray-900 leading-snug mb-1.5 line-clamp-2 group-hover:text-blue-600 transition-colors">
-					{{ title }}
-				</h3>
-
-				<p class="text-[13px] text-gray-500 flex items-center gap-4 mb-1.5 min-w-0">
-					<span class="flex items-center gap-1 min-w-0 flex-1">
-						<MapPin class="w-3.5 h-3.5 text-blue-500 shrink-0" />
-						<span class="truncate">{{ location }}</span>
-					</span>
-				</p>
-
-				<div class="flex items-baseline gap-1 mb-2.5">
-					<span class="text-xl font-bold text-blue-600">{{ price }}</span>
-					<span class="text-sm font-medium text-gray-500" v-if="unit">{{ unit }}</span>
-				</div>
-
-				<div class="flex items-center gap-3 text-[13px] text-gray-600">
-					<div class="flex items-center gap-1.5">
-						<Maximize class="w-4 h-4 text-gray-400" />
-						<span><span class="font-semibold text-gray-800">{{ area }}</span> m²</span>
-					</div>
-					<div class="w-px h-3 bg-gray-200"></div>
-					<div class="flex items-center gap-1.5">
-						<Bed class="w-4 h-4 text-gray-400" />
-						<span><span class="font-semibold text-gray-800">{{ beds }}</span> PN</span>
-					</div>
-					<div class="w-px h-3 bg-gray-200"></div>
-					<div class="flex items-center gap-1.5">
-						<Bath class="w-4 h-4 text-gray-400" />
-						<span><span class="font-semibold text-gray-800">{{ baths }}</span> WC</span>
-					</div>
-				</div>
-			</div>
-
-			<div class="flex justify-between items-center pt-2 mt-2 border-t border-gray-100">
-				<div class="flex items-center gap-2">
-					<div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0">
-						{{ getInitials(author.name) }}
-					</div>
-					<div class="flex flex-col leading-tight">
-						<span class="text-xs font-bold text-gray-800">{{ author.name }}</span>
-						<span class="text-[10px] text-gray-500">{{ author.role }}</span>
-					</div>
-				</div>
-
-				<div class="flex items-center gap-3">
-					<div class="flex items-center gap-1 text-[12px] text-gray-400">
-						<CalendarDays class="w-3.5 h-3.5 shrink-0" />
-						{{ timeAgo }}
-					</div>
-					<div class="flex items-center gap-1 text-[12px] text-gray-500">
-						<Eye class="w-3.5 h-3.5" />
-						{{ views }}
-					</div>
-					<button @click.prevent="showPhone = !showPhone" class="bg-blue-500 hover:bg-blue-600 text-white text-[13px] font-semibold px-4 py-1.5 rounded-xl flex items-center gap-1.5 transition-colors shadow-sm shadow-blue-500/20">
-						<Phone class="w-3.5 h-3.5" />
-						{{ showPhone ? (author.phone || '0901234567') : 'Liên hệ' }}
-					</button>
-				</div>
-			</div>
-		</div>
-	</div>
-	</RouterLink>
+  <ListingRowCard
+    :listing="listingData"
+    :to="to"
+    :unit="unit"
+    mode="sale"
+    :is-favorite="isFavorite"
+    :rating="rating"
+    @toggle-favorite="$emit('toggleFavorite')"
+  />
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
-import { MapPin, Maximize, Bed, Bath, Heart, Eye, Phone, CheckCircle, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-vue-next';
-
-const showPhone = ref(false);
-
-const priorityIconMap = { 2: '/vip.svg', 3: '/premium.svg', 4: '/diamond.svg' };
+import { computed } from "vue";
+import ListingRowCard from "@/components/shared/ListingRowCard.vue";
 
 const props = defineProps({
-	listingId: { type: [Number, String], default: null },
-	isFavorite: { type: Boolean, default: false },
-	to: { type: String, default: '#' },
-	image: { type: String, default: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60' },
-	images: { type: Array, default: () => [] },
-	verified: { type: Boolean, default: true },
-	type: { type: String, default: 'Căn hộ' },
-	title: { type: String, default: 'Căn hộ view thành phố tầng cao' },
-	location: { type: String, default: 'Bình Thạnh, TP. Hồ Chí Minh' },
-	price: { type: String, default: '18 triệu' },
-	unit: { type: String, default: '/tháng' },
-	area: { type: [Number, String], default: 95 },
-	beds: { type: [Number, String], default: 2 },
-	baths: { type: [Number, String], default: 2 },
-	rating: { type: [Number, String], default: 8 },
-	author: {
-		type: Object,
-		default: () => ({ name: 'Nguyễn Thị Lan', role: 'Môi giới' })
-	},
-	timeAgo: { type: String, default: '5 giờ trước' },
-	package: { type: Object, default: null },
-	views: { type: [Number, String], default: 215 },
+  listingId: { type: [Number, String], default: null },
+  isFavorite: { type: Boolean, default: false },
+  to: { type: String, default: "#" },
+  images: { type: Array, default: () => [] },
+  verified: { type: Boolean, default: true },
+  type: { type: String, default: "Căn hộ" },
+  title: { type: String, default: "Căn hộ view thành phố tầng cao" },
+  location: { type: String, default: "Bình Thạnh, TP. Hồ Chí Minh" },
+  price: { type: String, default: "18 triệu" },
+  unit: { type: String, default: "" },
+  area: { type: [Number, String], default: 95 },
+  beds: { type: [Number, String], default: 2 },
+  baths: { type: [Number, String], default: 2 },
+  rating: { type: [Number, String], default: 8 },
+  author: {
+    type: Object,
+    default: () => ({ name: "Nguyễn Thị Lan", role: "Môi giới" }),
+  },
+  timeAgo: { type: String, default: "5 giờ trước" },
+  package: { type: Object, default: null },
+  views: { type: [Number, String], default: 215 },
 });
 
-const activeImgIdx = ref(0);
+defineEmits(["toggleFavorite"]);
 
-const imageList = computed(() => {
-	if (props.images && props.images.length > 0) {
-		return props.images.map(img => typeof img === 'object' ? img.url : img);
-	}
-	return [props.image];
-});
-
-const isPremium = computed(() => {
-	const slug = String(props.package?.slug || '').toLowerCase();
-	const priority = Number(props.package?.priority || 0);
-	return slug === 'diamond' || slug === 'ruby' || priority === 4;
-});
-
-const previewImages = computed(() => {
-	return imageList.value.slice(0, 3);
-});
-
-const remainingImagesCount = computed(() => {
-	return imageList.value.length - 2;
-});
-
-function nextImg() {
-	if (imageList.value.length <= 1) return;
-	activeImgIdx.value = (activeImgIdx.value + 1) % imageList.value.length;
-}
-
-function prevImg() {
-	if (imageList.value.length <= 1) return;
-	activeImgIdx.value = (activeImgIdx.value - 1 + imageList.value.length) % imageList.value.length;
-}
-
-defineEmits(['toggleFavorite']);
-
-const packageIcon = computed(() => {
-	const priority = Number(props.package?.priority || 0);
-	return priorityIconMap[priority] || null;
-});
-
-const packageLabel = computed(() => {
-	return props.package?.badge || props.package?.name || null;
-});
-
-const packageBorderClass = computed(() => {
-	const slug = String(props.package?.slug || '').toLowerCase();
-	const priority = Number(props.package?.priority || 0);
-	if (slug === 'ruby') return 'border-package border-package-ruby';
-	if (slug === 'gold' || priority === 3) return 'border-package border-package-gold';
-	if (slug === 'diamond' || priority === 4) return 'border-package border-package-diamond';
-	return '';
-});
-
-function getInitials(name) {
-	if (!name) return 'U';
-	const parts = name.split(' ');
-	if (parts.length > 1) return parts[0][0] + parts[parts.length - 1][0];
-	return name.substring(0, 2).toUpperCase();
-}
+const listingData = computed(() => ({
+  id: props.listingId,
+  title: props.title,
+  images: props.images,
+  views: props.views,
+  package: props.package,
+  displayType: props.type,
+  formattedPrice: props.price,
+  displayLocation: props.location,
+  authorInfo: props.author,
+  timeAgoLabel: props.timeAgo,
+  is_verified: props.verified,
+  property: {
+    area: props.area,
+    bedrooms: props.beds,
+    bathrooms: props.baths,
+  },
+}));
 </script>
-
-<style scoped>
-.border-package {
-	position: relative;
-	border: none !important; /* Hide default border to show animation */
-	background: #fff;
-	background-clip: padding-box;
-}
-
-.border-package::after {
-	content: "";
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	border-radius: 0.25rem;
-	padding: 2px; /* Border thickness */
-	background: conic-gradient(
-		from var(--angle),
-		transparent 70%,
-		var(--package-border-color) 85%,
-		var(--package-border-glow) 95%,
-		transparent 100%
-	);
-	-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-	mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-	-webkit-mask-composite: xor;
-	mask-composite: exclude;
-	animation: diamond-rotate 2s linear infinite;
-	pointer-events: none;
-	z-index: 10;
-}
-
-.border-package-diamond {
-	--package-border-color: #3b82f6;
-	--package-border-glow: #60a5fa;
-}
-
-.border-package-ruby {
-	--package-border-color: #dc2626;
-	--package-border-glow: #fb7185;
-}
-
-.border-package-gold {
-	--package-border-color: #d97706;
-	--package-border-glow: #facc15;
-}
-
-@property --angle {
-	syntax: "<angle>";
-	initial-value: 0deg;
-	inherits: false;
-}
-
-@keyframes diamond-rotate {
-	from {
-		--angle: 0deg;
-	}
-	to {
-		--angle: 360deg;
-	}
-}
-</style>

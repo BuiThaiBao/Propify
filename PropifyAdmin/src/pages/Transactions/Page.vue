@@ -16,28 +16,34 @@ import {
   Calendar,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-vue-next'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import StatCard from '@/components/shared/StatCard.vue'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 import { useTransactionApi } from '@/composables/useTransactionApi'
 import { usePackageApi } from '@/composables/usePackageApi'
+import {
+  formatTransactionAmount,
+  formatTransactionDateTime,
+  getTransactionPackageBadgeClass,
+} from '@/utils/transactionFormatters'
 
-const { fetchTransactions, fetchTransaction, storeNote, exportCsv, loading, error } = useTransactionApi()
+const { fetchTransactions, fetchTransaction, storeNote, exportCsv, loading, error } =
+  useTransactionApi()
 const { fetchPackages } = usePackageApi()
 
 // State quản lý danh sách & phân trang
 const transactions = ref([])
 const summary = ref({
   total_revenue: '0.00',
-  counts: { SUCCESS: 0, PENDING: 0, FAILED: 0 }
+  counts: { SUCCESS: 0, PENDING: 0, FAILED: 0 },
 })
 const meta = ref({
   current_page: 1,
   last_page: 1,
   per_page: 10,
-  total: 0
+  total: 0,
 })
 
 // State bộ lọc
@@ -88,10 +94,13 @@ async function loadTransactions(page = 1) {
       min_amount: filters.value.min_amount || undefined,
       max_amount: filters.value.max_amount || undefined,
     }
-    
+
     const res = await fetchTransactions(params)
     transactions.value = res.data || []
-    summary.value = res.summary || { total_revenue: '0.00', counts: { SUCCESS: 0, PENDING: 0, FAILED: 0 } }
+    summary.value = res.summary || {
+      total_revenue: '0.00',
+      counts: { SUCCESS: 0, PENDING: 0, FAILED: 0 },
+    }
     meta.value = res.meta || { current_page: 1, last_page: 1, per_page: 10, total: 0 }
   } catch (err) {
     console.error('Lỗi tải danh sách giao dịch:', err)
@@ -114,12 +123,15 @@ function resetFilters() {
 }
 
 // Watcher debounced cho ô tìm kiếm
-watch(() => filters.value.search, (newVal) => {
-  clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    searchDebounced.value = newVal
-  }, 400)
-})
+watch(
+  () => filters.value.search,
+  (newVal) => {
+    clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+      searchDebounced.value = newVal
+    }, 400)
+  },
+)
 
 // Watcher cho các bộ lọc còn lại (tự động reload và reset về page 1 khi thay đổi)
 watch(
@@ -134,7 +146,7 @@ watch(
   ],
   () => {
     loadTransactions(1)
-  }
+  },
 )
 
 // Copy nhanh mã giao dịch vào clipboard
@@ -145,27 +157,6 @@ function copyToClipboard(text, id) {
     setTimeout(() => {
       if (copiedId.value === id) copiedId.value = null
     }, 1500)
-  })
-}
-
-// Format số tiền sang định dạng VND
-function formatVND(value) {
-  if (value === undefined || value === null) return '0 đ'
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)
-}
-
-// Format ngày giờ
-function formatDateTime(dateStr) {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr)
-  return date.toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    timeZone: 'Asia/Ho_Chi_Minh'
   })
 }
 
@@ -193,19 +184,19 @@ async function saveNote() {
   savingNote.value = true
   try {
     const updatedNote = await storeNote(selectedTx.value.id, newNote.value)
-    
+
     // Thêm note mới vào danh sách notes của selectedTx để hiển thị ngay lập tức
     if (!selectedTx.value.notes) selectedTx.value.notes = []
     selectedTx.value.notes.unshift({
       id: updatedNote.id,
       note: updatedNote.note,
       created_at: updatedNote.created_at,
-      admin: updatedNote.admin
+      admin: updatedNote.admin,
     })
-    
+
     newNote.value = ''
     showConfirmNoteModal.value = false
-    
+
     // Reload danh sách ngầm để cập nhật cột note mới nhất ngoài bảng
     loadTransactions(meta.value.current_page)
   } catch (err) {
@@ -233,38 +224,33 @@ async function handleExport() {
   }
 }
 
-// Trả về class styling cho badge gói tin
-function getPackageBadgeClass(slug) {
-  const s = String(slug || '').toLowerCase()
-  if (s === 'diamond') return 'bg-blue-50 text-blue-600 border border-blue-200'
-  if (s === 'ruby') return 'bg-rose-50 text-rose-600 border border-rose-200/80'
-  if (s === 'gold') return 'bg-amber-50 text-amber-600 border border-amber-200/80'
-  return 'bg-slate-50 text-slate-600 border border-slate-200/60'
-}
-
 // Tính toán các trang hiển thị thông minh
+const formatVND = (value) => formatTransactionAmount(value)
+const formatDateTime = (value) => formatTransactionDateTime(value)
+const getPackageBadgeClass = (slug) => getTransactionPackageBadgeClass(slug)
+
 const visiblePages = computed(() => {
   const current = meta.value.current_page
   const last = meta.value.last_page
   const pages = []
-  
+
   if (last <= 7) {
     for (let i = 1; i <= last; i++) pages.push(i)
   } else {
     pages.push(1)
     if (current > 4) pages.push('...')
-    
+
     const start = Math.max(2, current - 2)
     const end = Math.min(last - 1, current + 2)
-    
+
     for (let i = start; i <= end; i++) {
       pages.push(i)
     }
-    
+
     if (current < last - 3) pages.push('...')
     pages.push(last)
   }
-  
+
   return pages
 })
 
@@ -277,9 +263,17 @@ onMounted(() => {
 
 <template>
   <div>
-    <PageHeader title="Lịch sử giao dịch" description="Quản lý lịch sử nạp tiền đối soát và ghi chú kế toán nội bộ">
+    <PageHeader
+      title="Lịch sử giao dịch"
+      description="Quản lý lịch sử nạp tiền đối soát và ghi chú kế toán nội bộ"
+    >
       <template #actions>
-        <button class="btn-export" @click="handleExport" :disabled="loading" id="export-transactions-btn">
+        <button
+          class="btn-export"
+          @click="handleExport"
+          :disabled="loading"
+          id="export-transactions-btn"
+        >
           <Loader2 v-if="loading" class="animate-spin" :size="16" />
           <Download v-else :size="16" />
           Xuất báo cáo (CSV)
@@ -305,7 +299,9 @@ onMounted(() => {
       />
       <StatCard
         title="Giao dịch chờ/lỗi"
-        :value="((summary.counts.PENDING || 0) + (summary.counts.FAILED || 0)).toLocaleString() + ' GD'"
+        :value="
+          ((summary.counts.PENDING || 0) + (summary.counts.FAILED || 0)).toLocaleString() + ' GD'
+        "
         :change="`${summary.counts.PENDING || 0} Chờ xử lý | ${summary.counts.FAILED || 0} Thất bại`"
         change-type="neutral"
         :icon="Clock"
@@ -367,26 +363,38 @@ onMounted(() => {
         <!-- Số tiền từ -->
         <div class="filter-item">
           <label for="filter-min-amount" class="filter-label">Số tiền tối thiểu</label>
-          <input id="filter-min-amount" v-model="filters.min_amount" type="number" placeholder="VND" class="form-input" />
+          <input
+            id="filter-min-amount"
+            v-model="filters.min_amount"
+            type="number"
+            placeholder="VND"
+            class="form-input"
+          />
         </div>
 
         <!-- Số tiền đến -->
         <div class="filter-item">
           <label for="filter-max-amount" class="filter-label">Số tiền tối đa</label>
-          <input id="filter-max-amount" v-model="filters.max_amount" type="number" placeholder="VND" class="form-input" />
+          <input
+            id="filter-max-amount"
+            v-model="filters.max_amount"
+            type="number"
+            placeholder="VND"
+            class="form-input"
+          />
         </div>
 
         <!-- Nút Reset -->
         <div class="filter-item flex items-end">
-          <button class="btn-reset w-full" @click="resetFilters">
-            Xóa bộ lọc
-          </button>
+          <button class="btn-reset w-full" @click="resetFilters">Xóa bộ lọc</button>
         </div>
       </div>
     </div>
 
     <!-- Bảng dữ liệu -->
-    <div class="table-container bg-card border border-border/50 rounded-xl shadow-card overflow-hidden">
+    <div
+      class="table-container bg-card border border-border/50 rounded-xl shadow-card overflow-hidden"
+    >
       <!-- Loading State -->
       <div v-if="loading && transactions.length === 0" class="loading-state py-12">
         <Loader2 class="animate-spin text-primary mx-auto mb-4" :size="36" />
@@ -407,15 +415,15 @@ onMounted(() => {
         <table class="data-table">
           <thead>
             <tr>
-              <th style="width: 130px;">Mã Giao Dịch</th>
+              <th style="width: 130px">Mã Giao Dịch</th>
               <th>Khách Hàng</th>
               <th>Gói Tin</th>
               <th>Số Tiền</th>
-              <th style="width: 110px;">Phương Thức</th>
+              <th style="width: 110px">Phương Thức</th>
               <th>Ngày Giao Dịch</th>
               <th>Trạng Thái</th>
               <th>Ghi Chú Kế Toán</th>
-              <th style="width: 80px; text-align: center;">Xem</th>
+              <th style="width: 80px; text-align: center">Xem</th>
             </tr>
           </thead>
           <tbody>
@@ -441,7 +449,9 @@ onMounted(() => {
 
               <!-- Khách hàng -->
               <td>
-                <div class="font-medium text-foreground text-sm">{{ tx.user?.full_name || 'Khách vãng lai' }}</div>
+                <div class="font-medium text-foreground text-sm">
+                  {{ tx.user?.full_name || 'Khách vãng lai' }}
+                </div>
                 <div class="text-xs text-muted-foreground mt-0.5">
                   {{ tx.user?.phone || '-' }} | {{ tx.user?.email || '-' }}
                 </div>
@@ -455,7 +465,9 @@ onMounted(() => {
                 >
                   {{ tx.package?.name || '-' }}
                 </span>
-                <div class="text-[10px] text-muted-foreground mt-1">Thời hạn: {{ tx.duration_days }} ngày</div>
+                <div class="text-[10px] text-muted-foreground mt-1">
+                  Thời hạn: {{ tx.duration_days }} ngày
+                </div>
               </td>
 
               <!-- Số tiền -->
@@ -484,13 +496,24 @@ onMounted(() => {
                     'bg-muted text-muted-foreground': tx.status === 'EXPIRED',
                   }"
                 >
-                  {{ tx.status === 'SUCCESS' ? 'Thành công' : tx.status === 'PENDING' ? 'Chờ xử lý' : tx.status === 'EXPIRED' ? 'Hết hạn thanh toán' : 'Thất bại' }}
+                  {{
+                    tx.status === 'SUCCESS'
+                      ? 'Thành công'
+                      : tx.status === 'PENDING'
+                        ? 'Chờ xử lý'
+                        : tx.status === 'EXPIRED'
+                          ? 'Hết hạn thanh toán'
+                          : 'Thất bại'
+                  }}
                 </span>
               </td>
 
               <!-- Ghi chú mới nhất -->
               <td>
-                <div class="text-xs text-muted-foreground max-w-[200px] truncate" :title="tx.notes?.[0]?.note">
+                <div
+                  class="text-xs text-muted-foreground max-w-[200px] truncate"
+                  :title="tx.notes?.[0]?.note"
+                >
                   {{ tx.notes?.[0]?.note || '-' }}
                 </div>
                 <div class="text-[10px] text-muted-foreground/75 mt-0.5" v-if="tx.notes?.[0]">
@@ -499,7 +522,7 @@ onMounted(() => {
               </td>
 
               <!-- Action -->
-              <td style="text-align: center;">
+              <td style="text-align: center">
                 <button class="btn-icon" @click="openDetail(tx.id)" title="Xem chi tiết & đối soát">
                   <Eye :size="16" />
                 </button>
@@ -510,7 +533,10 @@ onMounted(() => {
       </div>
 
       <!-- Phân trang -->
-      <div v-if="transactions.length > 0" class="pagination-bar border-t border-border/50 p-4 flex items-center justify-between">
+      <div
+        v-if="transactions.length > 0"
+        class="pagination-bar border-t border-border/50 p-4 flex items-center justify-between"
+      >
         <div class="pagination-actions">
           <button
             class="page-btn"
@@ -520,9 +546,7 @@ onMounted(() => {
           >
             <ChevronLeft :size="18" />
           </button>
-          <span class="page-summary">
-            Trang {{ meta.current_page }} / {{ meta.last_page }}
-          </span>
+          <span class="page-summary"> Trang {{ meta.current_page }} / {{ meta.last_page }} </span>
           <button
             class="page-btn"
             :disabled="meta.current_page === meta.last_page || loading"
@@ -539,8 +563,14 @@ onMounted(() => {
     </div>
 
     <!-- Modal Chi Tiết Giao Dịch -->
-    <div v-if="showDetailModal && selectedTx" class="modal-backdrop" @click.self="showDetailModal = false">
-      <div class="modal-content bg-card border border-border/50 rounded-2xl shadow-lg w-full max-w-3xl overflow-hidden">
+    <div
+      v-if="showDetailModal && selectedTx"
+      class="modal-backdrop"
+      @click.self="showDetailModal = false"
+    >
+      <div
+        class="modal-content bg-card border border-border/50 rounded-2xl shadow-lg w-full max-w-3xl overflow-hidden"
+      >
         <!-- Header -->
         <div class="modal-header border-b border-border/50 p-5 flex items-center justify-between">
           <div class="flex items-center gap-3">
@@ -548,8 +578,12 @@ onMounted(() => {
               <Receipt :size="18" color="white" />
             </div>
             <div>
-              <h3 class="text-lg font-bold text-foreground m-0">Chi tiết giao dịch #{{ selectedTx.id }}</h3>
-              <p class="text-xs text-muted-foreground m-0 mt-0.5">Ngày thực hiện: {{ formatDateTime(selectedTx.transaction_date) }}</p>
+              <h3 class="text-lg font-bold text-foreground m-0">
+                Chi tiết giao dịch #{{ selectedTx.id }}
+              </h3>
+              <p class="text-xs text-muted-foreground m-0 mt-0.5">
+                Ngày thực hiện: {{ formatDateTime(selectedTx.transaction_date) }}
+              </p>
             </div>
           </div>
           <button class="btn-close" @click="showDetailModal = false">
@@ -566,11 +600,15 @@ onMounted(() => {
               <div class="info-list">
                 <div class="info-item">
                   <span class="info-label">Khách hàng:</span>
-                  <span class="info-value font-medium">{{ selectedTx.user?.full_name || 'Khách vãng lai' }}</span>
+                  <span class="info-value font-medium">{{
+                    selectedTx.user?.full_name || 'Khách vãng lai'
+                  }}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Liên hệ:</span>
-                  <span class="info-value">{{ selectedTx.user?.phone || '-' }} | {{ selectedTx.user?.email || '-' }}</span>
+                  <span class="info-value"
+                    >{{ selectedTx.user?.phone || '-' }} | {{ selectedTx.user?.email || '-' }}</span
+                  >
                 </div>
                 <div class="info-item">
                   <span class="info-label">Gói dịch vụ:</span>
@@ -581,7 +619,9 @@ onMounted(() => {
                     >
                       {{ selectedTx.package?.name }}
                     </span>
-                    <span class="info-value text-xs font-medium">({{ selectedTx.duration_days }} ngày)</span>
+                    <span class="info-value text-xs font-medium"
+                      >({{ selectedTx.duration_days }} ngày)</span
+                    >
                   </div>
                 </div>
                 <div class="info-item">
@@ -590,11 +630,17 @@ onMounted(() => {
                 </div>
                 <div class="info-item" v-if="selectedTx.listing">
                   <span class="info-label">Tiêu đề tin:</span>
-                  <span class="info-value truncate block max-w-[200px]" :title="selectedTx.listing?.title">{{ selectedTx.listing?.title }}</span>
+                  <span
+                    class="info-value truncate block max-w-[200px]"
+                    :title="selectedTx.listing?.title"
+                    >{{ selectedTx.listing?.title }}</span
+                  >
                 </div>
                 <div class="info-item">
                   <span class="info-label">Hạn gói tin:</span>
-                  <span class="info-value text-success font-medium">{{ formatDateTime(selectedTx.expires_at) }}</span>
+                  <span class="info-value text-success font-medium">{{
+                    formatDateTime(selectedTx.expires_at)
+                  }}</span>
                 </div>
               </div>
             </div>
@@ -614,18 +660,32 @@ onMounted(() => {
                       'bg-muted text-muted-foreground': selectedTx.status === 'EXPIRED',
                     }"
                   >
-                    {{ selectedTx.status === 'SUCCESS' ? 'Thành công' : selectedTx.status === 'PENDING' ? 'Chờ xử lý' : selectedTx.status === 'EXPIRED' ? 'Hết hạn thanh toán' : 'Thất bại' }}
+                    {{
+                      selectedTx.status === 'SUCCESS'
+                        ? 'Thành công'
+                        : selectedTx.status === 'PENDING'
+                          ? 'Chờ xử lý'
+                          : selectedTx.status === 'EXPIRED'
+                            ? 'Hết hạn thanh toán'
+                            : 'Thất bại'
+                    }}
                   </span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Số tiền:</span>
-                  <span class="info-value text-foreground font-bold">{{ formatVND(selectedTx.amount) }}</span>
+                  <span class="info-value text-foreground font-bold">{{
+                    formatVND(selectedTx.amount)
+                  }}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Mã Ref hệ thống:</span>
                   <span class="info-value font-mono flex items-center gap-1.5">
                     {{ selectedTx.vnp_txn_ref || '-' }}
-                    <button v-if="selectedTx.vnp_txn_ref" class="btn-copy-small" @click="copyToClipboard(selectedTx.vnp_txn_ref, 'ref')">
+                    <button
+                      v-if="selectedTx.vnp_txn_ref"
+                      class="btn-copy-small"
+                      @click="copyToClipboard(selectedTx.vnp_txn_ref, 'ref')"
+                    >
                       <Check v-if="copiedId === 'ref'" :size="10" class="text-success" />
                       <Copy v-else :size="10" />
                     </button>
@@ -635,7 +695,11 @@ onMounted(() => {
                   <span class="info-label">Mã GD VNPay:</span>
                   <span class="info-value font-mono flex items-center gap-1.5">
                     {{ selectedTx.vnp_transaction_no || '-' }}
-                    <button v-if="selectedTx.vnp_transaction_no" class="btn-copy-small" @click="copyToClipboard(selectedTx.vnp_transaction_no, 'vnpno')">
+                    <button
+                      v-if="selectedTx.vnp_transaction_no"
+                      class="btn-copy-small"
+                      @click="copyToClipboard(selectedTx.vnp_transaction_no, 'vnpno')"
+                    >
                       <Check v-if="copiedId === 'vnpno'" :size="10" class="text-success" />
                       <Copy v-else :size="10" />
                     </button>
@@ -643,11 +707,18 @@ onMounted(() => {
                 </div>
                 <div class="info-item">
                   <span class="info-label">Ngân hàng thanh toán:</span>
-                  <span class="info-value font-semibold">{{ selectedTx.vnp_bank_code || '-' }}</span>
+                  <span class="info-value font-semibold">{{
+                    selectedTx.vnp_bank_code || '-'
+                  }}</span>
                 </div>
                 <div class="info-item">
                   <span class="info-label">Mã phản hồi:</span>
-                  <span class="info-value" :class="selectedTx.vnp_response_code === '00' ? 'text-success' : 'text-destructive'">
+                  <span
+                    class="info-value"
+                    :class="
+                      selectedTx.vnp_response_code === '00' ? 'text-success' : 'text-destructive'
+                    "
+                  >
                     {{ selectedTx.vnp_response_code || '-' }}
                   </span>
                 </div>
@@ -658,28 +729,39 @@ onMounted(() => {
           <!-- Audit Trail Notes (Timeline) -->
           <div class="note-section border-t border-border/50 pt-5">
             <h4 class="modal-section-title mb-4">Nhật ký đối soát & ghi chú kế toán</h4>
-            
+
             <div class="note-timeline mb-6" v-if="selectedTx.notes && selectedTx.notes.length > 0">
               <div v-for="note in selectedTx.notes" :key="note.id" class="timeline-item">
                 <div class="timeline-marker"></div>
                 <div class="timeline-content bg-muted p-3.5 rounded-lg border border-border/50">
                   <div class="flex justify-between items-start mb-1.5">
-                    <span class="text-xs font-semibold text-foreground">{{ note.admin?.full_name || 'Admin' }}</span>
-                    <span class="text-[10px] text-muted-foreground">{{ formatDateTime(note.created_at) }}</span>
+                    <span class="text-xs font-semibold text-foreground">{{
+                      note.admin?.full_name || 'Admin'
+                    }}</span>
+                    <span class="text-[10px] text-muted-foreground">{{
+                      formatDateTime(note.created_at)
+                    }}</span>
                   </div>
-                  <p class="text-xs text-muted-foreground m-0 whitespace-pre-wrap leading-relaxed">{{ note.note }}</p>
+                  <p class="text-xs text-muted-foreground m-0 whitespace-pre-wrap leading-relaxed">
+                    {{ note.note }}
+                  </p>
                 </div>
               </div>
             </div>
-            
-            <div v-else class="text-center py-6 bg-muted rounded-lg border border-border/50 border-dashed mb-6">
+
+            <div
+              v-else
+              class="text-center py-6 bg-muted rounded-lg border border-border/50 border-dashed mb-6"
+            >
               <Clock :size="24" class="text-muted-foreground/40 mx-auto mb-2" />
               <p class="text-xs text-muted-foreground m-0">Chưa có nhật ký/ghi chú đối soát nào.</p>
             </div>
 
             <!-- Thêm Note mới -->
             <div class="add-note-wrapper bg-muted/30 p-4 border border-border/50 rounded-xl">
-              <label for="new-note-input" class="text-xs font-semibold text-foreground block mb-2">Thêm ghi chú đối soát mới</label>
+              <label for="new-note-input" class="text-xs font-semibold text-foreground block mb-2"
+                >Thêm ghi chú đối soát mới</label
+              >
               <textarea
                 id="new-note-input"
                 v-model="newNote"
@@ -749,7 +831,9 @@ onMounted(() => {
   background-color: hsl(var(--card));
   color: hsl(var(--foreground));
   outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .form-input:focus {
@@ -868,8 +952,8 @@ onMounted(() => {
   margin: 0;
 }
 
-
-.btn-copy, .btn-copy-small {
+.btn-copy,
+.btn-copy-small {
   background: none;
   border: none;
   padding: 3px;
@@ -881,7 +965,8 @@ onMounted(() => {
   justify-content: center;
 }
 
-.btn-copy:hover, .btn-copy-small:hover {
+.btn-copy:hover,
+.btn-copy-small:hover {
   background-color: hsl(var(--muted));
   color: hsl(var(--foreground));
 }

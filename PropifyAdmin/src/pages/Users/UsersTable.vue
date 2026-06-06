@@ -102,8 +102,9 @@ const users = [
 ]
 
 const filteredUsers = computed(() => {
-  return users.filter(user => {
-    const matchSearch = !props.search ||
+  return users.filter((user) => {
+    const matchSearch =
+      !props.search ||
       user.name.toLowerCase().includes(props.search.toLowerCase()) ||
       user.email.toLowerCase().includes(props.search.toLowerCase())
     const matchRole = props.filterRole === 'all' || user.role === props.filterRole

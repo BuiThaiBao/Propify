@@ -10,9 +10,9 @@
         @change="$emit('update:modelValue', $event.target.value)"
         class="w-full px-3 py-2 text-sm border rounded-lg appearance-none focus:outline-none focus:ring-2 focus:border-transparent transition-colors pr-10"
         :class="[
-          error 
-            ? 'border-red-300 focus:ring-red-500 bg-red-50 text-red-900' 
-            : 'border-gray-300 focus:ring-blue-500 bg-white hover:border-gray-400'
+          error
+            ? 'border-red-300 focus:ring-red-500 bg-red-50 text-red-900'
+            : 'border-gray-300 focus:ring-blue-500 bg-white hover:border-gray-400',
         ]"
         v-bind="$attrs"
       >
@@ -21,9 +21,22 @@
           {{ option.label }}
         </option>
       </select>
-      <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+      <div
+        class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-500"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 9l-7 7-7-7"
+          ></path>
         </svg>
       </div>
     </div>
@@ -35,32 +48,32 @@
 defineProps({
   modelValue: {
     type: [String, Number],
-    default: ''
+    default: '',
   },
   label: {
     type: String,
-    default: ''
+    default: '',
   },
   id: {
     type: String,
-    default: () => `select-${Math.random().toString(36).substring(2, 9)}`
+    default: () => `select-${Math.random().toString(36).substring(2, 9)}`,
   },
   options: {
     type: Array,
-    default: () => [] // { label: '...', value: '...' }
+    default: () => [], // { label: '...', value: '...' }
   },
   placeholder: {
     type: String,
-    default: ''
+    default: '',
   },
   error: {
     type: String,
-    default: ''
+    default: '',
   },
   required: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 })
 
 defineEmits(['update:modelValue'])

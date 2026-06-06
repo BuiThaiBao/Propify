@@ -3,11 +3,11 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Thêm Gói Tin Mới</h1>
-        <p class="mt-1 text-sm text-gray-500">Tạo mới cấu hình một gói tin cho người dùng hệ thống</p>
+        <p class="mt-1 text-sm text-gray-500">
+          Tạo mới cấu hình một gói tin cho người dùng hệ thống
+        </p>
       </div>
-      <Button variant="outline" @click="$router.push({ name: 'Packages' })">
-        Quay lại
-      </Button>
+      <Button variant="outline" @click="$router.push({ name: 'Packages' })"> Quay lại </Button>
     </div>
 
     <!-- Error Alert -->
@@ -15,7 +15,11 @@
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="w-5 h-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+              clip-rule="evenodd"
+            />
           </svg>
         </div>
         <div class="ml-3">
@@ -32,7 +36,11 @@
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="w-5 h-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clip-rule="evenodd"
+            />
           </svg>
         </div>
         <div class="ml-3">
@@ -40,7 +48,10 @@
         </div>
         <div class="ml-auto pl-3">
           <div class="-mx-1.5 -my-1.5">
-            <button @click="$router.push({ name: 'Packages' })" class="inline-flex bg-green-50 rounded-md p-1.5 text-green-500 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-50 focus:ring-green-600">
+            <button
+              @click="$router.push({ name: 'Packages' })"
+              class="inline-flex bg-green-50 rounded-md p-1.5 text-green-500 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-50 focus:ring-green-600"
+            >
               <span class="sr-only">Xem danh sách</span>
               <span class="text-sm font-medium">Xem danh sách &rarr;</span>
             </button>
@@ -51,7 +62,6 @@
 
     <Card class="overflow-hidden">
       <form @submit.prevent="handleSubmit">
-        
         <!-- Section 1: Thông tin cơ bản -->
         <div class="p-6 border-b border-gray-100">
           <div class="mb-4">
@@ -80,7 +90,9 @@
         <div class="p-6 border-b border-gray-100 bg-gray-50/30">
           <div class="mb-4">
             <h3 class="text-lg font-bold text-gray-900">2. Thông số phân phối & Xếp hạng</h3>
-            <p class="text-sm text-gray-500">Quyết định mức độ ưu tiên hiển thị và đặc quyền của gói</p>
+            <p class="text-sm text-gray-500">
+              Quyết định mức độ ưu tiên hiển thị và đặc quyền của gói
+            </p>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Input
@@ -122,11 +134,7 @@
               placeholder="0.005"
               :error="errors.decay_rate"
             />
-            <Input
-              v-model="form.badge"
-              label="Nhãn (Badge)"
-              placeholder="HOT, VIP..."
-            />
+            <Input v-model="form.badge" label="Nhãn (Badge)" placeholder="HOT, VIP..." />
           </div>
         </div>
 
@@ -134,7 +142,9 @@
         <div class="p-6 border-b border-gray-100">
           <div class="mb-4">
             <h3 class="text-lg font-bold text-gray-900">3. Cấu hình bảng giá tự động</h3>
-            <p class="text-sm text-gray-500">Nhập giá gốc 1 ngày. Nếu giá bằng 0, hệ thống sẽ coi đây là gói miễn phí.</p>
+            <p class="text-sm text-gray-500">
+              Nhập giá gốc 1 ngày. Nếu giá bằng 0, hệ thống sẽ coi đây là gói miễn phí.
+            </p>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <div>
@@ -148,7 +158,7 @@
                 :error="errors.price"
               />
             </div>
-            
+
             <div class="bg-white border rounded-xl overflow-hidden shadow-sm">
               <div class="px-4 py-3 bg-gray-50 border-b text-sm font-semibold text-gray-700">
                 Xem trước bảng giá hệ thống
@@ -163,9 +173,7 @@
                     placeholder="Số ngày"
                     :error="errors.active_durations"
                   />
-                  <Button type="button" variant="outline" @click="addDuration">
-                    Thêm
-                  </Button>
+                  <Button type="button" variant="outline" @click="addDuration"> Thêm </Button>
                 </div>
               </div>
               <table class="min-w-full divide-y divide-gray-200 text-sm">
@@ -176,26 +184,37 @@
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                  <tr v-for="days in visibleDurations" :key="days" class="hover:bg-gray-50 transition-colors">
+                  <tr
+                    v-for="days in visibleDurations"
+                    :key="days"
+                    class="hover:bg-gray-50 transition-colors"
+                  >
                     <td class="px-4 py-3 font-medium text-gray-800">
                       <div class="flex items-center gap-3">
-                        <input 
-                          type="checkbox" 
+                        <input
+                          type="checkbox"
                           :id="'duration-' + days"
-                          v-model="form.active_durations" 
+                          v-model="form.active_durations"
                           :value="days"
                           class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                         />
-                        <label :for="'duration-' + days" class="cursor-pointer">{{ days }} ngày</label>
+                        <label :for="'duration-' + days" class="cursor-pointer"
+                          >{{ days }} ngày</label
+                        >
                       </div>
                     </td>
-                    <td class="px-4 py-3 text-right font-bold" :class="form.active_durations.includes(days) ? 'text-blue-600' : 'text-gray-300 italic'">
+                    <td
+                      class="px-4 py-3 text-right font-bold"
+                      :class="
+                        form.active_durations.includes(days)
+                          ? 'text-blue-600'
+                          : 'text-gray-300 italic'
+                      "
+                    >
                       <template v-if="form.active_durations.includes(days)">
                         {{ Number((form.price || 0) * days).toLocaleString('vi-VN') }} ₫
                       </template>
-                      <template v-else>
-                        Tạm tắt
-                      </template>
+                      <template v-else> Tạm tắt </template>
                     </td>
                   </tr>
                 </tbody>
@@ -209,9 +228,7 @@
           <Button variant="outline" type="button" @click="$router.push({ name: 'Packages' })">
             Hủy bỏ
           </Button>
-          <Button type="submit" variant="primary" :loading="loading">
-            Lưu gói tin
-          </Button>
+          <Button type="submit" variant="primary" :loading="loading"> Lưu gói tin </Button>
         </div>
       </form>
     </Card>
@@ -222,16 +239,20 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePackageApi } from '@/composables/usePackageApi'
+import { normalizeDurationDays } from '@/utils/packageFormatters'
 
 import Card from '@/components/ui/Card.vue'
-import CardHeader from '@/components/ui/CardHeader.vue'
-import CardBody from '@/components/ui/CardBody.vue'
 import Input from '@/components/ui/Input.vue'
-import Select from '@/components/ui/Select.vue'
 import Button from '@/components/ui/Button.vue'
 
 const router = useRouter()
-const { createPackage, fetchDurationOptions, createDurationOption, loading, error: apiError } = usePackageApi()
+const {
+  createPackage,
+  fetchDurationOptions,
+  createDurationOption,
+  loading,
+  error: apiError,
+} = usePackageApi()
 
 const success = ref(false)
 const newDuration = ref(null)
@@ -246,24 +267,20 @@ const form = reactive({
   decay_rate: null,
   badge: '',
   price: null,
-  active_durations: []
+  active_durations: [],
 })
 
 const errors = reactive({})
 
 const sortedDurations = computed(() => {
-  return [...new Set(form.active_durations.map(days => Number(days)))]
-    .filter(days => Number.isInteger(days) && days > 0)
-    .sort((a, b) => a - b)
+  return normalizeDurationDays(form.active_durations)
 })
 
 const visibleDurations = computed(() => {
-  return [...new Set([
-    ...durationOptions.value.map(option => Number(option.days)),
-    ...form.active_durations.map(days => Number(days)),
-  ])]
-    .filter(days => Number.isInteger(days) && days > 0)
-    .sort((a, b) => a - b)
+  return normalizeDurationDays([
+    ...durationOptions.value.map((option) => Number(option.days)),
+    ...form.active_durations.map((days) => Number(days)),
+  ])
 })
 
 onMounted(async () => {
@@ -284,7 +301,7 @@ const addDuration = async () => {
     return
   }
 
-  if (!durationOptions.value.some(option => Number(option.days) === days)) {
+  if (!durationOptions.value.some((option) => Number(option.days) === days)) {
     const res = await createDurationOption({ days })
     if (res?.data) {
       durationOptions.value.push(res.data)
@@ -300,7 +317,7 @@ const addDuration = async () => {
 
 const validate = () => {
   let isValid = true
-  Object.keys(errors).forEach(key => errors[key] = '')
+  Object.keys(errors).forEach((key) => (errors[key] = ''))
 
   if (!form.name) {
     errors.name = 'Vui lòng nhập tên gói'
@@ -360,11 +377,11 @@ const handleSubmit = async () => {
       decay_rate: Number(form.decay_rate),
       price: Number(form.price),
       badge: form.badge || null,
-      active_durations: sortedDurations.value
+      active_durations: sortedDurations.value,
     })
-    
+
     success.value = true
-    
+
     // Đợi 1 giây để user nhìn thấy thông báo thành công rồi redirect
     setTimeout(() => {
       router.push({ name: 'Packages' })
@@ -374,7 +391,6 @@ const handleSubmit = async () => {
     form.name = ''
     form.slug = ''
     form.badge = ''
-
   } catch (err) {
     // Error is handled by composable and shown via apiError
   }

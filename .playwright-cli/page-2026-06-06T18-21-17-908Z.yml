@@ -1,0 +1,22 @@
+- navigation [ref=e1]:
+  - generic [ref=e2]:
+    - link "Propify" [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e4]
+      - generic [ref=e8]: Propify
+    - generic [ref=e9]:
+      - link "Trang chủ" [ref=e10] [cursor=pointer]:
+        - /url: /
+      - link "Mua bán" [ref=e11] [cursor=pointer]:
+        - /url: /sales
+      - link "Cho thuê" [ref=e12] [cursor=pointer]:
+        - /url: /rent
+      - link "Bảng giá" [ref=e13] [cursor=pointer]:
+        - /url: /pricing
+      - link "Tin tức" [ref=e14] [cursor=pointer]:
+        - /url: /news
+      - link "Liên hệ" [ref=e15] [cursor=pointer]:
+        - /url: /contact
+    - generic [ref=e16]:
+      - button "Đăng nhập" [ref=e17] [cursor=pointer]
+      - button "Đăng tin" [ref=e18] [cursor=pointer]

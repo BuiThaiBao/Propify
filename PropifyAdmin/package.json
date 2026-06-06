@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@tanstack/vue-query": "^5.100.10",
@@ -19,6 +21,9 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
     "@vitejs/plugin-vue": "^6.0.5",
+    "eslint": "^9.14.0",
+    "eslint-plugin-vue": "^9.32.0",
+    "prettier": "^3.8.1",
     "tailwindcss": "^4.2.2",
     "vite": "^8.0.3"
   },

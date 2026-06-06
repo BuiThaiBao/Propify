@@ -8,10 +8,7 @@ import RecentActivity from './RecentActivity.vue'
 
 <template>
   <div>
-    <PageHeader
-      title="Dashboard"
-      subtitle="Tổng quan hệ thống Propify"
-    />
+    <PageHeader title="Dashboard" subtitle="Tổng quan hệ thống Propify" />
 
     <!-- Stats Grid -->
     <div class="stats-grid">

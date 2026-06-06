@@ -1,0 +1,13 @@
+[      86ms] [WARNING] [Vue Router warn]: No match found for location with path "/news" @ http://127.0.0.1:4173/@vite/client:509
+[      87ms] [WARNING] [Vue Router warn]: No match found for location with path "/contact" @ http://127.0.0.1:4173/@vite/client:509
+[      89ms] [WARNING] [Vue Router warn]: The `next()` callback in navigation guards is deprecated. Return the value instead of calling `next(value)`. @ http://127.0.0.1:4173/@vite/client:509
+[     453ms] [WARNING] [Vue Router warn]: No match found for location with path "/news" @ http://127.0.0.1:4173/@vite/client:509
+[     453ms] [WARNING] [Vue Router warn]: No match found for location with path "/contact" @ http://127.0.0.1:4173/@vite/client:509
+[     462ms] [WARNING] [Vue Router warn]: No match found for location with path "/listings" @ http://127.0.0.1:4173/@vite/client:509
+[     463ms] [WARNING] [Vue Router warn]: No match found for location with path "/listings" @ http://127.0.0.1:4173/@vite/client:509
+[     463ms] [WARNING] [Vue Router warn]: No match found for location with path "/listings" @ http://127.0.0.1:4173/@vite/client:509
+[     464ms] [WARNING] [Vue Router warn]: No match found for location with path "/listings" @ http://127.0.0.1:4173/@vite/client:509
+[    5572ms] [ERROR] Access to XMLHttpRequest at 'http://localhost:8000/api/v1/listings?demand_type=RENT&per_page=10&page=1' from origin 'http://127.0.0.1:4173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:4173/rent:0
+[    5572ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8000/api/v1/listings?demand_type=RENT&per_page=10&page=1:0
+[   11017ms] [ERROR] Access to XMLHttpRequest at 'http://localhost:8000/api/v1/listings?demand_type=RENT&per_page=10&page=1' from origin 'http://127.0.0.1:4173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:4173/rent:0
+[   11018ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://localhost:8000/api/v1/listings?demand_type=RENT&per_page=10&page=1:0

@@ -10,17 +10,76 @@ const roleFilter = ref('all')
 const confirmModal = ref({ open: false, title: '', desc: '' })
 
 const mockUsers = [
-  { id: 1, name: 'Nguyễn Văn A', email: 'nguyenvana@email.com', phone: '0901234567', role: 'agent', status: 'approved', posts: 25, joinDate: '15/01/2024' },
-  { id: 2, name: 'Trần Thị B', email: 'tranthib@email.com', phone: '0912345678', role: 'user', status: 'approved', posts: 5, joinDate: '20/02/2024' },
-  { id: 3, name: 'Lê Văn C', email: 'levanc@email.com', phone: '0923456789', role: 'agent', status: 'locked', posts: 12, joinDate: '01/03/2024' },
-  { id: 4, name: 'Phạm Văn D', email: 'phamvand@email.com', phone: '0934567890', role: 'user', status: 'approved', posts: 3, joinDate: '10/04/2024' },
-  { id: 5, name: 'Hoàng Thị E', email: 'hoangthie@email.com', phone: '0945678901', role: 'agent', status: 'approved', posts: 45, joinDate: '05/05/2024' },
-  { id: 6, name: 'Đỗ Văn F', email: 'dovanf@email.com', phone: '0956789012', role: 'user', status: 'locked', posts: 0, joinDate: '22/06/2024' },
+  {
+    id: 1,
+    name: 'Nguyễn Văn A',
+    email: 'nguyenvana@email.com',
+    phone: '0901234567',
+    role: 'agent',
+    status: 'approved',
+    posts: 25,
+    joinDate: '15/01/2024',
+  },
+  {
+    id: 2,
+    name: 'Trần Thị B',
+    email: 'tranthib@email.com',
+    phone: '0912345678',
+    role: 'user',
+    status: 'approved',
+    posts: 5,
+    joinDate: '20/02/2024',
+  },
+  {
+    id: 3,
+    name: 'Lê Văn C',
+    email: 'levanc@email.com',
+    phone: '0923456789',
+    role: 'agent',
+    status: 'locked',
+    posts: 12,
+    joinDate: '01/03/2024',
+  },
+  {
+    id: 4,
+    name: 'Phạm Văn D',
+    email: 'phamvand@email.com',
+    phone: '0934567890',
+    role: 'user',
+    status: 'approved',
+    posts: 3,
+    joinDate: '10/04/2024',
+  },
+  {
+    id: 5,
+    name: 'Hoàng Thị E',
+    email: 'hoangthie@email.com',
+    phone: '0945678901',
+    role: 'agent',
+    status: 'approved',
+    posts: 45,
+    joinDate: '05/05/2024',
+  },
+  {
+    id: 6,
+    name: 'Đỗ Văn F',
+    email: 'dovanf@email.com',
+    phone: '0956789012',
+    role: 'user',
+    status: 'locked',
+    posts: 0,
+    joinDate: '22/06/2024',
+  },
 ]
 
 const filtered = computed(() => {
-  return mockUsers.filter(u => {
-    if (search.value && !u.name.toLowerCase().includes(search.value.toLowerCase()) && !u.email.toLowerCase().includes(search.value.toLowerCase())) return false
+  return mockUsers.filter((u) => {
+    if (
+      search.value &&
+      !u.name.toLowerCase().includes(search.value.toLowerCase()) &&
+      !u.email.toLowerCase().includes(search.value.toLowerCase())
+    )
+      return false
     if (roleFilter.value !== 'all' && u.role !== roleFilter.value) return false
     return true
   })
@@ -29,7 +88,10 @@ const filtered = computed(() => {
 
 <template>
   <div>
-    <PageHeader title="Quản lý tài khoản" description="Quản lý người dùng và môi giới trên hệ thống" />
+    <PageHeader
+      title="Quản lý tài khoản"
+      description="Quản lý người dùng và môi giới trên hệ thống"
+    />
 
     <!-- Filters -->
     <div class="filter-bar">
@@ -82,13 +144,20 @@ const filtered = computed(() => {
               <!-- Contact -->
               <td class="td">
                 <div class="contact">
-                  <p class="contact-line"><Mail :size="14" color="hsl(215,16%,47%)" /> {{ user.email }}</p>
-                  <p class="contact-line"><Phone :size="14" color="hsl(215,16%,47%)" /> {{ user.phone }}</p>
+                  <p class="contact-line">
+                    <Mail :size="14" color="hsl(215,16%,47%)" /> {{ user.email }}
+                  </p>
+                  <p class="contact-line">
+                    <Phone :size="14" color="hsl(215,16%,47%)" /> {{ user.phone }}
+                  </p>
                 </div>
               </td>
               <!-- Role -->
               <td class="td">
-                <span class="role-badge" :class="user.role === 'agent' ? 'role-agent' : 'role-user'">
+                <span
+                  class="role-badge"
+                  :class="user.role === 'agent' ? 'role-agent' : 'role-user'"
+                >
                   {{ user.role === 'agent' ? 'Môi giới' : 'Người dùng' }}
                 </span>
               </td>
@@ -111,12 +180,20 @@ const filtered = computed(() => {
                     class="act-btn"
                     :id="`toggle-user-${user.id}`"
                     :title="user.status === 'locked' ? 'Mở khóa' : 'Khóa'"
-                    @click="confirmModal = { open: true, title: user.status === 'locked' ? 'Mở khóa tài khoản' : 'Khóa tài khoản', desc: `Bạn có muốn ${user.status === 'locked' ? 'mở khóa' : 'khóa'} tài khoản &quot;${user.name}&quot;?` }"
+                    @click="
+                      confirmModal = {
+                        open: true,
+                        title: user.status === 'locked' ? 'Mở khóa tài khoản' : 'Khóa tài khoản',
+                        desc: `Bạn có muốn ${user.status === 'locked' ? 'mở khóa' : 'khóa'} tài khoản &quot;${user.name}&quot;?`,
+                      }
+                    "
                   >
                     <component
                       :is="user.status === 'locked' ? Unlock : Lock"
                       :size="16"
-                      :color="user.status === 'locked' ? 'hsl(var(--success))' : 'hsl(var(--destructive))'"
+                      :color="
+                        user.status === 'locked' ? 'hsl(var(--success))' : 'hsl(var(--destructive))'
+                      "
                     />
                   </button>
                 </div>
@@ -175,7 +252,9 @@ const filtered = computed(() => {
   color: hsl(var(--foreground));
   outline: none;
 }
-.filter-input:focus { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2); }
+.filter-input:focus {
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+}
 
 .filter-right {
   display: flex;
@@ -193,7 +272,9 @@ const filtered = computed(() => {
   outline: none;
   cursor: pointer;
 }
-.filter-select:focus { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2); }
+.filter-select:focus {
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.2);
+}
 
 .table-wrap {
   background-color: hsl(var(--card));
@@ -203,7 +284,9 @@ const filtered = computed(() => {
   overflow: hidden;
 }
 
-.table-scroll { overflow-x: auto; }
+.table-scroll {
+  overflow-x: auto;
+}
 
 .data-table {
   width: 100%;
@@ -225,16 +308,25 @@ const filtered = computed(() => {
   padding: 12px 20px;
 }
 
-.th-right { text-align: right; }
+.th-right {
+  text-align: right;
+}
 
 .table-row {
   border-bottom: 1px solid hsl(var(--border));
   transition: background-color 0.1s;
 }
-.table-row:last-child { border-bottom: none; }
-.table-row:hover { background-color: hsl(var(--muted) / 0.3); }
+.table-row:last-child {
+  border-bottom: none;
+}
+.table-row:hover {
+  background-color: hsl(var(--muted) / 0.3);
+}
 
-.td { padding: 16px 20px; vertical-align: middle; }
+.td {
+  padding: 16px 20px;
+  vertical-align: middle;
+}
 
 .user-info {
   display: flex;
@@ -327,5 +419,7 @@ const filtered = computed(() => {
   justify-content: center;
   transition: background-color 0.15s;
 }
-.act-btn:hover { background-color: hsl(var(--muted)); }
+.act-btn:hover {
+  background-color: hsl(var(--muted));
+}
 </style>

@@ -20,7 +20,7 @@ export const listingService = {
   getPostingOptions() {
     return api.get('/v1/listings/posting-options')
   },
-  
+
   /**
    * Thay đổi trạng thái tin đăng (Dành cho admin)
    * @param {Number} id - ID của listing
@@ -32,5 +32,5 @@ export const listingService = {
 
   updateVerificationForAdmin(id, data) {
     return api.patch(`/v1/admin/listings/${id}/verification`, data)
-  }
+  },
 }

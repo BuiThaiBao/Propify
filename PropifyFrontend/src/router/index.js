@@ -9,6 +9,18 @@ const routes = [
     component: Home,
   },
   {
+    path: "/news",
+    redirect: { name: "Home" },
+  },
+  {
+    path: "/contact",
+    redirect: { name: "Home" },
+  },
+  {
+    path: "/listings",
+    redirect: { name: "Sales" },
+  },
+  {
     path: "/login",
     name: "Login",
     component: () => import("@/pages/Auth/Login.vue"),
@@ -88,23 +100,16 @@ const router = createRouter({
   routes,
 });
 
-/**
- * Navigation guard — enforce auth/guest route restrictions.
- */
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   const authStore = useAuthStore();
 
-  // Route cần auth mà chưa login → redirect login
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    return next({ name: "Login", query: { redirect: to.fullPath } });
+    return { name: "Login", query: { redirect: to.fullPath } };
   }
 
-  // Đã login mà vào trang login/register → redirect home
   if (to.meta.guestOnly && authStore.isAuthenticated) {
-    return next({ name: "Home" });
+    return { name: "Home" };
   }
-
-  next();
 });
 
 export default router;

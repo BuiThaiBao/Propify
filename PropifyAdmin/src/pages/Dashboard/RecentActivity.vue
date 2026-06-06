@@ -51,11 +51,7 @@ const activities = [
     <h3 class="activity-title">Hoạt động gần đây</h3>
 
     <div class="activity-list">
-      <div
-        v-for="item in activities"
-        :key="item.id"
-        class="activity-item"
-      >
+      <div v-for="item in activities" :key="item.id" class="activity-item">
         <div class="activity-icon">
           <Clock :size="14" class="text-slate-400" />
         </div>

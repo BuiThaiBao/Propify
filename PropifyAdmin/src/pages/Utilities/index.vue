@@ -50,21 +50,18 @@ const utilities = ref([
 ])
 
 function toggleVisibility(id) {
-  const util = utilities.value.find(u => u.id === id)
+  const util = utilities.value.find((u) => u.id === id)
   if (util) util.visible = !util.visible
 }
 
 function deleteUtility(id) {
-  utilities.value = utilities.value.filter(u => u.id !== id)
+  utilities.value = utilities.value.filter((u) => u.id !== id)
 }
 </script>
 
 <template>
   <div>
-    <PageHeader
-      title="Tiện ích hệ thống"
-      subtitle="Quản lý các tiện ích hiển thị cho bất động sản"
-    >
+    <PageHeader title="Tiện ích hệ thống" subtitle="Quản lý các tiện ích hiển thị cho bất động sản">
       <template #actions>
         <button class="btn-add" id="add-utility-btn">
           <Plus :size="16" />
@@ -98,7 +95,9 @@ function deleteUtility(id) {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s, transform 0.15s;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
 }
 
 .btn-add:hover {
