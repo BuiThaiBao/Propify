@@ -143,18 +143,24 @@ function resetFilters() {
         </button>
       </div>
 
-      <button type="button" class="reset-button" @click="resetFilters">
-        Reset bộ lọc
-      </button>
+      <button type="button" class="reset-button" @click="resetFilters">Reset bộ lọc</button>
     </section>
 
     <section class="filter-panel">
       <div class="search-wrap">
         <Search :size="18" class="search-icon" />
-        <input v-model.trim="filters.action" class="search-input" placeholder="Lọc theo action..." />
+        <input
+          v-model.trim="filters.action"
+          class="search-input"
+          placeholder="Lọc theo action..."
+        />
       </div>
       <input v-model.trim="filters.actorId" class="filter-input" placeholder="Actor ID" />
-      <input v-model.trim="filters.auditableType" class="filter-input" placeholder="Auditable type" />
+      <input
+        v-model.trim="filters.auditableType"
+        class="filter-input"
+        placeholder="Auditable type"
+      />
       <input v-model.trim="filters.auditableId" class="filter-input" placeholder="Auditable ID" />
       <input v-model="filters.fromDate" type="date" class="filter-input" aria-label="Từ ngày" />
       <input v-model="filters.toDate" type="date" class="filter-input" aria-label="Đến ngày" />
@@ -177,7 +183,12 @@ function resetFilters() {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="log in logs" :key="log.id" class="table-row clickable-row" @click="openDetail(log)">
+            <tr
+              v-for="log in logs"
+              :key="log.id"
+              class="table-row clickable-row"
+              @click="openDetail(log)"
+            >
               <td class="td td-muted">{{ formatDate(log.created_at) }}</td>
               <td class="td">
                 <div class="actor-name">{{ log.actor?.full_name || 'Hệ thống' }}</div>
@@ -195,9 +206,16 @@ function resetFilters() {
     </div>
 
     <div v-if="pagination.lastPage > 1" class="pagination">
-      <button :disabled="pagination.currentPage <= 1" @click="loadLogs(pagination.currentPage - 1)">Trước</button>
+      <button :disabled="pagination.currentPage <= 1" @click="loadLogs(pagination.currentPage - 1)">
+        Trước
+      </button>
       <span>Trang {{ pagination.currentPage }} / {{ pagination.lastPage }}</span>
-      <button :disabled="pagination.currentPage >= pagination.lastPage" @click="loadLogs(pagination.currentPage + 1)">Sau</button>
+      <button
+        :disabled="pagination.currentPage >= pagination.lastPage"
+        @click="loadLogs(pagination.currentPage + 1)"
+      >
+        Sau
+      </button>
     </div>
 
     <div v-if="selectedLog" class="detail-backdrop" @click.self="closeDetail">
@@ -305,7 +323,9 @@ function resetFilters() {
 .quick-filter-button:hover {
   border-color: #93c5fd;
 }
-.search-wrap { position: relative; }
+.search-wrap {
+  position: relative;
+}
 .search-icon {
   position: absolute;
   left: 14px;
@@ -325,7 +345,9 @@ function resetFilters() {
   font-size: 14px;
   padding: 0 14px;
 }
-.search-input { padding-left: 44px; }
+.search-input {
+  padding-left: 44px;
+}
 .search-input:focus,
 .filter-input:focus {
   border-color: #3b82f6;
@@ -337,7 +359,9 @@ function resetFilters() {
   border-radius: 16px;
   background: #fff;
 }
-.table-scroll { overflow-x: auto; }
+.table-scroll {
+  overflow-x: auto;
+}
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -354,10 +378,18 @@ function resetFilters() {
   color: #64748b;
   text-transform: uppercase;
 }
-.table-row { border-bottom: 1px solid #e2e8f0; }
-.clickable-row { cursor: pointer; }
-.clickable-row:hover { background: #f8fafc; }
-.table-row:last-child { border-bottom: 0; }
+.table-row {
+  border-bottom: 1px solid #e2e8f0;
+}
+.clickable-row {
+  cursor: pointer;
+}
+.clickable-row:hover {
+  background: #f8fafc;
+}
+.table-row:last-child {
+  border-bottom: 0;
+}
 .td {
   padding: 16px 18px;
   vertical-align: top;
@@ -365,9 +397,16 @@ function resetFilters() {
   color: #0f172a;
 }
 .td-muted,
-.actor-email { color: #64748b; }
-.actor-name { font-weight: 700; }
-.actor-email { margin-top: 2px; font-size: 12px; }
+.actor-email {
+  color: #64748b;
+}
+.actor-name {
+  font-weight: 700;
+}
+.actor-email {
+  margin-top: 2px;
+  font-size: 12px;
+}
 .action-badge {
   display: inline-flex;
   border-radius: 999px;
@@ -385,7 +424,9 @@ function resetFilters() {
   padding: 24px 0;
   color: #64748b;
 }
-.state-error { color: #dc2626; }
+.state-error {
+  color: #dc2626;
+}
 .pagination {
   display: flex;
   align-items: center;
@@ -463,7 +504,9 @@ function resetFilters() {
   color: #64748b;
   font-size: 12px;
 }
-.detail-section + .detail-section { margin-top: 24px; }
+.detail-section + .detail-section {
+  margin-top: 24px;
+}
 .detail-section h3 {
   margin: 0 0 12px;
   font-size: 15px;

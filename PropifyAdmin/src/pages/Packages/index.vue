@@ -35,7 +35,13 @@ const packages = ref([
     name: 'Gói Premium',
     price: '500,000đ',
     duration: '30 ngày',
-    features: ['Không giới hạn tin', 'Top đầu kết quả', 'Hỗ trợ 24/7', 'Badge Premium', 'Báo cáo chi tiết'],
+    features: [
+      'Không giới hạn tin',
+      'Top đầu kết quả',
+      'Hỗ trợ 24/7',
+      'Badge Premium',
+      'Báo cáo chi tiết',
+    ],
     status: 'active',
     icon: '👑',
     iconBg: '#d1fae5',
@@ -57,10 +63,7 @@ const packages = ref([
 
 <template>
   <div>
-    <PageHeader
-      title="Quản lý gói tin"
-      subtitle="Thêm, chỉnh sửa và quản lý các gói dịch vụ"
-    >
+    <PageHeader title="Quản lý gói tin" subtitle="Thêm, chỉnh sửa và quản lý các gói dịch vụ">
       <template #actions>
         <button class="btn-add" id="add-package-btn">
           <Plus :size="16" />
@@ -72,11 +75,7 @@ const packages = ref([
     <PackageSearchBar v-model="searchQuery" />
 
     <div class="packages-grid">
-      <PackageCard
-        v-for="pkg in packages"
-        :key="pkg.id"
-        :package="pkg"
-      />
+      <PackageCard v-for="pkg in packages" :key="pkg.id" :pkg="pkg" />
     </div>
   </div>
 </template>
@@ -94,7 +93,9 @@ const packages = ref([
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s, transform 0.15s;
+  transition:
+    opacity 0.15s,
+    transform 0.15s;
 }
 
 .btn-add:hover {

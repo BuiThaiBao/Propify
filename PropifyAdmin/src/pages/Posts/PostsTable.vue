@@ -2,6 +2,13 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Ban, CheckCircle, ChevronDown, Info, Lock, MoreHorizontal, Unlock } from 'lucide-vue-next'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
+import {
+  formatAdminDateTime,
+  formatAdminDemandType,
+  formatAdminListingPrice,
+  formatAdminPropertyType,
+  mapAdminListingStatusKey,
+} from '@/utils/adminListingFormatters'
 
 const props = defineProps({
   posts: {
@@ -65,118 +72,54 @@ const LOCK_REASONS = [
   'Yêu cầu khóa tin từ bộ phận quản trị.',
 ]
 
-const normalizedPosts = computed(() => props.posts.map((post) => ({
-  ...post,
-  imageUrl: getImageUrl(post),
-  priceText: formatPrice(post.property?.price),
-  packageName: post.package?.name || 'Free',
-  ownerName: post.owner?.full_name || '--',
-  approverName: post.approver?.full_name || (post.approved_by ? `ID ${post.approved_by}` : '--'),
-  demandTypeText: formatDemandType(post.demand_type),
-  propertyType: formatPropertyType(post.property?.type),
-  address: post.property?.address_detail || post.property?.project_name || '--',
-  statusKey: mapStatusKey(post.status),
-  statusLabel: mapStatusLabel(post.status),
-  verificationKey: post.is_verified ? 'approved' : 'locked',
-  verificationLabel: post.is_verified ? 'Đã xác thực' : 'Chưa xác thực',
-  createdAtText: formatDateTime(post.created_at),
-  submittedAtText: formatDateTime(post.submitted_at),
-  publishedAtText: formatDateTime(post.published_at),
-})))
+const normalizedPosts = computed(() =>
+  props.posts.map((post) => ({
+    ...post,
+    imageUrl: getImageUrl(post),
+    priceText: formatAdminListingPrice(post.property?.price),
+    packageName: post.package?.name || 'Free',
+    ownerName: post.owner?.full_name || '--',
+    approverName: post.approver?.full_name || (post.approved_by ? `ID ${post.approved_by}` : '--'),
+    demandTypeText: formatAdminDemandType(post.demand_type),
+    propertyType: formatAdminPropertyType(post.property?.type),
+    address: post.property?.address_detail || post.property?.project_name || '--',
+    statusKey: mapAdminListingStatusKey(post.status),
+    statusLabel: mapStatusLabel(post.status),
+    verificationKey: post.is_verified ? 'approved' : 'locked',
+    verificationLabel: post.is_verified ? 'Đã xác thực' : 'Chưa xác thực',
+    createdAtText: formatAdminDateTime(post.created_at),
+    submittedAtText: formatAdminDateTime(post.submitted_at),
+    publishedAtText: formatAdminDateTime(post.published_at),
+  })),
+)
 
 const allVisibleSelected = computed(() => {
-  return normalizedPosts.value.length > 0 &&
+  return (
+    normalizedPosts.value.length > 0 &&
     normalizedPosts.value.every((post) => selectedIds.value.has(post.id))
+  )
 })
 
 function getImageUrl(post) {
   const images = post.images ?? []
-  return images.find((image) => image.is_thumbnail)?.url ||
+  return (
+    images.find((image) => image.is_thumbnail)?.url ||
     images[0]?.url ||
     'https://placehold.co/80x60?text=No+Image'
-}
-
-function formatPrice(value) {
-  const amount = Number(value)
-  if (!Number.isFinite(amount) || amount <= 0) return '--'
-  return new Intl.NumberFormat('vi-VN').format(amount)
-}
-
-function formatDateTime(value) {
-  if (!value) return '--'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '--'
-
-  const time = new Intl.DateTimeFormat('vi-VN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(date)
-  const day = new Intl.DateTimeFormat('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(date)
-
-  return `${time} ${day}`
-}
-
-function formatPropertyType(type) {
-  const labels = {
-    APARTMENT: 'Chung cư',
-    MINI_APARTMENT: 'Chung cư mini',
-    HOUSE: 'Nhà riêng',
-    PRIVATE_HOUSE: 'Nhà riêng',
-    STREET_HOUSE: 'Nhà mặt phố',
-    VILLA: 'Biệt thự',
-    VILLA_TOWNHOUSE: 'Biệt thự liền kề',
-    SHOPHOUSE: 'Shophouse',
-    KIOSK: 'Ki-ốt',
-    LAND: 'Đất nền',
-    TOWNHOUSE: 'Liền kề',
-    OFFICE: 'Văn phòng',
-    ROOM: 'Phòng',
-    RENT_ROOM: 'Phòng trọ',
-    BOARDING_HOUSE: 'Nhà trọ',
-    HOTEL: 'Khách sạn',
-    RESORT: 'Resort',
-    RESTAURANT_HOTEL: 'Nhà hàng - Khách sạn',
-  }
-
-  if (!type) return '--'
-  return labels[type] || type
-    .toLowerCase()
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (char) => char.toUpperCase())
-}
-
-function formatDemandType(type) {
-  const labels = {
-    RENT: 'Cho thuê',
-    SALE: 'Mua bán',
-  }
-
-  return labels[type] || type || '--'
-}
-
-function mapStatusKey(status) {
-  const statuses = {
-    ACTIVE: 'approved',
-    PENDING: 'pending',
-    REJECTED: 'rejected',
-    LOCKED: 'locked',
-    EXPIRED: 'locked',
-  }
-
-  return statuses[status] || 'pending'
+  )
 }
 
 function mapStatusLabel(status) {
-  return props.statusOptions.find((option) => option.value === status)?.label || status || 'Chờ duyệt'
+  return (
+    props.statusOptions.find((option) => option.value === status)?.label || status || 'Chờ duyệt'
+  )
 }
 
 function adminStatusLabel(status) {
-  return props.adminStatusOptions.find((option) => option.value === status)?.label || mapStatusLabel(status)
+  return (
+    props.adminStatusOptions.find((option) => option.value === status)?.label ||
+    mapStatusLabel(status)
+  )
 }
 
 function toggleSelected(id) {
@@ -298,7 +241,9 @@ function closeReasonModal() {
 
 function getReasonLabel() {
   if (!reasonModal.value.selectedReason) {
-    return reasonModal.value.action?.status === 'LOCKED' ? 'Chọn lý do khóa tin' : 'Chọn lý do từ chối'
+    return reasonModal.value.action?.status === 'LOCKED'
+      ? 'Chọn lý do khóa tin'
+      : 'Chọn lý do từ chối'
   }
   if (reasonModal.value.selectedReason === REJECT_REASON_OTHER) return 'Khác'
   return reasonModal.value.selectedReason
@@ -322,13 +267,16 @@ function submitReasonModal() {
   if (!post || !action) return
   const usesDropdown = ['REJECTED', 'LOCKED'].includes(action.status)
   const finalReason = usesDropdown
-    ? (selectedReason === REJECT_REASON_OTHER ? reason.trim() : selectedReason)
+    ? selectedReason === REJECT_REASON_OTHER
+      ? reason.trim()
+      : selectedReason
     : reason.trim()
 
   if (usesDropdown && !finalReason) {
-    reasonModal.value.error = action.status === 'LOCKED'
-      ? 'Vui lòng chọn hoặc nhập lý do khóa tin.'
-      : 'Vui lòng chọn hoặc nhập lý do từ chối.'
+    reasonModal.value.error =
+      action.status === 'LOCKED'
+        ? 'Vui lòng chọn hoặc nhập lý do khóa tin.'
+        : 'Vui lòng chọn hoặc nhập lý do từ chối.'
     return
   }
 
@@ -681,19 +629,58 @@ thead .sticky-right {
   cursor: pointer;
 }
 
-.col-id { width: 58px; min-width: 58px; }
-.col-image { width: 54px; min-width: 54px; }
-.col-title { width: 240px; max-width: 240px; }
-.col-address { width: 280px; max-width: 280px; }
-.col-price { width: 132px; min-width: 132px; }
-.col-package { width: 104px; min-width: 104px; }
-.col-owner { width: 196px; max-width: 196px; }
-.col-demand { width: 110px; min-width: 110px; }
-.col-approver { width: 160px; max-width: 160px; }
-.col-type { width: 110px; min-width: 110px; }
-.col-date { width: 150px; min-width: 150px; }
-.col-status { width: 130px; min-width: 130px; }
-.col-verify { width: 130px; min-width: 130px; }
+.col-id {
+  width: 58px;
+  min-width: 58px;
+}
+.col-image {
+  width: 54px;
+  min-width: 54px;
+}
+.col-title {
+  width: 240px;
+  max-width: 240px;
+}
+.col-address {
+  width: 280px;
+  max-width: 280px;
+}
+.col-price {
+  width: 132px;
+  min-width: 132px;
+}
+.col-package {
+  width: 104px;
+  min-width: 104px;
+}
+.col-owner {
+  width: 196px;
+  max-width: 196px;
+}
+.col-demand {
+  width: 110px;
+  min-width: 110px;
+}
+.col-approver {
+  width: 160px;
+  max-width: 160px;
+}
+.col-type {
+  width: 110px;
+  min-width: 110px;
+}
+.col-date {
+  width: 150px;
+  min-width: 150px;
+}
+.col-status {
+  width: 130px;
+  min-width: 130px;
+}
+.col-verify {
+  width: 130px;
+  min-width: 130px;
+}
 
 .header-with-info {
   display: inline-flex;
@@ -891,7 +878,9 @@ thead .sticky-right {
   font-size: 13px;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .reason-dropdown-trigger.placeholder {

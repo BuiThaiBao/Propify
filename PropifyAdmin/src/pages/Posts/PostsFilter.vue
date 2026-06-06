@@ -161,7 +161,6 @@ function statusCount(value) {
             </button>
           </div>
         </div>
-
       </div>
     </div>
 
@@ -275,7 +274,10 @@ function statusCount(value) {
   font-size: 13px;
   line-height: 1;
   cursor: pointer;
-  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background 0.16s ease;
 }
 
 .filter-trigger span {

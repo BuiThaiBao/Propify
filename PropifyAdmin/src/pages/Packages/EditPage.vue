@@ -5,12 +5,12 @@
         <h1 class="text-2xl font-bold text-gray-900">Sửa gói tin</h1>
         <p class="mt-1 text-sm text-gray-500">Chỉnh sửa cấu hình gói tin hệ thống</p>
       </div>
-      <Button variant="outline" @click="router.push({ name: 'Packages' })">
-        Quay lại
-      </Button>
+      <Button variant="outline" @click="router.push({ name: 'Packages' })"> Quay lại </Button>
     </div>
 
-    <div v-if="loading && !packageLoaded" class="py-8 text-center text-gray-500">Đang tải thông tin...</div>
+    <div v-if="loading && !packageLoaded" class="py-8 text-center text-gray-500">
+      Đang tải thông tin...
+    </div>
     <div v-if="fetchError" class="py-4 text-red-500">{{ fetchError }}</div>
 
     <div v-if="apiError" class="rounded-md border border-red-200 bg-red-50 p-4">
@@ -60,13 +60,46 @@
         <section class="border-b border-gray-100 bg-gray-50/30 p-6">
           <div class="mb-4">
             <h3 class="text-lg font-bold text-gray-900">2. Thông số phân phối và xếp hạng</h3>
-            <p class="text-sm text-gray-500">Quyết định mức độ ưu tiên hiển thị và đặc quyền của gói</p>
+            <p class="text-sm text-gray-500">
+              Quyết định mức độ ưu tiên hiển thị và đặc quyền của gói
+            </p>
           </div>
           <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <Input v-model.number="form.daily_quota" type="number" label="Lượt hiển thị/ngày" required min="0" :error="errors.daily_quota" />
-            <Input v-model.number="form.priority" type="number" label="Tầng ưu tiên" required min="1" :error="errors.priority" />
-            <Input v-model.number="form.multiplier" type="number" step="0.1" label="Hệ số điểm" required min="1" :error="errors.multiplier" />
-            <Input v-model.number="form.decay_rate" type="number" step="0.001" label="Tốc độ tụt hạng" required min="0" max="1" :error="errors.decay_rate" />
+            <Input
+              v-model.number="form.daily_quota"
+              type="number"
+              label="Lượt hiển thị/ngày"
+              required
+              min="0"
+              :error="errors.daily_quota"
+            />
+            <Input
+              v-model.number="form.priority"
+              type="number"
+              label="Tầng ưu tiên"
+              required
+              min="1"
+              :error="errors.priority"
+            />
+            <Input
+              v-model.number="form.multiplier"
+              type="number"
+              step="0.1"
+              label="Hệ số điểm"
+              required
+              min="1"
+              :error="errors.multiplier"
+            />
+            <Input
+              v-model.number="form.decay_rate"
+              type="number"
+              step="0.001"
+              label="Tốc độ tụt hạng"
+              required
+              min="0"
+              max="1"
+              :error="errors.decay_rate"
+            />
             <Input v-model="form.badge" label="Nhãn hiển thị" placeholder="HOT, VIP..." />
             <Input v-model="form.color" label="Mã màu" placeholder="#FFD700" />
           </div>
@@ -75,7 +108,9 @@
         <section class="border-b border-gray-100 p-6">
           <div class="mb-4">
             <h3 class="text-lg font-bold text-gray-900">3. Cấu hình bảng giá</h3>
-            <p class="text-sm text-gray-500">Nhập giá gốc 1 ngày. Hệ thống tự tính giá cho từng thời hạn đang bật.</p>
+            <p class="text-sm text-gray-500">
+              Nhập giá gốc 1 ngày. Hệ thống tự tính giá cho từng thời hạn đang bật.
+            </p>
           </div>
           <div class="grid grid-cols-1 items-start gap-8 md:grid-cols-2">
             <Input
@@ -125,13 +160,18 @@
                         {{ days }} ngày
                       </label>
                     </td>
-                    <td class="px-4 py-3 text-right font-bold" :class="form.active_durations.includes(days) ? 'text-blue-600' : 'text-gray-300 italic'">
+                    <td
+                      class="px-4 py-3 text-right font-bold"
+                      :class="
+                        form.active_durations.includes(days)
+                          ? 'text-blue-600'
+                          : 'text-gray-300 italic'
+                      "
+                    >
                       <template v-if="form.active_durations.includes(days)">
                         {{ Number((form.price || 0) * days).toLocaleString('vi-VN') }} ₫
                       </template>
-                      <template v-else>
-                        Tạm tắt
-                      </template>
+                      <template v-else> Tạm tắt </template>
                     </td>
                   </tr>
                 </tbody>
@@ -144,9 +184,7 @@
           <Button variant="outline" type="button" @click="router.push({ name: 'Packages' })">
             Hủy bỏ
           </Button>
-          <Button type="submit" variant="primary" :loading="loading">
-            Lưu thay đổi
-          </Button>
+          <Button type="submit" variant="primary" :loading="loading"> Lưu thay đổi </Button>
         </div>
       </form>
     </Card>
@@ -157,6 +195,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePackageApi } from '@/composables/usePackageApi'
+import { normalizeDurationDays } from '@/utils/packageFormatters'
 import Card from '@/components/ui/Card.vue'
 import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
@@ -197,18 +236,14 @@ const form = reactive({
 const errors = reactive({})
 
 const sortedDurations = computed(() => {
-  return [...new Set(form.active_durations.map((days) => Number(days)))]
-    .filter((days) => Number.isInteger(days) && days > 0)
-    .sort((a, b) => a - b)
+  return normalizeDurationDays(form.active_durations)
 })
 
 const visibleDurations = computed(() => {
-  return [...new Set([
+  return normalizeDurationDays([
     ...durationOptions.value.map((option) => Number(option.days)),
     ...form.active_durations.map((days) => Number(days)),
-  ])]
-    .filter((days) => Number.isInteger(days) && days > 0)
-    .sort((a, b) => a - b)
+  ])
 })
 
 async function addDuration() {

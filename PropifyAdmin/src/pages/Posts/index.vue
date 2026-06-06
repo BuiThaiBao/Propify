@@ -63,7 +63,8 @@ function buildParams() {
   const keyword = searchQuery.value.trim()
   if (keyword) params.keyword = keyword
   if (searchField.value) params.search_field = searchField.value
-  if (filterStatus.value !== 'all') params.status = statusParamMap[filterStatus.value] ?? filterStatus.value
+  if (filterStatus.value !== 'all')
+    params.status = statusParamMap[filterStatus.value] ?? filterStatus.value
   if (filterType.value !== 'all') params.demand_type = typeParamMap[filterType.value]
   if (filterPriceRange.value !== 'all') params.price_range = filterPriceRange.value
   if (filterPackageId.value !== 'all') params.package_id = filterPackageId.value

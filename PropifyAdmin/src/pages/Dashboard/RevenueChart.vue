@@ -78,7 +78,9 @@ const areaPath = `${linePath} L ${getX(values.length - 1)} ${chartHeight - padBo
             text-anchor="end"
             font-size="10"
             fill="#94a3b8"
-          >{{ v }} Tr</text>
+          >
+            {{ v }} Tr
+          </text>
         </g>
 
         <!-- Area fill -->
@@ -104,7 +106,9 @@ const areaPath = `${linePath} L ${getX(values.length - 1)} ${chartHeight - padBo
             text-anchor="middle"
             font-size="10"
             fill="#94a3b8"
-          >{{ month }}</text>
+          >
+            {{ month }}
+          </text>
         </g>
 
         <!-- Data points -->

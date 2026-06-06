@@ -2,7 +2,7 @@
 import { Check, Edit, Lock, Unlock } from 'lucide-vue-next'
 
 const props = defineProps({
-  package: {
+  pkg: {
     type: Object,
     required: true,
   },
@@ -10,23 +10,23 @@ const props = defineProps({
 </script>
 
 <template>
-  <div class="package-card" :class="{ locked: package.status === 'locked' }">
+  <div class="package-card" :class="{ locked: pkg.status === 'locked' }">
     <!-- Locked badge -->
-    <div v-if="package.status === 'locked'" class="locked-label">Đã khóa</div>
+    <div v-if="pkg.status === 'locked'" class="locked-label">Đã khóa</div>
 
     <!-- Icon -->
-    <div class="pkg-icon" :style="{ backgroundColor: package.iconBg }">
-      <span class="pkg-icon-text">{{ package.icon }}</span>
+    <div class="pkg-icon" :style="{ backgroundColor: pkg.iconBg }">
+      <span class="pkg-icon-text">{{ pkg.icon }}</span>
     </div>
 
     <!-- Name -->
-    <h3 class="pkg-name">{{ package.name }}</h3>
+    <h3 class="pkg-name">{{ pkg.name }}</h3>
 
-    <p class="pkg-duration">{{ package.duration }}</p>
+    <p class="pkg-duration">{{ pkg.duration }}</p>
 
     <!-- Features -->
     <ul class="pkg-features">
-      <li v-for="feat in package.features" :key="feat" class="pkg-feature">
+      <li v-for="feat in pkg.features" :key="feat" class="pkg-feature">
         <Check :size="14" class="check-icon" />
         <span>{{ feat }}</span>
       </li>
@@ -34,17 +34,17 @@ const props = defineProps({
 
     <!-- Actions -->
     <div class="pkg-actions">
-      <button class="btn-edit" :id="`edit-pkg-${package.id}`">
+      <button class="btn-edit" :id="`edit-pkg-${pkg.id}`">
         <Edit :size="14" />
         Sửa
       </button>
       <button
         class="btn-toggle"
-        :class="package.status === 'locked' ? 'btn-unlock' : 'btn-lock'"
-        :id="`toggle-pkg-${package.id}`"
+        :class="pkg.status === 'locked' ? 'btn-unlock' : 'btn-lock'"
+        :id="`toggle-pkg-${pkg.id}`"
       >
-        <component :is="package.status === 'locked' ? Unlock : Lock" :size="14" />
-        {{ package.status === 'locked' ? 'Mở' : 'Khóa' }}
+        <component :is="pkg.status === 'locked' ? Unlock : Lock" :size="14" />
+        {{ pkg.status === 'locked' ? 'Mở' : 'Khóa' }}
       </button>
     </div>
   </div>
@@ -57,7 +57,9 @@ const props = defineProps({
   border-radius: 14px;
   padding: 24px;
   position: relative;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
 }
 
 .package-card:hover {

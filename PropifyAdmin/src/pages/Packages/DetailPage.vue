@@ -8,7 +8,11 @@
       </div>
       <div class="heading-actions">
         <Button variant="outline" @click="router.push({ name: 'Packages' })">Quay lại</Button>
-        <Button v-if="packageData" variant="primary" @click="router.push({ name: 'PackageEdit', params: { id: packageId } })">
+        <Button
+          v-if="packageData"
+          variant="primary"
+          @click="router.push({ name: 'PackageEdit', params: { id: packageId } })"
+        >
           Chỉnh sửa
         </Button>
       </div>
@@ -19,7 +23,10 @@
 
     <template v-else-if="packageData">
       <section class="hero-card">
-        <div class="hero-icon" :style="packageData.color ? { backgroundColor: `${packageData.color}20` } : null">
+        <div
+          class="hero-icon"
+          :style="packageData.color ? { backgroundColor: `${packageData.color}20` } : null"
+        >
           <Star :size="34" :color="packageData.color || '#3b82f6'" />
         </div>
 
@@ -27,12 +34,14 @@
           <div class="title-row">
             <h2>{{ packageData.name }}</h2>
             <span v-if="packageData.badge" class="badge">{{ packageData.badge }}</span>
-            <span :class="['status-pill', packageData.is_active ? 'status-active' : 'status-locked']">
+            <span
+              :class="['status-pill', packageData.is_active ? 'status-active' : 'status-locked']"
+            >
               {{ packageData.is_active ? 'Đang hoạt động' : 'Đã khóa' }}
             </span>
           </div>
           <p class="slug">Slug: {{ packageData.slug }}</p>
-          <p class="price">{{ formatPrice(packageData.price) }} <span>/ ngày</span></p>
+          <p class="price">{{ formatPackagePrice(packageData.price) }} <span>/ ngày</span></p>
         </div>
       </section>
 
@@ -72,15 +81,15 @@
           <table class="pricing-table">
             <thead>
               <tr>
-                    <th>Thời hạn</th>
-                    <th>Giá</th>
-                    <th>Trạng thái</th>
+                <th>Thời hạn</th>
+                <th>Giá</th>
+                <th>Trạng thái</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="pricing in sortedPricings" :key="pricing.id">
-                <td>{{ pricing.label || `${pricing.duration_days} ngày` }}</td>
-                <td>{{ formatPrice(pricing.price) }}</td>
+                <td>{{ formatDurationLabel(pricing.duration_days, pricing.label) }}</td>
+                <td>{{ formatPackagePrice(pricing.price) }}</td>
                 <td>
                   <span :class="['mini-pill', pricing.is_active ? 'mini-active' : 'mini-muted']">
                     {{ pricing.is_active ? 'Đang bật' : 'Đang tắt' }}
@@ -103,7 +112,11 @@
             <div>
               <dt>Màu hiển thị</dt>
               <dd>
-                <span v-if="packageData.color" class="color-dot" :style="{ backgroundColor: packageData.color }"></span>
+                <span
+                  v-if="packageData.color"
+                  class="color-dot"
+                  :style="{ backgroundColor: packageData.color }"
+                ></span>
                 {{ packageData.color || 'Chưa cấu hình' }}
               </dd>
             </div>
@@ -128,6 +141,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Star } from 'lucide-vue-next'
 import Button from '@/components/ui/Button.vue'
 import { usePackageApi } from '@/composables/usePackageApi'
+import { formatDurationLabel, formatPackagePrice } from '@/utils/packageFormatters'
 
 const route = useRoute()
 const router = useRouter()
@@ -138,18 +152,12 @@ const packageData = ref(null)
 const fetchError = ref('')
 
 const sortedPricings = computed(() => {
-  return [...(packageData.value?.pricings || [])].sort((a, b) => Number(a.duration_days) - Number(b.duration_days))
+  return [...(packageData.value?.pricings || [])].sort(
+    (a, b) => Number(a.duration_days) - Number(b.duration_days),
+  )
 })
 
 const activePricings = computed(() => sortedPricings.value.filter((pricing) => pricing.is_active))
-
-function formatPrice(price) {
-  return Number(price || 0).toLocaleString('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  })
-}
 
 function formatDate(value) {
   if (!value) return 'Chưa có'

@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import { Download, Calendar } from 'lucide-vue-next'
 
+import { formatCompactCurrency } from '@/utils/transactionFormatters'
+
 const period = ref('year')
 
 const monthlyRevenue = [
@@ -27,12 +29,10 @@ const packageDistribution = [
   { name: 'Doanh nghiệp', value: 5, color: 'hsl(142, 71%, 45%)' },
 ]
 
-function formatCurrency(val) {
-  return new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 }).format(val) + 'đ'
-}
+const formatCurrency = formatCompactCurrency
 
 // Bar chart config — wide viewBox so bars fill full container
-const maxRev = Math.max(...monthlyRevenue.map(d => d.revenue))
+const maxRev = Math.max(...monthlyRevenue.map((d) => d.revenue))
 const barChartH = 320
 const barChartW = 1000
 const padL = 56
@@ -41,7 +41,7 @@ const padT = 16
 const padB = 32
 const usableW = barChartW - padL - padR
 const usableH = barChartH - padT - padB
-const barW = Math.floor(usableW / monthlyRevenue.length * 0.55)
+const barW = Math.floor((usableW / monthlyRevenue.length) * 0.55)
 
 function barX(i) {
   const slotW = usableW / monthlyRevenue.length
@@ -56,13 +56,16 @@ function barY(v) {
 
 function yTicks() {
   const ticks = []
-  for (let i = 0; i <= 5; i++) ticks.push(Math.round(maxRev * i / 5))
+  for (let i = 0; i <= 5; i++) ticks.push(Math.round((maxRev * i) / 5))
   return ticks
 }
 
 // Donut chart
 const total = packageDistribution.reduce((s, p) => s + p.value, 0)
-const cx = 130, cy = 130, outerR = 90, innerR = 55
+const cx = 130,
+  cy = 130,
+  outerR = 90,
+  innerR = 55
 
 function getArcPath(startPct, endPct) {
   const start = (startPct / total) * Math.PI * 2 - Math.PI / 2
@@ -80,7 +83,7 @@ function getArcPath(startPct, endPct) {
 }
 
 let cumulative = 0
-const arcs = packageDistribution.map(p => {
+const arcs = packageDistribution.map((p) => {
   const start = cumulative
   cumulative += p.value
   return { ...p, path: getArcPath(start, cumulative) }
@@ -89,7 +92,10 @@ const arcs = packageDistribution.map(p => {
 
 <template>
   <div>
-    <PageHeader title="Doanh thu & Báo cáo" description="Thống kê doanh thu và phân tích hiệu quả kinh doanh">
+    <PageHeader
+      title="Doanh thu & Báo cáo"
+      description="Thống kê doanh thu và phân tích hiệu quả kinh doanh"
+    >
       <template #actions>
         <div class="period-select-wrap">
           <Calendar :size="16" color="hsl(215,16%,47%)" />
@@ -99,9 +105,7 @@ const arcs = packageDistribution.map(p => {
             <option value="year">Năm 2024</option>
           </select>
         </div>
-        <button class="btn-export" id="btn-export">
-          <Download :size="16" /> Xuất báo cáo
-        </button>
+        <button class="btn-export" id="btn-export"><Download :size="16" /> Xuất báo cáo</button>
       </template>
     </PageHeader>
 
@@ -130,17 +134,29 @@ const arcs = packageDistribution.map(p => {
       <div class="chart-card">
         <h2 class="chart-title">Doanh thu theo tháng</h2>
         <div class="chart-body">
-          <svg :viewBox="`0 0 ${barChartW} ${barChartH}`" class="bar-svg" preserveAspectRatio="xMidYMid meet">
+          <svg
+            :viewBox="`0 0 ${barChartW} ${barChartH}`"
+            class="bar-svg"
+            preserveAspectRatio="xMidYMid meet"
+          >
             <!-- Grid lines & Y labels -->
             <g v-for="t in yTicks()" :key="t">
               <line
-                :x1="padL" :y1="barY(t)"
-                :x2="barChartW - padR" :y2="barY(t)"
+                :x1="padL"
+                :y1="barY(t)"
+                :x2="barChartW - padR"
+                :y2="barY(t)"
                 stroke="hsl(214,20%,92%)"
                 stroke-dasharray="3 3"
                 stroke-width="1"
               />
-              <text :x="padL - 4" :y="barY(t) + 4" text-anchor="end" font-size="11" fill="hsl(215,16%,47%)">
+              <text
+                :x="padL - 4"
+                :y="barY(t) + 4"
+                text-anchor="end"
+                font-size="11"
+                fill="hsl(215,16%,47%)"
+              >
                 {{ formatCurrency(t) }}
               </text>
             </g>
@@ -162,7 +178,9 @@ const arcs = packageDistribution.map(p => {
                 text-anchor="middle"
                 font-size="11"
                 fill="hsl(215,16%,47%)"
-              >{{ d.month }}</text>
+              >
+                {{ d.month }}
+              </text>
             </g>
           </svg>
         </div>
@@ -180,7 +198,14 @@ const arcs = packageDistribution.map(p => {
               :fill="arc.color"
               class="donut-slice"
             />
-            <text :x="cx" :y="cy - 6" text-anchor="middle" font-size="20" font-weight="700" fill="hsl(220,20%,10%)">
+            <text
+              :x="cx"
+              :y="cy - 6"
+              text-anchor="middle"
+              font-size="20"
+              font-weight="700"
+              fill="hsl(220,20%,10%)"
+            >
               {{ total }}%
             </text>
             <text :x="cx" :y="cy + 14" text-anchor="middle" font-size="12" fill="hsl(215,16%,47%)">
@@ -234,7 +259,9 @@ const arcs = packageDistribution.map(p => {
   cursor: pointer;
   transition: background-color 0.15s;
 }
-.btn-export:hover { background-color: hsl(var(--muted)); }
+.btn-export:hover {
+  background-color: hsl(var(--muted));
+}
 
 .summary-grid {
   display: grid;
@@ -272,7 +299,9 @@ const arcs = packageDistribution.map(p => {
   margin: 0;
 }
 
-.change-positive { color: hsl(var(--success)); }
+.change-positive {
+  color: hsl(var(--success));
+}
 
 .charts-grid {
   display: grid;
@@ -316,7 +345,9 @@ const arcs = packageDistribution.map(p => {
   transition: opacity 0.15s;
   cursor: pointer;
 }
-.bar-rect:hover { opacity: 0.85; }
+.bar-rect:hover {
+  opacity: 0.85;
+}
 
 .donut-wrap {
   display: flex;
@@ -328,7 +359,9 @@ const arcs = packageDistribution.map(p => {
   transition: opacity 0.15s;
   cursor: pointer;
 }
-.donut-slice:hover { opacity: 0.85; }
+.donut-slice:hover {
+  opacity: 0.85;
+}
 
 .legend {
   display: flex;
@@ -361,7 +394,11 @@ const arcs = packageDistribution.map(p => {
 }
 
 @media (max-width: 1024px) {
-  .summary-grid { grid-template-columns: 1fr; }
-  .charts-grid { grid-template-columns: 1fr; }
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

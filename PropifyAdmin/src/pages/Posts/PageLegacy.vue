@@ -3,7 +3,20 @@ import { ref, watch, onMounted } from 'vue'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
-import { Search, Filter, Eye, CheckCircle, XCircle, Lock, MapPin, Maximize, Package as PackageIcon, ChevronLeft, ChevronRight, MoreVertical } from 'lucide-vue-next'
+import {
+  Search,
+  Filter,
+  Eye,
+  CheckCircle,
+  XCircle,
+  Lock,
+  MapPin,
+  Maximize,
+  Package as PackageIcon,
+  ChevronLeft,
+  ChevronRight,
+  MoreVertical,
+} from 'lucide-vue-next'
 import { listingService } from '@/services/listingService'
 
 const search = ref('')
@@ -30,7 +43,7 @@ const toggleDropdown = (id, event) => {
 
       dropdownPosition.value = {
         top: rect.top + rect.height / 2, // center vertically
-        left: left
+        left: left,
       }
     }
     activeDropdown.value = id
@@ -65,9 +78,9 @@ const fetchPosts = async () => {
     if (search.value) params.keyword = search.value
 
     const res = await listingService.getAllListings(params)
-    
+
     // Map dữ liệu từ API sang format cho UI
-    posts.value = res.data.data.map(p => {
+    posts.value = res.data.data.map((p) => {
       // Map status API -> StatusBadge props
       let badgeStatus = 'pending'
       if (p.status === 'ACTIVE') badgeStatus = 'approved'
@@ -77,9 +90,10 @@ const fetchPosts = async () => {
       // Format giá
       let priceText = 'Thỏa thuận'
       if (p.property?.price) {
-        priceText = p.property.price >= 1000000000 
-          ? (p.property.price / 1000000000).toFixed(1) + ' tỷ' 
-          : (p.property.price / 1000000).toFixed(0) + ' triệu'
+        priceText =
+          p.property.price >= 1000000000
+            ? (p.property.price / 1000000000).toFixed(1) + ' tỷ'
+            : (p.property.price / 1000000).toFixed(0) + ' triệu'
         if (p.demand_type === 'RENT') priceText += '/tháng'
       }
 
@@ -102,7 +116,7 @@ const fetchPosts = async () => {
         views: p.views ?? 0,
       }
     })
-    
+
     totalPages.value = res.data.meta.last_page || 1
     totalItems.value = res.data.meta.total || 0
   } catch (error) {
@@ -139,10 +153,10 @@ onMounted(() => {
 
 function openConfirm(title, desc, actionFn) {
   confirmModal.value = {
-    open: true, 
-    title, 
+    open: true,
+    title,
     desc,
-    action: async () => { 
+    action: async () => {
       try {
         if (actionFn) {
           await actionFn()
@@ -160,7 +174,7 @@ function openConfirm(title, desc, actionFn) {
 const updateStatus = async (id, status) => {
   let rejectionReason = null
   if (status === 'REJECTED') {
-    const reason = prompt("Lý do từ chối (có thể để trống):")
+    const reason = prompt('Lý do từ chối (có thể để trống):')
     if (reason === null) return // User cancelled
     rejectionReason = reason
   }
@@ -171,7 +185,10 @@ const updateStatus = async (id, status) => {
 
 <template>
   <div>
-    <PageHeader title="Quản lý tin đăng" description="Duyệt, quản lý và kiểm soát tin đăng bất động sản" />
+    <PageHeader
+      title="Quản lý tin đăng"
+      description="Duyệt, quản lý và kiểm soát tin đăng bất động sản"
+    />
 
     <!-- Filters -->
     <div class="filter-bar">
@@ -202,12 +219,12 @@ const updateStatus = async (id, status) => {
       </div>
     </div>
 
-     <!-- Table -->
-     <div class="table-wrap">
-       <div class="table-scroll" @scroll="activeDropdown = null">
-         <table class="data-table">
-           <thead class="sticky-thead">
-             <tr class="table-head-row">
+    <!-- Table -->
+    <div class="table-wrap">
+      <div class="table-scroll" @scroll="activeDropdown = null">
+        <table class="data-table">
+          <thead class="sticky-thead">
+            <tr class="table-head-row">
               <th class="th th-post">Tin đăng</th>
               <th class="th">Giá</th>
               <th class="th">Diện tích</th>
@@ -217,7 +234,7 @@ const updateStatus = async (id, status) => {
               <th class="th">Người đăng</th>
               <th class="th">Ngày đăng</th>
               <th class="th">Trạng thái</th>
-              <th class="th th-right sticky-col w-12 text-center" style="padding: 12px 10px;"></th>
+              <th class="th th-right sticky-col w-12 text-center" style="padding: 12px 10px"></th>
             </tr>
           </thead>
           <tbody>
@@ -225,7 +242,9 @@ const updateStatus = async (id, status) => {
               <td colspan="10" class="td text-center text-slate-500 py-8">Đang tải dữ liệu...</td>
             </tr>
             <tr v-else-if="posts.length === 0" class="table-row">
-              <td colspan="10" class="td text-center text-slate-500 py-8">Không có tin đăng nào.</td>
+              <td colspan="10" class="td text-center text-slate-500 py-8">
+                Không có tin đăng nào.
+              </td>
             </tr>
             <tr v-for="post in posts" :key="post.id" class="table-row">
               <!-- Tin đăng -->
@@ -256,7 +275,15 @@ const updateStatus = async (id, status) => {
                 </span>
               </td>
               <td class="td whitespace-nowrap">
-                <span v-if="post.package" class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border" :style="{ borderColor: post.package.color + '40', color: post.package.color, backgroundColor: post.package.color + '10' }">
+                <span
+                  v-if="post.package"
+                  class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border"
+                  :style="{
+                    borderColor: post.package.color + '40',
+                    color: post.package.color,
+                    backgroundColor: post.package.color + '10',
+                  }"
+                >
                   <PackageIcon :size="12" />
                   {{ post.package.name }}
                 </span>
@@ -268,42 +295,99 @@ const updateStatus = async (id, status) => {
                   {{ post.views.toLocaleString('vi-VN') }}
                 </span>
               </td>
-              <td class="td text-[13px]" style="color: hsl(var(--foreground))">{{ post.author }}</td>
-              <td class="td text-[13px]" style="color: hsl(var(--muted-foreground))">{{ post.date }}</td>
+              <td class="td text-[13px]" style="color: hsl(var(--foreground))">
+                {{ post.author }}
+              </td>
+              <td class="td text-[13px]" style="color: hsl(var(--muted-foreground))">
+                {{ post.date }}
+              </td>
               <td class="td"><StatusBadge :status="post.status" /></td>
-               <td class="td sticky-col action-menu-container p-0 align-middle">
-                 <div class="flex justify-center w-full">
-                    <button class="act-btn-more" @click.stop="toggleDropdown(post.id, $event)">
-                     <MoreVertical :size="18" color="hsl(215,16%,47%)" />
-                   </button>
+              <td class="td sticky-col action-menu-container p-0 align-middle">
+                <div class="flex justify-center w-full">
+                  <button class="act-btn-more" @click.stop="toggleDropdown(post.id, $event)">
+                    <MoreVertical :size="18" color="hsl(215,16%,47%)" />
+                  </button>
 
-                   <!-- Dropdown positioned as fixed to escape overflow clipping -->
-                   <div v-if="activeDropdown === post.id"
-                        class="fixed bg-white rounded-md shadow-lg border border-slate-200 py-1 min-w-[140px] z-[100] -translate-y-1/2"
-                        :style="{ top: dropdownPosition.top + 'px', left: dropdownPosition.left + 'px' }">
-                     <button class="menu-item" :id="`view-${post.id}`" @click="toggleDropdown(null)">
-                       <Eye :size="15" />
-                       Xem chi tiết
-                     </button>
-                     <button v-if="post.status === 'pending'" class="menu-item text-green-600" :id="`approve-${post.id}`" @click="toggleDropdown(null); openConfirm('Duyệt tin', `Bạn có muốn duyệt tin &quot;${post.title}&quot;?`, () => updateStatus(post.id, 'ACTIVE'))">
-                       <CheckCircle :size="15" />
-                       Duyệt tin
-                     </button>
-                     <button v-if="post.status === 'pending'" class="menu-item text-red-600" :id="`reject-${post.id}`" @click="toggleDropdown(null); openConfirm('Từ chối', `Bạn có muốn từ chối tin &quot;${post.title}&quot;?`, () => updateStatus(post.id, 'REJECTED'))">
-                       <XCircle :size="15" />
-                       Từ chối
-                     </button>
-                     <button v-if="post.status === 'locked' || post.status === 'rejected'" class="menu-item text-green-600" :id="`unlock-${post.id}`" @click="toggleDropdown(null); openConfirm('Mở khóa', `Bạn có muốn mở khóa tin &quot;${post.title}&quot;?`, () => updateStatus(post.id, 'ACTIVE'))">
-                       <CheckCircle :size="15" />
-                       Mở khóa
-                     </button>
-                     <button v-if="post.status === 'approved'" class="menu-item text-slate-700" :id="`lock-${post.id}`" @click="toggleDropdown(null); openConfirm('Khóa tin', `Bạn có muốn khóa tin &quot;${post.title}&quot;?`, () => updateStatus(post.id, 'LOCKED'))">
-                       <Lock :size="15" />
-                       Khóa tin
-                     </button>
-                   </div>
-                 </div>
-               </td>
+                  <!-- Dropdown positioned as fixed to escape overflow clipping -->
+                  <div
+                    v-if="activeDropdown === post.id"
+                    class="fixed bg-white rounded-md shadow-lg border border-slate-200 py-1 min-w-[140px] z-[100] -translate-y-1/2"
+                    :style="{
+                      top: dropdownPosition.top + 'px',
+                      left: dropdownPosition.left + 'px',
+                    }"
+                  >
+                    <button class="menu-item" :id="`view-${post.id}`" @click="toggleDropdown(null)">
+                      <Eye :size="15" />
+                      Xem chi tiết
+                    </button>
+                    <button
+                      v-if="post.status === 'pending'"
+                      class="menu-item text-green-600"
+                      :id="`approve-${post.id}`"
+                      @click="
+                        toggleDropdown(null)
+                        openConfirm(
+                          'Duyệt tin',
+                          `Bạn có muốn duyệt tin &quot;${post.title}&quot;?`,
+                          () => updateStatus(post.id, 'ACTIVE'),
+                        )
+                      "
+                    >
+                      <CheckCircle :size="15" />
+                      Duyệt tin
+                    </button>
+                    <button
+                      v-if="post.status === 'pending'"
+                      class="menu-item text-red-600"
+                      :id="`reject-${post.id}`"
+                      @click="
+                        toggleDropdown(null)
+                        openConfirm(
+                          'Từ chối',
+                          `Bạn có muốn từ chối tin &quot;${post.title}&quot;?`,
+                          () => updateStatus(post.id, 'REJECTED'),
+                        )
+                      "
+                    >
+                      <XCircle :size="15" />
+                      Từ chối
+                    </button>
+                    <button
+                      v-if="post.status === 'locked' || post.status === 'rejected'"
+                      class="menu-item text-green-600"
+                      :id="`unlock-${post.id}`"
+                      @click="
+                        toggleDropdown(null)
+                        openConfirm(
+                          'Mở khóa',
+                          `Bạn có muốn mở khóa tin &quot;${post.title}&quot;?`,
+                          () => updateStatus(post.id, 'ACTIVE'),
+                        )
+                      "
+                    >
+                      <CheckCircle :size="15" />
+                      Mở khóa
+                    </button>
+                    <button
+                      v-if="post.status === 'approved'"
+                      class="menu-item text-slate-700"
+                      :id="`lock-${post.id}`"
+                      @click="
+                        toggleDropdown(null)
+                        openConfirm(
+                          'Khóa tin',
+                          `Bạn có muốn khóa tin &quot;${post.title}&quot;?`,
+                          () => updateStatus(post.id, 'LOCKED'),
+                        )
+                      "
+                    >
+                      <Lock :size="15" />
+                      Khóa tin
+                    </button>
+                  </div>
+                </div>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -320,28 +404,35 @@ const updateStatus = async (id, status) => {
     </div>
 
     <!-- Pagination -->
-    <div class="relative flex flex-col md:flex-row items-center justify-center mt-6 gap-3 md:gap-0" v-if="totalPages > 1">
+    <div
+      class="relative flex flex-col md:flex-row items-center justify-center mt-6 gap-3 md:gap-0"
+      v-if="totalPages > 1"
+    >
       <div class="flex items-center gap-1">
-        <button 
-          @click="changePage(currentPage - 1)" 
+        <button
+          @click="changePage(currentPage - 1)"
           :disabled="currentPage === 1"
           class="p-1.5 border border-slate-200 rounded-md bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-600 transition-colors"
         >
           <ChevronLeft :size="18" />
         </button>
-        
-        <button 
-          v-for="page in totalPages" 
+
+        <button
+          v-for="page in totalPages"
           :key="page"
           @click="changePage(page)"
           class="w-8 h-8 flex items-center justify-center border rounded-md text-sm font-semibold transition-colors"
-          :class="page === currentPage ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'"
+          :class="
+            page === currentPage
+              ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+              : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700'
+          "
         >
           {{ page }}
         </button>
-        
-        <button 
-          @click="changePage(currentPage + 1)" 
+
+        <button
+          @click="changePage(currentPage + 1)"
           :disabled="currentPage === totalPages"
           class="p-1.5 border border-slate-200 rounded-md bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed text-slate-600 transition-colors"
         >
@@ -349,7 +440,8 @@ const updateStatus = async (id, status) => {
         </button>
       </div>
       <div class="md:absolute md:right-0 text-sm text-slate-500 font-medium">
-        Hiển thị {{ (currentPage - 1) * 8 + 1 }} đến {{ Math.min(currentPage * 8, totalItems) }} của {{ totalItems }} tin đăng
+        Hiển thị {{ (currentPage - 1) * 8 + 1 }} đến {{ Math.min(currentPage * 8, totalItems) }} của
+        {{ totalItems }} tin đăng
       </div>
     </div>
 
@@ -474,7 +566,9 @@ const updateStatus = async (id, status) => {
   z-index: 20;
 }
 
-.th-right { text-align: right; }
+.th-right {
+  text-align: right;
+}
 
 .table-row {
   border-bottom: 1px solid hsl(var(--border));
@@ -482,17 +576,24 @@ const updateStatus = async (id, status) => {
   height: 85px;
 }
 
-.table-row:last-child { border-bottom: none; }
-.table-row:hover { background-color: hsl(var(--muted) / 0.3); }
+.table-row:last-child {
+  border-bottom: none;
+}
+.table-row:hover {
+  background-color: hsl(var(--muted) / 0.3);
+}
 
-.td { padding: 8px 10px; vertical-align: middle; }
+.td {
+  padding: 8px 10px;
+  vertical-align: middle;
+}
 
 .sticky-col {
   position: sticky;
   right: 0;
   background-color: hsl(var(--card));
   z-index: 10;
-  box-shadow: -4px 0 6px -4px rgba(0,0,0,0.1);
+  box-shadow: -4px 0 6px -4px rgba(0, 0, 0, 0.1);
 }
 
 .table-head-row .sticky-col {
@@ -565,9 +666,15 @@ const updateStatus = async (id, status) => {
   transition: background-color 0.15s;
 }
 
-.act-btn:hover { background-color: hsl(var(--muted)); }
-.act-btn-success:hover { background-color: hsl(var(--success) / 0.1); }
-.act-btn-danger:hover { background-color: hsl(var(--destructive) / 0.1); }
+.act-btn:hover {
+  background-color: hsl(var(--muted));
+}
+.act-btn-success:hover {
+  background-color: hsl(var(--success) / 0.1);
+}
+.act-btn-danger:hover {
+  background-color: hsl(var(--destructive) / 0.1);
+}
 
 .act-btn-more {
   width: 32px;

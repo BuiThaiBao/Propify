@@ -23,7 +23,9 @@ const emit = defineEmits(['close', 'confirm'])
             <button class="btn-cancel" @click="emit('close')">Hủy</button>
             <button
               class="btn-confirm"
-              :class="variant === 'destructive' ? 'btn-destructive' : 'btn-primary gradient-primary'"
+              :class="
+                variant === 'destructive' ? 'btn-destructive' : 'btn-primary gradient-primary'
+              "
               @click="emit('confirm')"
             >
               {{ confirmText }}
@@ -110,17 +112,21 @@ const emit = defineEmits(['close', 'confirm'])
   opacity: 0.9;
 }
 
-.btn-primary { background: var(--gradient-primary); }
+.btn-primary {
+  background: var(--gradient-primary);
+}
 
 .btn-destructive {
   background-color: hsl(var(--destructive));
 }
 
 /* Transition */
-.modal-enter-active, .modal-leave-active {
+.modal-enter-active,
+.modal-leave-active {
   transition: opacity 0.2s ease;
 }
-.modal-enter-from, .modal-leave-to {
+.modal-enter-from,
+.modal-leave-to {
   opacity: 0;
 }
 .modal-enter-active .modal-dialog,

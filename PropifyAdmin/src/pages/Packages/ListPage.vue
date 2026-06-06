@@ -4,6 +4,11 @@ import { useRouter } from 'vue-router'
 import { Check, Edit, Eye, Lock, Plus, Star, Unlock } from 'lucide-vue-next'
 import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 import { usePackageApi } from '@/composables/usePackageApi'
+import {
+  activeDurationDays,
+  formatPackagePrice,
+  summarizePricingDurations,
+} from '@/utils/packageFormatters'
 
 const router = useRouter()
 const { fetchPackages, updatePackage, loading, error } = usePackageApi()
@@ -47,7 +52,7 @@ async function loadPackages() {
       status: filters.status === 'all' ? undefined : filters.status,
     })
     packages.value = response?.data || []
-  } catch (err) {
+  } catch {
     packages.value = []
   }
 }
@@ -55,14 +60,6 @@ async function loadPackages() {
 const totalPackages = computed(() => packages.value.length)
 const activeCount = computed(() => packages.value.filter((pkg) => pkg.is_active).length)
 const lockedCount = computed(() => packages.value.filter((pkg) => !pkg.is_active).length)
-
-function activeDurations(pkg) {
-  return (pkg.pricings || [])
-    .filter((pricing) => pricing.is_active)
-    .map((pricing) => Number(pricing.duration_days))
-    .filter((days) => Number.isInteger(days) && days > 0)
-    .sort((a, b) => a - b)
-}
 
 function buildUpdatePayload(pkg, nextActive) {
   return {
@@ -75,21 +72,8 @@ function buildUpdatePayload(pkg, nextActive) {
     badge: pkg.badge || null,
     color: pkg.color || null,
     is_active: nextActive,
-    active_durations: activeDurations(pkg),
+    active_durations: activeDurationDays(pkg),
   }
-}
-
-function formatPrice(price) {
-  return Number(price || 0).toLocaleString('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    maximumFractionDigits: 0,
-  })
-}
-
-function pricingSummary(pkg) {
-  const durations = activeDurations(pkg)
-  return durations.length ? durations.map((days) => `${days} ngày`).join(', ') : 'Chưa cấu hình'
 }
 
 function viewDetail(pkg) {
@@ -160,7 +144,10 @@ function handleToggleActive(pkg) {
       >
         <span v-if="!pkg.is_active" class="locked-badge">Đã khóa</span>
 
-        <div class="pkg-icon-wrap" :style="pkg.color ? { backgroundColor: `${pkg.color}20` } : null">
+        <div
+          class="pkg-icon-wrap"
+          :style="pkg.color ? { backgroundColor: `${pkg.color}20` } : null"
+        >
           <Star :size="24" :color="pkg.color || '#3b82f6'" />
         </div>
 
@@ -168,8 +155,8 @@ function handleToggleActive(pkg) {
           {{ pkg.name }}
           <span v-if="pkg.badge" class="pkg-badge">{{ pkg.badge }}</span>
         </h3>
-        <p class="pkg-price">{{ formatPrice(pkg.price) }}</p>
-        <p class="pkg-duration">Uu tien: {{ pkg.priority }} | HS: {{ pkg.multiplier }}x</p>
+        <p class="pkg-price">{{ formatPackagePrice(pkg.price) }}</p>
+        <p class="pkg-duration">Ưu tiên: {{ pkg.priority }} | HS: {{ pkg.multiplier }}x</p>
 
         <ul class="pkg-features">
           <li class="pkg-feature">
@@ -182,7 +169,7 @@ function handleToggleActive(pkg) {
           </li>
           <li class="pkg-feature">
             <Check :size="16" color="#16a34a" />
-            Thời hạn: {{ pricingSummary(pkg) }}
+            Thời hạn: {{ summarizePricingDurations(pkg) }}
           </li>
         </ul>
 

@@ -10,7 +10,9 @@ defineProps({
 </script>
 
 <template>
-  <div class="rounded-xl border border-border/50 bg-card p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover">
+  <div
+    class="rounded-xl border border-border/50 bg-card p-5 shadow-card transition-shadow duration-200 hover:shadow-card-hover"
+  >
     <div class="flex items-start justify-between">
       <div class="flex flex-col gap-2">
         <p class="m-0 text-sm font-medium text-muted-foreground">{{ title }}</p>

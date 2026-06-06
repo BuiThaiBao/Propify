@@ -29,16 +29,9 @@ function barHeight(v) {
     </div>
 
     <div class="bar-chart">
-      <div
-        v-for="(val, i) in values"
-        :key="i"
-        class="bar-col"
-      >
+      <div v-for="(val, i) in values" :key="i" class="bar-col">
         <div class="bar-val">{{ val }}M</div>
-        <div
-          class="bar"
-          :style="{ height: barHeight(val) + 'px' }"
-        ></div>
+        <div class="bar" :style="{ height: barHeight(val) + 'px' }"></div>
         <div class="bar-label">{{ months[i] }}</div>
       </div>
     </div>

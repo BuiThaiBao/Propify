@@ -32,11 +32,7 @@ const emit = defineEmits(['toggle', 'delete'])
         <Edit :size="14" />
         Sửa
       </button>
-      <button
-        class="btn-delete"
-        :id="`delete-util-${utility.id}`"
-        @click="emit('delete')"
-      >
+      <button class="btn-delete" :id="`delete-util-${utility.id}`" @click="emit('delete')">
         <Trash2 :size="14" />
       </button>
     </div>
@@ -50,7 +46,9 @@ const emit = defineEmits(['toggle', 'delete'])
   border-radius: 14px;
   padding: 20px;
   position: relative;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
 }
 
 .utility-card:hover {

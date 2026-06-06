@@ -5,13 +5,10 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   base: '/admin/',
-  plugins: [
-    vue(),
-    tailwindcss(),
-  ],
+  plugins: [vue(), tailwindcss()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   server: {

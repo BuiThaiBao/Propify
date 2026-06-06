@@ -105,7 +105,9 @@ const searchValue = ref('')
   font-weight: 500;
   color: white;
   cursor: pointer;
-  transition: box-shadow 0.15s, opacity 0.15s;
+  transition:
+    box-shadow 0.15s,
+    opacity 0.15s;
 }
 
 .btn-create:hover {
