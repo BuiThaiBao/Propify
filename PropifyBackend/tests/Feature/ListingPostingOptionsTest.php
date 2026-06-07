@@ -49,9 +49,10 @@ class ListingPostingOptionsTest extends TestCase
         $response = $this->getJson('/api/v1/listings/posting-options');
 
         $response->assertOk()
-            ->assertJsonPath('data.listing_verification_statuses.0.value', 'UNVERIFIED')
-            ->assertJsonPath('data.listing_verification_statuses.1.value', 'REQUESTED')
-            ->assertJsonPath('data.listing_verification_statuses.2.value', 'VERIFIED')
-            ->assertJsonPath('data.listing_verification_statuses.3.value', 'REJECTED');
+            ->assertJsonPath('data.listing_verification_statuses.0.value', 'NOT_REQUIRED')
+            ->assertJsonPath('data.listing_verification_statuses.1.value', 'UNVERIFIED')
+            ->assertJsonPath('data.listing_verification_statuses.2.value', 'REQUESTED')
+            ->assertJsonPath('data.listing_verification_statuses.3.value', 'VERIFIED')
+            ->assertJsonPath('data.listing_verification_statuses.4.value', 'REJECTED');
     }
 }

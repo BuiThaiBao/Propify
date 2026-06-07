@@ -44,7 +44,7 @@ export function buildListingPreview({
     status: "PREVIEW",
     submitted_at: new Date().toISOString(),
     views: 0,
-    is_verified: "UNVERIFIED",
+    is_verified: form.demandType === "RENT" ? "NOT_REQUIRED" : "UNVERIFIED",
     images: buildPreviewImages(form.images, imagePreviews),
     owner: authUser
       ? {

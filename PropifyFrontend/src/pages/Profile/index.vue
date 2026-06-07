@@ -468,7 +468,12 @@
                 <tr
                   v-for="item in myListings"
                   :key="item.id"
-                  class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group"
+                  :class="[
+                    'border-t border-slate-100 transition',
+                    canOpenListing(item)
+                      ? 'group cursor-pointer hover:bg-sky-50/50'
+                      : 'cursor-not-allowed opacity-70',
+                  ]"
                   @click="openListingEdit(item)"
                 >
                   <td
@@ -555,6 +560,7 @@
                   </td>
                   <td class="pl-3 pr-5 py-4 relative col-sticky-actions">
                     <button
+                      v-if="canShowListingActions(item)"
                       @click.stop="toggleDropdown(item.id, $event)"
                       class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center mx-auto"
                     >
@@ -576,7 +582,10 @@
                     </button>
                     <Teleport to="body">
                       <div
-                        v-if="openDropdownId === item.id"
+                        v-if="
+                          openDropdownId === item.id &&
+                          canShowListingActions(item)
+                        "
                         :style="{
                           top: dropdownStyle.top,
                           left: dropdownStyle.left,
@@ -891,7 +900,12 @@
                 <tr
                   v-for="item in verificationListings"
                   :key="item.id"
-                  class="border-t border-slate-100 cursor-pointer hover:bg-sky-50/50 transition group"
+                  :class="[
+                    'border-t border-slate-100 transition',
+                    canOpenListing(item)
+                      ? 'group cursor-pointer hover:bg-sky-50/50'
+                      : 'cursor-not-allowed opacity-70',
+                  ]"
                   @click="openListingEdit(item)"
                 >
                   <td
@@ -990,6 +1004,7 @@
                   </td>
                   <td class="pl-3 pr-5 py-4 relative col-sticky-actions">
                     <button
+                      v-if="canShowListingActions(item)"
                       @click.stop="toggleDropdown(item.id, $event)"
                       class="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition-colors flex items-center justify-center mx-auto"
                     >
@@ -1011,7 +1026,10 @@
                     </button>
                     <Teleport to="body">
                       <div
-                        v-if="openDropdownId === item.id"
+                        v-if="
+                          openDropdownId === item.id &&
+                          canShowListingActions(item)
+                        "
                         :style="{
                           top: dropdownStyle.top,
                           left: dropdownStyle.left,
@@ -2442,8 +2460,16 @@ function closeDropdown() {
   openDropdownId.value = null;
 }
 
+function canOpenListing(item) {
+  return item?.status !== "UNLISTED";
+}
+
+function canShowListingActions(item) {
+  return item?.status !== "UNLISTED";
+}
+
 function openListingEdit(item) {
-  if (!item?.id) return;
+  if (!item?.id || !canOpenListing(item)) return;
   router.push({ name: "ListingEdit", params: { id: item.id } });
 }
 
@@ -2453,6 +2479,7 @@ function canUnlistListing(item) {
 
 function handleDropdownAction(action, item) {
   closeDropdown();
+  if (!canShowListingActions(item)) return;
   if (action === "edit") {
     openListingEdit(item);
   } else if (action === "verify") {
@@ -2466,7 +2493,7 @@ function handleDropdownAction(action, item) {
     else alert("Chỉ có thể nâng cấp tin đang đăng.");
   } else if (action === "publish") {
     if (item.status === "DRAFT") {
-      alert("Tính năng đang phát triển");
+      openListingEdit(item);
     } else {
       alert("Chỉ có thể đăng tin nháp.");
     }
@@ -2756,6 +2783,7 @@ function verificationStatusLabel(status) {
   return (
     {
       UNVERIFIED: "Chưa xác thực",
+      NOT_REQUIRED: "Không cần thiết",
       REQUESTED: "Yêu cầu xác thực",
       VERIFIED: "Đã xác thực",
       REJECTED: "Đã từ chối",
@@ -2767,6 +2795,7 @@ function verificationBadgeClass(status) {
   return (
     {
       UNVERIFIED: "bg-slate-100 text-slate-600",
+      NOT_REQUIRED: "bg-slate-100 text-slate-500",
       REQUESTED: "bg-amber-100 text-amber-700",
       VERIFIED: "bg-emerald-100 text-emerald-700",
       REJECTED: "bg-red-100 text-red-700",
