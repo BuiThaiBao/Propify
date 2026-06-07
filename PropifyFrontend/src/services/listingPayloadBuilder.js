@@ -65,6 +65,12 @@ function isBlank(value) {
   return value === null || value === undefined || value === "";
 }
 
+function normalizeIntegerString(value) {
+  const text = String(value ?? "").trim();
+  const normalized = /^\d+\.\d{2}$/.test(text) ? text.split(".")[0] : text;
+  return normalized.replace(/[^0-9]/g, "");
+}
+
 export function buildListingPayload(payload) {
   const data = {};
 
@@ -76,6 +82,10 @@ export function buildListingPayload(payload) {
     if (key === "price" && data.is_negotiable === true) {
       data.price = null;
       return;
+    }
+
+    if (key === "price") {
+      data.price = normalizeIntegerString(data.price);
     }
 
     if (isBlank(data[key])) {

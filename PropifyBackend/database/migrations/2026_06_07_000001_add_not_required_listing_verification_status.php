@@ -12,12 +12,7 @@ return new class extends Migration
         }
 
         DB::statement('ALTER TABLE listings MODIFY is_verified VARCHAR(30) NOT NULL DEFAULT \'UNVERIFIED\' COMMENT \'Enum: NOT_REQUIRED, UNVERIFIED, REQUESTED, VERIFIED, REJECTED\'');
-        DB::statement("UPDATE listings SET is_verified = CASE
-            WHEN is_verified IN ('1', 'VERIFIED') THEN 'VERIFIED'
-            WHEN demand_type = 'RENT' THEN 'NOT_REQUIRED'
-            WHEN request_verification = 1 THEN 'REQUESTED'
-            ELSE 'UNVERIFIED'
-        END");
+        DB::statement("UPDATE listings SET is_verified = 'NOT_REQUIRED' WHERE demand_type = 'RENT'");
     }
 
     public function down(): void
@@ -26,7 +21,7 @@ return new class extends Migration
             return;
         }
 
-        DB::statement("UPDATE listings SET is_verified = CASE WHEN is_verified = 'VERIFIED' THEN '1' ELSE '0' END");
-        DB::statement('ALTER TABLE listings MODIFY is_verified TINYINT(1) NOT NULL DEFAULT 0');
+        DB::statement("UPDATE listings SET is_verified = 'UNVERIFIED' WHERE is_verified = 'NOT_REQUIRED'");
+        DB::statement('ALTER TABLE listings MODIFY is_verified VARCHAR(30) NOT NULL DEFAULT \'UNVERIFIED\' COMMENT \'Enum: UNVERIFIED, REQUESTED, VERIFIED, REJECTED\'');
     }
 };

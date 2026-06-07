@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 
 final class ListingVerificationStatusResolverTest extends TestCase
 {
-    public function test_rent_listing_is_always_unverified(): void
+    public function test_rent_listing_does_not_require_verification(): void
     {
         $status = ListingVerificationStatusResolver::forSubmission(
             'RENT',
@@ -17,7 +17,7 @@ final class ListingVerificationStatusResolverTest extends TestCase
             ['https://example.com/legal.jpg'],
         );
 
-        $this->assertSame(ListingVerificationStatus::UNVERIFIED, $status);
+        $this->assertSame(ListingVerificationStatus::NOT_REQUIRED, $status);
     }
 
     public function test_sale_listing_without_documents_is_unverified(): void

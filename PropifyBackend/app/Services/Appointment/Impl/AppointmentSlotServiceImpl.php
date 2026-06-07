@@ -240,6 +240,10 @@ final class AppointmentSlotServiceImpl implements AppointmentSlotService
             ->where('poster_id', $dto->posterId)
             ->delete();
 
+        if (empty($dto->slots)) {
+            return new Collection;
+        }
+
         return $this->createSlots($dto);
     }
 

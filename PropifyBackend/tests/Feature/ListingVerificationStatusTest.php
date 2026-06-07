@@ -40,4 +40,33 @@ final class ListingVerificationStatusTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.is_verified', 'REQUESTED');
     }
+
+    public function test_rent_listing_is_created_with_not_required_verification_status(): void
+    {
+        $user = User::query()->create(['phone' => '0901234568']);
+
+        $response = $this->actingAs($user, 'api')->postJson('/api/v1/listings', [
+            'demand_type' => 'RENT',
+            'title' => 'Tin cho thue khong can xac thuc',
+            'description' => 'Mo ta tin cho thue co day du thong tin toi thieu.',
+            'property_type' => 'APARTMENT',
+            'province_code' => '01',
+            'province' => 'Ha Noi',
+            'ward_code' => '001',
+            'ward' => 'Phuong Test',
+            'street_code' => 'Duong Test',
+            'address_detail' => 'So 1 Duong Test',
+            'area' => 50,
+            'price' => 5000000,
+            'bedrooms' => 2,
+            'bathrooms' => 1,
+            'contact_name' => 'Nguyen Van A',
+            'contact_phone' => '0901234568',
+            'poster_type' => 'OWNER',
+            'images' => ['https://example.com/listing.jpg'],
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.is_verified', 'NOT_REQUIRED');
+    }
 }

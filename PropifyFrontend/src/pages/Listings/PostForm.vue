@@ -176,6 +176,7 @@
                   :class="['input mt-1', fieldError('title') && 'input-error']"
                   maxlength="120"
                   placeholder="Nhập tên bất động sản"
+                  @input="touchField('title')"
                   @blur="handleTextBlur('title')"
                 />
                 <p v-if="fieldError('title')" class="field-error">
@@ -212,6 +213,7 @@
                   ]"
                   maxlength="5000"
                   placeholder="VD: Giới thiệu các đặc điểm nổi bật của bất động sản:&#10;- Các tiện ích xung quanh: gần công viên, gần trường học&#10;- Thời gian đến khu vực trung tâm, tiện ích xung quanh"
+                  @input="touchField('description')"
                   @blur="handleTextBlur('description', true)"
                 ></textarea>
                 <p v-if="fieldError('description')" class="field-error">
@@ -223,35 +225,63 @@
               </label>
 
               <div class="mt-3 grid gap-3 md:grid-cols-2">
-                <label>
+                <div class="dropdown-field">
                   <span class="field-label required">Loại nhà đất</span>
-                  <select
-                    v-model="form.propertyType"
+                  <button
+                    ref="propertyTypeTriggerRef"
+                    type="button"
                     :class="[
                       'input mt-1',
+                      'custom-select-trigger',
                       fieldError('propertyType') && 'input-error',
                     ]"
-                    @blur="touchField('propertyType')"
+                    @click="togglePropertyTypeDropdown"
                   >
-                    <option
+                    <span
+                      v-if="!form.propertyType"
+                      class="text-slate-400"
+                      >Chọn loại nhà đất</span
+                    >
+                    <span v-else class="legal-selected-text">{{
+                      selectedPropertyTypeLabel
+                    }}</span>
+                    <ChevronDown
+                      class="h-4 w-4 shrink-0 text-slate-500 dropdown-chevron"
+                      :class="{
+                        open: showPropertyTypeDropdown,
+                        up: propertyTypeDropdownPlacement === 'up',
+                      }"
+                      aria-hidden="true"
+                    />
+                  </button>
+                  <div
+                    v-if="showPropertyTypeDropdown"
+                    ref="propertyTypeDropdownRef"
+                    class="custom-dropdown"
+                    :class="`custom-dropdown-${propertyTypeDropdownPlacement}`"
+                  >
+                    <button
                       v-for="option in currentPropertyTypeOptions"
                       :key="option.value"
-                      :value="option.value"
+                      type="button"
+                      class="custom-option"
+                      :class="{ selected: form.propertyType === option.value }"
+                      @click="selectPropertyType(option.value)"
                     >
                       {{ option.label }}
-                    </option>
-                  </select>
+                    </button>
+                  </div>
                   <p v-if="fieldError('propertyType')" class="field-error">
                     {{ fieldErrorMessage("propertyType") }}
                   </p>
-                </label>
-                <label class="legal-field">
+                </div>
+                <div class="dropdown-field">
                   <span class="field-label">Giấy tờ pháp lý</span>
                   <button
-                    type="button"
-                    class="input mt-1 flex items-center justify-between gap-2"
-                    @click="toggleLegalDropdown"
                     ref="legalTriggerRef"
+                    type="button"
+                    class="input mt-1 custom-select-trigger"
+                    @click="toggleLegalDropdown"
                   >
                     <span
                       v-if="!form.legalPaperTypes.length"
@@ -262,19 +292,21 @@
                       selectedLegalPaperLabels
                     }}</span>
                     <ChevronDown
-                      class="h-4 w-4 shrink-0 text-slate-500"
+                      class="h-4 w-4 shrink-0 text-slate-500 dropdown-chevron"
+                      :class="{ open: showLegalDropdown, up: legalDropdownPlacement === 'up' }"
                       aria-hidden="true"
                     />
                   </button>
                   <div
                     v-if="showLegalDropdown"
-                    class="legal-dropdown"
                     ref="legalDropdownRef"
+                    class="custom-dropdown"
+                    :class="`custom-dropdown-${legalDropdownPlacement}`"
                   >
                     <label
                       v-for="option in legalPaperOptions"
                       :key="option.value"
-                      class="legal-option"
+                      class="custom-option custom-option-check"
                       :class="{
                         selected: form.legalPaperTypes.includes(option.value),
                       }"
@@ -287,7 +319,7 @@
                       />
                     </label>
                   </div>
-                </label>
+                </div>
               </div>
 
               <div class="mt-3 grid gap-3 md:grid-cols-1">
@@ -550,6 +582,7 @@
                       fieldError('streetCode') && 'input-error',
                     ]"
                     placeholder="Nhập đường/phố"
+                    @input="touchField('streetCode')"
                     @blur="handleTextBlur('streetCode')"
                   />
                   <p v-if="fieldError('streetCode')" class="field-error">
@@ -567,7 +600,8 @@
                     inputmode="text"
                     autocomplete="off"
                     placeholder="Nhập địa chỉ"
-                    @blur="handleTextBlur('addressDetail')"
+                  @input="touchField('addressDetail')"
+                  @blur="handleTextBlur('addressDetail')"
                   />
                   <p v-if="fieldError('addressDetail')" class="field-error">
                     {{ fieldErrorMessage("addressDetail") }}
@@ -604,13 +638,20 @@
                     </button>
                     <input
                       v-model="form.bedrooms"
-                      class="quick-input"
+                      :class="[
+                        'quick-input',
+                        fieldError('bedrooms') && 'input-error',
+                      ]"
                       type="text"
                       inputmode="numeric"
+                      maxlength="2"
                       placeholder="Nhập số"
-                      @input="onNumberInput($event, 'bedrooms', false)"
+                      @input="onTwoDigitIntegerInput($event, 'bedrooms')"
                     />
                   </div>
+                  <p v-if="fieldError('bedrooms')" class="field-error">
+                    {{ fieldErrorMessage("bedrooms") }}
+                  </p>
                 </div>
 
                 <div>
@@ -630,13 +671,20 @@
                     </button>
                     <input
                       v-model="form.bathrooms"
-                      class="quick-input"
+                      :class="[
+                        'quick-input',
+                        fieldError('bathrooms') && 'input-error',
+                      ]"
                       type="text"
                       inputmode="numeric"
+                      maxlength="2"
                       placeholder="Nhập số"
-                      @input="onNumberInput($event, 'bathrooms', false)"
+                      @input="onTwoDigitIntegerInput($event, 'bathrooms')"
                     />
                   </div>
+                  <p v-if="fieldError('bathrooms')" class="field-error">
+                    {{ fieldErrorMessage("bathrooms") }}
+                  </p>
                 </div>
               </div>
 
@@ -698,7 +746,8 @@
                       type="text"
                       inputmode="numeric"
                       placeholder="Nhập số"
-                      @input="onNumberInput($event, 'floorNumber', false)"
+                      maxlength="2"
+                      @input="onTwoDigitIntegerInput($event, 'floorNumber')"
                       @blur="touchField('floorNumber')"
                     />
                     <p v-if="fieldError('floorNumber')" class="field-error">
@@ -716,7 +765,8 @@
                       type="text"
                       inputmode="numeric"
                       placeholder="Nhập số"
-                      @input="onNumberInput($event, 'floors', false)"
+                      maxlength="2"
+                      @input="onTwoDigitIntegerInput($event, 'floors')"
                       @blur="touchField('floors')"
                     />
                     <p v-if="fieldError('floors')" class="field-error">
@@ -771,13 +821,20 @@
                     </button>
                     <input
                       v-model="form.balconies"
-                      class="quick-input"
+                      :class="[
+                        'quick-input',
+                        fieldError('balconies') && 'input-error',
+                      ]"
                       type="text"
                       inputmode="numeric"
                       placeholder="Nhập số"
-                      @input="onNumberInput($event, 'balconies', false)"
+                      maxlength="2"
+                      @input="onTwoDigitIntegerInput($event, 'balconies')"
                     />
                   </div>
+                  <p v-if="fieldError('balconies')" class="field-error">
+                    {{ fieldErrorMessage("balconies") }}
+                  </p>
                 </div>
               </div>
 
@@ -857,6 +914,7 @@
                       fieldError('contactName') && 'input-error',
                     ]"
                     placeholder="Nhập họ tên"
+                    @input="touchField('contactName')"
                     @blur="handleTextBlur('contactName')"
                   />
                   <p v-if="fieldError('contactName')" class="field-error">
@@ -894,6 +952,7 @@
                   ]"
                   type="email"
                   placeholder="vd_email@gmail.com"
+                  @input="touchField('contactEmail')"
                   @blur="handleTextBlur('contactEmail')"
                 />
                 <p v-if="fieldError('contactEmail')" class="field-error">
@@ -901,7 +960,9 @@
                 </p>
               </label>
             </section>
-            <AppointmentSlotsForm ref="appointmentForm" />
+            <div data-score-section="contact">
+              <AppointmentSlotsForm ref="appointmentForm" />
+            </div>
           </template>
 
           <section v-if="form.demandType !== 'RENT'" class="section-card">
@@ -1136,6 +1197,15 @@
                 @click="openPreview"
               >
                 Xem trước tin đăng
+              </button>
+              <button
+                v-if="isDraftEditMode"
+                type="button"
+                :disabled="!canUpdateDraft"
+                class="rounded-xl border border-sky-200 bg-sky-50 px-5 py-2.5 text-sm font-semibold text-sky-600 transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-60"
+                @click="updateDraftListing"
+              >
+                {{ draftUpdateButtonText }}
               </button>
               <button
                 type="submit"
@@ -1483,6 +1553,7 @@ import {
   MAX_LISTING_VIDEO_SIZE_LABEL,
   useListingMediaUpload,
 } from "@/composables/useListingMediaUpload";
+import { ChevronDown } from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import AppointmentSlotsForm from "@/components/appointments/AppointmentSlotsForm.vue";
@@ -1581,6 +1652,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const isEditMode = computed(() => !!route.params.id);
 const editListingId = computed(() => route.params.id);
+const editLoadToken = ref(0);
 const isVerificationOnlyMode = computed(
   () => isEditMode.value && route.query.mode === "verification",
 );
@@ -1650,6 +1722,7 @@ const imagePreviews = ref([]);
 const frontCardPreviewUrl = ref("");
 const backCardPreviewUrl = ref("");
 const legalDocumentPreviews = ref([]);
+const showPropertyTypeDropdown = ref(false);
 const showLegalDropdown = ref(false);
 const showMoreDetail = ref(true);
 const selectedAmenities = ref([]);
@@ -1669,6 +1742,7 @@ const contactCollapsed = ref(false);
 const activeScoreSection = ref("media");
 const priceFocused = ref(false);
 let scoreSectionObserver = null;
+let scoreSectionScrollRaf = null;
 
 const toasts = ref([]);
 let toastIdCounter = 1;
@@ -1811,30 +1885,44 @@ const isEditDirty = computed(() => {
     return false;
   return createEditSnapshot() !== initialEditSnapshot.value;
 });
+const isDraftEditMode = computed(
+  () => isEditMode.value && editListingStatus.value === "DRAFT",
+);
 const isUnlistedRelistingMode = computed(
-  () => isEditMode.value && editListingStatus.value === "UNLISTED",
+  () => false,
 );
 const isRelistingMode = computed(
   () =>
     isEditMode.value &&
-    ["UNLISTED", "REJECTED"].includes(editListingStatus.value),
+    ["REJECTED"].includes(editListingStatus.value),
 );
 const canSubmitListing = computed(
   () =>
     !formBusy.value &&
-    (!isEditMode.value || isUnlistedRelistingMode.value || isEditDirty.value),
+    editListingStatus.value !== "UNLISTED" &&
+    (!isEditMode.value ||
+      isDraftEditMode.value ||
+      isEditDirty.value),
+);
+const canUpdateDraft = computed(
+  () => isDraftEditMode.value && !formBusy.value && isEditDirty.value,
 );
 const submitButtonText = computed(() => {
   if (savingDraft.value) return "Đang lưu nháp...";
   if (loading.value) {
     if (isVerificationOnlyMode.value) return "Đang lưu xác thực...";
+    if (isDraftEditMode.value) return "Đang đăng tin nháp...";
     if (isRelistingMode.value) return "Đang đăng lại tin...";
     return isEditMode.value ? "Đang cập nhật tin..." : "Đang đăng tin...";
   }
   if (isVerificationOnlyMode.value) return "Lưu xác thực";
+  if (isDraftEditMode.value) return "Đăng tin nháp";
   if (isRelistingMode.value) return "Đăng lại tin";
   return isEditMode.value ? "Cập nhật tin" : "Đăng tin";
 });
+const draftUpdateButtonText = computed(() =>
+  savingDraft.value ? "Đang cập nhật nháp..." : "Cập nhật tin nháp",
+);
 
 const MAX_LISTING_IMAGES = 10;
 const IMAGE_SCORE_TARGET_COUNT = 4;
@@ -1933,7 +2021,7 @@ const infoChecklist = computed(() => [
   },
   {
     label: form.demandType === "RENT" ? "Giá thuê" : "Giá bán",
-    done: form.isNegotiable || Number(form.price) > 0,
+    done: form.isNegotiable || Number(getPriceDigits(form.price)) > 0,
     points: form.demandType === "RENT" ? 0.2 : 0.3,
     section: "info",
   },
@@ -2184,18 +2272,55 @@ const selectedLegalPaperLabels = computed(() => {
     .join(", ");
 });
 
-// Refs for click-outside handling of the legal dropdown
+const selectedPropertyTypeLabel = computed(() => {
+  return (
+    currentPropertyTypeOptions.value.find(
+      (option) => option.value === form.propertyType,
+    )?.label || ""
+  );
+});
+
+const propertyTypeDropdownPlacement = ref("down");
+const legalDropdownPlacement = ref("down");
+const propertyTypeTriggerRef = ref(null);
+const propertyTypeDropdownRef = ref(null);
 const legalTriggerRef = ref(null);
 const legalDropdownRef = ref(null);
 
-function onDocumentClick(e) {
-  if (!showLegalDropdown.value) return;
-  const triggerEl = legalTriggerRef.value;
-  const dropdownEl = legalDropdownRef.value;
-  const target = e.target;
-  if (triggerEl && triggerEl.contains && triggerEl.contains(target)) return;
-  if (dropdownEl && dropdownEl.contains && dropdownEl.contains(target)) return;
+function getDropdownPlacement(triggerEl, optionCount = 6) {
+  if (!triggerEl || typeof window === "undefined") return "down";
+
+  const rect = triggerEl.getBoundingClientRect();
+  const estimatedHeight = Math.min(Math.max(optionCount * 42, 120), 260);
+  const stickyFooterSpace = 116;
+  const spaceBelow = window.innerHeight - rect.bottom - stickyFooterSpace;
+  const spaceAbove = rect.top;
+
+  return spaceBelow < estimatedHeight && spaceAbove > spaceBelow ? "up" : "down";
+}
+
+function closeDropdowns() {
+  showPropertyTypeDropdown.value = false;
   showLegalDropdown.value = false;
+}
+
+function onDocumentClick(e) {
+  if (!showLegalDropdown.value && !showPropertyTypeDropdown.value) return;
+  const dropdownPairs = [
+    [legalTriggerRef.value, legalDropdownRef.value],
+    [propertyTypeTriggerRef.value, propertyTypeDropdownRef.value],
+  ];
+  const target = e.target;
+  const clickedInside = dropdownPairs.some(([triggerEl, dropdownEl]) => {
+    if (triggerEl && triggerEl.contains && triggerEl.contains(target)) {
+      return true;
+    }
+    return Boolean(
+      dropdownEl && dropdownEl.contains && dropdownEl.contains(target),
+    );
+  });
+  if (clickedInside) return;
+  closeDropdowns();
 }
 
 function setActiveScoreSection(section) {
@@ -2208,38 +2333,71 @@ function setActiveScoreSection(section) {
   contactCollapsed.value = section !== "contact";
 }
 
-function initScoreSectionObserver() {
-  scoreSectionObserver?.disconnect();
-
-  if (typeof IntersectionObserver === "undefined") return;
+function getVisibleScoreSection() {
+  if (typeof window === "undefined") return "";
 
   const sections = Array.from(
     document.querySelectorAll("[data-score-section]"),
   );
-  if (!sections.length) return;
+  if (!sections.length) return "";
 
-  scoreSectionObserver = new IntersectionObserver(
-    (entries) => {
-      const visibleEntries = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+  const anchorY = Math.min(window.innerHeight * 0.46, 420);
+  const passedSections = sections
+    .map((section) => ({
+      section,
+      rect: section.getBoundingClientRect(),
+    }))
+    .filter(({ rect }) => rect.top <= anchorY && rect.bottom > 0)
+    .sort((a, b) => b.rect.top - a.rect.top);
 
-      const activeEntry = visibleEntries[0];
-      const section = activeEntry?.target?.dataset?.scoreSection;
-      if (section) setActiveScoreSection(section);
-    },
-    {
-      root: null,
-      threshold: [0.25, 0.45, 0.65],
-      rootMargin: "-32% 0px -42% 0px",
-    },
+  if (passedSections.length) {
+    return passedSections[0].section.dataset.scoreSection || "";
+  }
+
+  const visibleSections = sections
+    .map((section) => ({
+      section,
+      rect: section.getBoundingClientRect(),
+    }))
+    .filter(({ rect }) => rect.bottom > 0 && rect.top < window.innerHeight)
+    .sort(
+      (a, b) =>
+        Math.abs(a.rect.top - anchorY) - Math.abs(b.rect.top - anchorY),
+    );
+
+  return visibleSections[0]?.section?.dataset?.scoreSection || "";
+}
+
+function updateActiveScoreSectionFromScroll() {
+  scoreSectionScrollRaf = null;
+  const section = getVisibleScoreSection();
+  if (section) setActiveScoreSection(section);
+}
+
+function scheduleActiveScoreSectionUpdate() {
+  if (scoreSectionScrollRaf !== null || typeof window === "undefined") return;
+
+  scoreSectionScrollRaf = window.requestAnimationFrame(
+    updateActiveScoreSectionFromScroll,
   );
+}
 
-  sections.forEach((section) => scoreSectionObserver.observe(section));
+function initScoreSectionObserver() {
+  scoreSectionObserver?.disconnect();
+
+  scheduleActiveScoreSectionUpdate();
 }
 
 onMounted(() => {
   document.addEventListener("click", onDocumentClick);
+  document.addEventListener("scroll", scheduleActiveScoreSectionUpdate, {
+    passive: true,
+    capture: true,
+  });
+  window.addEventListener("scroll", scheduleActiveScoreSectionUpdate, {
+    passive: true,
+  });
+  window.addEventListener("resize", scheduleActiveScoreSectionUpdate);
   initScoreSectionObserver();
 });
 
@@ -2261,6 +2419,15 @@ watch(appointmentForm, (v) => {
 
 onBeforeUnmount(() => {
   document.removeEventListener("click", onDocumentClick);
+  document.removeEventListener("scroll", scheduleActiveScoreSectionUpdate, {
+    capture: true,
+  });
+  window.removeEventListener("scroll", scheduleActiveScoreSectionUpdate);
+  window.removeEventListener("resize", scheduleActiveScoreSectionUpdate);
+  if (scoreSectionScrollRaf !== null) {
+    window.cancelAnimationFrame(scoreSectionScrollRaf);
+    scoreSectionScrollRaf = null;
+  }
   scoreSectionObserver?.disconnect();
   scoreSectionObserver = null;
 });
@@ -2291,11 +2458,24 @@ const descriptionCount = computed(
 const priceLabel = computed(() =>
   form.demandType === "RENT" ? "Giá thuê" : "Giá bán",
 );
-const hasPriceValue = computed(
-  () => Number(String(form.price || "").replace(/[^0-9]/g, "")) > 0,
-);
+function getPriceDigits(value) {
+  return String(value ?? "").replace(/[^0-9]/g, "");
+}
+
+function normalizeBackendPriceValue(value) {
+  const text = String(value ?? "").trim();
+  return /^\d+\.\d{2}$/.test(text) ? text.split(".")[0] : text;
+}
+
+function formatPriceDisplay(value) {
+  const digits = getPriceDigits(normalizeBackendPriceValue(value));
+  if (!digits) return "";
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+const hasPriceValue = computed(() => Number(getPriceDigits(form.price)) > 0);
 const priceSuggestions = computed(() => {
-  const base = Number(String(form.price || "").replace(/[^0-9]/g, ""));
+  const base = Number(getPriceDigits(form.price));
   if (!base || form.isNegotiable) return [];
 
   const multipliers = [100, 1000, 10000];
@@ -2445,6 +2625,7 @@ onMounted(async () => {
     clearDraft(); // Xóa draft khi vào form sửa
     await loadListingForEdit();
   } else {
+    editLoadToken.value += 1;
     loadFormFromDraft();
   }
 });
@@ -2452,6 +2633,8 @@ onMounted(async () => {
 watch(
   () => [route.name, route.params.id, route.query.mode],
   async () => {
+    editLoadToken.value += 1;
+
     if (isEditMode.value) {
       resetFormState();
       clearDraft();
@@ -2474,20 +2657,35 @@ function getVerificationDocumentUrl(document) {
   return document?.url || document?.file_url || document?.fileUrl || "";
 }
 
+function isCurrentEditLoad(token, listingId) {
+  return (
+    token === editLoadToken.value &&
+    isEditMode.value &&
+    String(editListingId.value || "") === String(listingId || "")
+  );
+}
+
 async function loadListingForEdit() {
+  if (!isEditMode.value) return;
+
+  const loadToken = ++editLoadToken.value;
+  const listingId = editListingId.value;
   editLoading.value = true;
   isHydratingEdit.value = true;
   try {
     let response;
     try {
-      response = await listingService.getMineById(editListingId.value);
+      response = await listingService.getMineById(listingId);
     } catch (ownedError) {
+      if (!isCurrentEditLoad(loadToken, listingId)) return;
       console.warn(
         "Failed to load owned listing details, fallback to public details:",
         ownedError,
       );
-      response = await listingService.getById(editListingId.value);
+      response = await listingService.getById(listingId);
     }
+
+    if (!isCurrentEditLoad(loadToken, listingId)) return;
 
     const data = response.data?.data || response.data;
     if (!data || typeof data !== "object") {
@@ -2499,6 +2697,12 @@ async function loadListingForEdit() {
     editListingStatus.value = data.status || "";
     const inputValue = (value) =>
       value === null || value === undefined ? "" : String(value);
+    const optionalCountValue = (value) => {
+      if (value === null || value === undefined || value === "" || Number(value) === 0) {
+        return "";
+      }
+      return String(value);
+    };
     const arrayValue = (value) => {
       if (Array.isArray(value)) return value;
       if (typeof value === "string" && value.trim()) {
@@ -2540,9 +2744,9 @@ async function loadListingForEdit() {
     form.addressDetail = p.address_detail || "";
     form.area = inputValue(p.area);
     form.isNegotiable = Boolean(p.is_negotiable);
-    form.price = form.isNegotiable ? "" : inputValue(p.price);
-    form.bedrooms = inputValue(p.bedrooms);
-    form.bathrooms = inputValue(p.bathrooms);
+    form.price = form.isNegotiable ? "" : formatPriceDisplay(inputValue(p.price));
+    form.bedrooms = optionalCountValue(p.bedrooms);
+    form.bathrooms = optionalCountValue(p.bathrooms);
     form.floors = inputValue(p.floors);
     form.floorNumber = inputValue(p.floor_number);
     form.balconies = inputValue(p.balconies);
@@ -2683,11 +2887,16 @@ async function loadListingForEdit() {
       console.warn("Failed to load wards while editing listing:", wardError);
     }
 
+    if (!isCurrentEditLoad(loadToken, listingId)) return;
+
     locationSearchText.value = composeAddressQuery({ includeDetail: true });
 
     // Set map marker if lat/lng exists
     if (form.lat && form.lng) {
+      const markerToken = loadToken;
+      const markerListingId = listingId;
       setTimeout(() => {
+        if (!isCurrentEditLoad(markerToken, markerListingId)) return;
         try {
           setMarkerPosition(form.lat, form.lng, 15);
         } catch (mapError) {
@@ -2697,13 +2906,17 @@ async function loadListingForEdit() {
     }
 
     await nextTick();
+    if (!isCurrentEditLoad(loadToken, listingId)) return;
     captureInitialEditSnapshot();
   } catch (err) {
+    if (!isCurrentEditLoad(loadToken, listingId)) return;
     console.error("Failed to load listing for edit:", err);
     setSubmitError("Không thể tải dữ liệu tin đăng để chỉnh sửa.");
   } finally {
-    isHydratingEdit.value = false;
-    editLoading.value = false;
+    if (isCurrentEditLoad(loadToken, listingId)) {
+      isHydratingEdit.value = false;
+      editLoading.value = false;
+    }
   }
 }
 
@@ -3248,13 +3461,14 @@ function ensurePropertyTypeOption() {
 
 function ensureDemandTypeOption() {
   if (!demandTypeOptions.value.length) return;
+  if (!form.demandType) return;
 
   const hasSelectedType = demandTypeOptions.value.some(
     (option) => option.value === form.demandType,
   );
 
   if (!hasSelectedType) {
-    form.demandType = demandTypeOptions.value[0]?.value ?? "";
+    form.demandType = "";
   }
 }
 
@@ -3466,8 +3680,28 @@ function removeImage(index) {
   pushToast("Đã xóa hình ảnh", "success");
 }
 
+function togglePropertyTypeDropdown() {
+  propertyTypeDropdownPlacement.value = getDropdownPlacement(
+    propertyTypeTriggerRef.value,
+    currentPropertyTypeOptions.value.length,
+  );
+  showPropertyTypeDropdown.value = !showPropertyTypeDropdown.value;
+  showLegalDropdown.value = false;
+}
+
+function selectPropertyType(value) {
+  form.propertyType = value;
+  touchField("propertyType");
+  showPropertyTypeDropdown.value = false;
+}
+
 function toggleLegalDropdown() {
+  legalDropdownPlacement.value = getDropdownPlacement(
+    legalTriggerRef.value,
+    legalPaperOptions.value.length,
+  );
   showLegalDropdown.value = !showLegalDropdown.value;
+  showPropertyTypeDropdown.value = false;
 }
 
 function toggleLegalPaper(value) {
@@ -3639,6 +3873,7 @@ function removeLegalDocument(index) {
 
 function setQuickNumber(field, value) {
   form[field] = value;
+  touchField(field);
 }
 
 function normalizeSingleLineText(value) {
@@ -3737,7 +3972,7 @@ function fieldErrorMessage(field) {
   if (field === "price") {
     if (form.isNegotiable) return "";
     if (!value) return `${priceLabel.value} phải lớn hơn 999`;
-    const parsed = Number(value);
+    const parsed = Number(getPriceDigits(value));
     if (!Number.isFinite(parsed)) return "Giá không hợp lệ";
     if (parsed < 1000) return `${priceLabel.value} phải lớn hơn 999`;
     return "";
@@ -3759,7 +3994,13 @@ function fieldErrorMessage(field) {
     return "";
   }
 
-  if (field === "floorNumber" || field === "floors") {
+  if (
+    field === "bedrooms" ||
+    field === "bathrooms" ||
+    field === "floorNumber" ||
+    field === "floors" ||
+    field === "balconies"
+  ) {
     if (!value) return "";
     const parsed = Number(value);
     const label = field === "floorNumber" ? "Tầng thứ" : "Số tầng";
@@ -3804,6 +4045,7 @@ function preventNegative(event, field) {
 
 function onNumberInput(event, field, allowDecimal = false) {
   let value = event.target.value;
+  touchField(field);
 
   // Xóa toàn bộ ký tự không phải số (và dấu . nếu cho thập phân)
   if (allowDecimal) {
@@ -3821,6 +4063,13 @@ function onNumberInput(event, field, allowDecimal = false) {
   event.target.value = value;
 }
 
+function onTwoDigitIntegerInput(event, field) {
+  touchField(field);
+  const value = event.target.value.replace(/[^0-9]/g, "").slice(0, 2);
+  form[field] = value;
+  event.target.value = value;
+}
+
 function handlePriceBlur() {
   touchField("price");
   window.setTimeout(() => {
@@ -3829,7 +4078,10 @@ function handlePriceBlur() {
 }
 
 function handlePriceInput(event) {
-  onNumberInput(event, "price", false);
+  touchField("price");
+  const formatted = formatPriceDisplay(event.target.value);
+  form.price = formatted;
+  event.target.value = formatted;
   if (hasPriceValue.value) {
     form.isNegotiable = false;
   }
@@ -3847,13 +4099,14 @@ function clearPriceForNegotiable() {
 }
 
 function selectPriceSuggestion(value) {
-  form.price = String(value);
+  form.price = formatPriceDisplay(value);
   form.isNegotiable = false;
   touchField("price");
   priceFocused.value = false;
 }
 
 function onPhoneInput(event) {
+  touchField("contactPhone");
   const digits = event.target.value.replace(/[^0-9]/g, "");
   // Giới hạn ở 10 chữ số
   const limited = digits.slice(0, 10);
@@ -3904,6 +4157,81 @@ function setAppointmentRows(rows) {
   }
 }
 
+function getValidAppointmentSlotsPayload() {
+  if (!appointmentForm.value) return [];
+  const slots = appointmentForm.value.getFormData();
+  return Array.isArray(slots) ? slots : [];
+}
+
+function applyAppointmentSlotsToPayload(payload, slots) {
+  if (slots.length > 0) {
+    payload.appointment_slots = slots;
+    return;
+  }
+
+  delete payload.appointment_slots;
+}
+
+function shouldSyncAppointmentSlots(slots) {
+  return slots.length > 0 || existingAppointmentSlotIds.value.length > 0;
+}
+
+async function updateDraftListing() {
+  if (!isDraftEditMode.value || !canUpdateDraft.value) return;
+
+  savingDraft.value = true;
+  clearSubmitError();
+  validationErrors.value = {};
+
+  try {
+    normalizeFormTextFields();
+    const payload = {
+      ...form,
+      amenities: [...selectedAmenities.value],
+      publicInfoAgreed: publicInfoAgreed.value,
+      requestVerification: shouldRequestVerification.value,
+      saveAsDraft: true,
+    };
+
+    const slots = getValidAppointmentSlotsPayload();
+    if (appointmentForm.value) {
+      if (Array.isArray(slots) && slots.length > 0) {
+        const isValidAppointments = appointmentForm.value.validateAll();
+        if (!isValidAppointments) {
+          setSubmitError("Lịch hẹn xem nhà không hợp lệ");
+          pushToast("Lịch hẹn xem nhà không hợp lệ", "error");
+          return;
+        }
+      }
+      applyAppointmentSlotsToPayload(payload, slots);
+    }
+
+    await listingMediaUpload.uploadDraftMediaPayload(payload);
+    const response = await listingService.update(editListingId.value, payload);
+
+    if (appointmentForm.value && shouldSyncAppointmentSlots(slots)) {
+      await listingService.replaceAppointmentSlots(
+        editListingId.value,
+        slots,
+      );
+    }
+
+    captureInitialEditSnapshot();
+    pushToast("Cập nhật tin nháp thành công", "success");
+  } catch (error) {
+    const data = error?.response?.data;
+    validationErrors.value = data?.errors || {};
+    setSubmitError(
+      data?.message ||
+        error?.message ||
+        "Không thể cập nhật tin nháp. Vui lòng thử lại",
+    );
+    pushToast(submitError.value, "error");
+  } finally {
+    savingDraft.value = false;
+  }
+}
+
 async function saveDraftAndGoBack() {
   if (loading.value) return;
 
@@ -3951,7 +4279,8 @@ async function saveDraftAndGoBack() {
     };
 
     if (appointmentForm.value) {
-      payload.appointment_slots = appointmentForm.value.getFormData();
+      const slots = getValidAppointmentSlotsPayload();
+      applyAppointmentSlotsToPayload(payload, slots);
     }
 
     await listingMediaUpload.uploadDraftMediaPayload(payload);
@@ -4214,6 +4543,8 @@ function clearMapMarker() {
 function resetFormState() {
   initialEditSnapshot.value = "";
   editListingStatus.value = "";
+  editLoading.value = false;
+  isHydratingEdit.value = false;
   clearImagePreviews();
   clearIdCardPreviews();
   clearLegalDocumentPreviews();
@@ -4336,9 +4667,15 @@ async function submitListing() {
     return;
   }
 
+  if (editListingStatus.value === "UNLISTED") {
+    pushToast("Tin đã gỡ không thể thao tác thêm", "warning");
+    return;
+  }
+
   if (
     isEditMode.value &&
     !isUnlistedRelistingMode.value &&
+    !isDraftEditMode.value &&
     !isEditDirty.value
   ) {
     return;
@@ -4371,12 +4708,13 @@ async function submitListing() {
   validationErrors.value = {};
   pushToast("Đang xử lý dữ liệu...", "info");
   normalizeFormTextFields();
+  form.saveAsDraft = false;
   form.requestVerification = shouldRequestVerification.value;
   form.amenities = [...selectedAmenities.value];
   form.publicInfoAgreed = publicInfoAgreed.value;
   // Thu thập dữ liệu từ AppointmentSlotsForm (chỉ validate nếu có dữ liệu để lưu)
   if (appointmentForm.value) {
-    const slots = appointmentForm.value.getFormData();
+    const slots = getValidAppointmentSlotsPayload();
     if (Array.isArray(slots) && slots.length > 0) {
       const isValidAppointments = appointmentForm.value.validateAll();
       if (!isValidAppointments) {
@@ -4387,8 +4725,7 @@ async function submitListing() {
       }
       form.appointment_slots = slots;
     } else {
-      // No slots provided by user
-      form.appointment_slots = [];
+      delete form.appointment_slots;
     }
   }
 
@@ -4419,7 +4756,7 @@ async function submitListing() {
       const listingId = isEditMode.value
         ? editListingId.value
         : response.data?.data?.id;
-      const slotsPayload = form.appointment_slots || [];
+      const slotsPayload = getValidAppointmentSlotsPayload();
       console.log(
         "Appointment slots payload for listing",
         listingId,
@@ -4428,7 +4765,7 @@ async function submitListing() {
       if (
         listingId !== undefined &&
         listingId !== null &&
-        slotsPayload.length > 0
+        shouldSyncAppointmentSlots(slotsPayload)
       ) {
         await listingService.replaceAppointmentSlots(listingId, slotsPayload);
       }
@@ -4839,9 +5176,46 @@ async function submitListing() {
   z-index: 1;
 }
 
-.legal-field {
+.dropdown-field {
   position: relative;
   z-index: 20;
+}
+
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  background: #fff;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.custom-select-trigger:hover {
+  border-color: #7dd3fc;
+  background: #f8fcff;
+}
+
+.custom-select-trigger:focus-visible {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+  outline: none;
+}
+
+.dropdown-chevron {
+  transition: transform 0.16s ease;
+}
+
+.dropdown-chevron.open {
+  transform: rotate(180deg);
+}
+
+.dropdown-chevron.open.up {
+  transform: rotate(0deg);
 }
 
 .legal-selected-text {
@@ -4851,54 +5225,72 @@ async function submitListing() {
   white-space: nowrap;
 }
 
-.legal-dropdown {
+.custom-dropdown {
   position: absolute;
   left: 0;
   right: 0;
-  top: calc(100% + 6px);
   z-index: 50;
-  max-height: 240px;
+  max-height: min(260px, 45vh);
   overflow-y: auto;
   border: 1px solid #bae6fd;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #fff;
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.16);
+  padding: 6px;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18);
 }
 
-.legal-option {
+.custom-dropdown-down {
+  top: calc(100% + 8px);
+}
+
+.custom-dropdown-up {
+  bottom: calc(100% + 8px);
+}
+
+.custom-option {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  min-height: 40px;
-  padding: 9px 12px;
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 10px;
   font-size: 13px;
   color: #0f172a;
-  border-bottom: 1px solid #e6edf5;
+  border: 0;
+  border-radius: 8px;
   background: #fff;
+  text-align: left;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
 }
 
-.legal-option.selected {
+.custom-option.selected {
   background: #2563eb;
   color: #fff;
 }
 
-.legal-option:hover {
+.custom-option:hover {
   background: #f8fafc;
 }
 
-.legal-option.selected:hover {
+.custom-option.selected:hover {
   background: #1d4ed8;
 }
 
-.legal-option:last-child {
-  border-bottom: none;
+.custom-option + .custom-option {
+  margin-top: 2px;
 }
 
-.legal-option input[type="checkbox"] {
+.custom-option input[type="checkbox"] {
   width: 14px;
   height: 14px;
   accent-color: #2563eb;
+}
+
+.custom-option.selected input[type="checkbox"] {
+  accent-color: #fff;
 }
 
 .quick-row {
@@ -5160,6 +5552,15 @@ async function submitListing() {
   transition: background-color 0.15s ease;
 }
 
+.score-row-active {
+  background: #f0f9ff;
+}
+
+.score-row-active .score-label {
+  color: #0369a1;
+  font-weight: 700;
+}
+
 .score-label {
   display: inline-flex;
   align-items: center;
@@ -5187,6 +5588,10 @@ async function submitListing() {
   margin-left: -6px;
   margin-right: -6px;
   transition: background-color 0.15s ease;
+}
+
+.score-item-active {
+  background: #f8fafc;
 }
 
 .score-value-wrap {
