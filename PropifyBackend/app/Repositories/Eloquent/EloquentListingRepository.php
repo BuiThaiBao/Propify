@@ -181,9 +181,11 @@ final class EloquentListingRepository implements ListingRepository
         int $perPage,
         ?string $searchField = 'title',
         ?string $priceRange = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
         ?int $packageId = null,
     ): LengthAwarePaginator {
-        return $this->buildAdminBaseQuery($demandType, $keyword, $searchField, $priceRange, $packageId)
+        return $this->buildAdminBaseQuery($demandType, $keyword, $searchField, $priceRange, $minPrice, $maxPrice, $packageId)
             ->with([
                 'property.attributes.group',
                 'images',
@@ -236,9 +238,11 @@ final class EloquentListingRepository implements ListingRepository
         ?string $keyword,
         ?string $searchField = 'title',
         ?string $priceRange = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
         ?int $packageId = null,
     ): array {
-        $counts = $this->buildAdminBaseQuery($demandType, $keyword, $searchField, $priceRange, $packageId)
+        $counts = $this->buildAdminBaseQuery($demandType, $keyword, $searchField, $priceRange, $minPrice, $maxPrice, $packageId)
             ->selectRaw('status, COUNT(*) as aggregate')
             ->groupBy('status')
             ->pluck('aggregate', 'status');
@@ -315,6 +319,8 @@ final class EloquentListingRepository implements ListingRepository
         ?string $keyword,
         ?string $searchField = 'title',
         ?string $priceRange = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
         ?int $packageId = null,
     ) {
         return Listing::query()
@@ -335,6 +341,16 @@ final class EloquentListingRepository implements ListingRepository
                         'over_10b' => $propertyQuery->where('price', '>', 10000000000),
                         default => null,
                     };
+                });
+            })
+            ->when($minPrice !== null || $maxPrice !== null, function ($query) use ($minPrice, $maxPrice) {
+                $query->whereHas('property', function ($propertyQuery) use ($minPrice, $maxPrice) {
+                    if ($minPrice !== null) {
+                        $propertyQuery->where('price', '>=', $minPrice);
+                    }
+                    if ($maxPrice !== null) {
+                        $propertyQuery->where('price', '<=', $maxPrice);
+                    }
                 });
             })
             ->when($keyword, function ($query) use ($keyword, $searchField) {

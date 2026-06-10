@@ -202,9 +202,21 @@ final class ListingServiceImpl implements ListingService
         int $perPage,
         ?string $searchField = 'title',
         ?string $priceRange = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
         ?int $packageId = null,
     ): LengthAwarePaginator {
-        return $this->listingRepository->paginateAdmin($status, $demandType, $keyword, $perPage, $searchField, $priceRange, $packageId);
+        return $this->listingRepository->paginateAdmin(
+            $status,
+            $demandType,
+            $keyword,
+            $perPage,
+            $searchField,
+            $priceRange,
+            $minPrice,
+            $maxPrice,
+            $packageId
+        );
     }
 
     public function getAdminStatusCounts(
@@ -212,9 +224,19 @@ final class ListingServiceImpl implements ListingService
         ?string $keyword,
         ?string $searchField = 'title',
         ?string $priceRange = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
         ?int $packageId = null,
     ): array {
-        return $this->listingRepository->getAdminStatusCounts($demandType, $keyword, $searchField, $priceRange, $packageId);
+        return $this->listingRepository->getAdminStatusCounts(
+            $demandType,
+            $keyword,
+            $searchField,
+            $priceRange,
+            $minPrice,
+            $maxPrice,
+            $packageId
+        );
     }
 
     public function getMapListings(

@@ -23,8 +23,7 @@ final class EloquentAppointmentBookingRepository implements AppointmentBookingRe
             ->where('viewer_id', $viewerId)
             ->where('is_deleted', false)
             ->with(['slot.listing'])
-            ->orderByRaw("FIELD(status, 'PENDING', 'APPROVED', 'CANCELLED')")
-            ->orderBy('meet_time', 'asc')
+            ->orderByDesc('id')
             ->get();
     }
 
@@ -36,8 +35,7 @@ final class EloquentAppointmentBookingRepository implements AppointmentBookingRe
             })
             ->where('is_deleted', false)
             ->with(['slot.listing'])
-            ->orderByRaw("FIELD(status, 'PENDING', 'APPROVED', 'CANCELLED')")
-            ->orderBy('meet_time', 'asc')
+            ->orderByDesc('id')
             ->get();
     }
 }

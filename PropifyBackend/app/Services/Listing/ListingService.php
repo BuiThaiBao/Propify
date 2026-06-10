@@ -60,6 +60,8 @@ interface ListingService
         int $perPage,
         ?string $searchField = 'title',
         ?string $priceRange = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
         ?int $packageId = null,
     ): LengthAwarePaginator;
 
@@ -71,6 +73,8 @@ interface ListingService
         ?string $keyword,
         ?string $searchField = 'title',
         ?string $priceRange = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
         ?int $packageId = null,
     ): array;
 
