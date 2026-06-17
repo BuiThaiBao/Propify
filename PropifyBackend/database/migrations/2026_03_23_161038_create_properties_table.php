@@ -20,8 +20,8 @@ return new class extends Migration
             $table->decimal('area', 10, 2);
             $table->decimal('price', 15, 2)->nullable();
             $table->boolean('is_negotiable')->default(false);
-            $table->integer('bedrooms')->default(0);
-            $table->integer('bathrooms')->default(0);
+            $table->integer('bedrooms')->nullable();
+            $table->integer('bathrooms')->nullable();
             $table->integer('floors')->nullable();
             $table->integer('floor_number')->nullable();
             $table->integer('balconies')->nullable();

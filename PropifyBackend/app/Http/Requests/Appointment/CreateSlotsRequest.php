@@ -17,9 +17,13 @@ final class CreateSlotsRequest extends FormRequest
      */
     public function rules(): array
     {
+        $slotsRules = $this->routeIs('appointment-slots.replace')
+            ? ['present', 'array']
+            : ['required', 'array', 'min:1'];
+
         return [
             'listing_id' => ['required', 'integer', 'exists:listings,id'],
-            'slots' => ['required', 'array', 'min:1'],
+            'slots' => $slotsRules,
             'slots.*.day_of_week' => ['required', 'integer', 'between:1,7'],
             'slots.*.start_time' => ['required', 'regex:/^\d{1,2}:\d{2}$/'],
             'slots.*.end_time' => ['required', 'regex:/^\d{1,2}:\d{2}$/', 'after:slots.*.start_time'],

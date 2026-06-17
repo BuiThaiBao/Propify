@@ -21,7 +21,7 @@ return new class extends Migration
 
         DB::statement('ALTER TABLE listings MODIFY demand_type VARCHAR(20) NOT NULL COMMENT '.$this->quote('Enum: SALE, RENT'));
         DB::statement('ALTER TABLE listings MODIFY status VARCHAR(255) NOT NULL DEFAULT \'DRAFT\' COMMENT '.$this->quote('Enum: DRAFT, PENDING, ACTIVE, EXPIRED, REJECTED, LOCKED, UNLISTED'));
-        DB::statement('ALTER TABLE listings MODIFY is_verified VARCHAR(30) NOT NULL DEFAULT \'UNVERIFIED\' COMMENT '.$this->quote('Enum: UNVERIFIED, REQUESTED, VERIFIED, REJECTED'));
+        DB::statement('ALTER TABLE listings MODIFY is_verified VARCHAR(30) NOT NULL DEFAULT \'UNVERIFIED\' COMMENT '.$this->quote('Enum: NOT_REQUIRED, UNVERIFIED, REQUESTED, VERIFIED, REJECTED'));
         DB::statement('ALTER TABLE listings MODIFY rent_min_term VARCHAR(50) NULL COMMENT '.$this->quote('Enum: 1_month, 3_months, 6_months, 1_year'));
         DB::statement('ALTER TABLE listings MODIFY rent_payment_interval VARCHAR(50) NULL COMMENT '.$this->quote('Enum: monthly, quarter, half_year, yearly'));
         DB::statement('ALTER TABLE listings MODIFY rent_deposit VARCHAR(50) NULL COMMENT '.$this->quote('Enum: none, 1_month, 3_months, 6_months, 1_year'));

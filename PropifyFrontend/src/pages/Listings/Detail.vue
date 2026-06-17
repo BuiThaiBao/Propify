@@ -304,7 +304,7 @@
                 Liên hệ chủ nhà
               </a>
               <button
-                v-if="!previewMode"
+                v-if="canBookAppointment"
                 class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600"
                 @click="openAppointmentBooking"
               >
@@ -652,7 +652,7 @@
                 Liên hệ chủ nhà
               </a>
               <button
-                v-if="!previewMode"
+                v-if="canBookAppointment"
                 class="flex w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600"
                 @click="openAppointmentBooking"
               >
@@ -705,7 +705,7 @@
     </div>
 
     <AppointmentBookingPopup
-      v-if="!previewMode"
+      v-if="canBookAppointment"
       :visible="showAppointmentPopup"
       :listing-id="listing?.id"
       @close="showAppointmentPopup = false"
@@ -1178,6 +1178,17 @@ const contactPhone = computed(
     listing.value?.property?.contact_phone || listing.value?.owner?.phone || "",
 );
 
+const hasAppointmentSlots = computed(() => {
+  const slots = listing.value?.appointment_slots;
+  if (!Array.isArray(slots)) return false;
+
+  return slots.some((slot) => slot && slot.is_active !== false);
+});
+
+const canBookAppointment = computed(
+  () => !props.previewMode && hasAppointmentSlots.value,
+);
+
 const amenities = computed(() => {
   const values = listing.value?.property?.amenities;
   if (!Array.isArray(values)) return [];
@@ -1462,7 +1473,7 @@ function pushToast(message, type = "info", duration = 2500) {
 }
 
 function openAppointmentBooking() {
-  if (props.previewMode) return;
+  if (!canBookAppointment.value) return;
 
   if (!authStore.isAuthenticated) {
     openAppointmentAfterAuth.value = true;
@@ -1487,7 +1498,9 @@ async function handleAuthSuccess() {
 
   if (openAppointmentAfterAuth.value) {
     openAppointmentAfterAuth.value = false;
-    showAppointmentPopup.value = true;
+    if (canBookAppointment.value) {
+      showAppointmentPopup.value = true;
+    }
   }
 
   if (openReportAfterAuth.value) {

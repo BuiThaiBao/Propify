@@ -33,18 +33,32 @@
               <button
                 type="button"
                 class="mt-[10px] flex h-11 w-full items-center justify-between gap-2.5 rounded-[10px] border border-[#dbe7f4] bg-[#f3f7fc] px-[14px] text-left text-sm text-[#0f172a] outline-none transition focus:border-[#38bdf8] focus:bg-white focus:shadow-[0_0_0_3px_rgba(56,189,248,0.14)]"
-                @click="dropdownOpenIndex = dropdownOpenIndex === rowIndex ? -1 : rowIndex"
-                @blur="dropdownOpenIndex = -1"
+                :ref="(el) => setDayTriggerRef(el, rowIndex)"
+                @click.stop="toggleDayDropdown(rowIndex)"
               >
                 <span v-if="(row.selected_days || []).length === 0" class="text-[#94a3b8]">Chọn thứ</span>
                 <span v-else class="truncate">{{ getSelectedDaysLabel(row.selected_days || []) }}</span>
-                <span class="h-[9px] w-[9px] rotate-45 border-b-2 border-r-2 border-[#0f172a]" aria-hidden="true"></span>
+                <span
+                  class="h-[9px] w-[9px] rotate-45 border-b-2 border-r-2 border-[#0f172a] transition"
+                  :class="{
+                    'rotate-[225deg]':
+                      dropdownOpenIndex === rowIndex &&
+                      dayDropdownPlacements[rowIndex] !== 'up',
+                  }"
+                  aria-hidden="true"
+                ></span>
               </button>
 
               <div
                 v-if="dropdownOpenIndex === rowIndex"
-                class="absolute left-0 right-0 top-[calc(100%+6px)] z-20 flex max-h-[220px] flex-col overflow-y-auto rounded-xl border border-[#dbe7f4] bg-white shadow-[0_16px_32px_rgba(15,23,42,0.12)]"
+                class="absolute left-0 right-0 z-30 flex max-h-[220px] flex-col overflow-y-auto rounded-xl border border-[#dbe7f4] bg-white shadow-[0_16px_32px_rgba(15,23,42,0.12)]"
+                :class="
+                  dayDropdownPlacements[rowIndex] === 'up'
+                    ? 'bottom-[calc(100%-18px)]'
+                    : 'top-[calc(100%+6px)]'
+                "
                 @mousedown.prevent
+                @click.stop
               >
                 <label
                   v-for="day in dayOfWeekOptions"
@@ -184,10 +198,11 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, onBeforeUnmount, onMounted, reactive } from 'vue';
 
 const isOpen = ref(true);
 const dropdownOpenIndex = ref(-1);
+const dayDropdownPlacements = reactive({});
 const appointmentRows = ref([]);
 
 const touchedRows = ref([]);
@@ -245,8 +260,60 @@ const splitEditableTime = (value) => {
 };
 
 const timeInputRefs = new Map();
+const dayTriggerRefs = new Map();
 const timeFieldOrder = ['start_time', 'end_time'];
 const timePartOrder = ['hour', 'minute', 'second'];
+
+const setDayTriggerRef = (el, rowIndex) => {
+  if (el) {
+    dayTriggerRefs.set(rowIndex, el);
+  } else {
+    dayTriggerRefs.delete(rowIndex);
+  }
+};
+
+const getDayDropdownPlacement = (rowIndex) => {
+  if (typeof window === 'undefined') return 'down';
+
+  const triggerEl = dayTriggerRefs.get(rowIndex);
+  if (!triggerEl) return 'down';
+
+  const rect = triggerEl.getBoundingClientRect();
+  const estimatedDropdownHeight = 220;
+  const stickyFooterSpace = 112;
+  const spaceBelow = window.innerHeight - rect.bottom - stickyFooterSpace;
+  const spaceAbove = rect.top;
+
+  return spaceBelow < estimatedDropdownHeight && spaceAbove > spaceBelow
+    ? 'up'
+    : 'down';
+};
+
+const toggleDayDropdown = (rowIndex) => {
+  if (dropdownOpenIndex.value === rowIndex) {
+    dropdownOpenIndex.value = -1;
+    return;
+  }
+
+  dayDropdownPlacements[rowIndex] = getDayDropdownPlacement(rowIndex);
+  dropdownOpenIndex.value = rowIndex;
+};
+
+const closeDayDropdown = () => {
+  dropdownOpenIndex.value = -1;
+};
+
+const handleDocumentClick = () => {
+  closeDayDropdown();
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick);
+});
 
 const timeInputKey = (rowIndex, field, part) => `${rowIndex}:${field}:${part}`;
 

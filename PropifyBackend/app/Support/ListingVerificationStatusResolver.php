@@ -23,7 +23,11 @@ final class ListingVerificationStatusResolver
         array $legalDocuments,
         ?ListingVerificationStatus $currentStatus = null,
     ): ListingVerificationStatus {
-        if ($demandType === 'RENT' || ! self::hasCompleteDocuments($identityCardFront, $identityCardBack, $legalDocuments)) {
+        if ($demandType === 'RENT') {
+            return ListingVerificationStatus::NOT_REQUIRED;
+        }
+
+        if (! self::hasCompleteDocuments($identityCardFront, $identityCardBack, $legalDocuments)) {
             return ListingVerificationStatus::UNVERIFIED;
         }
 

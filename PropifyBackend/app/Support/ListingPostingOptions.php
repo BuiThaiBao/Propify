@@ -103,6 +103,7 @@ final class ListingPostingOptions
                 ['value' => 'LOCKED', 'label' => 'Khóa tin'],
             ],
             'listing_verification_statuses' => [
+                ['value' => 'NOT_REQUIRED', 'label' => 'Không cần thiết'],
                 ['value' => 'UNVERIFIED', 'label' => 'Chưa xác thực'],
                 ['value' => 'REQUESTED', 'label' => 'Yêu cầu xác thực'],
                 ['value' => 'VERIFIED', 'label' => 'Đã xác thực'],
