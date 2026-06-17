@@ -1,0 +1,2307 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Báo cáo phân tích Design Pattern - Propify</title>
+  <style>
+:root {
+  color-scheme: light;
+  --bg: #f6f7fb;
+  --page: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --primary: #2563eb;
+  --primary-soft: #eff6ff;
+  --code-bg: #0f172a;
+  --code-text: #e5e7eb;
+  --blockquote-bg: #f8fafc;
+  --blockquote-border: #60a5fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+  line-height: 1.65;
+}
+
+.page {
+  width: min(1120px, calc(100% - 32px));
+  margin: 32px auto;
+  background: var(--page);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+
+.header {
+  padding: 34px 42px;
+  background: linear-gradient(135deg, #1e40af, #2563eb 48%, #38bdf8);
+  color: #fff;
+}
+
+.header h1 {
+  margin: 0 0 8px;
+  font-size: clamp(26px, 4vw, 40px);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.header p {
+  margin: 0;
+  opacity: 0.92;
+}
+
+.content {
+  padding: 36px 42px 52px;
+}
+
+h1, h2, h3, h4 {
+  line-height: 1.3;
+  color: #111827;
+}
+
+.content > h1 {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 30px;
+}
+
+.content > h1:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+h2 {
+  margin-top: 34px;
+  font-size: 24px;
+}
+
+h3 {
+  margin-top: 26px;
+  font-size: 20px;
+}
+
+h4 {
+  margin-top: 22px;
+  font-size: 17px;
+}
+
+p {
+  margin: 12px 0;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 26px 0;
+}
+
+ul, ol {
+  padding-left: 1.4rem;
+}
+
+li + li {
+  margin-top: 4px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 18px 0 26px;
+  display: block;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+thead {
+  background: var(--primary-soft);
+}
+
+th, td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+td:last-child, th:last-child {
+  border-right: 0;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  background: #eef2ff;
+  color: #3730a3;
+  padding: 0.16em 0.35em;
+  border-radius: 6px;
+  font-size: 0.92em;
+}
+
+pre {
+  margin: 18px 0 26px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: var(--code-bg);
+  color: var(--code-text);
+  overflow-x: auto;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.92rem;
+}
+
+pre.mermaid {
+  background: #ffffff;
+  color: #111827;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+blockquote {
+  margin: 18px 0;
+  padding: 14px 18px;
+  border-left: 5px solid var(--blockquote-border);
+  background: var(--blockquote-bg);
+  border-radius: 0 12px 12px 0;
+}
+
+blockquote p:first-child {
+  margin-top: 0;
+}
+
+blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+strong {
+  color: #111827;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border: 1px solid rgba(255,255,255,0.38);
+  border-radius: 999px;
+  font-size: 13px;
+  margin-top: 14px;
+}
+
+.footer {
+  padding: 18px 42px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+  background: #fafafa;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .page {
+    width: 100%;
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  .header {
+    background: #fff;
+    color: #111827;
+    border-bottom: 2px solid #111827;
+  }
+
+  a {
+    color: #111827;
+  }
+
+  pre {
+    white-space: pre-wrap;
+  }
+}
+
+@media (max-width: 720px) {
+  .page {
+    width: 100%;
+    margin: 0;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .header, .content, .footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  th, td {
+    white-space: normal;
+  }
+}
+</style>
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <h1>Báo cáo phân tích Design Pattern - Propify</h1>
+      <p>Chuyển đổi từ file Markdown: <strong>bao-cao-design-pattern.md</strong></p>
+      <span class="badge">HTML độc lập · Hỗ trợ Mermaid</span>
+    </header>
+    <article class="content">
+<h1>BÁO CÁO PHÂN TÍCH DESIGN PATTERN</h1>
+<h2>Đề tài: Website đăng tin bất động sản — Propify</h2>
+<hr />
+<p><strong>Môn học:</strong> Phân tích thiết kế hệ thống<br />
+<strong>Kiến trúc:</strong> Clean Architecture (Laravel 12)<br />
+<strong>Phân loại Pattern:</strong></p>
+<ul>
+<li><strong>[C] Creational Patterns:</strong> Factory Method, Builder, Prototype, Singleton</li>
+<li><strong>[S] Structural Patterns:</strong> Adapter, Facade, Proxy, Decorator</li>
+<li><strong>[B] Behavioral Patterns:</strong> Strategy, State, Observer, Command, Chain of Responsibility, Specification</li>
+</ul>
+<hr />
+<h1>MỤC LỤC</h1>
+<ol>
+<li><a href="#1-t%E1%BB%95ng-quan-ki%E1%BA%BFn-tr%C3%BAc-h%E1%BB%87-th%E1%BB%91ng">Tổng quan kiến trúc hệ thống</a></li>
+<li><a href="#2-ch%E1%BB%A9c-n%C4%83ng-%C4%91%C4%83ng-k%C3%BD-t%C3%A0i-kho%E1%BA%A3n">Chức năng Đăng ký tài khoản</a></li>
+<li><a href="#3-ch%E1%BB%A9c-n%C4%83ng-%C4%91%C4%83ng-nh%E1%BA%ADp">Chức năng Đăng nhập</a></li>
+<li><a href="#4-ch%E1%BB%A9c-n%C4%83ng-xem-th%C3%B4ng-tin-t%C3%A0i-kho%E1%BA%A3n">Chức năng Xem thông tin tài khoản</a></li>
+<li><a href="#5-ch%E1%BB%A9c-n%C4%83ng-ch%E1%BB%89nh-s%E1%BB%ADa-th%C3%B4ng-tin-t%C3%A0i-kho%E1%BA%A3n">Chức năng Chỉnh sửa thông tin tài khoản</a></li>
+<li><a href="#6-ch%E1%BB%A9c-n%C4%83ng-%C4%91%E1%BB%95i-m%E1%BA%ADt-kh%E1%BA%A9u">Chức năng Đổi mật khẩu</a></li>
+<li><a href="#7-ch%E1%BB%A9c-n%C4%83ng-qu%C3%AAn-m%E1%BA%ADt-kh%E1%BA%A9u">Chức năng Quên mật khẩu</a></li>
+<li><a href="#8-ch%E1%BB%A9c-n%C4%83ng-x%C3%A1c-th%E1%BB%B1c-tin-%C4%91%C4%83ng">Chức năng Xác thực tin đăng</a></li>
+<li><a href="#9-ch%E1%BB%A9c-n%C4%83ng-tin-%C4%91%C4%83ng-y%C3%AAu-th%C3%ADch">Chức năng Tin đăng yêu thích</a></li>
+<li><a href="#10-ch%E1%BB%A9c-n%C4%83ng-n%C3%A2ng-c%E1%BA%A5p-g%C3%B3i-tin">Chức năng Nâng cấp gói tin</a></li>
+<li><a href="#11-thu%E1%BA%ADt-to%C3%A1n-s%E1%BA%AFp-x%E1%BA%BFp-hi%E1%BB%83n-th%E1%BB%8B">Thuật toán sắp xếp hiển thị</a></li>
+<li><a href="#12-c%C3%A1c-b%E1%BB%99-l%E1%BB%8Dc-tin-%C4%91%C4%83ng">Các bộ lọc tin đăng</a></li>
+<li><a href="#13-ch%E1%BB%A9c-n%C4%83ng-chat">Chức năng Chat</a></li>
+<li><a href="#14-l%E1%BB%8Bch-s%E1%BB%AD-giao-d%E1%BB%8Bch">Lịch sử giao dịch</a></li>
+<li><a href="#15-t%E1%BB%95ng-h%E1%BB%A3p-design-pattern-theo-ch%E1%BB%A9c-n%C4%83ng">Tổng hợp Design Pattern theo chức năng</a></li>
+</ol>
+<hr />
+<h1>1. Tổng quan kiến trúc hệ thống</h1>
+<p>Hệ thống Propify được xây dựng theo <strong>Clean Architecture</strong>, phân tách rõ ràng các tầng:</p>
+<pre class="mermaid">
+graph TB
+    subgraph "Interface Adapter Layer"
+        A["Controller&lt;br/&gt;(API endpoints)"]
+        B["DTO&lt;br/&gt;(Data Transfer Objects)"]
+        C["Request Validation&lt;br/&gt;(Form Request)"]
+    end
+
+    subgraph "Application Layer"
+        D["Service Interface&lt;br/&gt;(AuthService, ChatService...)"]
+        E["Command&lt;br/&gt;(RegisterUserCommand, UpgradeListingCommand...)"]
+        F["Strategy&lt;br/&gt;(AuthStrategy, ListingSortingStrategy...)"]
+        G["Chain of Responsibility&lt;br/&gt;(LoginValidationChain, ForgotPasswordChain...)"]
+    end
+
+    subgraph "Domain Layer"
+        H["Model / Entity&lt;br/&gt;(User, Listing, Transaction...)"]
+        I["State&lt;br/&gt;(ListingStatusState)"]
+        J["Specification&lt;br/&gt;(CanUpgradeSpecification, CanRenewSpecification)"]
+        K["Event&lt;br/&gt;(UserLoggedIn, ListingPackageUpgraded...)"]
+    end
+
+    subgraph "Infrastructure Layer"
+        L["Repository&lt;br/&gt;(UserRepository, ListingRepository...)"]
+        M["Adapter&lt;br/&gt;(GoogleSocialiteAdapter, VnpayService)"]
+        N["Service Provider&lt;br/&gt;(DI Container binding)"]
+    end
+
+    A --&gt; D
+    A --&gt; B
+    D --&gt; E
+    D --&gt; F
+    D --&gt; G
+    E --&gt; H
+    E --&gt; I
+    E --&gt; J
+    E --&gt; K
+    E --&gt; L
+    F --&gt; M
+    G --&gt; L
+
+</pre>
+<p><strong>Nguyên tắc SOLID quan trọng nhất:</strong> Use Case (Service) phụ thuộc vào interface, không phụ thuộc trực tiếp vào Google, VNPAY, database hoặc dịch vụ gửi mail.</p>
+<hr />
+<h1>2. Chức năng Đăng ký tài khoản</h1>
+<h2>2.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Command</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>RegisterUserCommand</code></td>
+</tr>
+<tr>
+  <td><strong>Chain of Responsibility</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>RegistrationValidationChain</code></td>
+</tr>
+<tr>
+  <td><strong>Observer</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>OtpService</code> (gửi email OTP sau đăng ký)</td>
+</tr>
+<tr>
+  <td><strong>Adapter</strong></td>
+  <td>[S] Structural</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>OtpService</code> (che giấu dịch vụ gửi email)</td>
+</tr>
+</tbody>
+</table>
+<h2>2.2. Sơ đồ thành phần</h2>
+<pre class="mermaid">
+classDiagram
+    class AuthService {
+        &lt;&lt;interface&gt;&gt;
+        +register(RegisterUserDto dto) void
+    }
+
+    class AuthServiceImpl {
+        -RegisterUserCommand registerUserCommand
+        +register(RegisterUserDto dto) void
+    }
+
+    class RegisterUserCommand {
+        -UserRepository userRepository
+        -RegistrationValidationChain validationChain
+        -OtpService otpService
+        +execute(RegisterUserDto dto) void
+    }
+
+    class RegistrationValidationChain {
+        -UserRepository userRepository
+        +validate(RegisterUserDto dto) void
+    }
+
+    class OtpService {
+        &lt;&lt;interface&gt;&gt;
+        +generate(User user, OtpContext context) void
+        +verify(User user, String otp, OtpContext context) bool
+    }
+
+    class RegisterUserDto {
+        +string fullName
+        +string email
+        +string password
+    }
+
+    AuthService &lt;|.. AuthServiceImpl : implements
+    AuthServiceImpl --&gt; RegisterUserCommand : uses
+    RegisterUserCommand --&gt; RegistrationValidationChain : validate
+    RegisterUserCommand --&gt; OtpService : generate OTP
+    RegisterUserCommand --&gt; UserRepository : create/update
+    RegistrationValidationChain --&gt; UserRepository : findByEmail
+
+</pre>
+<h2>2.3. File code tương ứng</h2>
+<table>
+<thead>
+<tr>
+  <th>Thành phần</th>
+  <th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Service Interface</td>
+  <td><a href="#harmful-link">AuthService.php</a></td>
+</tr>
+<tr>
+  <td>Command Pattern</td>
+  <td><a href="#harmful-link">RegisterUserCommand.php</a></td>
+</tr>
+<tr>
+  <td>Chain of Responsibility</td>
+  <td><a href="#harmful-link">RegistrationValidationChain.php</a></td>
+</tr>
+<tr>
+  <td>OTP Adapter</td>
+  <td><a href="#harmful-link">OtpService.php</a></td>
+</tr>
+</tbody>
+</table>
+<h2>2.4. Giải thích cách áp dụng</h2>
+<h3>Command Pattern — <code>RegisterUserCommand</code></h3>
+<ul>
+<li><strong>Mục đích:</strong> Đóng gói toàn bộ thao tác đăng ký (validate → tạo user → gửi OTP) thành một command riêng biệt.</li>
+<li><strong>Lợi ích:</strong> Tách nghiệp vụ đăng ký ra khỏi Controller, dễ test đơn vị, dễ mở rộng (ví dụ: thêm ghi audit log).</li>
+</ul>
+<pre><code class="language-php">// RegisterUserCommand.php
+final class RegisterUserCommand
+{
+    public function execute(RegisterUserDto $dto): void
+    {
+        $this-&gt;validationChain-&gt;validate($dto);   // Chain of Responsibility
+        DB::transaction(function () use ($dto) {
+            $user = $this-&gt;userRepository-&gt;create([...]);
+            $this-&gt;otpService-&gt;generate($user, OtpContext::REGISTER);  // Adapter
+        });
+    }
+}
+</code></pre>
+<h3>Chain of Responsibility — <code>RegistrationValidationChain</code></h3>
+<ul>
+<li><strong>Mục đích:</strong> Kiểm tra tuần tự: email hợp lệ → mật khẩu ≥ 8 ký tự → email chưa tồn tại (Active).</li>
+<li><strong>Lợi ích:</strong> Dễ thêm rule mới mà không sửa code cũ.</li>
+</ul>
+<pre><code class="language-php">// RegistrationValidationChain.php
+final class RegistrationValidationChain
+{
+    public function validate(RegisterUserDto $dto): void
+    {
+        if (! filter_var($dto-&gt;email, FILTER_VALIDATE_EMAIL)) { throw ... }
+        if (mb_strlen($dto-&gt;password) &lt; 8) { throw ... }
+        $existing = $this-&gt;userRepository-&gt;findByEmail($dto-&gt;email);
+        if ($existing &amp;&amp; $existing-&gt;status === UserStatus::Active) { throw ... }
+    }
+}
+</code></pre>
+<hr />
+<h1>3. Chức năng Đăng nhập</h1>
+<h2>3.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Strategy</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>AuthStrategy</code> interface + <code>EmailPasswordAuthStrategy</code>, <code>GoogleOAuthAuthStrategy</code></td>
+</tr>
+<tr>
+  <td><strong>Factory Method</strong></td>
+  <td>[C] Creational</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>AuthStrategyResolver</code> (chọn strategy theo <code>AuthMethod</code>)</td>
+</tr>
+<tr>
+  <td><strong>Adapter</strong></td>
+  <td>[S] Structural</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>SocialUserAdapter</code> interface + <code>GoogleSocialiteAdapter</code></td>
+</tr>
+<tr>
+  <td><strong>Chain of Responsibility</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>LoginValidationChain</code></td>
+</tr>
+<tr>
+  <td><strong>Observer</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>UserLoggedIn</code> event</td>
+</tr>
+</tbody>
+</table>
+<h2>3.2. Sơ đồ thành phần</h2>
+<pre class="mermaid">
+classDiagram
+    class AuthStrategy {
+        &lt;&lt;interface&gt;&gt;
+        +method() AuthMethod
+        +authenticate(AuthPayload payload) AuthResultDto
+    }
+
+    class EmailPasswordAuthStrategy {
+        -AuthFactory authFactory
+        -AuthTokenIssuer tokenIssuer
+        -LoginValidationChain loginValidationChain
+        +method() AuthMethod
+        +authenticate(AuthPayload payload) AuthResultDto
+    }
+
+    class GoogleOAuthAuthStrategy {
+        -UserUpsertService userUpsertService
+        -AuthTokenIssuer tokenIssuer
+        +method() AuthMethod
+        +authenticate(AuthPayload payload) AuthResultDto
+    }
+
+    class AuthStrategyResolver {
+        -AuthStrategy[] strategies
+        +resolve(AuthMethod method) AuthStrategy
+    }
+
+    class LoginValidationChain {
+        -UserRepository userRepository
+        +validate(String email, String password) User
+    }
+
+    class SocialUserAdapter {
+        &lt;&lt;interface&gt;&gt;
+        +getProviderName() String
+        +getProviderId() String
+        +getName() String
+        +getEmail() String
+        +getAvatarUrl() String
+    }
+
+    class GoogleSocialiteAdapter {
+        -SocialiteUser socialiteUser
+        +getProviderName() String
+        +getProviderId() String
+        +getName() String
+        +getEmail() String
+        +getAvatarUrl() String
+    }
+
+    class UserLoggedIn {
+        &lt;&lt;Event&gt;&gt;
+        +int userId
+    }
+
+    AuthStrategy &lt;|.. EmailPasswordAuthStrategy : implements
+    AuthStrategy &lt;|.. GoogleOAuthAuthStrategy : implements
+    AuthStrategyResolver --&gt; AuthStrategy : resolve
+    EmailPasswordAuthStrategy --&gt; LoginValidationChain : validate
+    EmailPasswordAuthStrategy ..&gt; UserLoggedIn : dispatch
+    SocialUserAdapter &lt;|.. GoogleSocialiteAdapter : implements
+    GoogleOAuthAuthStrategy --&gt; SocialUserAdapter : uses
+
+</pre>
+<h2>3.3. File code tương ứng</h2>
+<table>
+<thead>
+<tr>
+  <th>Thành phần</th>
+  <th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Strategy Interface</td>
+  <td><a href="#harmful-link">AuthStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Email Strategy</td>
+  <td><a href="#harmful-link">EmailPasswordAuthStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Google Strategy</td>
+  <td><a href="#harmful-link">GoogleOAuthAuthStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Factory/Resolver</td>
+  <td><a href="#harmful-link">AuthStrategyResolver.php</a></td>
+</tr>
+<tr>
+  <td>Adapter Interface</td>
+  <td><a href="#harmful-link">SocialUserAdapter.php</a></td>
+</tr>
+<tr>
+  <td>Google Adapter</td>
+  <td><a href="#harmful-link">GoogleSocialiteAdapter.php</a></td>
+</tr>
+<tr>
+  <td>Chain of Responsibility</td>
+  <td><a href="#harmful-link">LoginValidationChain.php</a></td>
+</tr>
+<tr>
+  <td>Observer Event</td>
+  <td><a href="#harmful-link">UserLoggedIn.php</a></td>
+</tr>
+</tbody>
+</table>
+<h2>3.4. Giải thích cách áp dụng</h2>
+<h3>Strategy Pattern — <code>AuthStrategy</code></h3>
+<ul>
+<li><strong>Mục đích:</strong> Cho phép chuyển đổi thuật toán đăng nhập tùy phương thức (Email/Password hoặc Google OAuth) mà không sửa code chung.</li>
+<li><strong>Interface:</strong> Định nghĩa 2 method <code>method()</code> (loại AuthMethod) và <code>authenticate()</code> (xác thực, trả AuthResultDto).</li>
+</ul>
+<pre><code class="language-php">// AuthStrategy.php
+interface AuthStrategy {
+    public function method(): AuthMethod;
+    public function authenticate(AuthPayload $payload): AuthResultDto;
+}
+</code></pre>
+<h3>Factory Method — <code>AuthStrategyResolver</code></h3>
+<ul>
+<li><strong>Mục đích:</strong> Tự động chọn Strategy phù hợp dựa trên <code>AuthMethod</code> (enum).</li>
+<li><strong>Cách hoạt động:</strong> Duyệt qua danh sách strategy đã đăng ký, trả về strategy có <code>method()</code> trùng khớp.</li>
+</ul>
+<pre><code class="language-php">// AuthStrategyResolver.php
+final class AuthStrategyResolver {
+    public function resolve(AuthMethod $method): AuthStrategy {
+        foreach ($this-&gt;strategies as $strategy) {
+            if ($strategy-&gt;method() === $method) return $strategy;
+        }
+        throw new LogicException(&quot;No auth strategy for [{$method-&gt;value}].&quot;);
+    }
+}
+</code></pre>
+<h3>Adapter Pattern — <code>GoogleSocialiteAdapter</code></h3>
+<ul>
+<li><strong>Mục đích:</strong> Bọc dữ liệu từ SDK Socialite (bên thứ 3) thành interface <code>SocialUserAdapter</code> nội bộ.</li>
+<li><strong>Lợi ích:</strong> Khi Socialite thay đổi API → chỉ sửa adapter, không ảnh hưởng business logic.</li>
+</ul>
+<pre><code class="language-php">// GoogleSocialiteAdapter.php
+final class GoogleSocialiteAdapter implements SocialUserAdapter {
+    public function __construct(private readonly SocialiteUser $socialiteUser) {}
+    public function getEmail(): string { return $this-&gt;socialiteUser-&gt;getEmail(); }
+    // ... các phương thức khác
+}
+</code></pre>
+<h3>Luồng xử lý đăng nhập</h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant C as Controller
+    participant R as AuthStrategyResolver
+    participant S as EmailPasswordAuthStrategy
+    participant V as LoginValidationChain
+    participant E as Event: UserLoggedIn
+
+    U-&gt;&gt;C: POST /api/v1/auth/login
+    C-&gt;&gt;R: resolve(AuthMethod::EmailPassword)
+    R-&gt;&gt;S: authenticate(payload)
+    S-&gt;&gt;V: validate(email, password)
+    V-&gt;&gt;V: Check user exists
+    V-&gt;&gt;V: Check status == Active
+    V-&gt;&gt;V: Check password hash
+    V--&gt;&gt;S: return User
+    S-&gt;&gt;S: Issue JWT token
+    S-&gt;&gt;E: dispatch UserLoggedIn
+    S--&gt;&gt;C: AuthResultDto
+    C--&gt;&gt;U: JSON {access_token, refresh_token}
+
+</pre>
+<hr />
+<h1>4. Chức năng Xem thông tin tài khoản</h1>
+<h2>4.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Proxy</strong></td>
+  <td>[S] Structural</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>AccountAccessProxy</code> — kiểm tra quyền xem</td>
+</tr>
+<tr>
+  <td><strong>Facade</strong></td>
+  <td>[S] Structural</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>AccountFacade</code> — gom logic lấy profile + thống kê</td>
+</tr>
+<tr>
+  <td><strong>Strategy</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>VisibilityStrategy</code> — quyết định trường hiển thị</td>
+</tr>
+</tbody>
+</table>
+<h2>4.2. Sơ đồ thành phần (Gợi ý thiết kế)</h2>
+<pre class="mermaid">
+classDiagram
+    class AccountAccessProxy {
+        -UserService realService
+        +getProfile(int viewerId, int targetId) UserProfileDto
+    }
+
+    class AccountFacade {
+        -UserRepository userRepo
+        -ListingRepository listingRepo
+        -TransactionRepository transactionRepo
+        +getFullProfile(int userId) AccountDetailDto
+    }
+
+    class VisibilityStrategy {
+        &lt;&lt;interface&gt;&gt;
+        +filterFields(User user, String viewerRole) array
+    }
+
+    class OwnerVisibilityStrategy {
+        +filterFields(User user, String viewerRole) array
+    }
+
+    class PublicVisibilityStrategy {
+        +filterFields(User user, String viewerRole) array
+    }
+
+    AccountAccessProxy --&gt; AccountFacade : delegates
+    AccountFacade --&gt; VisibilityStrategy : applies
+    VisibilityStrategy &lt;|.. OwnerVisibilityStrategy : implements
+    VisibilityStrategy &lt;|.. PublicVisibilityStrategy : implements
+
+</pre>
+<h2>4.3. Hiện trạng code</h2>
+<p>Hiện tại, chức năng xem thông tin tài khoản được xử lý trực tiếp trong Controller sử dụng <code>UserService</code> interface và implementation. Logic phân quyền được xử lý qua Laravel Middleware và Policy.</p>
+<blockquote>
+<p>[!TIP]
+<strong>Gợi ý cải tiến:</strong> Áp dụng Proxy Pattern tại tầng Service để kiểm tra quyền truy cập (chủ tài khoản hay admin), và Facade Pattern để gom dữ liệu profile, thống kê tin đăng, lịch sử giao dịch vào một điểm gọi duy nhất.</p>
+</blockquote>
+<hr />
+<h1>5. Chức năng Chỉnh sửa thông tin tài khoản</h1>
+<h2>5.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Command</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>UpdateProfileCommand</code> — đóng gói thao tác sửa</td>
+</tr>
+<tr>
+  <td><strong>Chain of Responsibility</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td>Chuỗi validate kiểm tra dữ liệu</td>
+</tr>
+<tr>
+  <td><strong>Observer</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>ProfileUpdated</code> event</td>
+</tr>
+<tr>
+  <td><strong>Memento</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>ProfileMemento</code> — lưu bản cũ trước khi sửa</td>
+</tr>
+</tbody>
+</table>
+<h2>5.2. Sơ đồ thành phần (Gợi ý thiết kế)</h2>
+<pre class="mermaid">
+classDiagram
+    class UpdateProfileCommand {
+        -UserRepository userRepo
+        -ProfileValidationChain validationChain
+        +execute(UpdateProfileDto dto) void
+    }
+
+    class ProfileValidationChain {
+        +validate(UpdateProfileDto dto) void
+    }
+
+    class ProfileUpdated {
+        &lt;&lt;Event&gt;&gt;
+        +int userId
+        +array changedFields
+    }
+
+    class ProfileMemento {
+        +int userId
+        +array previousData
+        +restore() void
+    }
+
+    UpdateProfileCommand --&gt; ProfileValidationChain : validate
+    UpdateProfileCommand ..&gt; ProfileUpdated : dispatch
+    UpdateProfileCommand --&gt; ProfileMemento : save before update
+
+</pre>
+<h2>5.3. Hiện trạng code</h2>
+<p>Hiện tại, logic chỉnh sửa tài khoản được xử lý trong <code>UserService</code> → <code>UserServiceImpl</code>. Chưa có Command Pattern riêng cho thao tác cập nhật profile.</p>
+<blockquote>
+<p>[!TIP]
+<strong>Gợi ý cải tiến:</strong> Tạo <code>UpdateProfileCommand</code> tương tự <code>RegisterUserCommand</code> để đóng gói logic sửa thông tin. Thêm <code>ProfileMemento</code> lưu lại bản cũ hỗ trợ audit trail. Phát <code>ProfileUpdated</code> event để gửi thông báo khi đổi thông tin quan trọng (email, số điện thoại).</p>
+</blockquote>
+<hr />
+<h1>6. Chức năng Đổi mật khẩu</h1>
+<h2>6.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Command</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>ChangePasswordCommand</code> — đóng gói thao tác đổi mật khẩu</td>
+</tr>
+<tr>
+  <td><strong>Chain of Responsibility</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td>Chuỗi kiểm tra mật khẩu cũ, độ mạnh</td>
+</tr>
+<tr>
+  <td><strong>Strategy</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>PasswordHashStrategy</code> cho bcrypt/argon2</td>
+</tr>
+<tr>
+  <td><strong>Observer</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>PasswordChanged</code> event</td>
+</tr>
+</tbody>
+</table>
+<h2>6.2. Sơ đồ thành phần (Gợi ý thiết kế)</h2>
+<pre class="mermaid">
+classDiagram
+    class ChangePasswordCommand {
+        -UserRepository userRepo
+        -PasswordValidationChain validationChain
+        +execute(ChangePasswordDto dto) void
+    }
+
+    class PasswordValidationChain {
+        +validate(User user, String oldPwd, String newPwd) void
+    }
+
+    class PasswordHashStrategy {
+        &lt;&lt;interface&gt;&gt;
+        +hash(String password) String
+        +verify(String password, String hash) bool
+    }
+
+    class BcryptHashStrategy {
+        +hash(String password) String
+        +verify(String password, String hash) bool
+    }
+
+    class PasswordChanged {
+        &lt;&lt;Event&gt;&gt;
+        +int userId
+    }
+
+    ChangePasswordCommand --&gt; PasswordValidationChain : validate
+    ChangePasswordCommand --&gt; PasswordHashStrategy : hash new password
+    ChangePasswordCommand ..&gt; PasswordChanged : dispatch
+    PasswordHashStrategy &lt;|.. BcryptHashStrategy : implements
+
+</pre>
+<h2>6.3. Hiện trạng code</h2>
+<p>Hiện tại, đổi mật khẩu được xử lý trong <code>UserService</code> → <code>UserServiceImpl</code>, sử dụng <code>Hash::check()</code> và <code>Hash::make()</code> trực tiếp.</p>
+<blockquote>
+<p>[!TIP]
+<strong>Gợi ý cải tiến:</strong> Tạo <code>ChangePasswordCommand</code> riêng, kèm <code>PasswordValidationChain</code> kiểm tra: mật khẩu cũ đúng → mật khẩu mới đủ mạnh → không trùng mật khẩu cũ. Phát <code>PasswordChanged</code> event để gửi email cảnh báo bảo mật.</p>
+</blockquote>
+<hr />
+<h1>7. Chức năng Quên mật khẩu</h1>
+<h2>7.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Chain of Responsibility</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>ForgotPasswordChain</code> + <code>AbstractForgotPasswordHandler</code> + 3 Handlers</td>
+</tr>
+<tr>
+  <td><strong>Command</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>ResetPasswordCommand</code></td>
+</tr>
+<tr>
+  <td><strong>Adapter</strong></td>
+  <td>[S] Structural</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>OtpService</code> (gửi OTP qua email)</td>
+</tr>
+<tr>
+  <td><strong>Observer</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>PasswordReset</code> event</td>
+</tr>
+</tbody>
+</table>
+<h2>7.2. Sơ đồ thành phần</h2>
+<pre class="mermaid">
+classDiagram
+    class ForgotPasswordHandler {
+        &lt;&lt;interface&gt;&gt;
+        +setNext(ForgotPasswordHandler handler) ForgotPasswordHandler
+        +handle(ForgotPasswordContext context) void
+    }
+
+    class AbstractForgotPasswordHandler {
+        &lt;&lt;abstract&gt;&gt;
+        -ForgotPasswordHandler next
+        +setNext(ForgotPasswordHandler handler) ForgotPasswordHandler
+        #next(ForgotPasswordContext context) void
+    }
+
+    class FindResetUserHandler {
+        -UserRepository userRepository
+        +handle(ForgotPasswordContext context) void
+    }
+
+    class SendResetOtpHandler {
+        -OtpService otpService
+        +handle(ForgotPasswordContext context) void
+    }
+
+    class LogResetAttemptHandler {
+        +handle(ForgotPasswordContext context) void
+    }
+
+    class ForgotPasswordChain {
+        -ForgotPasswordHandler firstHandler
+        +execute(String email) void
+    }
+
+    class ResetPasswordCommand {
+        -UserRepository userRepository
+        -OtpService otpService
+        +execute(String email, String otp, String password) void
+    }
+
+    class ForgotPasswordContext {
+        +String email
+        +User user
+    }
+
+    class PasswordReset {
+        &lt;&lt;Event&gt;&gt;
+        +int userId
+    }
+
+    ForgotPasswordHandler &lt;|-- AbstractForgotPasswordHandler : extends
+    AbstractForgotPasswordHandler &lt;|-- FindResetUserHandler : extends
+    AbstractForgotPasswordHandler &lt;|-- SendResetOtpHandler : extends
+    AbstractForgotPasswordHandler &lt;|-- LogResetAttemptHandler : extends
+    ForgotPasswordChain --&gt; ForgotPasswordHandler : firstHandler
+    FindResetUserHandler ..&gt; SendResetOtpHandler : next
+    SendResetOtpHandler ..&gt; LogResetAttemptHandler : next
+    ResetPasswordCommand ..&gt; PasswordReset : dispatch
+
+</pre>
+<h2>7.3. File code tương ứng</h2>
+<table>
+<thead>
+<tr>
+  <th>Thành phần</th>
+  <th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Handler Interface</td>
+  <td><a href="#harmful-link">ForgotPasswordHandler.php</a></td>
+</tr>
+<tr>
+  <td>Abstract Handler</td>
+  <td><a href="#harmful-link">AbstractForgotPasswordHandler.php</a></td>
+</tr>
+<tr>
+  <td>Handler 1: Tìm User</td>
+  <td><a href="#harmful-link">FindResetUserHandler.php</a></td>
+</tr>
+<tr>
+  <td>Handler 2: Gửi OTP</td>
+  <td><a href="#harmful-link">SendResetOtpHandler.php</a></td>
+</tr>
+<tr>
+  <td>Handler 3: Ghi Log</td>
+  <td><a href="#harmful-link">LogResetAttemptHandler.php</a></td>
+</tr>
+<tr>
+  <td>Chain Entry</td>
+  <td><a href="#harmful-link">ForgotPasswordChain.php</a></td>
+</tr>
+<tr>
+  <td>Reset Command</td>
+  <td><a href="#harmful-link">ResetPasswordCommand.php</a></td>
+</tr>
+<tr>
+  <td>Observer Event</td>
+  <td><a href="#harmful-link">PasswordReset.php</a></td>
+</tr>
+</tbody>
+</table>
+<h2>7.4. Giải thích cách áp dụng</h2>
+<h3>Chain of Responsibility — <code>ForgotPasswordChain</code></h3>
+<ul>
+<li><strong>Mục đích:</strong> Xử lý tuần tự các bước quên mật khẩu: <strong>Tìm user → Gửi OTP → Ghi log</strong>.</li>
+<li><strong>Cấu trúc:</strong> Mỗi handler kế thừa <code>AbstractForgotPasswordHandler</code>, có con trỏ <code>next</code> để chuyển tiếp.</li>
+<li><strong>Lợi ích:</strong> Dễ thêm bước mới (ví dụ: RateLimitHandler, BlockedUserHandler) mà không sửa code cũ.</li>
+</ul>
+<pre><code class="language-php">// AbstractForgotPasswordHandler.php
+abstract class AbstractForgotPasswordHandler implements ForgotPasswordHandler {
+    private ?ForgotPasswordHandler $next = null;
+
+    public function setNext(ForgotPasswordHandler $handler): ForgotPasswordHandler {
+        $this-&gt;next = $handler;
+        return $handler;
+    }
+
+    protected function next(ForgotPasswordContext $context): void {
+        $this-&gt;next?-&gt;handle($context);
+    }
+}
+</code></pre>
+<h3>Luồng xử lý quên mật khẩu</h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant C as Controller
+    participant CH as ForgotPasswordChain
+    participant H1 as FindResetUserHandler
+    participant H2 as SendResetOtpHandler
+    participant H3 as LogResetAttemptHandler
+
+    U-&gt;&gt;C: POST /api/v1/auth/forgot-password {email}
+    C-&gt;&gt;CH: execute(email)
+    CH-&gt;&gt;H1: handle(context)
+    H1-&gt;&gt;H1: Tìm user theo email
+    alt User tồn tại
+        H1-&gt;&gt;H2: next(context)
+        H2-&gt;&gt;H2: Gửi OTP qua email
+        H2-&gt;&gt;H3: next(context)
+        H3-&gt;&gt;H3: Ghi log thành công
+    else User không tồn tại
+        H1-&gt;&gt;H1: Log warning, dừng chain
+    end
+    CH--&gt;&gt;C: void (silent success)
+    C--&gt;&gt;U: 200 OK
+
+</pre>
+<hr />
+<h1>8. Chức năng Xác thực tin đăng</h1>
+<h2>8.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Strategy</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>VerificationStrategy</code> interface + <code>ManualVerificationStrategy</code></td>
+</tr>
+<tr>
+  <td><strong>Command</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>SubmitListingVerificationCommand</code></td>
+</tr>
+<tr>
+  <td><strong>State</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td>Kết hợp với <code>ListingStatusState</code> (trạng thái xác thực)</td>
+</tr>
+</tbody>
+</table>
+<h2>8.2. Sơ đồ thành phần</h2>
+<pre class="mermaid">
+classDiagram
+    class VerificationStrategy {
+        &lt;&lt;interface&gt;&gt;
+        +supports(String method) bool
+        +verify(Listing listing, array documents) VerificationResult
+    }
+
+    class ManualVerificationStrategy {
+        +supports(String method) bool
+        +verify(Listing listing, array documents) VerificationResult
+    }
+
+    class VerificationResult {
+        +bool isValid
+        +String reason
+    }
+
+    class ListingVerificationService {
+        &lt;&lt;interface&gt;&gt;
+        +submitVerification(int listingId, array documents) void
+        +reviewVerification(int listingId, String decision) void
+    }
+
+    class SubmitListingVerificationCommand {
+        +execute(Listing listing, array documents) void
+    }
+
+    VerificationStrategy &lt;|.. ManualVerificationStrategy : implements
+    SubmitListingVerificationCommand --&gt; VerificationStrategy : uses
+    SubmitListingVerificationCommand --&gt; VerificationResult : produces
+    ListingVerificationService --&gt; SubmitListingVerificationCommand : delegates
+
+</pre>
+<h2>8.3. File code tương ứng</h2>
+<table>
+<thead>
+<tr>
+  <th>Thành phần</th>
+  <th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Strategy Interface</td>
+  <td><a href="#harmful-link">VerificationStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Manual Strategy</td>
+  <td><a href="#harmful-link">ManualVerificationStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Result DTO</td>
+  <td><a href="#harmful-link">VerificationResult.php</a></td>
+</tr>
+<tr>
+  <td>Command</td>
+  <td><a href="#harmful-link">SubmitListingVerificationCommand.php</a></td>
+</tr>
+<tr>
+  <td>Service Interface</td>
+  <td><a href="#harmful-link">ListingVerificationService.php</a></td>
+</tr>
+</tbody>
+</table>
+<h2>8.4. Giải thích cách áp dụng</h2>
+<h3>Strategy Pattern — <code>VerificationStrategy</code></h3>
+<ul>
+<li><strong>Mục đích:</strong> Cho phép thay đổi phương thức xác thực (manual, auto, AI) mà không sửa code gọi.</li>
+<li><strong>Mở rộng:</strong> Có thể thêm <code>AutoVerificationStrategy</code>, <code>AIVerificationStrategy</code> trong tương lai.</li>
+</ul>
+<pre><code class="language-php">// VerificationStrategy.php
+interface VerificationStrategy {
+    public function supports(string $method): bool;
+    public function verify(Listing $listing, array $documents): VerificationResult;
+}
+
+// ManualVerificationStrategy.php
+final class ManualVerificationStrategy implements VerificationStrategy {
+    public function supports(string $method): bool { return $method === 'manual'; }
+    public function verify(Listing $listing, array $documents): VerificationResult {
+        return new VerificationResult(
+            isValid: count($documents) &gt; 0,
+            reason: count($documents) &gt; 0 ? null : 'No verification documents provided.',
+        );
+    }
+}
+</code></pre>
+<hr />
+<h1>9. Chức năng Tin đăng yêu thích</h1>
+<h2>9.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Facade</strong></td>
+  <td>[S] Structural</td>
+  <td>✅ Đã áp dụng (Service Interface)</td>
+  <td><code>FavoriteService</code> interface</td>
+</tr>
+<tr>
+  <td><strong>Command</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>AddFavoriteCommand</code> / <code>RemoveFavoriteCommand</code></td>
+</tr>
+<tr>
+  <td><strong>Observer</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td>Event cập nhật thống kê yêu thích</td>
+</tr>
+<tr>
+  <td><strong>Proxy</strong></td>
+  <td>[S] Structural</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td>Kiểm tra user đã đăng nhập</td>
+</tr>
+</tbody>
+</table>
+<h2>9.2. Sơ đồ thành phần</h2>
+<pre class="mermaid">
+classDiagram
+    class FavoriteService {
+        &lt;&lt;interface&gt;&gt;
+        +getUserFavorites(int userId) Collection
+        +getUserFavoriteIds(int userId) Collection
+        +toggle(int userId, int listingId) bool
+        +getUserRecentlyViewed(int userId) Collection
+        +trackView(int userId, int listingId) void
+    }
+
+    class FavoriteServiceImpl {
+        -UserRepository userRepo
+        -ListingRepository listingRepo
+        +getUserFavorites(int userId) Collection
+        +toggle(int userId, int listingId) bool
+        +trackView(int userId, int listingId) void
+    }
+
+    FavoriteService &lt;|.. FavoriteServiceImpl : implements
+
+</pre>
+<h2>9.3. File code tương ứng</h2>
+<table>
+<thead>
+<tr>
+  <th>Thành phần</th>
+  <th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Service Interface</td>
+  <td><a href="#harmful-link">FavoriteService.php</a></td>
+</tr>
+<tr>
+  <td>Service Implementation</td>
+  <td><code>FavoriteServiceImpl.php</code> (trong thư mục <code>Impl/</code>)</td>
+</tr>
+</tbody>
+</table>
+<h2>9.4. Giải thích cách áp dụng</h2>
+<p>Hiện tại đã áp dụng <strong>Facade Pattern</strong> thông qua interface <code>FavoriteService</code> giúp controller gọi gọn gàng.</p>
+<blockquote>
+<p>[!TIP]
+<strong>Gợi ý cải tiến:</strong> Tách <code>toggle()</code> thành <code>AddFavoriteCommand</code> và <code>RemoveFavoriteCommand</code> theo Command Pattern. Thêm Observer để phát <code>ListingFavorited</code> event, hỗ trợ recommendation engine sau này.</p>
+</blockquote>
+<hr />
+<h1>10. Chức năng Nâng cấp gói tin</h1>
+<blockquote>
+<p>[!IMPORTANT]
+Đây là chức năng kết hợp <strong>nhiều pattern nhất</strong> trong hệ thống, nên trình bày kỹ trong báo cáo.</p>
+</blockquote>
+<h2>10.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Command</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>UpgradeListingCommand</code>, <code>CreateUpgradePaymentCommand</code></td>
+</tr>
+<tr>
+  <td><strong>Strategy</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>PackageBenefitStrategy</code>, <code>ExpiryCalculationStrategy</code></td>
+</tr>
+<tr>
+  <td><strong>Factory Method</strong></td>
+  <td>[C] Creational</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>PackageBenefitStrategyFactory</code>, <code>ExpiryCalculationStrategyFactory</code></td>
+</tr>
+<tr>
+  <td><strong>Specification</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>CanUpgradeSpecification</code>, <code>CanRenewSpecification</code></td>
+</tr>
+<tr>
+  <td><strong>Adapter</strong></td>
+  <td>[S] Structural</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>VnpayService</code> (tích hợp VNPAY)</td>
+</tr>
+<tr>
+  <td><strong>Observer</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>ListingPackageUpgraded</code> event</td>
+</tr>
+<tr>
+  <td><strong>State</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td>Kết hợp <code>ListingStatusState</code></td>
+</tr>
+</tbody>
+</table>
+<h2>10.2. Sơ đồ thành phần</h2>
+<pre class="mermaid">
+classDiagram
+    class UpgradeListingCommand {
+        -UpgradeEligibilityPolicy policy
+        -ExpiryCalculationStrategyFactory expiryFactory
+        -PackageBenefitStrategyFactory benefitFactory
+        +execute(Transaction, Listing, Package, UpgradeContext) Listing
+    }
+
+    class CreateUpgradePaymentCommand {
+        -VnpayService vnpayService
+        +execute(User, Listing, Package, int, float, String) String
+    }
+
+    class UpgradeEligibilityPolicy {
+        -CanRenewSpecification canRenew
+        -CanUpgradeSpecification canUpgrade
+        +assertEligible(UpgradeContext context) void
+    }
+
+    class CanUpgradeSpecification {
+        +isSatisfiedBy(UpgradeContext context) bool
+    }
+
+    class CanRenewSpecification {
+        +isSatisfiedBy(UpgradeContext context) bool
+    }
+
+    class PackageBenefitStrategy {
+        &lt;&lt;interface&gt;&gt;
+        +apply(UpgradeContext context) void
+    }
+
+    class DataDrivenBenefitStrategy {
+        +apply(UpgradeContext context) void
+    }
+
+    class PackageBenefitStrategyFactory {
+        +make(Package package) PackageBenefitStrategy
+    }
+
+    class ExpiryCalculationStrategy {
+        &lt;&lt;interface&gt;&gt;
+        +calculate(UpgradeContext context) CarbonInterface
+    }
+
+    class FreshPurchaseExpiryStrategy {
+        +calculate(UpgradeContext context) CarbonInterface
+    }
+
+    class RenewalExpiryStrategy {
+        +calculate(UpgradeContext context) CarbonInterface
+    }
+
+    class ExpiryCalculationStrategyFactory {
+        +make(UpgradeContext context) ExpiryCalculationStrategy
+    }
+
+    class VnpayService {
+        +createPaymentUrl(Transaction, String) String
+        +isValidReturn(Request) bool
+        +transactionIdFromTxnRef(String) int
+    }
+
+    class ListingPackageUpgraded {
+        &lt;&lt;Event&gt;&gt;
+        +int listingId
+        +int userId
+        +int oldPackageId
+        +int newPackageId
+        +int durationDays
+        +String amount
+    }
+
+    UpgradeListingCommand --&gt; UpgradeEligibilityPolicy : assertEligible
+    UpgradeListingCommand --&gt; ExpiryCalculationStrategyFactory : make
+    UpgradeListingCommand --&gt; PackageBenefitStrategyFactory : make
+    UpgradeListingCommand ..&gt; ListingPackageUpgraded : dispatch
+    UpgradeEligibilityPolicy --&gt; CanRenewSpecification : check
+    UpgradeEligibilityPolicy --&gt; CanUpgradeSpecification : check
+    PackageBenefitStrategyFactory --&gt; PackageBenefitStrategy : creates
+    PackageBenefitStrategy &lt;|.. DataDrivenBenefitStrategy : implements
+    ExpiryCalculationStrategyFactory --&gt; ExpiryCalculationStrategy : creates
+    ExpiryCalculationStrategy &lt;|.. FreshPurchaseExpiryStrategy : implements
+    ExpiryCalculationStrategy &lt;|.. RenewalExpiryStrategy : implements
+    CreateUpgradePaymentCommand --&gt; VnpayService : createPaymentUrl
+
+</pre>
+<h2>10.3. File code tương ứng</h2>
+<table>
+<thead>
+<tr>
+  <th>Thành phần</th>
+  <th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Upgrade Command</td>
+  <td><a href="#harmful-link">UpgradeListingCommand.php</a></td>
+</tr>
+<tr>
+  <td>Payment Command</td>
+  <td><a href="#harmful-link">CreateUpgradePaymentCommand.php</a></td>
+</tr>
+<tr>
+  <td>Eligibility Policy</td>
+  <td><a href="#harmful-link">UpgradeEligibilityPolicy.php</a></td>
+</tr>
+<tr>
+  <td>Specification: Upgrade</td>
+  <td><a href="#harmful-link">CanUpgradeSpecification.php</a></td>
+</tr>
+<tr>
+  <td>Specification: Renew</td>
+  <td><a href="#harmful-link">CanRenewSpecification.php</a></td>
+</tr>
+<tr>
+  <td>Benefit Strategy Interface</td>
+  <td><a href="#harmful-link">PackageBenefitStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Benefit Strategy Impl</td>
+  <td><a href="#harmful-link">DataDrivenBenefitStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Benefit Factory</td>
+  <td><a href="#harmful-link">PackageBenefitStrategyFactory.php</a></td>
+</tr>
+<tr>
+  <td>Expiry Strategy Interface</td>
+  <td><a href="#harmful-link">ExpiryCalculationStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Expiry: Fresh</td>
+  <td><a href="#harmful-link">FreshPurchaseExpiryStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Expiry: Renewal</td>
+  <td><a href="#harmful-link">RenewalExpiryStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Expiry Factory</td>
+  <td><a href="#harmful-link">ExpiryCalculationStrategyFactory.php</a></td>
+</tr>
+<tr>
+  <td>Payment Adapter</td>
+  <td><a href="#harmful-link">VnpayService.php</a></td>
+</tr>
+<tr>
+  <td>Observer Event</td>
+  <td><a href="#harmful-link">ListingPackageUpgraded.php</a></td>
+</tr>
+</tbody>
+</table>
+<h2>10.4. Giải thích cách áp dụng</h2>
+<h3>Command Pattern — <code>UpgradeListingCommand</code></h3>
+<pre><code class="language-php">final class UpgradeListingCommand {
+    public function execute(Transaction $transaction, Listing $listing, Package $newPackage, UpgradeContext $context): Listing {
+        $this-&gt;policy-&gt;assertEligible($context);                          // Specification
+        $expiresAt = $this-&gt;expiryFactory-&gt;make($context)-&gt;calculate($context);  // Strategy
+        $benefitStrategy = $this-&gt;benefitFactory-&gt;make($newPackage);       // Factory + Strategy
+        DB::transaction(function () use (...) {
+            $transaction-&gt;update(['status' =&gt; 'SUCCESS']);
+            $listing-&gt;update(['package_id' =&gt; $newPackage-&gt;id, 'package_expires_at' =&gt; $expiresAt]);
+            $benefitStrategy-&gt;apply($context);                             // Strategy
+        });
+        ListingPackageUpgraded::dispatch(...);                            // Observer
+        return $updated;
+    }
+}
+</code></pre>
+<h3>Specification Pattern — <code>CanUpgradeSpecification</code> &amp; <code>CanRenewSpecification</code></h3>
+<ul>
+<li><strong>Mục đích:</strong> Quyết định user có đủ điều kiện nâng cấp hay gia hạn.</li>
+<li><strong><code>CanUpgradeSpecification</code>:</strong> Kiểm tra gói mới có priority cao hơn gói hiện tại.</li>
+<li><strong><code>CanRenewSpecification</code>:</strong> Kiểm tra user đang gia hạn gói cùng loại.</li>
+</ul>
+<h3>Luồng xử lý nâng cấp gói tin</h3>
+<pre class="mermaid">
+sequenceDiagram
+    participant U as User
+    participant C as Controller
+    participant PC as CreateUpgradePaymentCommand
+    participant V as VnpayService
+    participant CB as VnpayReturnController
+    participant UC as UpgradeListingCommand
+    participant P as UpgradeEligibilityPolicy
+    participant E as Event: ListingPackageUpgraded
+
+    U-&gt;&gt;C: POST /api/v1/listings/{id}/upgrade
+    C-&gt;&gt;PC: execute(user, listing, package, duration, amount, ip)
+    PC-&gt;&gt;PC: Tạo Transaction (PENDING)
+    PC-&gt;&gt;V: createPaymentUrl(transaction, ip)
+    V--&gt;&gt;PC: VNPAY URL
+    PC--&gt;&gt;C: payment URL
+    C--&gt;&gt;U: Redirect → VNPAY
+
+    Note over U,V: User thanh toán trên VNPAY
+
+    V-&gt;&gt;CB: GET /api/v1/payments/vnpay/return
+    CB-&gt;&gt;V: isValidReturn(request)
+    CB-&gt;&gt;UC: execute(transaction, listing, package, context)
+    UC-&gt;&gt;P: assertEligible(context)
+    P-&gt;&gt;P: Check Specifications
+    UC-&gt;&gt;UC: Calculate expiry (Strategy)
+    UC-&gt;&gt;UC: Apply benefits (Strategy)
+    UC-&gt;&gt;UC: Update DB
+    UC-&gt;&gt;E: dispatch ListingPackageUpgraded
+    UC--&gt;&gt;CB: Updated Listing
+    CB--&gt;&gt;U: Redirect → success page
+
+</pre>
+<hr />
+<h1>11. Thuật toán sắp xếp hiển thị</h1>
+<h2>11.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Strategy</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>ListingSortingStrategy</code> interface + 7 strategies</td>
+</tr>
+<tr>
+  <td><strong>Factory Method</strong></td>
+  <td>[C] Creational</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>ListingSortingStrategyFactory</code></td>
+</tr>
+</tbody>
+</table>
+<h2>11.2. Sơ đồ thành phần</h2>
+<pre class="mermaid">
+classDiagram
+    class ListingSortingStrategy {
+        &lt;&lt;interface&gt;&gt;
+        +apply(Builder query) Builder
+    }
+
+    class DefaultPackageScoreSortingStrategy {
+        +apply(Builder query) Builder
+    }
+
+    class NewestListingSortingStrategy {
+        +apply(Builder query) Builder
+    }
+
+    class OldestListingSortingStrategy {
+        +apply(Builder query) Builder
+    }
+
+    class PriceLowToHighSortingStrategy {
+        +apply(Builder query) Builder
+    }
+
+    class PriceHighToLowSortingStrategy {
+        +apply(Builder query) Builder
+    }
+
+    class AreaLowToHighSortingStrategy {
+        +apply(Builder query) Builder
+    }
+
+    class AreaHighToLowSortingStrategy {
+        +apply(Builder query) Builder
+    }
+
+    class ListingSortingStrategyFactory {
+        +make(String sortBy)$ ListingSortingStrategy
+    }
+
+    ListingSortingStrategy &lt;|.. DefaultPackageScoreSortingStrategy : implements
+    ListingSortingStrategy &lt;|.. NewestListingSortingStrategy : implements
+    ListingSortingStrategy &lt;|.. OldestListingSortingStrategy : implements
+    ListingSortingStrategy &lt;|.. PriceLowToHighSortingStrategy : implements
+    ListingSortingStrategy &lt;|.. PriceHighToLowSortingStrategy : implements
+    ListingSortingStrategy &lt;|.. AreaLowToHighSortingStrategy : implements
+    ListingSortingStrategy &lt;|.. AreaHighToLowSortingStrategy : implements
+    ListingSortingStrategyFactory --&gt; ListingSortingStrategy : creates
+
+</pre>
+<h2>11.3. File code tương ứng</h2>
+<table>
+<thead>
+<tr>
+  <th>Thành phần</th>
+  <th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Strategy Interface</td>
+  <td><a href="#harmful-link">ListingSortingStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Factory</td>
+  <td><a href="#harmful-link">ListingSortingStrategyFactory.php</a></td>
+</tr>
+<tr>
+  <td>Default (Package Score)</td>
+  <td><a href="#harmful-link">DefaultPackageScoreSortingStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Newest</td>
+  <td><a href="#harmful-link">NewestListingSortingStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Oldest</td>
+  <td><a href="#harmful-link">OldestListingSortingStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Price Low→High</td>
+  <td><a href="#harmful-link">PriceLowToHighSortingStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Price High→Low</td>
+  <td><a href="#harmful-link">PriceHighToLowSortingStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Area Low→High</td>
+  <td><a href="#harmful-link">AreaLowToHighSortingStrategy.php</a></td>
+</tr>
+<tr>
+  <td>Area High→Low</td>
+  <td><a href="#harmful-link">AreaHighToLowSortingStrategy.php</a></td>
+</tr>
+</tbody>
+</table>
+<h2>11.4. Giải thích cách áp dụng</h2>
+<h3>Strategy Pattern — <code>ListingSortingStrategy</code></h3>
+<ul>
+<li><strong>Mục đích:</strong> Cho phép thay đổi thuật toán sắp xếp tin đăng tùy theo lựa chọn của user.</li>
+<li><strong>7 chiến lược:</strong> Default (theo điểm gói tin), Mới nhất, Cũ nhất, Giá tăng, Giá giảm, Diện tích tăng, Diện tích giảm.</li>
+</ul>
+<pre><code class="language-php">// ListingSortingStrategy.php
+interface ListingSortingStrategy {
+    public function apply(Builder $query): Builder;
+}
+</code></pre>
+<h3>Factory Method — <code>ListingSortingStrategyFactory</code></h3>
+<ul>
+<li><strong>Mục đích:</strong> Tạo Strategy phù hợp dựa trên tham số <code>sortBy</code> từ request.</li>
+</ul>
+<pre><code class="language-php">// ListingSortingStrategyFactory.php
+final class ListingSortingStrategyFactory {
+    public static function make(?string $sortBy): ListingSortingStrategy {
+        return match ($sortBy) {
+            'newest'     =&gt; new NewestListingSortingStrategy,
+            'oldest'     =&gt; new OldestListingSortingStrategy,
+            'price_asc'  =&gt; new PriceLowToHighSortingStrategy,
+            'price_desc' =&gt; new PriceHighToLowSortingStrategy,
+            'area_asc'   =&gt; new AreaLowToHighSortingStrategy,
+            'area_desc'  =&gt; new AreaHighToLowSortingStrategy,
+            default      =&gt; new DefaultPackageScoreSortingStrategy,
+        };
+    }
+}
+</code></pre>
+<h3>Thuật toán Default — Package Score</h3>
+<p>Chiến lược mặc định tính điểm dựa trên công thức:</p>
+<pre><code>final_score = score × multiplier × (1 / (1 + hours/24)) × exp(-decay_rate × hours)
+</code></pre>
+<ul>
+<li><code>score</code>: Điểm cơ bản của tin đăng</li>
+<li><code>multiplier</code>: Hệ số nhân từ gói tin (VIP có multiplier cao hơn)</li>
+<li><code>decay_rate</code>: Tốc độ giảm điểm theo thời gian</li>
+<li>Sắp xếp theo <code>pkg_priority DESC</code> trước, rồi <code>final_score DESC</code></li>
+</ul>
+<hr />
+<h1>12. Các bộ lọc tin đăng</h1>
+<h2>12.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Specification</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td>Các spec lọc theo giá, diện tích, vị trí, tiện ích</td>
+</tr>
+<tr>
+  <td><strong>Composite</strong></td>
+  <td>[S] Structural</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td>Ghép nhiều điều kiện lọc AND/OR</td>
+</tr>
+<tr>
+  <td><strong>Builder</strong></td>
+  <td>[C] Creational</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>SearchCriteriaBuilder</code> tạo bộ tiêu chí</td>
+</tr>
+<tr>
+  <td><strong>Strategy</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td>Kết hợp với <code>ListingSortingStrategy</code> sau khi lọc</td>
+</tr>
+</tbody>
+</table>
+<h2>12.2. Sơ đồ thành phần (Gợi ý thiết kế)</h2>
+<pre class="mermaid">
+classDiagram
+    class ListingSpecification {
+        &lt;&lt;interface&gt;&gt;
+        +isSatisfiedBy(Listing listing) bool
+        +apply(Builder query) Builder
+    }
+
+    class PriceRangeSpec {
+        -float minPrice
+        -float maxPrice
+        +apply(Builder query) Builder
+    }
+
+    class AreaRangeSpec {
+        -float minArea
+        -float maxArea
+        +apply(Builder query) Builder
+    }
+
+    class LocationSpec {
+        -int provinceId
+        -int districtId
+        +apply(Builder query) Builder
+    }
+
+    class CompositeSpecification {
+        -ListingSpecification[] specs
+        +apply(Builder query) Builder
+    }
+
+    class SearchCriteriaBuilder {
+        +withPriceRange(float min, float max) self
+        +withAreaRange(float min, float max) self
+        +withLocation(int provinceId) self
+        +build() CompositeSpecification
+    }
+
+    ListingSpecification &lt;|.. PriceRangeSpec : implements
+    ListingSpecification &lt;|.. AreaRangeSpec : implements
+    ListingSpecification &lt;|.. LocationSpec : implements
+    ListingSpecification &lt;|.. CompositeSpecification : implements
+    CompositeSpecification o-- ListingSpecification : contains
+    SearchCriteriaBuilder --&gt; CompositeSpecification : builds
+
+</pre>
+<h2>12.3. Hiện trạng code</h2>
+<p>Hiện tại, bộ lọc được xử lý trực tiếp trong <code>ListingService</code> qua các tham số request (<code>price_min</code>, <code>price_max</code>, <code>area_min</code>, <code>area_max</code>, <code>province_id</code>, ...) và áp dụng trực tiếp lên Eloquent query builder.</p>
+<blockquote>
+<p>[!TIP]
+<strong>Gợi ý cải tiến:</strong> Tách mỗi điều kiện lọc thành một <code>Specification</code> riêng (<code>PriceRangeSpec</code>, <code>AreaRangeSpec</code>, <code>LocationSpec</code>...), ghép bằng <code>CompositeSpecification</code> (AND/OR), và dùng <code>SearchCriteriaBuilder</code> để tạo bộ tiêu chí từ request. Điều này giúp tái sử dụng bộ lọc cho cả list view, map view, và dashboard.</p>
+</blockquote>
+<hr />
+<h1>13. Chức năng Chat</h1>
+<h2>13.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>Facade</strong></td>
+  <td>[S] Structural</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>ChatService</code> interface (gom toàn bộ logic chat)</td>
+</tr>
+<tr>
+  <td><strong>Observer</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>MessageSent</code> event + Broadcast (Reverb/WebSocket)</td>
+</tr>
+<tr>
+  <td><strong>Adapter</strong></td>
+  <td>[S] Structural</td>
+  <td>✅ Đã áp dụng</td>
+  <td>Tích hợp Laravel Reverb (WebSocket adapter)</td>
+</tr>
+<tr>
+  <td><strong>Mediator</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>ChatMediator</code> điều phối người hỏi, người đăng</td>
+</tr>
+<tr>
+  <td><strong>Proxy</strong></td>
+  <td>[S] Structural</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td>Kiểm tra quyền chat, chặn user bị khóa</td>
+</tr>
+</tbody>
+</table>
+<h2>13.2. Sơ đồ thành phần</h2>
+<pre class="mermaid">
+classDiagram
+    class ChatService {
+        &lt;&lt;interface&gt;&gt;
+        +getOrCreateConversation(GetOrCreateConversationDto dto) Conversation
+        +getConversations(int userId) Collection
+        +getMessages(int conversationId, int userId, String cursor) CursorPaginator
+        +sendMessage(SendMessageDto dto) Message
+        +markAsRead(int conversationId, int userId) void
+        +createGroup(CreateGroupDto dto) Conversation
+        +updateGroup(UpdateGroupDto dto) Conversation
+        +addGroupMembers(GroupMemberDto dto) Conversation
+        +removeGroupMember(int, int, int) Conversation
+        +leaveGroup(int, int) void
+    }
+
+    class ChatServiceImpl {
+        +getOrCreateConversation(GetOrCreateConversationDto dto) Conversation
+        +sendMessage(SendMessageDto dto) Message
+        +markAsRead(int conversationId, int userId) void
+    }
+
+    class MessageSent {
+        &lt;&lt;Event / Broadcast&gt;&gt;
+        +Message message
+        +broadcastOn() Channel
+    }
+
+    class SendMessageDto {
+        +int conversationId
+        +int senderId
+        +String body
+        +String type
+    }
+
+    ChatService &lt;|.. ChatServiceImpl : implements
+    ChatServiceImpl ..&gt; MessageSent : dispatch
+    ChatServiceImpl --&gt; SendMessageDto : uses
+
+</pre>
+<h2>13.3. File code tương ứng</h2>
+<table>
+<thead>
+<tr>
+  <th>Thành phần</th>
+  <th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Service Interface</td>
+  <td><a href="#harmful-link">ChatService.php</a></td>
+</tr>
+<tr>
+  <td>Service Implementation</td>
+  <td><code>ChatServiceImpl.php</code> (trong thư mục <code>Impl/</code>)</td>
+</tr>
+<tr>
+  <td>Broadcast Event</td>
+  <td><code>MessageSent.php</code> (trong thư mục <code>Events/Chat/</code>)</td>
+</tr>
+</tbody>
+</table>
+<h2>13.4. Giải thích cách áp dụng</h2>
+<h3>Facade Pattern — <code>ChatService</code></h3>
+<ul>
+<li><strong>Mục đích:</strong> Cung cấp interface duy nhất cho toàn bộ nghiệp vụ chat: tạo/lấy conversation, gửi/nhận message, quản lý group.</li>
+<li><strong>Lợi ích:</strong> Controller chỉ cần inject <code>ChatService</code>, không cần biết chi tiết bên trong.</li>
+</ul>
+<h3>Observer Pattern — <code>MessageSent</code> Event + Broadcast</h3>
+<ul>
+<li><strong>Mục đích:</strong> Khi gửi tin nhắn, phát event <code>MessageSent</code> qua Laravel Broadcasting (Reverb/WebSocket).</li>
+<li><strong>Lợi ích:</strong> Gửi realtime notification cho người nhận mà không phụ thuộc vào công nghệ cụ thể (có thể đổi sang Pusher/Firebase).</li>
+</ul>
+<blockquote>
+<p>[!TIP]
+<strong>Gợi ý cải tiến:</strong> Thêm <code>ChatMediator</code> để điều phối logic phức tạp hơn (ví dụ: kiểm tra người dùng có quyền chat không, auto-reply khi offline). Thêm <code>ChatAccessProxy</code> kiểm tra user có bị block không trước khi cho phép gửi tin.</p>
+</blockquote>
+<hr />
+<h1>14. Lịch sử giao dịch</h1>
+<h2>14.1. Tổng quan Pattern áp dụng</h2>
+<table>
+<thead>
+<tr>
+  <th>Pattern</th>
+  <th>Nhóm</th>
+  <th>Trạng thái</th>
+  <th>Thành phần</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><strong>State</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng (gián tiếp)</td>
+  <td>Transaction status: PENDING → SUCCESS / FAILED / EXPIRED</td>
+</tr>
+<tr>
+  <td><strong>Adapter</strong></td>
+  <td>[S] Structural</td>
+  <td>✅ Đã áp dụng</td>
+  <td><code>VnpayService</code> xử lý callback từ VNPAY</td>
+</tr>
+<tr>
+  <td><strong>Observer</strong></td>
+  <td>[B] Behavioral</td>
+  <td>✅ Đã áp dụng</td>
+  <td>Event khi thanh toán thành công</td>
+</tr>
+<tr>
+  <td><strong>Specification</strong></td>
+  <td>[B] Behavioral</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td>Lọc giao dịch theo trạng thái, thời gian, số tiền</td>
+</tr>
+<tr>
+  <td><strong>Facade</strong></td>
+  <td>[S] Structural</td>
+  <td>💡 Gợi ý áp dụng</td>
+  <td><code>TransactionDetailFacade</code> gom dữ liệu</td>
+</tr>
+</tbody>
+</table>
+<h2>14.2. Sơ đồ thành phần</h2>
+<pre class="mermaid">
+classDiagram
+    class VnpayService {
+        +createPaymentUrl(Transaction, String ip) String
+        +isValidReturn(Request) bool
+        +transactionIdFromTxnRef(String txnRef) int
+    }
+
+    class VnpayReturnController {
+        -VnpayService vnpayService
+        -UpgradeListingCommand upgradeCommand
+        +__invoke(Request request) RedirectResponse
+    }
+
+    class Transaction {
+        +int id
+        +int user_id
+        +int listing_id
+        +int package_id
+        +String status
+        +float amount
+        +String payment_method
+        +DateTime transaction_date
+        +DateTime expires_at
+    }
+
+    class ExpirePendingTransactionJob {
+        +handle() void
+    }
+
+    VnpayReturnController --&gt; VnpayService : validate + parse
+    VnpayReturnController --&gt; UpgradeListingCommand : execute on success
+    Transaction --&gt; ExpirePendingTransactionJob : auto-expire
+
+</pre>
+<h2>14.3. File code tương ứng</h2>
+<table>
+<thead>
+<tr>
+  <th>Thành phần</th>
+  <th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>Payment Adapter</td>
+  <td><a href="#harmful-link">VnpayService.php</a></td>
+</tr>
+<tr>
+  <td>Return Controller</td>
+  <td><code>VnpayReturnController.php</code></td>
+</tr>
+<tr>
+  <td>Transaction Model</td>
+  <td><code>Transaction.php</code></td>
+</tr>
+</tbody>
+</table>
+<h2>14.4. Giải thích cách áp dụng</h2>
+<h3>Adapter Pattern — <code>VnpayService</code></h3>
+<ul>
+<li><strong>Mục đích:</strong> Che giấu chi tiết API VNPAY (tạo URL thanh toán, xác thực chữ ký, parse mã giao dịch).</li>
+<li><strong>Lợi ích:</strong> Khi muốn thêm cổng thanh toán Momo/ZaloPay → tạo <code>MomoService</code>, <code>ZaloPayService</code> implement cùng interface.</li>
+</ul>
+<pre><code class="language-php">// VnpayService.php
+final class VnpayService {
+    public function createPaymentUrl(Transaction $transaction, string $clientIp): string { ... }
+    public function isValidReturn(Request $request): bool {
+        // Xác thực chữ ký HMAC-SHA512 từ VNPAY callback
+        $expected = hash_hmac('sha512', $query, config('vnpay.hash_secret'));
+        return hash_equals($expected, $secureHash);
+    }
+}
+</code></pre>
+<blockquote>
+<p>[!TIP]
+<strong>Gợi ý cải tiến:</strong> Tạo <code>PaymentGatewayAdapter</code> interface chung, các service (VnpayService, MomoService...) implement interface này. Thêm <code>TransactionSpecification</code> để lọc giao dịch theo nhiều tiêu chí. Áp dụng State Pattern chính thức cho Transaction với các trạng thái chuyển đổi rõ ràng (PENDING → SUCCESS, PENDING → FAILED, PENDING → EXPIRED).</p>
+</blockquote>
+<hr />
+<h1>15. Tổng hợp Design Pattern theo chức năng</h1>
+<h2>Bảng tổng hợp</h2>
+<table>
+<thead>
+<tr>
+  <th>#</th>
+  <th>Chức năng</th>
+  <th>Pattern đã áp dụng</th>
+  <th>Pattern gợi ý bổ sung</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>1</td>
+  <td><strong>Đăng ký tài khoản</strong></td>
+  <td>Command, Chain of Responsibility, Observer (OTP)</td>
+  <td>Builder (UserBuilder)</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><strong>Đăng nhập</strong></td>
+  <td>Strategy, Factory Method, Adapter, Chain of Responsibility, Observer</td>
+  <td>Facade (AuthFacade)</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><strong>Xem thông tin tài khoản</strong></td>
+  <td>—</td>
+  <td>Proxy, Facade, Strategy</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><strong>Chỉnh sửa tài khoản</strong></td>
+  <td>—</td>
+  <td>Command, Memento, Chain of Responsibility, Observer</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><strong>Đổi mật khẩu</strong></td>
+  <td>—</td>
+  <td>Command, Chain of Responsibility, Strategy, Observer</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><strong>Quên mật khẩu</strong></td>
+  <td>Chain of Responsibility, Command, Adapter, Observer</td>
+  <td>State (token lifecycle)</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><strong>Xác thực tin đăng</strong></td>
+  <td>Strategy, Command, State</td>
+  <td>Chain of Responsibility</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><strong>Tin đăng yêu thích</strong></td>
+  <td>Facade (Service Interface)</td>
+  <td>Command, Observer, Proxy</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><strong>Nâng cấp gói tin</strong></td>
+  <td>Command, Strategy (×2), Factory Method (×2), Specification, Adapter, Observer, State</td>
+  <td>Decorator (hiển thị quyền lợi)</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><strong>Thuật toán sắp xếp</strong></td>
+  <td>Strategy, Factory Method</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><strong>Bộ lọc tin đăng</strong></td>
+  <td>Strategy (kết hợp sorting)</td>
+  <td>Specification, Composite, Builder</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><strong>Chat</strong></td>
+  <td>Facade, Observer/Broadcast, Adapter (WebSocket)</td>
+  <td>Mediator, Proxy, State</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><strong>Lịch sử giao dịch</strong></td>
+  <td>State (implicit), Adapter (VNPAY), Observer</td>
+  <td>Specification, Facade</td>
+</tr>
+</tbody>
+</table>
+<h2>Biểu đồ phân bố Pattern</h2>
+<pre class="mermaid">
+pie title Phân bố Design Pattern đã áp dụng
+    "Strategy" : 5
+    "Command" : 4
+    "Factory Method" : 3
+    "Chain of Responsibility" : 3
+    "Observer/Event" : 5
+    "Adapter" : 4
+    "State" : 3
+    "Specification" : 1
+    "Facade" : 2
+
+</pre>
+<h2>Nhận xét tổng quan</h2>
+<blockquote>
+<p>[!IMPORTANT]</p>
+<h3>Điểm mạnh</h3>
+<ul>
+<li><strong>Strategy Pattern</strong> được áp dụng xuất sắc trong 3 module: Auth (đăng nhập), Sorting (sắp xếp), và Verification (xác thực). Mỗi module đều có interface rõ ràng, factory tạo strategy, và nhiều implementation cụ thể.</li>
+<li><strong>Chain of Responsibility</strong> được triển khai bài bản cho Quên mật khẩu với đầy đủ <code>Handler</code> interface → <code>AbstractHandler</code> → Concrete Handlers, đúng chuẩn GoF.</li>
+<li><strong>Nâng cấp gói tin</strong> kết hợp <strong>7 pattern</strong> (Command + Strategy×2 + Factory×2 + Specification + Observer), là ví dụ mẫu hoàn hảo cho báo cáo.</li>
+<li>Kiến trúc Clean Architecture giúp các pattern được đặt đúng tầng.</li>
+</ul>
+</blockquote>
+<blockquote>
+<p>[!WARNING]</p>
+<h3>Điểm cần cải tiến</h3>
+<ul>
+<li>Các chức năng <strong>Xem/Chỉnh sửa tài khoản</strong> và <strong>Đổi mật khẩu</strong> chưa áp dụng pattern nào, logic nằm trong Service implementation.</li>
+<li><strong>Bộ lọc tin đăng</strong> nên áp dụng Specification + Composite để code query gọn gàng hơn.</li>
+<li><strong>Chat</strong> nên thêm Mediator Pattern để giảm phụ thuộc trực tiếp giữa các participant.</li>
+<li><strong>Lịch sử giao dịch</strong> nên áp dụng State Pattern chính thức (tương tự <code>ListingStatusState</code>) cho Transaction.</li>
+</ul>
+</blockquote>
+<hr />
+<h2>Sơ đồ tổng quan hệ thống Design Pattern</h2>
+<pre class="mermaid">
+graph LR
+    subgraph "Creational Patterns [C]"
+        F1["Factory Method&lt;br/&gt;(AuthStrategyResolver,&lt;br/&gt;ListingSortingStrategyFactory,&lt;br/&gt;PackageBenefitStrategyFactory,&lt;br/&gt;ExpiryCalculationStrategyFactory)"]
+    end
+
+    subgraph "Structural Patterns [S]"
+        A1["Adapter&lt;br/&gt;(GoogleSocialiteAdapter,&lt;br/&gt;SocialUserAdapter,&lt;br/&gt;VnpayService)"]
+        A2["Facade&lt;br/&gt;(ChatService,&lt;br/&gt;FavoriteService,&lt;br/&gt;AuthService)"]
+    end
+
+    subgraph "Behavioral Patterns [B]"
+        B1["Strategy&lt;br/&gt;(AuthStrategy,&lt;br/&gt;ListingSortingStrategy,&lt;br/&gt;VerificationStrategy,&lt;br/&gt;PackageBenefitStrategy,&lt;br/&gt;ExpiryCalculationStrategy)"]
+        B2["Command&lt;br/&gt;(RegisterUserCommand,&lt;br/&gt;ResetPasswordCommand,&lt;br/&gt;UpgradeListingCommand,&lt;br/&gt;CreateUpgradePaymentCommand,&lt;br/&gt;SubmitListingVerificationCommand)"]
+        B3["Chain of Responsibility&lt;br/&gt;(LoginValidationChain,&lt;br/&gt;RegistrationValidationChain,&lt;br/&gt;ForgotPasswordChain)"]
+        B4["State&lt;br/&gt;(ListingStatusState,&lt;br/&gt;ActiveState, PendingState,&lt;br/&gt;DraftState, LockedState...)"]
+        B5["Observer/Event&lt;br/&gt;(UserLoggedIn,&lt;br/&gt;PasswordReset,&lt;br/&gt;ListingPackageUpgraded,&lt;br/&gt;MessageSent)"]
+        B6["Specification&lt;br/&gt;(CanUpgradeSpecification,&lt;br/&gt;CanRenewSpecification)"]
+    end
+
+</pre>
+<hr />
+<p><em>Báo cáo được tạo tự động từ phân tích mã nguồn hệ thống Propify.</em><br />
+<em>Ngày tạo: Tháng 6, 2026</em></p>
+
+    </article>
+    <footer class="footer">
+      Được tạo tự động từ Markdown và đã sửa lỗi hiển thị Mermaid. Nếu mở file mà sơ đồ chưa hiện, hãy bật kết nối Internet để tải thư viện Mermaid CDN.
+    </footer>
+  </main>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: 'loose',
+      theme: 'default',
+      flowchart: { useMaxWidth: true, htmlLabels: true },
+      sequence: { useMaxWidth: true },
+      class: { useMaxWidth: true }
+    });
+  </script>
+</body>
+</html>
