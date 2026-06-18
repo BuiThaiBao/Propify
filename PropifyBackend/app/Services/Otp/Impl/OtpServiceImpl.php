@@ -21,14 +21,15 @@ final class OtpServiceImpl implements OtpService
     public function __construct(
         private readonly NotificationService $notificationService,
         private readonly OtpStoragePort $storage, // ← inject qua interface, không hardcode Redis
-    ) {}
+    ) {
+    }
 
     public function generate(User $user, OtpContext $context): string
     {
         $otp = $this->generateOtp();
         $key = $this->storageKey($user, $context);
 
-        // Delegate cho OtpStoragePort — không biết Redis hay Cache
+
         $this->storage->store($key, $otp, self::OTP_TTL_SECONDS);
 
         $mailType = match ($context) {
@@ -50,7 +51,7 @@ final class OtpServiceImpl implements OtpService
     {
         $stored = $this->storage->retrieve($this->storageKey($user, $context));
 
-        if (! $stored || ! hash_equals($stored, $otp)) {
+        if (!$stored || !hash_equals($stored, $otp)) {
             return false;
         }
 

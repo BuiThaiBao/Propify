@@ -4,14 +4,13 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  Edit3,
-  Eye,
   MoreHorizontal,
-  PackageCheck,
   Plus,
-  Search,
-  Settings,
   X,
+  Eye,
+  EyeOff,
+  Edit3,
+  Trash2,
 } from 'lucide-vue-next'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import { amenityService } from '@/services/amenityService'
@@ -20,58 +19,56 @@ const amenities = ref([])
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
-const keyword = ref('')
 const activeFilter = ref('all')
 const page = ref(1)
 const perPage = ref(25)
+const toast = ref({ show: false, message: '', type: 'success' })
 
-const drawer = reactive({
+/* ── Dropdown menu per row ── */
+const openMenuId = ref(null)
+
+function toggleMenu(id) {
+  openMenuId.value = openMenuId.value === id ? null : id
+}
+
+function closeMenus() {
+  openMenuId.value = null
+}
+
+/* ── Modal ── */
+const modal = reactive({
   open: false,
-  mode: 'create',
+  mode: 'create', // 'create' | 'edit'
   amenity: null,
 })
 
 const form = reactive({
   name: '',
-  icon: '',
-  order_index: 0,
+  description: '',
+  is_active: true,
 })
 
+/* ── Filters ── */
 const filters = computed(() => [
   { value: 'all', label: 'Tất cả', count: amenities.value.length },
   {
-    value: 'with_icon',
-    label: 'Có icon',
-    count: amenities.value.filter((item) => item.icon).length,
+    value: 'active',
+    label: 'Kích hoạt',
+    count: amenities.value.filter((a) => a.is_active !== false && a.is_active !== 0).length,
   },
   {
-    value: 'without_icon',
-    label: 'Chưa có icon',
-    count: amenities.value.filter((item) => !item.icon).length,
+    value: 'hidden',
+    label: 'Đã ẩn',
+    count: amenities.value.filter((a) => a.is_active === false || a.is_active === 0).length,
   },
 ])
 
 const filteredAmenities = computed(() => {
-  const normalizedKeyword = keyword.value.trim().toLowerCase()
-
-  return amenities.value
-    .filter((amenity) => {
-      if (activeFilter.value === 'with_icon') return Boolean(amenity.icon)
-      if (activeFilter.value === 'without_icon') return !amenity.icon
-      return true
-    })
-    .filter((amenity) => {
-      if (!normalizedKeyword) return true
-
-      return [amenity.id, amenity.name, amenity.icon]
-        .filter((value) => value !== null && value !== undefined)
-        .some((value) => String(value).toLowerCase().includes(normalizedKeyword))
-    })
-    .sort(
-      (a, b) =>
-        Number(a.order_index || 0) - Number(b.order_index || 0) ||
-        String(a.name).localeCompare(String(b.name)),
-    )
+  return amenities.value.filter((amenity) => {
+    if (activeFilter.value === 'active') return amenity.is_active !== false && amenity.is_active !== 0
+    if (activeFilter.value === 'hidden') return amenity.is_active === false || amenity.is_active === 0
+    return true
+  })
 })
 
 const pagedAmenities = computed(() => {
@@ -82,19 +79,12 @@ const pagedAmenities = computed(() => {
 const totalPages = computed(() =>
   Math.max(1, Math.ceil(filteredAmenities.value.length / perPage.value)),
 )
-const visibleFrom = computed(() =>
-  filteredAmenities.value.length === 0 ? 0 : (page.value - 1) * perPage.value + 1,
-)
-const visibleTo = computed(() =>
-  Math.min(page.value * perPage.value, filteredAmenities.value.length),
-)
 
 onMounted(loadAmenities)
 
 async function loadAmenities() {
   loading.value = true
   error.value = ''
-
   try {
     const response = await amenityService.getAmenities()
     amenities.value = response.data?.data || []
@@ -107,27 +97,28 @@ async function loadAmenities() {
   }
 }
 
-function openCreateDrawer() {
-  drawer.mode = 'create'
-  drawer.amenity = null
+function openCreateModal() {
+  modal.mode = 'create'
+  modal.amenity = null
   form.name = ''
-  form.icon = ''
-  form.order_index = nextOrderIndex()
-  drawer.open = true
+  form.description = ''
+  form.is_active = true
+  modal.open = true
 }
 
-function openEditDrawer(amenity) {
-  drawer.mode = 'edit'
-  drawer.amenity = amenity
+function openEditModal(amenity) {
+  closeMenus()
+  modal.mode = 'edit'
+  modal.amenity = amenity
   form.name = amenity.name || ''
-  form.icon = amenity.icon || ''
-  form.order_index = Number(amenity.order_index || 0)
-  drawer.open = true
+  form.description = amenity.description || ''
+  form.is_active = amenity.is_active !== false && amenity.is_active !== 0
+  modal.open = true
 }
 
-function closeDrawer() {
+function closeModal() {
   if (saving.value) return
-  drawer.open = false
+  modal.open = false
 }
 
 async function submitForm() {
@@ -141,24 +132,26 @@ async function submitForm() {
 
   const payload = {
     name: form.name.trim(),
-    icon: form.icon.trim() || null,
-    order_index: Number(form.order_index || 0),
+    description: form.description.trim() || null,
+    is_active: form.is_active,
   }
 
   try {
-    if (drawer.mode === 'edit' && drawer.amenity) {
-      await amenityService.updateAmenity(drawer.amenity.id, payload)
+    if (modal.mode === 'edit' && modal.amenity) {
+      await amenityService.updateAmenity(modal.amenity.id, payload)
+      showToast('Cập nhật tiện ích thành công!')
     } else {
       await amenityService.createAmenity(payload)
+      showToast('Thêm tiện ích mới thành công!')
     }
-
-    drawer.open = false
+    modal.open = false
     await loadAmenities()
   } catch (err) {
     const validationErrors = err.response?.data?.errors
     error.value = validationErrors
       ? Object.values(validationErrors).flat().join(' ')
       : err.response?.data?.message || 'Không thể lưu tiện ích.'
+    showToast(error.value, 'error')
   } finally {
     saving.value = false
   }
@@ -169,267 +162,303 @@ function setFilter(value) {
   page.value = 1
 }
 
-function changePage(nextPage) {
-  page.value = Math.min(Math.max(nextPage, 1), totalPages.value)
+function changePage(p) {
+  page.value = Math.min(Math.max(p, 1), totalPages.value)
 }
 
-function nextOrderIndex() {
-  const maxOrder = amenities.value.reduce(
-    (max, amenity) => Math.max(max, Number(amenity.order_index || 0)),
-    0,
-  )
-  return maxOrder + 1
+function showToast(message, type = 'success') {
+  toast.value = { show: true, message, type }
+  setTimeout(() => {
+    toast.value.show = false
+  }, 3000)
 }
 </script>
 
 <template>
-  <div class="amenities-page">
-    <PageHeader
-      title="Tiện ích hệ thống"
-      description="Quản lý danh mục tiện ích dùng chung cho bất động sản"
-    >
-      <template #actions>
-        <button class="primary-btn" id="btn-add-amenity" type="button" @click="openCreateDrawer">
-          <Plus :size="17" />
-          <span>Thêm tiện ích</span>
-        </button>
-      </template>
-    </PageHeader>
+  <div class="utilities-page" @click="closeMenus">
+    <!-- Toast -->
+    <Transition name="toast">
+      <div v-if="toast.show" class="toast" :class="`toast--${toast.type}`">
+        <Check v-if="toast.type === 'success'" :size="16" />
+        <X v-else :size="16" />
+        <span>{{ toast.message }}</span>
+      </div>
+    </Transition>
 
-    <section class="toolbar">
-      <label class="search-box" for="amenity-search">
-        <Search :size="18" />
-        <input
-          id="amenity-search"
-          v-model.trim="keyword"
-          type="text"
-          placeholder="Tìm kiếm..."
-          @input="page = 1"
-        />
-      </label>
+    <!-- Header -->
+    <div class="page-top">
+      <div>
+        <h1 class="page-title">Tiện ích tin đăng</h1>
+        <p class="page-desc">Quản lý các tiện ích hiển thị cho bất động sản</p>
+      </div>
+      <button class="btn-add" id="btn-add-amenity" type="button" @click="openCreateModal">
+        <Plus :size="16" />
+        Thêm tiện ích
+      </button>
+    </div>
 
-      <div class="filter-tabs" aria-label="Lọc tiện ích">
+    <!-- Filter tabs -->
+    <div class="filter-bar">
+      <div class="filter-tabs">
         <button
-          v-for="filter in filters"
-          :key="filter.value"
+          v-for="f in filters"
+          :key="f.value"
           type="button"
           class="filter-tab"
-          :class="{ 'filter-tab--active': activeFilter === filter.value }"
-          @click="setFilter(filter.value)"
+          :class="{ 'filter-tab--active': activeFilter === f.value }"
+          @click="setFilter(f.value)"
         >
-          <span v-if="filter.value === 'with_icon'" class="dot dot--green"></span>
-          <span v-if="filter.value === 'without_icon'" class="dot dot--slate"></span>
-          {{ filter.label }}
-          <strong>{{ filter.count }}</strong>
+          <span v-if="f.value === 'active'" class="dot dot--green"></span>
+          <span v-if="f.value === 'hidden'" class="dot dot--red"></span>
+          {{ f.label }} {{ f.count }}
         </button>
       </div>
-    </section>
+    </div>
 
+    <!-- Error -->
     <p v-if="error" class="alert">{{ error }}</p>
 
-    <section class="table-shell">
-      <table class="amenities-table">
+    <!-- Table -->
+    <section class="table-wrap">
+      <table class="data-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Tiện ích</th>
-            <th>Icon</th>
-            <th>Thứ tự</th>
-            <th>Nhóm</th>
-            <th class="actions-col"></th>
+            <th class="col-id">ID</th>
+            <th class="col-name">Tiện ích</th>
+            <th class="col-desc">Mô tả</th>
+            <th class="col-status">Trạng thái</th>
+            <th class="col-actions"></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-if="loading">
-            <td colspan="6" class="state-cell">Đang tải dữ liệu...</td>
-          </tr>
+          <!-- Loading -->
+          <template v-if="loading">
+            <tr v-for="n in 5" :key="`sk-${n}`">
+              <td><div class="skel skel--id"></div></td>
+              <td><div class="skel skel--text"></div></td>
+              <td><div class="skel skel--text-long"></div></td>
+              <td><div class="skel skel--pill"></div></td>
+              <td><div class="skel skel--dot"></div></td>
+            </tr>
+          </template>
+
+          <!-- Empty -->
           <tr v-else-if="pagedAmenities.length === 0">
-            <td colspan="6" class="state-cell">Không có tiện ích phù hợp.</td>
+            <td colspan="5" class="empty-cell">Không có tiện ích nào phù hợp.</td>
           </tr>
-          <tr v-for="amenity in pagedAmenities" v-else :key="amenity.id">
-            <td class="id-cell">{{ amenity.id }}</td>
+
+          <!-- Rows -->
+          <tr
+            v-for="amenity in pagedAmenities"
+            v-else
+            :key="amenity.id"
+            class="row"
+          >
+            <td class="cell-id">{{ amenity.id }}</td>
+            <td class="cell-name">{{ amenity.name }}</td>
+            <td class="cell-desc">{{ amenity.description || '—' }}</td>
             <td>
-              <div class="amenity-name">
-                <span class="amenity-icon">
-                  <Settings v-if="!amenity.icon" :size="17" />
-                  <span v-else>{{ amenity.icon }}</span>
-                </span>
-                <strong>{{ amenity.name }}</strong>
-              </div>
-            </td>
-            <td class="muted-cell">{{ amenity.icon || 'Chưa cấu hình' }}</td>
-            <td>{{ amenity.order_index ?? 0 }}</td>
-            <td>
-              <span class="status-pill">
-                <PackageCheck :size="14" />
-                {{ amenity.group?.name || 'Tiện ích' }}
+              <span
+                class="status-badge"
+                :class="amenity.is_active !== false && amenity.is_active !== 0 ? 'status--active' : 'status--hidden'"
+              >
+                <Eye v-if="amenity.is_active !== false && amenity.is_active !== 0" :size="13" />
+                <EyeOff v-else :size="13" />
+                {{ amenity.is_active !== false && amenity.is_active !== 0 ? 'Đang hiển thị' : 'Đã ẩn' }}
               </span>
             </td>
-            <td class="actions-col">
-              <button
-                class="icon-btn"
-                type="button"
-                :title="`Sửa ${amenity.name}`"
-                @click="openEditDrawer(amenity)"
-              >
-                <Edit3 :size="16" />
-              </button>
-              <button class="icon-btn" type="button" aria-hidden="true" tabindex="-1">
-                <MoreHorizontal :size="18" />
-              </button>
+            <td class="cell-actions">
+              <div class="menu-anchor">
+                <button
+                  class="btn-dots"
+                  type="button"
+                  @click.stop="toggleMenu(amenity.id)"
+                >
+                  <MoreHorizontal :size="18" />
+                </button>
+                <Transition name="menu">
+                  <div v-if="openMenuId === amenity.id" class="dropdown-menu">
+                    <button class="menu-item" @click="openEditModal(amenity)">
+                      <Edit3 :size="14" />
+                      Chỉnh sửa
+                    </button>
+                    <button class="menu-item menu-item--danger">
+                      <Trash2 :size="14" />
+                      Xoá
+                    </button>
+                  </div>
+                </Transition>
+              </div>
             </td>
           </tr>
         </tbody>
       </table>
 
+      <!-- Footer / Pagination -->
       <footer class="table-footer">
-        <span>Tất cả {{ filteredAmenities.length }} dòng</span>
-        <span v-if="filteredAmenities.length" class="range-text"
-          >{{ visibleFrom }}-{{ visibleTo }}</span
-        >
-        <button class="pager-btn" type="button" :disabled="page <= 1" @click="changePage(page - 1)">
-          <ChevronLeft :size="16" />
-        </button>
-        <span class="page-number">{{ page }}</span>
-        <button
-          class="pager-btn"
-          type="button"
-          :disabled="page >= totalPages"
-          @click="changePage(page + 1)"
-        >
-          <ChevronRight :size="16" />
-        </button>
-        <select v-model.number="perPage" class="per-page" @change="page = 1">
-          <option :value="10">10</option>
-          <option :value="25">25</option>
-          <option :value="50">50</option>
-        </select>
+        <span class="footer-text">Tất cả {{ filteredAmenities.length }} dòng</span>
+        <div class="pager">
+          <button class="pager-btn" :disabled="page <= 1" @click="changePage(page - 1)">
+            <ChevronLeft :size="16" />
+          </button>
+          <span class="pager-current">{{ page }}</span>
+          <button class="pager-btn" :disabled="page >= totalPages" @click="changePage(page + 1)">
+            <ChevronRight :size="16" />
+          </button>
+          <select v-model.number="perPage" class="pager-select" @change="page = 1">
+            <option :value="10">10</option>
+            <option :value="25">25</option>
+            <option :value="50">50</option>
+          </select>
+        </div>
       </footer>
     </section>
 
-    <div v-if="drawer.open" class="drawer-overlay" @click.self="closeDrawer">
-      <aside class="drawer" aria-modal="true" role="dialog">
-        <header class="drawer-header">
-          <h2>{{ drawer.mode === 'edit' ? 'Sửa tiện ích' : 'Thêm mới tiện ích' }}</h2>
-          <button class="close-btn" type="button" @click="closeDrawer">
-            <X :size="22" />
-          </button>
-        </header>
+    <!-- ────── Modal / Popup ────── -->
+    <Transition name="overlay">
+      <div v-if="modal.open" class="modal-overlay" @click.self="closeModal">
+        <Transition name="popup" appear>
+          <div class="modal-box">
+            <!-- Header -->
+            <div class="modal-header">
+              <h2>{{ modal.mode === 'edit' ? 'Chỉnh sửa tiện ích' : 'Thêm mới tiện ích' }}</h2>
+              <button class="modal-close" type="button" @click="closeModal">
+                <X :size="20" />
+              </button>
+            </div>
 
-        <form class="drawer-form" @submit.prevent="submitForm">
-          <label class="field">
-            <span>Tên tiện ích <b>*</b></span>
-            <input
-              v-model.trim="form.name"
-              type="text"
-              maxlength="255"
-              placeholder="Nhập tên tiện ích"
-            />
-          </label>
+            <!-- Body -->
+            <form class="modal-body" @submit.prevent="submitForm">
+              <label class="field">
+                <span class="field-label">Tên tiện ích <b>*</b></span>
+                <input
+                  v-model.trim="form.name"
+                  type="text"
+                  class="field-input"
+                  maxlength="255"
+                  placeholder="Nhập thông tin"
+                />
+              </label>
 
-          <label class="field">
-            <span>Icon</span>
-            <input
-              v-model.trim="form.icon"
-              type="text"
-              maxlength="255"
-              placeholder="Wifi, Car, Pool..."
-            />
-          </label>
+              <label class="field">
+                <span class="field-label">Mô tả</span>
+                <input
+                  v-model.trim="form.description"
+                  type="text"
+                  class="field-input"
+                  maxlength="500"
+                  placeholder="Nhập thông tin"
+                />
+              </label>
 
-          <label class="field">
-            <span>Thứ tự hiển thị</span>
-            <input v-model.number="form.order_index" type="number" min="0" />
-          </label>
+              <div class="field-row">
+                <span class="field-label">Trạng thái</span>
+                <label class="toggle" for="status-toggle">
+                  <input
+                    id="status-toggle"
+                    v-model="form.is_active"
+                    type="checkbox"
+                    class="toggle-input"
+                  />
+                  <span class="toggle-track"></span>
+                </label>
+              </div>
 
-          <div class="preview-row">
-            <span class="preview-icon">
-              <Eye :size="15" />
-            </span>
-            <span>{{ form.name || 'Tên tiện ích' }}</span>
+              <div class="modal-actions">
+                <button class="btn-cancel" type="button" :disabled="saving" @click="closeModal">
+                  Quay lại
+                </button>
+                <button class="btn-submit" type="submit" :disabled="saving">
+                  <template v-if="saving">
+                    <span class="spinner"></span>
+                    Đang lưu...
+                  </template>
+                  <template v-else>
+                    {{ modal.mode === 'edit' ? 'Lưu thay đổi' : 'Thêm mới' }}
+                  </template>
+                </button>
+              </div>
+            </form>
           </div>
-
-          <footer class="drawer-actions">
-            <button class="secondary-btn" type="button" :disabled="saving" @click="closeDrawer">
-              Quay lại
-            </button>
-            <button class="primary-btn primary-btn--wide" type="submit" :disabled="saving">
-              <Check :size="17" />
-              <span>{{
-                saving ? 'Đang lưu...' : drawer.mode === 'edit' ? 'Lưu thay đổi' : 'Thêm mới'
-              }}</span>
-            </button>
-          </footer>
-        </form>
-      </aside>
-    </div>
+        </Transition>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <style scoped>
-.amenities-page {
+/* ══════════════════════════════
+   Variables
+   ══════════════════════════════ */
+.utilities-page {
+  --primary: #18a8e6;
+  --primary-light: #e8f7fd;
+  --primary-dark: #1291c9;
+  --text: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --border: #e8edf3;
+  --bg-page: #f8fafc;
+  --bg-card: #ffffff;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 20px rgba(15, 23, 42, 0.06);
   min-height: calc(100vh - 96px);
 }
 
-.primary-btn,
-.secondary-btn,
-.icon-btn,
-.filter-tab,
-.pager-btn,
-.close-btn {
-  border: 0;
-  cursor: pointer;
-  font: inherit;
-}
-
-.primary-btn {
-  display: inline-flex;
-  min-height: 42px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border-radius: 8px;
-  background: #18a8e6;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  padding: 0 18px;
-  box-shadow: 0 10px 22px rgba(24, 168, 230, 0.18);
-}
-
-.primary-btn:disabled,
-.secondary-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.62;
-}
-
-.toolbar {
+/* ══════════════════════════════
+   Header
+   ══════════════════════════════ */
+.page-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
   margin-bottom: 24px;
 }
 
-.search-box {
-  display: flex;
-  width: min(360px, 100%);
-  height: 44px;
-  align-items: center;
-  gap: 10px;
-  border-radius: 12px;
-  background: #f0eafd;
-  color: #718096;
-  padding: 0 14px;
+.page-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.3;
 }
 
-.search-box input {
-  width: 100%;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #1f2937;
+.page-desc {
+  margin: 4px 0 0;
   font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.btn-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 24px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+  box-shadow: 0 2px 10px rgba(24, 168, 230, 0.25);
+}
+
+.btn-add:hover {
+  background: var(--primary-dark);
+  box-shadow: 0 4px 16px rgba(24, 168, 230, 0.35);
+  transform: translateY(-1px);
+}
+
+/* ══════════════════════════════
+   Filter tabs
+   ══════════════════════════════ */
+.filter-bar {
+  margin-bottom: 20px;
 }
 
 .filter-tabs {
@@ -441,360 +470,674 @@ function nextOrderIndex() {
 
 .filter-tab {
   display: inline-flex;
-  min-height: 40px;
   align-items: center;
-  gap: 8px;
-  border: 1px solid #e5edf6;
-  border-radius: 18px;
-  background: #fff;
-  color: #718096;
-  font-size: 14px;
-  font-weight: 700;
+  gap: 6px;
+  height: 36px;
   padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.filter-tab strong {
-  color: #64748b;
+.filter-tab:hover {
+  border-color: #cbd5e1;
 }
 
 .filter-tab--active {
-  border-color: #b8dcff;
-  background: #eef7ff;
-  color: #18a8e6;
+  background: var(--primary-light);
+  border-color: #b5e4f7;
+  color: var(--primary);
 }
 
 .dot {
   width: 7px;
   height: 7px;
-  border-radius: 999px;
-}
-
-.dot--green {
-  background: #10b981;
-}
-
-.dot--slate {
-  background: #64748b;
-}
-
-.alert {
-  margin: 0 0 16px;
-  border-radius: 10px;
-  background: #fef2f2;
-  color: #b91c1c;
-  font-size: 14px;
-  font-weight: 600;
-  padding: 12px 14px;
-}
-
-.table-shell {
-  overflow: hidden;
-  border: 1px solid #e9edf3;
-  border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
-}
-
-.amenities-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-.amenities-table th,
-.amenities-table td {
-  height: 78px;
-  border-bottom: 1px solid #eef2f7;
-  color: #1f2937;
-  font-size: 14px;
-  padding: 0 24px;
-  text-align: left;
-  vertical-align: middle;
-}
-
-.amenities-table th {
-  height: 48px;
-  color: #718096;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.amenities-table th:first-child,
-.amenities-table td:first-child {
-  width: 110px;
-  text-align: center;
-}
-
-.id-cell {
-  color: #18a8e6;
-  font-weight: 800;
-}
-
-.amenity-name {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.amenity-name strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.amenity-icon,
-.preview-icon {
-  display: inline-flex;
-  width: 34px;
-  height: 34px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: #eff6ff;
-  color: #18a8e6;
-  font-size: 14px;
-  font-weight: 800;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.muted-cell {
-  color: #718096;
+.dot--green {
+  background: #22c55e;
 }
 
-.status-pill {
-  display: inline-flex;
-  min-height: 30px;
-  align-items: center;
-  gap: 6px;
-  border-radius: 999px;
-  background: #dcfce7;
-  color: #22c55e;
-  font-size: 13px;
-  font-weight: 800;
-  padding: 0 12px;
+.dot--red {
+  background: #ef4444;
 }
 
-.actions-col {
-  width: 116px;
-  text-align: right;
-}
-
-.icon-btn {
-  display: inline-flex;
-  width: 34px;
-  height: 34px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9px;
-  background: transparent;
-  color: #718096;
-}
-
-.icon-btn:hover {
-  background: #f1f5f9;
-  color: #18a8e6;
-}
-
-.state-cell {
-  color: #718096;
-  text-align: center !important;
-}
-
-.table-footer {
-  display: flex;
-  min-height: 64px;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 14px;
-  color: #718096;
+/* ══════════════════════════════
+   Alert
+   ══════════════════════════════ */
+.alert {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  background: #fef2f2;
+  border: 1px solid #fecdd3;
+  color: #be123c;
   font-size: 14px;
-  padding: 0 24px;
+  font-weight: 600;
 }
 
-.range-text {
-  color: #94a3b8;
+/* ══════════════════════════════
+   Table
+   ══════════════════════════════ */
+.table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
-.pager-btn,
-.page-number,
-.per-page {
-  display: inline-flex;
-  width: 38px;
-  height: 38px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #e5edf6;
-  border-radius: 12px;
-  background: #fff;
-  color: #64748b;
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
-.pager-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
+.data-table th,
+.data-table td {
+  text-align: left;
+  vertical-align: middle;
+  padding: 0 20px;
+  font-size: 14px;
 }
 
-.page-number {
-  color: #1f2937;
+.data-table th {
+  height: 48px;
+  background: #fafbfc;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border);
+}
+
+.data-table td {
+  height: 64px;
+  border-bottom: 1px solid #f3f5f8;
+  color: var(--text);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.data-table tbody tr {
+  transition: background 0.15s;
+}
+
+.data-table tbody tr:hover {
+  background: #f8fbfe;
+}
+
+.col-id { width: 90px; }
+.col-name { width: 180px; }
+.col-desc { }
+.col-status { width: 170px; }
+.col-actions { width: 60px; text-align: center; }
+
+.cell-id {
+  color: var(--primary);
   font-weight: 700;
 }
 
-.per-page {
-  width: 72px;
-  padding: 0 10px;
+.cell-name {
+  font-weight: 600;
+  color: var(--text);
 }
 
-.drawer-overlay {
+.cell-desc {
+  color: var(--text-secondary);
+}
+
+/* ── Status badge ── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status--active {
+  background: #ecfdf5;
+  color: #16a34a;
+}
+
+.status--hidden {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ── Dots menu ── */
+.cell-actions {
+  text-align: center;
+  position: relative;
+}
+
+.menu-anchor {
+  position: relative;
+  display: inline-block;
+}
+
+.btn-dots {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.btn-dots:hover {
+  background: #f1f5f9;
+  color: var(--text-secondary);
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+  min-width: 160px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.1);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.menu-item:hover {
+  background: #f8fafc;
+}
+
+.menu-item--danger {
+  color: #ef4444;
+}
+
+.menu-item--danger:hover {
+  background: #fef2f2;
+}
+
+.menu-enter-active {
+  animation: menu-in 0.18s ease;
+}
+
+.menu-leave-active {
+  animation: menu-out 0.12s ease forwards;
+}
+
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes menu-out {
+  to { opacity: 0; transform: translateY(-4px) scale(0.96); }
+}
+
+/* ── Skeleton ── */
+.skel {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8edf3 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+.skel--id { width: 48px; height: 18px; }
+.skel--text { width: 100px; height: 18px; }
+.skel--text-long { width: 180px; height: 18px; }
+.skel--pill { width: 110px; height: 26px; border-radius: 20px; }
+.skel--dot { width: 26px; height: 26px; border-radius: 50%; margin: 0 auto; }
+
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
+/* ── Empty ── */
+.empty-cell {
+  text-align: center !important;
+  padding: 48px 20px !important;
+  color: var(--text-muted);
+  height: auto !important;
+}
+
+/* ══════════════════════════════
+   Table footer / pagination
+   ══════════════════════════════ */
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  height: 56px;
+  padding: 0 20px;
+  border-top: 1px solid #f3f5f8;
+}
+
+.footer-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-right: auto;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pager-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pager-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.pager-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pager-current {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pager-select {
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  cursor: pointer;
+}
+
+/* ══════════════════════════════
+   Modal / Popup
+   ══════════════════════════════ */
+.modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 60;
   display: flex;
-  justify-content: flex-end;
-  background: rgba(15, 23, 42, 0.36);
-}
-
-.drawer {
-  width: min(520px, 100vw);
-  height: 100vh;
-  overflow-y: auto;
-  background: #fff;
-  box-shadow: -20px 0 40px rgba(15, 23, 42, 0.14);
-}
-
-.drawer-header {
-  display: flex;
-  height: 76px;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #e9edf3;
-  padding: 0 28px;
-}
-
-.drawer-header h2 {
-  margin: 0;
-  color: #1f2937;
-  font-size: 24px;
-  font-weight: 800;
-}
-
-.close-btn {
-  display: inline-flex;
-  width: 38px;
-  height: 38px;
   align-items: center;
   justify-content: center;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(3px);
+}
+
+.modal-box {
+  width: min(460px, 92vw);
+  background: var(--bg-card);
+  border-radius: 20px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px 0;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
   border-radius: 10px;
   background: transparent;
-  color: #9ca3af;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
 
-.close-btn:hover {
+.modal-close:hover {
   background: #f1f5f9;
+  color: var(--text-secondary);
 }
 
-.drawer-form {
+.modal-body {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 20px;
   padding: 24px 28px 28px;
 }
 
+/* ── Form fields ── */
 .field {
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 8px;
 }
 
-.field span {
-  color: #334155;
+.field-label {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
+  color: var(--text);
 }
 
-.field b {
+.field-label b {
   color: #ef4444;
 }
 
-.field input {
+.field-input {
   width: 100%;
-  height: 50px;
-  border: 1px solid #e5edf6;
-  border-radius: 12px;
-  color: #1f2937;
-  font-size: 15px;
-  outline: 0;
-  padding: 0 16px;
-}
-
-.field input:focus {
-  border-color: #18a8e6;
-  box-shadow: 0 0 0 3px rgba(24, 168, 230, 0.12);
-}
-
-.preview-row {
-  display: flex;
-  min-height: 54px;
-  align-items: center;
-  gap: 12px;
-  border: 1px dashed #cbd5e1;
-  border-radius: 14px;
-  color: #334155;
-  font-weight: 700;
+  height: 46px;
   padding: 0 14px;
-}
-
-.drawer-actions {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 18px;
-  margin-top: 12px;
-}
-
-.secondary-btn {
-  min-height: 44px;
-  border: 1.5px solid #18a8e6;
+  border: 1.5px solid var(--border);
   border-radius: 10px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg-card);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.field-input::placeholder {
+  color: var(--text-muted);
+}
+
+.field-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(24, 168, 230, 0.1);
+}
+
+/* ── Toggle row ── */
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-top: 1px solid #f3f5f8;
+  padding-top: 16px;
+}
+
+.toggle {
+  position: relative;
+  cursor: pointer;
+}
+
+.toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-track {
+  display: block;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: #cbd5e1;
+  position: relative;
+  transition: background 0.25s;
+}
+
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   background: #fff;
-  color: #18a8e6;
-  font-weight: 800;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.primary-btn--wide {
-  min-height: 44px;
-  width: 100%;
+.toggle-input:checked + .toggle-track {
+  background: var(--primary);
 }
 
-@media (max-width: 900px) {
-  .toolbar {
-    align-items: stretch;
+.toggle-input:checked + .toggle-track::after {
+  transform: translateX(20px);
+}
+
+/* ── Modal action buttons ── */
+.modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.btn-cancel {
+  height: 46px;
+  border: 1.5px solid var(--primary);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-cancel:hover {
+  background: var(--primary-light);
+}
+
+.btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 46px;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.btn-submit:hover {
+  background: var(--primary-dark);
+  box-shadow: 0 4px 14px rgba(24, 168, 230, 0.3);
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Modal transitions ── */
+.overlay-enter-active {
+  transition: opacity 0.25s ease;
+}
+
+.overlay-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.overlay-enter-from,
+.overlay-leave-to {
+  opacity: 0;
+}
+
+.popup-enter-active {
+  animation: popup-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.popup-leave-active {
+  animation: popup-out 0.2s ease forwards;
+}
+
+@keyframes popup-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes popup-out {
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+}
+
+/* ══════════════════════════════
+   Toast
+   ══════════════════════════════ */
+.toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.toast--success {
+  background: #16a34a;
+}
+
+.toast--error {
+  background: #dc2626;
+}
+
+.toast-enter-active {
+  animation: toast-in 0.35s ease;
+}
+
+.toast-leave-active {
+  animation: toast-out 0.25s ease forwards;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toast-out {
+  to { opacity: 0; transform: translateX(30px); }
+}
+
+/* ══════════════════════════════
+   Responsive
+   ══════════════════════════════ */
+@media (max-width: 768px) {
+  .page-top {
     flex-direction: column;
+    gap: 16px;
   }
 
-  .search-box {
-    width: 100%;
+  .data-table {
+    min-width: 640px;
   }
 
-  .amenities-table {
-    min-width: 760px;
-  }
-
-  .table-shell {
+  .table-wrap {
     overflow-x: auto;
   }
-}
 
-@media (max-width: 560px) {
-  .drawer-actions {
+  .modal-actions {
     grid-template-columns: 1fr;
   }
 
-  .drawer-header {
-    padding: 0 20px;
-  }
-
-  .drawer-form {
-    padding: 22px 20px;
+  .table-footer {
+    flex-direction: column;
+    height: auto;
+    padding: 12px 16px;
+    gap: 10px;
   }
 }
 </style>
