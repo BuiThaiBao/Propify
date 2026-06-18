@@ -154,6 +154,39 @@
             </p>
           </div>
 
+          <!-- Loại hình -->
+          <div class="bg-white border border-slate-200 rounded p-5 shadow-sm">
+            <h3
+              class="text-sm font-bold text-slate-800 flex items-center gap-2 mb-3"
+            >
+              <Home class="w-4 h-4 text-sky-500" />
+              Loại hình
+            </h3>
+            <div class="relative">
+              <select
+                v-model="propertyType"
+                class="w-full h-10 px-3 py-2 text-sm text-slate-700 bg-white border border-slate-200 rounded-lg outline-none transition focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20"
+              >
+                <option value="">Tất cả loại hình</option>
+                <option value="APARTMENT">Căn hộ chung cư</option>
+                <option value="MINI_APARTMENT">Chung cư mini</option>
+                <option value="HOUSE">Nhà ở</option>
+                <option value="LAND">Đất</option>
+                <option value="ROOM">Phòng</option>
+                <option value="PRIVATE_HOUSE">Nhà riêng</option>
+                <option value="STREET_HOUSE">Nhà mặt phố</option>
+                <option value="VILLA_TOWNHOUSE">Biệt thự liền kề</option>
+                <option value="SHOPHOUSE">Shophouse</option>
+                <option value="KIOSK">Ki-ốt</option>
+                <option value="RENT_ROOM">Phòng trọ</option>
+                <option value="BOARDING_HOUSE">Nhà trọ</option>
+                <option value="OFFICE">Văn phòng</option>
+                <option value="RESORT">Khu nghỉ dưỡng</option>
+                <option value="RESTAURANT_HOTEL">Nhà hàng - Khách sạn</option>
+              </select>
+            </div>
+          </div>
+
           <!-- Người đăng -->
           <div class="bg-white border border-slate-200 rounded p-5 shadow-sm">
             <h3
@@ -576,6 +609,7 @@ import {
   User,
   DollarSign,
   Ruler,
+  Home,
 } from "lucide-vue-next";
 import SaleLayout from "@/layouts/SaleLayout.vue";
 import TopSearchBar from "@/components/shared/TopSearchBar.vue";
@@ -609,6 +643,7 @@ const {
   minArea,
   maxArea,
   sortBy,
+  propertyType,
   init,
   onSearch,
   goToPage,
@@ -628,6 +663,7 @@ const mapFilters = computed(() => ({
   max_price: maxPrice.value,
   min_area: minArea.value,
   max_area: maxArea.value,
+  property_type: propertyType.value,
 }));
 const searchFieldOptions = [
   { value: "all", label: "Tất cả" },

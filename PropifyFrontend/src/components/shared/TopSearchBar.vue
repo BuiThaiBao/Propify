@@ -77,13 +77,6 @@
             Tìm kiếm
           </button>
         </div>
-
-        <!-- Property Type Dropdown -->
-        <div class="flex items-center gap-2 pl-4 cursor-pointer hover:text-blue-600 text-gray-700">
-          <Home class="w-4 h-4 text-gray-400" />
-          <span class="text-sm font-medium">Loại hình</span>
-          <ChevronDown class="w-4 h-4 text-gray-400" />
-        </div>
       </div>
     </div>
   </div>
@@ -91,7 +84,7 @@
 
 <script setup>
 import { computed, nextTick, ref, onMounted, onUnmounted } from 'vue';
-import { MapPin, ChevronDown, Search, Home } from 'lucide-vue-next';
+import { MapPin, ChevronDown, Search } from 'lucide-vue-next';
 
 const props = defineProps({
   modelValue: { type: String, default: '' },

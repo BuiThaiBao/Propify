@@ -1,5 +1,5 @@
 <template>
-  <nav class="flex text-xs text-slate-500 mb-4" aria-label="Breadcrumb">
+  <nav v-if="crumbs && crumbs.length >= 3" class="flex text-xs text-slate-500 mb-4" aria-label="Breadcrumb">
     <ol class="inline-flex items-center space-x-1 md:space-x-1.5 flex-wrap">
       <li v-for="(crumb, index) in crumbs" :key="index" class="inline-flex items-center">
         <span v-if="index > 0" class="mx-1.5 text-slate-300 font-normal">/</span>

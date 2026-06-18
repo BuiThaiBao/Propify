@@ -30,28 +30,30 @@ interface ListingService
     public function unlist(User $user, int $id): Listing;
 
     public function getPublicListings(
-        ?string $sortBy,
-        ?string $demandType,
-        ?string $keyword,
-        int $perPage,
-        ?string $searchField = null,
-        ?string $posterType = null,
-        ?float $minPrice = null,
-        ?float $maxPrice = null,
-        ?float $minArea = null,
-        ?float $maxArea = null
-    ): LengthAwarePaginator;
+         ?string $sortBy,
+         ?string $demandType,
+         ?string $keyword,
+         int $perPage,
+         ?string $searchField = null,
+         ?string $posterType = null,
+         ?float $minPrice = null,
+         ?float $maxPrice = null,
+         ?float $minArea = null,
+         ?float $maxArea = null,
+         ?string $propertyType = null
+     ): LengthAwarePaginator;
 
-    public function getMapListings(
-        ?string $demandType,
-        ?string $keyword,
-        ?string $searchField = null,
-        ?string $posterType = null,
-        ?float $minPrice = null,
-        ?float $maxPrice = null,
-        ?float $minArea = null,
-        ?float $maxArea = null
-    ): Collection;
+     public function getMapListings(
+         ?string $demandType,
+         ?string $keyword,
+         ?string $searchField = null,
+         ?string $posterType = null,
+         ?float $minPrice = null,
+         ?float $maxPrice = null,
+         ?float $minArea = null,
+         ?float $maxArea = null,
+         ?string $propertyType = null
+     ): Collection;
 
     public function getAllForAdmin(
         ?string $status,

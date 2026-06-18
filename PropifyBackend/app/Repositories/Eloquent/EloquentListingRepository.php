@@ -117,9 +117,10 @@ final class EloquentListingRepository implements ListingRepository
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?float $minArea = null,
-        ?float $maxArea = null
+        ?float $maxArea = null,
+        ?string $propertyType = null
     ): LengthAwarePaginator {
-        $hasPropertyFilters = $posterType || $minPrice !== null || $maxPrice !== null || $minArea !== null || $maxArea !== null;
+        $hasPropertyFilters = $posterType || $minPrice !== null || $maxPrice !== null || $minArea !== null || $maxArea !== null || $propertyType;
 
         $query = Listing::query()
             ->select([
@@ -149,8 +150,11 @@ final class EloquentListingRepository implements ListingRepository
 
                 $this->applyPublicKeywordConstraint($query, $normalizedKeyword, $like, $searchField);
             })
-            ->when($hasPropertyFilters, function ($query) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
-                $query->whereHas('property', function ($q) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
+            ->when($hasPropertyFilters, function ($query) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea, $propertyType) {
+                $query->whereHas('property', function ($q) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea, $propertyType) {
+                    if ($propertyType) {
+                        $q->where('type', $propertyType);
+                    }
                     if ($posterType) {
                         $q->where('poster_type', strtoupper($posterType));
                     }
@@ -260,7 +264,8 @@ final class EloquentListingRepository implements ListingRepository
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?float $minArea = null,
-        ?float $maxArea = null
+        ?float $maxArea = null,
+        ?string $propertyType = null
     ): Collection {
         $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
         $like = $normalizedKeyword !== null ? '%'.$normalizedKeyword.'%' : null;
@@ -286,10 +291,13 @@ final class EloquentListingRepository implements ListingRepository
                         ->orWhereHas('property', fn ($propertyQuery) => $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword));
                 });
             })
-            ->whereHas('property', function ($query) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
+            ->whereHas('property', function ($query) use ($posterType, $minPrice, $maxPrice, $minArea, $maxArea, $propertyType) {
                 $query->whereNotNull('lat')
                     ->whereNotNull('lng');
 
+                if ($propertyType) {
+                    $query->where('type', $propertyType);
+                }
                 if ($posterType) {
                     $query->where('poster_type', strtoupper($posterType));
                 }
