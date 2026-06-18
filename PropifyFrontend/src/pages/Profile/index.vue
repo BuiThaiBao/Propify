@@ -1576,7 +1576,7 @@
                 "
               >
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                Bán {{ favoriteCounts.sale }}
+                Mua Bán {{ favoriteCounts.sale }}
               </button>
             </div>
 
@@ -1794,7 +1794,7 @@
                 "
               >
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                Bán {{ viewedCounts.sale }}
+                Mua Bán {{ viewedCounts.sale }}
               </button>
             </div>
 

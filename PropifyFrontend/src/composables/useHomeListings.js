@@ -7,7 +7,7 @@ import { listingKeys } from '@/composables/queryKeys';
 async function fetchHomeListings(demandType) {
   const res = await listingService.getPublicListings({
     demand_type: demandType,
-    per_page: 6,
+    per_page: 3,
   });
   const listings = res.data.data || [];
   await hydrateListingAddresses(listings);
@@ -18,14 +18,14 @@ export function useHomeListings() {
   const enabled = ref(false);
 
   const saleQuery = useQuery({
-    queryKey: listingKeys.publicList({ demand_type: 'SALE', per_page: 6, page: 1 }),
+    queryKey: listingKeys.publicList({ demand_type: 'SALE', per_page: 3, page: 1 }),
     queryFn: () => fetchHomeListings('SALE'),
     enabled,
     staleTime: 2 * 60 * 1000,
   });
 
   const rentQuery = useQuery({
-    queryKey: listingKeys.publicList({ demand_type: 'RENT', per_page: 6, page: 1 }),
+    queryKey: listingKeys.publicList({ demand_type: 'RENT', per_page: 3, page: 1 }),
     queryFn: () => fetchHomeListings('RENT'),
     enabled,
     staleTime: 2 * 60 * 1000,
