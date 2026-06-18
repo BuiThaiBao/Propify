@@ -1673,6 +1673,8 @@ const submitLoadingLabel = computed(() =>
 const isHydratingEdit = ref(false);
 const isSyncingAdminFromMap = ref(false);
 const initialEditSnapshot = ref("");
+const initialEditContentSnapshot = ref("");
+const initialAppointmentSlotsSnapshot = ref("");
 const editListingStatus = ref("");
 const editLoading = ref(false);
 const loading = ref(false);
@@ -1844,7 +1846,7 @@ function getAppointmentRowsSnapshot() {
   return snapshotValue(sortSlots(pendingSlots));
 }
 
-function createEditSnapshot() {
+function createEditSnapshot({ includeAppointmentSlots = true } = {}) {
   const normalizeFieldForSnapshot = (key, value) => {
     if (
       (key === "lat" || key === "lng") &&
@@ -1866,16 +1868,25 @@ function createEditSnapshot() {
       return result;
     }, {});
 
-  return JSON.stringify({
+  const snapshot = {
     form: formSnapshot,
     selectedAmenities: snapshotValue([...selectedAmenities.value].sort()),
     publicInfoAgreed: Boolean(publicInfoAgreed.value),
-    appointmentSlots: getAppointmentRowsSnapshot(),
-  });
+  };
+
+  if (includeAppointmentSlots) {
+    snapshot.appointmentSlots = getAppointmentRowsSnapshot();
+  }
+
+  return JSON.stringify(snapshot);
 }
 
 function captureInitialEditSnapshot() {
   initialEditSnapshot.value = createEditSnapshot();
+  initialEditContentSnapshot.value = createEditSnapshot({
+    includeAppointmentSlots: false,
+  });
+  initialAppointmentSlotsSnapshot.value = getAppointmentRowsSnapshot();
 }
 
 const formBusy = computed(() => loading.value || savingDraft.value);
@@ -1885,6 +1896,40 @@ const isEditDirty = computed(() => {
     return false;
   return createEditSnapshot() !== initialEditSnapshot.value;
 });
+const isEditContentDirty = computed(() => {
+  if (!isEditMode.value) return true;
+  if (
+    isHydratingEdit.value ||
+    editLoading.value ||
+    !initialEditContentSnapshot.value
+  ) {
+    return false;
+  }
+
+  return (
+    createEditSnapshot({ includeAppointmentSlots: false }) !==
+    initialEditContentSnapshot.value
+  );
+});
+const isAppointmentSlotsDirty = computed(() => {
+  if (!isEditMode.value) return false;
+  if (
+    isHydratingEdit.value ||
+    editLoading.value ||
+    !initialAppointmentSlotsSnapshot.value
+  ) {
+    return false;
+  }
+
+  return getAppointmentRowsSnapshot() !== initialAppointmentSlotsSnapshot.value;
+});
+const isOnlyAppointmentEdit = computed(
+  () =>
+    isEditMode.value &&
+    !isDraftEditMode.value &&
+    isAppointmentSlotsDirty.value &&
+    !isEditContentDirty.value,
+);
 const isDraftEditMode = computed(
   () => isEditMode.value && editListingStatus.value === "DRAFT",
 );
@@ -4176,6 +4221,47 @@ function shouldSyncAppointmentSlots(slots) {
   return slots.length > 0 || existingAppointmentSlotIds.value.length > 0;
 }
 
+async function updateAppointmentSlotsOnly() {
+  if (!appointmentForm.value || !isOnlyAppointmentEdit.value) return false;
+
+  const slots = getValidAppointmentSlotsPayload();
+  if (Array.isArray(slots) && slots.length > 0) {
+    const isValidAppointments = appointmentForm.value.validateAll();
+    if (!isValidAppointments) {
+      setSubmitError("Lịch hẹn xem nhà không hợp lệ");
+      pushToast("Lịch hẹn xem nhà không hợp lệ", "error");
+      return false;
+    }
+  }
+
+  loading.value = true;
+  clearSubmitError();
+  validationErrors.value = {};
+
+  try {
+    if (shouldSyncAppointmentSlots(slots)) {
+      await listingService.replaceAppointmentSlots(editListingId.value, slots);
+    }
+
+    captureInitialEditSnapshot();
+    pushToast("Cập nhật lịch hẹn thành công", "success");
+    router.push("/profile?tab=listings");
+    return true;
+  } catch (error) {
+    const data = error?.response?.data;
+    validationErrors.value = data?.errors || {};
+    setSubmitError(
+      data?.message ||
+        error?.message ||
+        "Không thể cập nhật lịch hẹn. Vui lòng thử lại",
+    );
+    pushToast(submitError.value, "error");
+    return false;
+  } finally {
+    loading.value = false;
+  }
+}
+
 async function updateDraftListing() {
   if (!isDraftEditMode.value || !canUpdateDraft.value) return;
 
@@ -4542,6 +4628,8 @@ function clearMapMarker() {
 
 function resetFormState() {
   initialEditSnapshot.value = "";
+  initialEditContentSnapshot.value = "";
+  initialAppointmentSlotsSnapshot.value = "";
   editListingStatus.value = "";
   editLoading.value = false;
   isHydratingEdit.value = false;
@@ -4678,6 +4766,11 @@ async function submitListing() {
     !isDraftEditMode.value &&
     !isEditDirty.value
   ) {
+    return;
+  }
+
+  if (isOnlyAppointmentEdit.value) {
+    await updateAppointmentSlotsOnly();
     return;
   }
 

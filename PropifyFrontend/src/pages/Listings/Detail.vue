@@ -84,9 +84,6 @@
               :fill="isFavorite(listing) ? 'currentColor' : 'none'"
             />
           </button>
-          <button class="detail-icon-button" aria-label="Chia sẻ">
-            <img :src="shareIcon" class="h-4 w-4" alt="" />
-          </button>
         </div>
       </div>
 
@@ -283,8 +280,10 @@
                 </p>
               </div>
               <button
+                type="button"
                 class="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-sky-100"
                 aria-label="Nhắn tin chủ nhà"
+                @click="goToChat"
               >
                 <img :src="chatIcon" class="h-4 w-4" alt="" />
               </button>
@@ -631,8 +630,10 @@
                 </p>
               </div>
               <button
+                type="button"
                 class="ml-auto flex h-8 w-8 items-center justify-center rounded-full bg-sky-100"
                 aria-label="Nhắn tin chủ nhà"
+                @click="goToChat"
               >
                 <img :src="chatIcon" class="h-4 w-4" alt="" />
               </button>
@@ -740,6 +741,15 @@
         @click.self="closeReportModal"
       >
         <form class="report-modal" @submit.prevent="submitListingReport">
+          <button
+            type="button"
+            class="report-modal-close"
+            :disabled="reportSubmitting"
+            aria-label="Đóng báo cáo"
+            @click="closeReportModal"
+          >
+            ×
+          </button>
           <img
             :src="reportInfoIcon"
             class="report-modal-icon"
@@ -765,6 +775,7 @@
           <label class="report-detail-field">
             <span>Lý do chi tiết <b>*</b>:</span>
             <textarea
+              ref="reportDescriptionInput"
               v-model.trim="reportDescription"
               :disabled="reportSubmitting"
               maxlength="1000"
@@ -1006,6 +1017,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import Breadcrumb from "@/components/shared/Breadcrumb.vue";
 import { useAuthStore } from "@/stores/auth";
+import { useChatStore } from "@/stores/chat";
 import { useFavoriteListings } from "@/composables/useFavoriteListings";
 import { ChevronLeft, ChevronRight, Heart } from "lucide-vue-next";
 import listingService from "@/services/listingService";
@@ -1030,7 +1042,6 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import realEstateLightStyle from "@/assets/maps/real-estate-light.json";
 import favoriteIcon from "@/assets/images/details/favorite.png";
-import shareIcon from "@/assets/images/details/share.png";
 import callIcon from "@/assets/images/details/call.png";
 import calendarIcon from "@/assets/images/details/calander.png";
 import chatIcon from "@/assets/images/details/chat.png";
@@ -1055,6 +1066,7 @@ import floorIcon from "@/assets/images/details/sotang.png";
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
+const chatStore = useChatStore();
 const { isFavorite, toggleFavorite, loadFavorites } = useFavoriteListings();
 
 const props = defineProps({
@@ -1119,6 +1131,7 @@ const reportDescription = ref("");
 const reportImages = ref([]);
 const reportImagePreviews = ref([]);
 const reportImageInput = ref(null);
+const reportDescriptionInput = ref(null);
 const reportUploadError = ref("");
 const relatedListings = ref([]);
 const toasts = ref([]);
@@ -1472,6 +1485,28 @@ function pushToast(message, type = "info", duration = 2500) {
   }, duration);
 }
 
+async function goToChat() {
+  const ownerId =
+    listing.value?.owner?.id ||
+    listing.value?.owner_id ||
+    listing.value?.user_id ||
+    null;
+  const listingId = listing.value?.id || null;
+
+  if (!authStore.isAuthenticated || !ownerId) {
+    router.push({ name: "Chat" });
+    return;
+  }
+
+  try {
+    await chatStore.openConversationWith(ownerId, listingId);
+  } catch (error) {
+    console.warn("[Detail] Cannot open chat conversation:", error);
+  }
+
+  router.push({ name: "Chat" });
+}
+
 function openAppointmentBooking() {
   if (!canBookAppointment.value) return;
 
@@ -1538,6 +1573,8 @@ async function openReportModal() {
 
   reportUploadError.value = "";
   reportModalOpen.value = true;
+  await nextTick();
+  reportDescriptionInput.value?.focus();
   return;
 
   try {
@@ -2504,32 +2541,61 @@ onUnmounted(() => {
 }
 
 .report-modal {
-  width: min(680px, 100%);
+  position: relative;
+  width: min(760px, 100%);
   max-height: calc(100vh - 40px);
   overflow-y: auto;
   border-radius: 14px;
   background: #fff;
-  padding: 28px 32px 20px;
+  padding: 36px 40px 22px;
   box-shadow: 0 24px 64px rgba(15, 23, 42, 0.26);
+}
+
+.report-modal-close {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  display: flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 42px;
+  font-weight: 300;
+  line-height: 1;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.report-modal-close:hover {
+  color: #64748b;
+  transform: scale(1.04);
+}
+
+.report-modal-close:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .report-modal-icon {
   display: block;
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 14px;
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 12px;
   object-fit: contain;
 }
 
 .report-modal-title {
   text-align: center;
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 22px;
+  font-weight: 400;
   color: #1e293b;
 }
 
 .report-modal-subtitle {
-  margin-top: 7px;
+  margin-top: 6px;
   text-align: center;
   font-size: 14px;
   font-weight: 600;
@@ -2537,10 +2603,10 @@ onUnmounted(() => {
 }
 
 .report-reason-box {
-  margin-top: 16px;
-  min-height: 42px;
+  margin-top: 14px;
+  min-height: 40px;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 9px;
   padding: 9px 14px;
   display: grid;
   place-items: center;
@@ -2566,14 +2632,14 @@ onUnmounted(() => {
   margin-top: 12px;
   display: block;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 12px;
+  border-radius: 11px;
+  padding: 0;
 }
 
 .report-detail-field span {
   display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
+  padding: 10px 14px 0;
+  font-size: 15px;
   font-weight: 700;
   color: #1e293b;
 }
@@ -2583,11 +2649,12 @@ onUnmounted(() => {
 }
 
 .report-detail-field textarea {
-  min-height: 82px;
+  min-height: 88px;
   width: 100%;
   resize: vertical;
   border: 0;
   outline: none;
+  padding: 8px 14px 12px;
   font-size: 14px;
   line-height: 1.6;
   color: #334155;
@@ -2595,9 +2662,9 @@ onUnmounted(() => {
 
 .report-upload-box {
   margin-top: 12px;
-  min-height: 122px;
+  min-height: 112px;
   border: 2px dashed #bfdbfe;
-  border-radius: 12px;
+  border-radius: 13px;
   padding: 14px;
   text-align: center;
   display: flex;
@@ -2663,20 +2730,21 @@ onUnmounted(() => {
 }
 
 .report-upload-icon {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   object-fit: contain;
 }
 
 .report-upload-button {
-  margin-top: 9px;
+  margin-top: 8px;
   border: 1px solid #38bdf8;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 7px 20px;
   background: #fff;
   color: #0ea5e9;
   font-size: 13px;
-  font-weight: 800;
+  font-family: inherit;
+  font-weight: 400 !important;
 }
 
 .report-upload-button:disabled {
@@ -2695,12 +2763,12 @@ onUnmounted(() => {
   margin-top: 16px;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 
 .report-back-button,
 .report-submit-button {
-  height: 40px;
+  height: 42px;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 800;
@@ -2732,14 +2800,22 @@ onUnmounted(() => {
 
   .report-modal {
     margin: auto 0;
-    padding: 28px 18px 18px;
+    padding: 48px 16px 16px;
     border-radius: 14px;
   }
 
+  .report-modal-close {
+    top: 16px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    font-size: 38px;
+  }
+
   .report-modal-icon {
-    width: 68px;
-    height: 68px;
-    margin-bottom: 16px;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 12px;
   }
 
   .report-modal-title {
@@ -2756,11 +2832,11 @@ onUnmounted(() => {
   }
 
   .report-detail-field textarea {
-    min-height: 100px;
+    min-height: 84px;
   }
 
   .report-upload-box {
-    min-height: 150px;
+    min-height: 108px;
   }
 
   .report-modal-actions {

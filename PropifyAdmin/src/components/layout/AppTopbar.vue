@@ -7,25 +7,9 @@ const searchValue = ref('')
 
 <template>
   <header class="topbar">
-    <!-- Search -->
-    <div class="topbar-search">
-      <Search :size="16" class="search-icon" />
-      <input
-        v-model="searchValue"
-        type="text"
-        placeholder="Tìm kiếm..."
-        class="search-input"
-        id="topbar-search"
-      />
-    </div>
 
     <!-- Right actions -->
     <div class="topbar-right">
-      <!-- Tạo mới button -->
-      <button class="btn-create gradient-primary gradient-primary-hover" id="btn-create-new">
-        <Plus :size="16" />
-        Tạo mới
-      </button>
 
       <!-- Notifications -->
       <button class="notif-btn" id="btn-notifications">
@@ -45,7 +29,7 @@ const searchValue = ref('')
   border-bottom: 1px solid hsl(var(--border));
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content:flex-end;
   padding: 0 24px;
   position: sticky;
   top: 0;
@@ -92,6 +76,7 @@ const searchValue = ref('')
   display: flex;
   align-items: center;
   gap: 12px;
+  justify-content: right;
 }
 
 .btn-create {
