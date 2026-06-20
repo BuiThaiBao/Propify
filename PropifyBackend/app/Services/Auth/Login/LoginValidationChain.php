@@ -26,6 +26,10 @@ final class LoginValidationChain
             throw new BusinessException(ErrorCode::AuthNotVerified);
         }
 
+        if (is_null($user->password)) {
+            throw new BusinessException(ErrorCode::AuthLoginFailed);
+        }
+
         if (! Hash::check($password, $user->password)) {
             throw new BusinessException(ErrorCode::AuthLoginFailed);
         }

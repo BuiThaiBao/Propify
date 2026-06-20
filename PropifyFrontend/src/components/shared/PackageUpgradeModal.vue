@@ -53,11 +53,7 @@
                 <span v-if="pkg.slug !== 'free'" class="pkg-price-unit">/ ngày</span>
               </div>
 
-              <!-- Push Price -->
-              <div class="pkg-push-row">
-                <span class="pkg-push-label">Đẩy tin (lần)</span>
-                <span class="pkg-push-value">{{ getPushPrice(pkg) }}</span>
-              </div>
+
 
               <!-- Duration Pricings -->
               <div class="pkg-durations">
@@ -556,24 +552,7 @@ function getFeatures(pkg) {
   margin-left: 4px;
 }
 
-/* Push price row */
-.pkg-push-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  border-bottom: 1px solid #f1f5f9;
-  font-size: 13px;
-}
 
-.pkg-push-label {
-  color: #64748b;
-}
-
-.pkg-push-value {
-  font-weight: 600;
-  color: #334155;
-}
 
 /* Duration pricings */
 .pkg-durations {

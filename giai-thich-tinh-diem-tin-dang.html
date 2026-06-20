@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giải Thích & Mô Phỏng Thuật Toán Xếp Hạng Tin Đăng — Propify</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        title: ['Outfit', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .glass {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #1d4ed8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .custom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2563eb;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .custom-slider::-webkit-slider-thumb:hover {
+            background: #1d4ed8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen">
+
+    <!-- Header / Hero -->
+    <header class="relative overflow-hidden bg-slate-900 text-white py-12 px-6 shadow-2xl">
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-30"></div>
+        <div class="max-w-6xl mx-auto relative z-10 text-center">
+            <span class="px-4 py-1.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-semibold uppercase tracking-wider">Hệ Thống Bất Động Sản Propify</span>
+            <h1 class="text-3xl md:text-5xl font-title font-bold mt-4 tracking-tight leading-tight">
+                Mô Phỏng & Giải Thích <br class="hidden md:inline">Thuật Toán Xếp Hạng Tin Đăng
+            </h1>
+            <p class="text-slate-400 max-w-2xl mx-auto mt-4 text-sm md:text-base leading-relaxed">
+                Tài liệu trực quan tương tác giúp giải thích cơ chế tính điểm hiển thị động của tin đăng, cân bằng giữa quyền lợi gói VIP của nhà đầu tư và tính cập nhật liên tục của website.
+            </p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 md:px-6 py-10 space-y-12">
+
+        <!-- 1. Bối cảnh nghiệp vụ -->
+        <section class="grid md:grid-cols-2 gap-8 items-stretch">
+            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center space-x-3 mb-4">
+                        <span class="p-2 rounded-xl bg-blue-50 text-blue-600">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                        </span>
+                        <h2 class="text-xl font-title font-bold text-slate-900">Bài Toán Thực Tế</h2>
+                    </div>
+                    <p class="text-slate-600 text-sm md:text-base leading-relaxed">
+                        Đối với cổng thông tin bất động sản, việc sắp xếp tin đăng luôn gặp phải mâu thuẫn lớn:
+                    </p>
+                    <ul class="mt-4 space-y-3 text-sm text-slate-600">
+                        <li class="flex items-start">
+                            <span class="text-red-500 mr-2 font-bold">✕</span>
+                            <span><strong>Nếu chỉ ưu tiên người trả tiền (VIP):</strong> Tin đăng VIP cũ từ vài tuần trước sẽ ghim mãi ở vị trí đầu, khiến người tìm tin thấy nội dung nhàm chán, trang web trông có vẻ "đã chết".</span>
+                        </li>
+                        <li class="flex items-start">
+                            <span class="text-red-500 mr-2 font-bold">✕</span>
+                            <span><strong>Nếu chỉ ưu tiên tin mới đăng:</strong> Khách mua gói VIP vừa thanh toán xong sẽ bị tin miễn phí của người khác trôi mất bài chỉ sau vài phút. Khách VIP sẽ dừng nạp tiền.</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="mt-6 p-4 rounded-xl bg-blue-50 border border-blue-100 text-xs md:text-sm text-blue-800 font-medium">
+                    💡 <strong>Giải pháp:</strong> Tính toán một điểm số hiển thị động (Final Score) kết hợp điểm chất lượng tin, độ VIP của gói tin và cơ chế giảm điểm theo thời gian (Time-Decay).
+                </div>
+            </div>
+
+            <!-- Các chỉ số đầu vào -->
+            <div class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+                <h3 class="text-lg font-title font-bold text-slate-900 flex items-center space-x-2">
+                    <span>Cơ cấu 3 yếu tố đầu vào</span>
+                </h3>
+                <div class="space-y-4">
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                        <h4 class="font-semibold text-sm text-slate-900">1. Điểm chất lượng tin (Score<sub>listing</sub>)</h4>
+                        <p class="text-xs text-slate-500 mt-1">Hệ thống tự động chấm điểm từ 1 đến 10 dựa trên độ đầy đủ thông tin: hình ảnh, mô tả, xác minh giấy tờ, giá và diện tích.</p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                        <h4 class="font-semibold text-sm text-slate-900">2. Hệ số nhân VIP (Multiplier<sub>package</sub>)</h4>
+                        <p class="text-xs text-slate-500 mt-1">Tin mua gói càng VIP sẽ được nhân hệ số hiển thị càng lớn để tri ân (Kim Cương: x5.0, Vàng: x3.0, Bạc: x2.0, Thường: x1.0).</p>
+                    </div>
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-100">
+                        <h4 class="font-semibold text-sm text-slate-900">3. Thời gian trôi tin theo giờ (Hours)</h4>
+                        <p class="text-xs text-slate-500 mt-1">Tin đăng để càng lâu sẽ bị trôi điểm số hiển thị. Tuy nhiên, các gói VIP sẽ có hệ số giảm điểm rất chậm so với gói tin thường để bảo vệ vị trí đứng đầu.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Công thức tính toán toán học -->
+        <section class="bg-slate-900 text-white p-6 md:p-10 rounded-3xl shadow-xl relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-600/20 rounded-full blur-3xl"></div>
+            <div class="max-w-3xl mx-auto text-center space-y-6">
+                <h2 class="text-xl md:text-2xl font-title font-bold text-blue-400">Công Thức Tính Điểm Xếp Hạng Động (MySQL)</h2>
+                
+                <div class="py-10 my-4 bg-slate-950/80 rounded-2xl border border-slate-800 overflow-x-auto flex justify-center items-center">
+                    <!-- Pure CSS/HTML mathematical rendering (Offline-friendly) -->
+                    <div class="flex flex-wrap items-center justify-center gap-y-6 gap-x-2 md:gap-x-3 font-title text-lg md:text-2xl text-white px-4">
+                        <!-- Score_final -->
+                        <div class="flex flex-col items-center">
+                            <span class="font-bold">Score</span>
+                            <span class="text-[10px] md:text-xs text-blue-400 font-semibold -mt-1">final</span>
+                        </div>
+                        
+                        <span class="text-blue-500 font-bold text-xl md:text-3xl">=</span>
+                        
+                        <!-- Score_listing -->
+                        <div class="flex flex-col items-center">
+                            <span class="font-semibold">Score</span>
+                            <span class="text-[10px] md:text-xs text-slate-400 -mt-1">listing</span>
+                        </div>
+                        
+                        <span class="text-slate-500 text-sm md:text-lg">×</span>
+                        
+                        <!-- Multiplier_package -->
+                        <div class="flex flex-col items-center">
+                            <span class="font-semibold">Multiplier</span>
+                            <span class="text-[10px] md:text-xs text-slate-400 -mt-1">package</span>
+                        </div>
+                        
+                        <span class="text-slate-500 text-sm md:text-lg">×</span>
+                        
+                        <!-- Linear Decay Fraction -->
+                        <div class="flex items-center">
+                            <span class="text-slate-400 text-xl md:text-3xl mr-0.5">(</span>
+                            <div class="flex flex-col items-center">
+                                <!-- Numerator -->
+                                <span class="border-b border-slate-700 pb-0.5 px-2">1.0</span>
+                                <!-- Denominator -->
+                                <span class="pt-0.5 flex items-center space-x-1">
+                                    <span>1.0 +</span>
+                                    <div class="flex flex-col items-center text-[10px] md:text-xs leading-none">
+                                        <span class="border-b border-slate-700 pb-0.5">Hours</span>
+                                        <span class="pt-0.5">24</span>
+                                    </div>
+                                </span>
+                            </div>
+                            <span class="text-slate-400 text-xl md:text-3xl ml-0.5">)</span>
+                        </div>
+                        
+                        <span class="text-slate-500 text-sm md:text-lg">×</span>
+                        
+                        <!-- Exponential Decay -->
+                        <div class="flex items-start">
+                            <span class="italic font-bold font-title text-xl md:text-2xl">e</span>
+                            <span class="text-[10px] md:text-xs text-blue-400 font-mono -mt-2.5 bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5">
+                                -(DecayRate × Hours)
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="text-slate-400 text-xs md:text-sm leading-relaxed max-w-2xl mx-auto">
+                    Công thức sử dụng đồng thời hai cơ chế suy giảm: <strong>suy giảm tuyến tính theo chu kỳ ngày</strong> và <strong>suy giảm mũ (exponential decay)</strong> để điểm số trôi xuống một cách mượt mà tự nhiên, không bị giật cục.
+                </p>
+                
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-left pt-6 border-t border-slate-800">
+                    <div>
+                        <span class="block text-blue-400 font-bold text-xs uppercase tracking-wide">Score_listing</span>
+                        <span class="text-xs text-slate-300">Điểm chất lượng nội dung tin (1 - 10)</span>
+                    </div>
+                    <div>
+                        <span class="block text-blue-400 font-bold text-xs uppercase tracking-wide">Multiplier</span>
+                        <span class="text-xs text-slate-300">Hệ số nhân theo gói VIP (x1.0 đến x5.0)</span>
+                    </div>
+                    <div>
+                        <span class="block text-blue-400 font-bold text-xs uppercase tracking-wide">Hours</span>
+                        <span class="text-xs text-slate-300">Số giờ trôi qua kể từ khi đăng</span>
+                    </div>
+                    <div>
+                        <span class="block text-blue-400 font-bold text-xs uppercase tracking-wide">DecayRate</span>
+                        <span class="text-xs text-slate-300">Tốc độ trôi tin (VIP: 0.01, Thường: 0.08)</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Trình mô phỏng tương tác động -->
+        <section class="space-y-6">
+            <h2 class="text-2xl font-title font-bold text-slate-900 text-center">Trình Mô Phỏng So Sánh Xếp Hạng Trực Quan</h2>
+            <p class="text-slate-500 text-center text-sm -mt-4 max-w-xl mx-auto">Hãy kéo các thanh trượt bên dưới để thay đổi điểm chất lượng hoặc số giờ đã đăng của 2 tin đăng để thấy thuật toán xếp thứ tự hiển thị thay đổi lập tức.</p>
+
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Tin đăng số 1 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+                    <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                        <span class="px-3 py-1 rounded-lg bg-indigo-50 text-indigo-700 font-semibold text-sm">Tin Đăng 1</span>
+                        <div id="badge-t1" class="px-2.5 py-1 rounded text-xs font-bold bg-amber-400 text-amber-950 uppercase">VIP VÀNG</div>
+                    </div>
+                    
+                    <!-- Nhập liệu -->
+                    <div class="space-y-5">
+                        <!-- Chọn gói VIP -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Loại Gói Tin</label>
+                            <select id="pkg-t1" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500" onchange="updateSimulation()">
+                                <option value="diamond">VIP Kim Cương (Multiplier: 5.0, Priority: 4, Decay: 0.01)</option>
+                                <option value="gold" selected>VIP Vàng (Multiplier: 3.0, Priority: 3, Decay: 0.02)</option>
+                                <option value="silver">VIP Bạc (Multiplier: 2.0, Priority: 2, Decay: 0.05)</option>
+                                <option value="free">Tin Thường (Multiplier: 1.0, Priority: 1, Decay: 0.08)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Điểm chất lượng -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-slate-600 font-medium">Điểm chất lượng nội dung</span>
+                                <span class="font-bold text-indigo-600" id="score-val-t1">10/10</span>
+                            </div>
+                            <input type="range" id="score-t1" min="1" max="10" value="10" class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer custom-slider" oninput="updateSimulation()">
+                        </div>
+                        
+                        <!-- Số giờ trôi qua -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-slate-600 font-medium">Đã đăng cách đây</span>
+                                <span class="font-bold text-indigo-600" id="hours-val-t1">72 giờ (3 ngày)</span>
+                            </div>
+                            <input type="range" id="hours-t1" min="0" max="240" value="72" class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer custom-slider" oninput="updateSimulation()">
+                        </div>
+                    </div>
+                    
+                    <!-- Kết quả Tin 1 -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-sm space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Phân cấp ghim (Priority):</span>
+                            <span class="font-semibold text-slate-700" id="res-priority-t1">3</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Điểm ban đầu (Quality x VIP):</span>
+                            <span class="font-semibold text-slate-700" id="res-raw-t1">300.0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Hệ số suy giảm theo ngày:</span>
+                            <span class="font-semibold text-slate-700" id="res-linear-t1">0.25</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Hệ số suy giảm hàm mũ:</span>
+                            <span class="font-semibold text-slate-700" id="res-exp-t1">0.236</span>
+                        </div>
+                        <div class="flex justify-between pt-2 border-t border-slate-200">
+                            <span class="text-slate-900 font-bold">Điểm hiển thị cuối cùng:</span>
+                            <span class="text-lg font-bold text-indigo-600" id="res-final-t1">17.7</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tin đăng số 2 -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+                    <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                        <span class="px-3 py-1 rounded-lg bg-blue-50 text-blue-700 font-semibold text-sm">Tin Đăng 2</span>
+                        <div id="badge-t2" class="px-2.5 py-1 rounded text-xs font-bold bg-slate-300 text-slate-800 uppercase">VIP BẠC</div>
+                    </div>
+                    
+                    <!-- Nhập liệu -->
+                    <div class="space-y-5">
+                        <!-- Chọn gói VIP -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Loại Gói Tin</label>
+                            <select id="pkg-t2" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-blue-500" onchange="updateSimulation()">
+                                <option value="diamond">VIP Kim Cương (Multiplier: 5.0, Priority: 4, Decay: 0.01)</option>
+                                <option value="gold">VIP Vàng (Multiplier: 3.0, Priority: 3, Decay: 0.02)</option>
+                                <option value="silver" selected>VIP Bạc (Multiplier: 2.0, Priority: 2, Decay: 0.05)</option>
+                                <option value="free">Tin Thường (Multiplier: 1.0, Priority: 1, Decay: 0.08)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Điểm chất lượng -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-slate-600 font-medium">Điểm chất lượng nội dung</span>
+                                <span class="font-bold text-blue-600" id="score-val-t2">9/10</span>
+                            </div>
+                            <input type="range" id="score-t2" min="1" max="10" value="9" class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer custom-slider" oninput="updateSimulation()">
+                        </div>
+                        
+                        <!-- Số giờ trôi qua -->
+                        <div>
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-slate-600 font-medium">Đã đăng cách đây</span>
+                                <span class="font-bold text-blue-600" id="hours-val-t2">2 giờ</span>
+                            </div>
+                            <input type="range" id="hours-t2" min="0" max="240" value="2" class="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer custom-slider" oninput="updateSimulation()">
+                        </div>
+                    </div>
+                    
+                    <!-- Kết quả Tin 2 -->
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-100 text-sm space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Phân cấp ghim (Priority):</span>
+                            <span class="font-semibold text-slate-700" id="res-priority-t2">2</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Điểm ban đầu (Quality x VIP):</span>
+                            <span class="font-semibold text-slate-700" id="res-raw-t2">180.0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Hệ số suy giảm theo ngày:</span>
+                            <span class="font-semibold text-slate-700" id="res-linear-t2">0.923</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-slate-500">Hệ số suy giảm hàm mũ:</span>
+                            <span class="font-semibold text-slate-700" id="res-exp-t2">0.905</span>
+                        </div>
+                        <div class="flex justify-between pt-2 border-t border-slate-200">
+                            <span class="text-slate-900 font-bold">Điểm hiển thị cuối cùng:</span>
+                            <span class="text-lg font-bold text-blue-600" id="res-final-t2">150.3</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kết luận xếp thứ tự -->
+            <div class="p-6 rounded-2xl bg-blue-900 text-white shadow-md border border-blue-800 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="space-y-1 text-center md:text-left">
+                    <h4 class="font-title font-bold text-lg">BẢNG XẾP HẠNG HIỂN THỊ TRỰC TUYẾN</h4>
+                    <p class="text-blue-200 text-xs">Căn cứ theo nguyên lý sắp xếp SQL: Lọc theo cấp Priority trước, sau đó xếp theo Final Score.</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex flex-col items-center px-4 py-2 rounded-xl bg-blue-950/80 border border-blue-700">
+                        <span class="text-[10px] text-blue-400 font-semibold uppercase">VỊ TRÍ 1 (TRÊN)</span>
+                        <span class="font-bold text-base text-yellow-300" id="rank-1">...</span>
+                    </div>
+                    <div class="text-xl font-bold">➔</div>
+                    <div class="flex flex-col items-center px-4 py-2 rounded-xl bg-blue-950/80 border border-blue-700">
+                        <span class="text-[10px] text-blue-400 font-semibold uppercase">VỊ TRÍ 2 (DƯỚI)</span>
+                        <span class="font-bold text-base text-slate-300" id="rank-2">...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Biểu đồ suy giảm theo thời gian -->
+        <section class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
+            <h2 class="text-xl font-title font-bold text-slate-900">Biểu Đồ Xu Hướng Suy Giảm Điểm Số (Trong 10 Ngày)</h2>
+            <p class="text-slate-500 text-xs md:text-sm -mt-4">Biểu đồ biểu thị tốc độ trôi điểm của hai tin đăng trên. Trục hoành là số ngày trôi qua (0 đến 10 ngày), trục tung là Điểm hiển thị cuối cùng. Bạn có thể thấy rõ độ dốc trôi tin của các gói VIP chậm hơn rất nhiều so với gói thường.</p>
+            <div class="w-full relative h-[300px] md:h-[400px]">
+                <canvas id="decayChart"></canvas>
+            </div>
+        </section>
+
+        <!-- 5. Code Laravel áp dụng thực tế -->
+        <section class="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+            <h2 class="text-xl font-title font-bold text-slate-900">Mã Nguồn Cài Đặt Thực Tế Trong Laravel Backend</h2>
+            <p class="text-slate-500 text-xs md:text-sm -mt-2">Đoạn code trong lớp chiến lược <code>DefaultPackageScoreSortingStrategy.php</code> chuyển dịch công thức toán học trên thành câu truy vấn SQL thuần túy chạy trực tiếp trên CSDL để đạt hiệu năng tối đa:</p>
+            <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 text-slate-200 text-xs md:text-sm overflow-x-auto font-mono leading-relaxed">
+<pre class="text-emerald-400">// Trích từ app/Services/Listing/Sorting/Strategies/DefaultPackageScoreSortingStrategy.php</pre>
+<pre class="mt-2 text-slate-300"><span class="text-blue-400">public function</span> apply(Builder $query): Builder
+{
+    $driver = DB::connection()->getDriverName();
+    
+    <span class="text-emerald-500">// 1. Tính số giờ đã trôi qua kể từ khi tin được xuất bản</span>
+    $hoursSincePublished = $driver === <span class="text-amber-300">'sqlite'</span>
+        ? <span class="text-amber-300">"((julianday('now') - julianday(COALESCE(listings.published_at, listings.created_at))) * 24.0)"</span>
+        : <span class="text-amber-300">'TIMESTAMPDIFF(HOUR, COALESCE(listings.published_at, listings.created_at), NOW())'</span>;
+
+    <span class="text-emerald-500">// 2. Áp dụng Công thức tính điểm động (Time-Decay Formula)</span>
+    $finalScoreFormula = $driver === <span class="text-amber-300">'sqlite'</span>
+        ? <span class="text-amber-300">"(COALESCE(listings.score, 0) * COALESCE(packages.multiplier, 1.0) * (1.0 / (1.0 + {$hoursSincePublished} / 24.0)))"</span>
+        : <span class="text-amber-300">"(COALESCE(listings.score, 0) * COALESCE(packages.multiplier, 1.0) * (1.0 / (1.0 + {$hoursSincePublished} / 24.0)) * EXP(-COALESCE(packages.decay_rate, 0.05) * {$hoursSincePublished}))"</span>;
+
+    <span class="text-blue-400">return</span> $query
+        ->selectRaw(<span class="text-amber-300">"
+            COALESCE(packages.priority, 1) AS pkg_priority,
+            {$finalScoreFormula} AS final_score
+        "</span>)
+        ->leftJoin(<span class="text-amber-300">'packages'</span>, <span class="text-amber-300">'listings.package_id'</span>, <span class="text-amber-300">'='</span>, <span class="text-amber-300">'packages.id'</span>)
+        <span class="text-emerald-500">->orderByDesc('pkg_priority')</span>   <span class="text-slate-400">// Ưu tiên 1: Lọc theo VIP Level trước</span>
+        <span class="text-emerald-500">->orderByDesc('final_score')</span>;  <span class="text-slate-400">// Ưu tiên 2: Cạnh tranh điểm trôi theo thời gian</span>
+}</pre>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-500 py-8 text-center text-xs border-t border-slate-800">
+        <p>© 2026 Propify Real Estate Platform. Mã nguồn kiến trúc SOLID và Design Pattern chuẩn GoF.</p>
+    </footer>
+
+    <!-- Script logic for Simulator -->
+    <script>
+        // Cấu hình tham số các gói tin đăng
+        const packageConfig = {
+            diamond: { name: 'VIP Kim Cương', priority: 4, multiplier: 5.0, decayRate: 0.01, color: 'bg-indigo-600 text-white' },
+            gold:    { name: 'VIP Vàng',     priority: 3, multiplier: 3.0, decayRate: 0.02, color: 'bg-amber-400 text-amber-950' },
+            silver:  { name: 'VIP Bạc',      priority: 2, multiplier: 2.0, decayRate: 0.05, color: 'bg-slate-300 text-slate-800' },
+            free:    { name: 'Tin Thường',   priority: 1, multiplier: 1.0, decayRate: 0.08, color: 'bg-slate-100 text-slate-600' }
+        };
+
+        let myChart = null;
+
+        // Hàm tính toán điểm theo công thức
+        function calculateFinalScore(score, multiplier, hours, decayRate) {
+            // Suy giảm tuyến tính ngày: 1 / (1 + Hours / 24)
+            const linearDecay = 1.0 / (1.0 + (hours / 24.0));
+            // Suy giảm hàm mũ: EXP(-decayRate * Hours)
+            const expDecay = Math.exp(-decayRate * hours);
+            // Điểm cuối cùng
+            const finalScore = score * multiplier * linearDecay * expDecay;
+            
+            return {
+                rawScore: score * multiplier,
+                linearDecay: linearDecay,
+                expDecay: expDecay,
+                final: Math.max(0.1, parseFloat(finalScore.toFixed(1)))
+            };
+        }
+
+        // Hàm cập nhật giao diện mô phỏng
+        function updateSimulation() {
+            // Lấy thông số Tin 1
+            const pkg1 = document.getElementById('pkg-t1').value;
+            const score1 = parseInt(document.getElementById('score-t1').value);
+            const hours1 = parseInt(document.getElementById('hours-t1').value);
+            const cfg1 = packageConfig[pkg1];
+
+            // Lấy thông số Tin 2
+            const pkg2 = document.getElementById('pkg-t2').value;
+            const score2 = parseInt(document.getElementById('score-t2').value);
+            const hours2 = parseInt(document.getElementById('hours-t2').value);
+            const cfg2 = packageConfig[pkg2];
+
+            // Cập nhật text hiển thị nhập liệu
+            document.getElementById('score-val-t1').innerText = score1 + '/10';
+            document.getElementById('hours-val-t1').innerText = hours1 + ' giờ (' + (hours1 / 24).toFixed(1) + ' ngày)';
+            document.getElementById('score-val-t2').innerText = score2 + '/10';
+            document.getElementById('hours-val-t2').innerText = hours2 + ' giờ (' + (hours2 / 24).toFixed(1) + ' ngày)';
+
+            // Cập nhật badge gói VIP
+            const badgeT1 = document.getElementById('badge-t1');
+            badgeT1.innerText = cfg1.name;
+            badgeT1.className = 'px-2.5 py-1 rounded text-xs font-bold uppercase ' + cfg1.color;
+            
+            const badgeT2 = document.getElementById('badge-t2');
+            badgeT2.innerText = cfg2.name;
+            badgeT2.className = 'px-2.5 py-1 rounded text-xs font-bold uppercase ' + cfg2.color;
+
+            // Tính điểm Tin 1
+            const calc1 = calculateFinalScore(score1, cfg1.multiplier, hours1, cfg1.decayRate);
+            document.getElementById('res-priority-t1').innerText = cfg1.priority;
+            document.getElementById('res-raw-t1').innerText = calc1.rawScore.toFixed(1);
+            document.getElementById('res-linear-t1').innerText = calc1.linearDecay.toFixed(3);
+            document.getElementById('res-exp-t1').innerText = calc1.expDecay.toFixed(3);
+            document.getElementById('res-final-t1').innerText = calc1.final;
+
+            // Tính điểm Tin 2
+            const calc2 = calculateFinalScore(score2, cfg2.multiplier, hours2, cfg2.decayRate);
+            document.getElementById('res-priority-t2').innerText = cfg2.priority;
+            document.getElementById('res-raw-t2').innerText = calc2.rawScore.toFixed(1);
+            document.getElementById('res-linear-t2').innerText = calc2.linearDecay.toFixed(3);
+            document.getElementById('res-exp-t2').innerText = calc2.expDecay.toFixed(3);
+            document.getElementById('res-final-t2').innerText = calc2.final;
+
+            // SO SÁNH XẾP HẠNG (Theo thứ tự ưu tiên SQL)
+            let t1RankedHigher = true;
+            if (cfg1.priority !== cfg2.priority) {
+                t1RankedHigher = cfg1.priority > cfg2.priority;
+            } else {
+                t1RankedHigher = calc1.final >= calc2.final;
+            }
+
+            if (t1RankedHigher) {
+                document.getElementById('rank-1').innerText = 'TIN ĐĂNG 1 (' + cfg1.name + ' - Điểm: ' + calc1.final + ')';
+                document.getElementById('rank-2').innerText = 'TIN ĐĂNG 2 (' + cfg2.name + ' - Điểm: ' + calc2.final + ')';
+            } else {
+                document.getElementById('rank-1').innerText = 'TIN ĐĂNG 2 (' + cfg2.name + ' - Điểm: ' + calc2.final + ')';
+                document.getElementById('rank-2').innerText = 'TIN ĐĂNG 1 (' + cfg1.name + ' - Điểm: ' + calc1.final + ')';
+            }
+
+            // Vẽ lại biểu đồ xu hướng
+            updateChart(score1, cfg1.multiplier, cfg1.decayRate, score2, cfg2.multiplier, cfg2.decayRate);
+        }
+
+        // Vẽ biểu đồ xu hướng decay
+        function updateChart(score1, mult1, rate1, score2, mult2, rate2) {
+            const days = Array.from({length: 11}, (_, i) => i); // 0 đến 10 ngày
+            const scoresT1 = [];
+            const scoresT2 = [];
+
+            days.forEach(day => {
+                const hours = day * 24;
+                scoresT1.push(calculateFinalScore(score1, mult1, hours, rate1).final);
+                scoresT2.push(calculateFinalScore(score2, mult2, hours, rate2).final);
+            });
+
+            if (myChart) {
+                myChart.data.datasets[0].data = scoresT1;
+                myChart.data.datasets[1].data = scoresT2;
+                myChart.update('none'); // silent update
+            } else {
+                const ctx = document.getElementById('decayChart').getContext('2d');
+                myChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: days.map(d => 'Ngày ' + d),
+                        datasets: [
+                            {
+                                label: 'Tin Đăng 1',
+                                data: scoresT1,
+                                borderColor: '#4f46e5',
+                                backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Tin Đăng 2',
+                                data: scoresT2,
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Điểm hiển thị (Final Score)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Chạy khởi tạo mô phỏng ban đầu khi load trang
+        window.onload = function() {
+            updateSimulation();
+        }
+    </script>
+</body>
+</html>

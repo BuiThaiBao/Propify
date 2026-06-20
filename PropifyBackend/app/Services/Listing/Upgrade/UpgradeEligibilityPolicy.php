@@ -22,7 +22,7 @@ final class UpgradeEligibilityPolicy
         }
 
         if ($context->listing->status !== 'ACTIVE') {
-            throw new BusinessException(ErrorCode::ListingUpgradeNotAllowed);
+            throw new BusinessException(ErrorCode::ListingUpgradeNotAllowed, 'Chỉ có thể nâng cấp tin đang đăng.');
         }
 
         if (! $context->newPackage->is_active) {
