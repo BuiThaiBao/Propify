@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Listing;
-use App\Models\Package;
 use App\Models\Property;
 use App\Models\User;
 use App\Repositories\ListingRepository;

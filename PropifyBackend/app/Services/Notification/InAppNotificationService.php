@@ -23,7 +23,14 @@ final class InAppNotificationService
             'data' => $data,
         ]);
 
-        NotificationSent::dispatch($notification);
+        try {
+            NotificationSent::dispatch($notification);
+        } catch (\Throwable $e) {
+            logger()->error('Failed to broadcast NotificationSent: '.$e->getMessage(), [
+                'exception' => $e,
+                'notification_id' => $notification->id,
+            ]);
+        }
 
         return $notification;
     }

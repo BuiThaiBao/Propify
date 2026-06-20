@@ -12,9 +12,9 @@ final class TransactionStateFactory
     public function for(Transaction $transaction): TransactionState
     {
         return match ($transaction->status) {
-            'PENDING' => new PendingTransactionState(),
-            'SUCCESS' => new SuccessTransactionState(),
-            default => new SettledTransactionState(),
+            'PENDING' => new PendingTransactionState,
+            'SUCCESS' => new SuccessTransactionState,
+            default => new SettledTransactionState,
         };
     }
 }

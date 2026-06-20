@@ -351,7 +351,7 @@ final class EloquentListingRepository implements ListingRepository
             : null;
 
         if ($normalizedKeyword !== null) {
-            $strategy = (new SearchFieldStrategyFactory())->for($criteria->searchField);
+            $strategy = (new SearchFieldStrategyFactory)->for($criteria->searchField);
             $query->where(function ($subQuery) use ($strategy, $normalizedKeyword) {
                 $strategy->apply($subQuery, $normalizedKeyword);
             });

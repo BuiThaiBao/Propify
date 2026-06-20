@@ -52,8 +52,8 @@ final class AppointmentBookingServiceImpl implements AppointmentBookingService
 
         // 3. Tính hạn xác nhận (Strategy): đặt gấp (<6h) vs mặc định.
         $strategy = $ctx->isUrgent()
-            ? new UrgentDeadlineStrategy()
-            : new DefaultDeadlineStrategy();
+            ? new UrgentDeadlineStrategy
+            : new DefaultDeadlineStrategy;
         $confirmDeadline = $strategy->deadlineFor($ctx);
 
         // 4. Dựng dữ liệu booking PENDING rồi lưu.

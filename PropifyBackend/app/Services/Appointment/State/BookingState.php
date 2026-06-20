@@ -27,4 +27,11 @@ interface BookingState
      * @throws BusinessException
      */
     public function cancel(AppointmentBooking $booking, BookingRole $by, string $reason): void;
+
+    /**
+     * Hệ thống tự hoàn thành khi đã qua giờ kết thúc hẹn (APPROVED → COMPLETED).
+     *
+     * @throws BusinessException
+     */
+    public function complete(AppointmentBooking $booking): void;
 }

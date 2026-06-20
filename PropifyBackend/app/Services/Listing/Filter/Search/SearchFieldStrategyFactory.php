@@ -11,9 +11,9 @@ final class SearchFieldStrategyFactory
     public function for(?string $searchField): SearchFieldStrategy
     {
         return match ($searchField) {
-            'owner' => new OwnerSearchStrategy(),
-            'address' => new AddressSearchStrategy(),
-            default => new TitleSearchStrategy(),
+            'owner' => new OwnerSearchStrategy,
+            'address' => new AddressSearchStrategy,
+            default => new TitleSearchStrategy,
         };
     }
 }

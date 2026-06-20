@@ -11,6 +11,7 @@ use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 /**
@@ -74,7 +75,7 @@ final class VnpayReturnBranchesTest extends TestCase
     /**
      * @param  array<string, string>  $overrides
      */
-    private function callReturn(Transaction $transaction, array $overrides = [], bool $validSignature = true): \Illuminate\Testing\TestResponse
+    private function callReturn(Transaction $transaction, array $overrides = [], bool $validSignature = true): TestResponse
     {
         config(['vnpay.hash_secret' => 'testsecret']);
 

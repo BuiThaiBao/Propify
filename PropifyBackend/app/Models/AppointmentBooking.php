@@ -59,9 +59,9 @@ final class AppointmentBooking extends Model
     public function state(): BookingState
     {
         return match (BookingStatus::from($this->status)) {
-            BookingStatus::PENDING => new PendingState(),
-            BookingStatus::APPROVED => new ApprovedState(),
-            default => new TerminalState(),
+            BookingStatus::PENDING => new PendingState,
+            BookingStatus::APPROVED => new ApprovedState,
+            default => new TerminalState,
         };
     }
 }

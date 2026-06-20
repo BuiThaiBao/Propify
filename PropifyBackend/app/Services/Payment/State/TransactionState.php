@@ -16,7 +16,7 @@ interface TransactionState
      * @param  bool  $isPaid  Callback xác nhận đã thanh toán hợp lệ.
      * @param  bool  $notExpired  Giao dịch còn hạn (chưa hết hạn).
      * @param  Closure  $onPaid  Hành động hoàn tất nâng cấp khi thanh toán thành công.
-     * @return bool  Giao dịch có được coi là hoàn tất không.
+     * @return bool Giao dịch có được coi là hoàn tất không.
      */
     public function applyCallback(Transaction $transaction, bool $isPaid, bool $notExpired, Closure $onPaid): bool;
 }

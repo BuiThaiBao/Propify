@@ -32,6 +32,11 @@ abstract class AbstractBookingState implements BookingState
         throw new BusinessException(ErrorCode::BookingNotPending);
     }
 
+    public function complete(AppointmentBooking $booking): void
+    {
+        throw new BusinessException(ErrorCode::BookingNotPending);
+    }
+
     /**
      * Ghép note theo định dạng "[{label}] {text}", giữ note cũ nếu có (ngăn cách " | ").
      */

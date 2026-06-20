@@ -74,7 +74,14 @@ final class ChatServiceImpl implements ChatService
             'file_url' => $dto->fileUrl,
         ]);
 
-        MessageSent::dispatch($message);
+        try {
+            MessageSent::dispatch($message);
+        } catch (\Throwable $e) {
+            logger()->error('Failed to broadcast MessageSent: '.$e->getMessage(), [
+                'exception' => $e,
+                'message_id' => $message->id,
+            ]);
+        }
 
         return $message->loadMissing('sender:id,full_name,avatar_url');
     }
@@ -293,7 +300,14 @@ final class ChatServiceImpl implements ChatService
             'metadata' => array_merge(['action' => $action->value, 'actor_id' => $actorId], $extra),
         ]);
 
-        MessageSent::dispatch($message);
+        try {
+            MessageSent::dispatch($message);
+        } catch (\Throwable $e) {
+            logger()->error('Failed to broadcast system MessageSent: '.$e->getMessage(), [
+                'exception' => $e,
+                'message_id' => $message->id,
+            ]);
+        }
 
         return $message;
     }
