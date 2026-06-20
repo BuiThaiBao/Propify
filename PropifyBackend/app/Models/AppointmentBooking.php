@@ -2,6 +2,11 @@
 
 namespace App\Models;
 
+use App\Enums\BookingStatus;
+use App\Services\Appointment\State\ApprovedState;
+use App\Services\Appointment\State\BookingState;
+use App\Services\Appointment\State\PendingState;
+use App\Services\Appointment\State\TerminalState;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -43,5 +48,20 @@ final class AppointmentBooking extends Model
     public function viewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'viewer_id');
+    }
+
+    // ==================== State ====================
+
+    /**
+     * Trả về đối tượng State tương ứng trạng thái hiện tại (State pattern).
+     * Luật chuyển trạng thái được đóng gói trong các lớp State, không rải if ở service.
+     */
+    public function state(): BookingState
+    {
+        return match (BookingStatus::from($this->status)) {
+            BookingStatus::PENDING => new PendingState(),
+            BookingStatus::APPROVED => new ApprovedState(),
+            default => new TerminalState(),
+        };
     }
 }

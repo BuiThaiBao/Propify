@@ -8,7 +8,6 @@ use App\Enums\ErrorCode;
 use App\Events\Listing\ListingSaved;
 use App\Exceptions\BusinessException;
 use App\Models\Listing;
-use App\Models\ListingStatusHistory;
 use App\Models\Package;
 use App\Models\Transaction;
 use App\Models\User;
@@ -19,6 +18,10 @@ use App\Services\Listing\Commands\SubmitListingVerificationCommand;
 use App\Services\Listing\Commands\UnlistListingCommand;
 use App\Services\Listing\Commands\UpdateListingCommand;
 use App\Services\Listing\ListingService;
+use App\Services\Listing\Moderation\ApproveListingCommand;
+use App\Services\Listing\Moderation\LockListingCommand;
+use App\Services\Listing\Moderation\ModerationContext;
+use App\Services\Listing\Moderation\RejectListingCommand;
 use App\Services\Listing\Sorting\ListingSortingStrategyFactory;
 use App\Services\Listing\State\ListingStatusStateFactory;
 use App\Services\Listing\Upgrade\CreateUpgradePaymentCommand;
@@ -44,6 +47,9 @@ final class ListingServiceImpl implements ListingService
         private readonly UpgradeListingCommand $upgradeListingCommand,
         private readonly CreateUpgradePaymentCommand $createUpgradePaymentCommand,
         private readonly ListingVerificationService $listingVerificationService,
+        private readonly ApproveListingCommand $approveListingCommand,
+        private readonly RejectListingCommand $rejectListingCommand,
+        private readonly LockListingCommand $lockListingCommand,
     ) {}
 
     public function create(User $user, CreateListingDto $dto): Listing
@@ -279,53 +285,16 @@ final class ListingServiceImpl implements ListingService
             throw new BusinessException(ErrorCode::AuthForbidden);
         }
 
-        if ($status === 'REJECTED' && trim((string) $rejectionReason) === '') {
-            throw new BusinessException(ErrorCode::BadRequest, 'Vui lòng nhập lý do từ chối.');
-        }
+        // Điều phối theo trạng thái đích (Command). Mỗi lệnh dùng chung khung kiểm duyệt
+        // (Template Method) + State::assertCanTransition; nghiệp vụ giữ nguyên như cũ.
+        $ctx = new ModerationContext($adminUserId, $rejectionReason);
 
-        $listing = DB::transaction(function () use ($listingId, $status, $rejectionReason, $adminUserId) {
-            $listing = Listing::query()->lockForUpdate()->find($listingId);
-            if (! $listing) {
-                throw new BusinessException(ErrorCode::ListingNotFound);
-            }
-            $this->statusStateFactory->assertCanTransition($listing->status, $status);
-
-            $listing->status = $status;
-            if ($status === 'REJECTED') {
-                $listing->rejection_reason = $rejectionReason;
-            }
-
-            if ($status === 'ACTIVE') {
-                $listing->published_at = now();
-                $listing->approved_by = $adminUserId;
-            }
-
-            $listing->save();
-
-            ListingStatusHistory::create([
-                'user_id' => $adminUserId,
-                'listing_id' => $listing->id,
-                'action' => $status,
-                'reason' => $rejectionReason,
-            ]);
-
-            return $listing;
-        });
-        $loaded = $listing->load([
-            'property.attributes.group',
-            'images',
-            'videos',
-            'verificationDocuments',
-            'appointmentSlots',
-            'appointments',
-            'owner',
-            'approver',
-            'package',
-        ]);
-
-        ListingSaved::dispatch($loaded, null, 'admin_status_changed');
-
-        return $loaded;
+        return match ($status) {
+            'ACTIVE' => $this->approveListingCommand->execute($listingId, $ctx),
+            'REJECTED' => $this->rejectListingCommand->execute($listingId, $ctx),
+            'LOCKED' => $this->lockListingCommand->execute($listingId, $ctx),
+            default => throw new BusinessException(ErrorCode::BadRequest),
+        };
     }
 
     public function updateVerificationForAdmin(int $listingId, bool $isVerified, ?string $reason = null, ?int $adminUserId = null): Listing

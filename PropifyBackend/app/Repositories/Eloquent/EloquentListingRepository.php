@@ -9,7 +9,10 @@ use App\Models\ListingVerificationDocument;
 use App\Models\ListingVideo;
 use App\Models\Property;
 use App\Repositories\ListingRepository;
+use App\Services\Listing\Filter\ListingFilterCriteria;
+use App\Services\Listing\Filter\Search\SearchFieldStrategyFactory;
 use App\Services\Listing\Sorting\ListingSortingStrategy;
+use App\Support\ListingSearchExpression;
 use App\Support\PropertySearchText;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
@@ -185,7 +188,11 @@ final class EloquentListingRepository implements ListingRepository
         ?float $maxPrice = null,
         ?int $packageId = null,
     ): LengthAwarePaginator {
-        return $this->buildAdminBaseQuery($demandType, $keyword, $searchField, $priceRange, $minPrice, $maxPrice, $packageId)
+        $criteria = ListingFilterCriteria::forAdmin(
+            $status, $demandType, $keyword, $searchField, $priceRange, $minPrice, $maxPrice, $packageId
+        );
+
+        return $this->adminBaseQuery($criteria)
             ->with([
                 'property.attributes.group',
                 'images',
@@ -200,35 +207,6 @@ final class EloquentListingRepository implements ListingRepository
             ->when($status && $status !== 'all', function ($query) use ($status) {
                 $query->where('status', strtoupper($status));
             })
-            ->when($demandType && $demandType !== 'all', function ($query) use ($demandType) {
-                $query->where('demand_type', strtoupper($demandType));
-            })
-            ->when($keyword, function ($query) use ($keyword) {
-                $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
-
-                if ($normalizedKeyword === null) {
-                    return;
-                }
-
-                $isRent = str_contains($normalizedKeyword, 'cho') || str_contains($normalizedKeyword, 'thue');
-                $isSale = str_contains($normalizedKeyword, 'mua') || str_contains($normalizedKeyword, 'ban');
-                $like = '%'.$normalizedKeyword.'%';
-
-                $query->where(function ($subQuery) use ($like, $isRent, $isSale, $normalizedKeyword) {
-                    $subQuery
-                        ->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like])
-                        ->orWhereHas('property', function ($propertyQuery) use ($normalizedKeyword) {
-                            $this->applyPropertySearchConstraint($propertyQuery, $normalizedKeyword);
-                        });
-
-                    if ($isRent) {
-                        $subQuery->orWhere('demand_type', 'RENT');
-                    }
-                    if ($isSale) {
-                        $subQuery->orWhere('demand_type', 'SALE');
-                    }
-                });
-            })
             ->orderByDesc('id')
             ->paginate($perPage);
     }
@@ -242,7 +220,11 @@ final class EloquentListingRepository implements ListingRepository
         ?float $maxPrice = null,
         ?int $packageId = null,
     ): array {
-        $counts = $this->buildAdminBaseQuery($demandType, $keyword, $searchField, $priceRange, $minPrice, $maxPrice, $packageId)
+        $criteria = ListingFilterCriteria::forAdmin(
+            null, $demandType, $keyword, $searchField, $priceRange, $minPrice, $maxPrice, $packageId
+        );
+
+        $counts = $this->adminBaseQuery($criteria)
             ->selectRaw('status, COUNT(*) as aggregate')
             ->groupBy('status')
             ->pluck('aggregate', 'status');
@@ -314,26 +296,36 @@ final class EloquentListingRepository implements ListingRepository
             ->get();
     }
 
-    private function buildAdminBaseQuery(
-        ?string $demandType,
-        ?string $keyword,
-        ?string $searchField = 'title',
-        ?string $priceRange = null,
-        ?float $minPrice = null,
-        ?float $maxPrice = null,
-        ?int $packageId = null,
-    ) {
-        return Listing::query()
-            ->whereNotIn('status', ['DRAFT', 'UNLISTED'])
-            ->when($demandType && $demandType !== 'all', function ($query) use ($demandType) {
-                $query->where('demand_type', strtoupper($demandType));
+    /**
+     * Query nền cho danh sách admin: loại DRAFT/UNLISTED rồi áp các điều kiện lọc.
+     * Dùng CHUNG cho cả phân trang và đếm trạng thái → đảm bảo hai bên nhất quán.
+     */
+    private function adminBaseQuery(ListingFilterCriteria $criteria): Builder
+    {
+        $query = Listing::query()->whereNotIn('status', ['DRAFT', 'UNLISTED']);
+
+        $this->applyAdminFilters($query, $criteria);
+
+        return $query;
+    }
+
+    /**
+     * Áp các điều kiện lọc theo tiêu chí. Thứ tự giữ nguyên:
+     * demand_type → package → price_range → min/max price → keyword.
+     * Riêng tìm theo từ khóa ủy thác cho SearchFieldStrategy (Strategy + Factory).
+     */
+    private function applyAdminFilters(Builder $query, ListingFilterCriteria $criteria): void
+    {
+        $query
+            ->when($criteria->demandType && $criteria->demandType !== 'all', function ($q) use ($criteria) {
+                $q->where('demand_type', strtoupper($criteria->demandType));
             })
-            ->when($packageId, function ($query) use ($packageId) {
-                $query->where('package_id', $packageId);
+            ->when($criteria->packageId, function ($q) use ($criteria) {
+                $q->where('package_id', $criteria->packageId);
             })
-            ->when($priceRange && $priceRange !== 'all', function ($query) use ($priceRange) {
-                $query->whereHas('property', function ($propertyQuery) use ($priceRange) {
-                    match ($priceRange) {
+            ->when($criteria->priceRange && $criteria->priceRange !== 'all', function ($q) use ($criteria) {
+                $q->whereHas('property', function ($propertyQuery) use ($criteria) {
+                    match ($criteria->priceRange) {
                         'under_1b' => $propertyQuery->where('price', '<', 1000000000),
                         '1b_3b' => $propertyQuery->whereBetween('price', [1000000000, 3000000000]),
                         '3b_5b' => $propertyQuery->whereBetween('price', [3000000000, 5000000000]),
@@ -343,58 +335,27 @@ final class EloquentListingRepository implements ListingRepository
                     };
                 });
             })
-            ->when($minPrice !== null || $maxPrice !== null, function ($query) use ($minPrice, $maxPrice) {
-                $query->whereHas('property', function ($propertyQuery) use ($minPrice, $maxPrice) {
-                    if ($minPrice !== null) {
-                        $propertyQuery->where('price', '>=', $minPrice);
+            ->when($criteria->minPrice !== null || $criteria->maxPrice !== null, function ($q) use ($criteria) {
+                $q->whereHas('property', function ($propertyQuery) use ($criteria) {
+                    if ($criteria->minPrice !== null) {
+                        $propertyQuery->where('price', '>=', $criteria->minPrice);
                     }
-                    if ($maxPrice !== null) {
-                        $propertyQuery->where('price', '<=', $maxPrice);
-                    }
-                });
-            })
-            ->when($keyword, function ($query) use ($keyword, $searchField) {
-                $normalizedKeyword = $this->normalizeSearchKeyword($keyword);
-
-                if ($normalizedKeyword === null) {
-                    return;
-                }
-
-                $like = '%'.$normalizedKeyword.'%';
-                $isRent = str_contains($normalizedKeyword, 'cho') || str_contains($normalizedKeyword, 'thue');
-                $isSale = str_contains($normalizedKeyword, 'mua') || str_contains($normalizedKeyword, 'ban');
-
-                $query->where(function ($subQuery) use ($like, $isRent, $isSale, $searchField) {
-                    if ($searchField === 'owner') {
-                        $subQuery->whereHas('owner', function ($ownerQuery) use ($like) {
-                            $ownerQuery
-                                ->whereRaw($this->normalizeSearchExpression('full_name').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('email').' LIKE ?', [$like])
-                                ->orWhere('phone', 'like', $like);
-                        });
-                    } elseif ($searchField === 'address') {
-                        $subQuery->whereHas('property', function ($propertyQuery) use ($like) {
-                            $propertyQuery
-                                ->whereRaw($this->normalizeSearchExpression('address_detail').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('project_name').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('street_code').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('province_code').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('ward_code').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('province').' LIKE ?', [$like])
-                                ->orWhereRaw($this->normalizeSearchExpression('ward').' LIKE ?', [$like]);
-                        });
-                    } else {
-                        $subQuery->whereRaw($this->normalizeSearchExpression('title').' LIKE ?', [$like]);
-
-                        if ($isRent) {
-                            $subQuery->orWhere('demand_type', 'RENT');
-                        }
-                        if ($isSale) {
-                            $subQuery->orWhere('demand_type', 'SALE');
-                        }
+                    if ($criteria->maxPrice !== null) {
+                        $propertyQuery->where('price', '<=', $criteria->maxPrice);
                     }
                 });
             });
+
+        $normalizedKeyword = $criteria->keyword !== null
+            ? $this->normalizeSearchKeyword($criteria->keyword)
+            : null;
+
+        if ($normalizedKeyword !== null) {
+            $strategy = (new SearchFieldStrategyFactory())->for($criteria->searchField);
+            $query->where(function ($subQuery) use ($strategy, $normalizedKeyword) {
+                $strategy->apply($subQuery, $normalizedKeyword);
+            });
+        }
     }
 
     public function updateProperty(int $id, array $attributes): Property
@@ -441,13 +402,7 @@ final class EloquentListingRepository implements ListingRepository
 
     private function normalizeSearchExpression(string $column): string
     {
-        $driver = DB::connection()->getDriverName();
-
-        return match ($driver) {
-            'sqlite' => "normalize_text($column)",
-            'mysql', 'mariadb' => "LOWER(CONVERT($column USING utf8mb4)) COLLATE utf8mb4_unicode_ci",
-            default => "LOWER($column)",
-        };
+        return ListingSearchExpression::column($column);
     }
 
     private function applyPropertySearchConstraint(Builder $query, string $normalizedKeyword, ?string $searchField = null): void

@@ -2,54 +2,25 @@
 
 namespace App\Http\Controllers\Api\V1\Payment;
 
-use App\Models\Transaction;
-use App\Services\Listing\ListingService;
-use App\Services\Payment\VnpayService;
+use App\Services\Payment\PaymentReturnProcessor;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 final class VnpayReturnController
 {
     public function __construct(
-        private readonly VnpayService $vnpayService,
-        private readonly ListingService $listingService,
+        private readonly PaymentReturnProcessor $paymentReturnProcessor,
     ) {}
 
     public function __invoke(Request $request): Response
     {
-        $txnRef = (string) $request->query('vnp_TxnRef', '');
-        $transactionId = $this->vnpayService->transactionIdFromTxnRef($txnRef);
-        $transaction = $transactionId ? Transaction::find($transactionId) : null;
-        $isValidHash = $this->vnpayService->isValidReturn($request);
-        $isPaid = $isValidHash && $request->query('vnp_ResponseCode') === '00' && $request->query('vnp_TransactionStatus') === '00';
-        $isCompleted = false;
+        $result = $this->paymentReturnProcessor->handleReturn($request);
 
-        if ($transaction) {
-            $transaction->update([
-                'vnp_txn_ref' => $txnRef,
-                'vnp_transaction_no' => $request->query('vnp_TransactionNo'),
-                'vnp_bank_code' => $request->query('vnp_BankCode'),
-                'vnp_response_code' => $request->query('vnp_ResponseCode'),
-                'vnp_pay_date' => $request->query('vnp_PayDate'),
-            ]);
-
-            if ($isPaid && $transaction->status === 'PENDING' && (! $transaction->expires_at || $transaction->expires_at->isFuture())) {
-                $this->listingService->completePaidUpgrade($transaction);
-                $isCompleted = true;
-            } elseif ($isPaid && $transaction->status === 'SUCCESS') {
-                $isCompleted = true;
-            } elseif ($isPaid && $transaction->status === 'PENDING') {
-                $transaction->update(['status' => 'EXPIRED']);
-            } elseif (! $isPaid && $transaction->status === 'PENDING') {
-                $transaction->update(['status' => 'FAILED']);
-            }
-        }
-
-        $status = $isCompleted ? 'success' : 'failed';
+        $status = $result->isCompleted ? 'success' : 'failed';
         $frontendUrl = rtrim((string) config('app.frontend_url'), '/');
-        $redirectUrl = $frontendUrl.'/payment/vnpay-result?status='.$status.'&transaction_id='.($transaction?->id ?? '');
+        $redirectUrl = $frontendUrl.'/payment/vnpay-result?status='.$status.'&transaction_id='.($result->transactionId ?? '');
 
-        return $this->redirectResponse($isCompleted, $redirectUrl);
+        return $this->redirectResponse($result->isCompleted, $redirectUrl);
     }
 
     private function redirectResponse(bool $isCompleted, string $redirectUrl): Response
