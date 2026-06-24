@@ -18,14 +18,11 @@ final class RegisterUserCommand
         private readonly UserRepository $userRepository,
         private readonly RegistrationValidationChain $validationChain,
         private readonly OtpService $otpService,
-    ) {
-    }
+    ) {}
 
     public function execute(RegisterUserDto $dto): void
     {
         $this->validationChain->validate($dto);
-
-
 
         DB::transaction(function () use ($dto) {
             $user = $this->userRepository->findByEmail($dto->email);

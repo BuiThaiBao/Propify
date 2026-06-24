@@ -1,116 +1,42 @@
 <script setup>
-import { computed } from 'vue'
-import { Eye, Lock, Unlock } from 'lucide-vue-next'
+import { ref } from 'vue'
+import { Eye, Lock, Unlock, Loader2 } from 'lucide-vue-next'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
+import ConfirmModal from '@/components/shared/ConfirmModal.vue'
 
 const props = defineProps({
-  search: String,
-  filterRole: String,
+  users: { type: Array, required: true },
+  loading: { type: Boolean, default: false },
+  error: { type: String, default: '' },
+  actionError: { type: String, default: '' },
+  updatingUserId: { type: [Number, String], default: null },
 })
 
-const users = [
-  {
-    id: 1,
-    name: 'Nguyễn Văn A',
-    joinDate: 'Tham gia: 10/01/2024',
-    email: 'nguyenvana@email.com',
-    phone: '0901234567',
-    role: 'agent',
-    roleLabel: 'Môi giới',
-    posts: 25,
-    status: 'active',
-    statusLabel: 'Hoạt động',
-    initial: 'N',
-    avatarBg: '#eff6ff',
-    avatarColor: '#2563eb',
-  },
-  {
-    id: 2,
-    name: 'Trần Thị B',
-    joinDate: 'Tham gia: 20/02/2024',
-    email: 'tranthib@email.com',
-    phone: '0912345678',
-    role: 'user',
-    roleLabel: 'Người dùng',
-    posts: 5,
-    status: 'active',
-    statusLabel: 'Hoạt động',
-    initial: 'T',
-    avatarBg: '#fef3c7',
-    avatarColor: '#d97706',
-  },
-  {
-    id: 3,
-    name: 'Lê Văn C',
-    joinDate: 'Tham gia: 01/03/2024',
-    email: 'levanc@email.com',
-    phone: '0923456789',
-    role: 'agent',
-    roleLabel: 'Môi giới',
-    posts: 12,
-    status: 'locked',
-    statusLabel: 'Đã khóa',
-    initial: 'L',
-    avatarBg: '#d1fae5',
-    avatarColor: '#059669',
-  },
-  {
-    id: 4,
-    name: 'Phạm Văn D',
-    joinDate: 'Tham gia: 10/04/2024',
-    email: 'phamvand@email.com',
-    phone: '0934567890',
-    role: 'user',
-    roleLabel: 'Người dùng',
-    posts: 3,
-    status: 'active',
-    statusLabel: 'Hoạt động',
-    initial: 'P',
-    avatarBg: '#ede9fe',
-    avatarColor: '#7c3aed',
-  },
-  {
-    id: 5,
-    name: 'Hoàng Thị E',
-    joinDate: 'Tham gia: 05/05/2024',
-    email: 'hoangthie@email.com',
-    phone: '0945678901',
-    role: 'agent',
-    roleLabel: 'Môi giới',
-    posts: 45,
-    status: 'active',
-    statusLabel: 'Hoạt động',
-    initial: 'H',
-    avatarBg: '#fce7f3',
-    avatarColor: '#db2777',
-  },
-  {
-    id: 6,
-    name: 'Đỗ Văn F',
-    joinDate: 'Tham gia: 22/06/2024',
-    email: 'dovanf@email.com',
-    phone: '0956789012',
-    role: 'user',
-    roleLabel: 'Người dùng',
-    posts: 0,
-    status: 'locked',
-    statusLabel: 'Đã khóa',
-    initial: 'Đ',
-    avatarBg: '#f1f5f9',
-    avatarColor: '#475569',
-  },
-]
+const emit = defineEmits(['change-status', 'view-detail'])
 
-const filteredUsers = computed(() => {
-  return users.filter((user) => {
-    const matchSearch =
-      !props.search ||
-      user.name.toLowerCase().includes(props.search.toLowerCase()) ||
-      user.email.toLowerCase().includes(props.search.toLowerCase())
-    const matchRole = props.filterRole === 'all' || user.role === props.filterRole
-    return matchSearch && matchRole
-  })
-})
+const isConfirmOpen = ref(false)
+const confirmTitle = ref('')
+const confirmDesc = ref('')
+const selectedUser = ref(null)
+
+function promptToggleStatus(user) {
+  selectedUser.value = user
+  if (user.status === 'locked') {
+    confirmTitle.value = 'Mở khóa tài khoản'
+    confirmDesc.value = `Bạn có chắc chắn muốn mở khóa tài khoản "${user.name}"? Người dùng này sẽ có thể đăng nhập lại vào hệ thống.`
+  } else {
+    confirmTitle.value = 'Khóa tài khoản'
+    confirmDesc.value = `Bạn có chắc chắn muốn khóa tài khoản "${user.name}"? Người dùng này sẽ không thể đăng nhập hoặc thực hiện bất kỳ hành động nào.`
+  }
+  isConfirmOpen.value = true
+}
+
+function handleConfirm() {
+  if (!selectedUser.value) return
+  const newStatus = selectedUser.value.status === 'locked' ? 'active' : 'locked'
+  emit('change-status', { id: selectedUser.value.id, status: newStatus })
+  isConfirmOpen.value = false
+}
 
 function roleVariant(role) {
   return role === 'agent' ? 'info' : 'default'
@@ -123,7 +49,22 @@ function statusVariant(status) {
 
 <template>
   <div class="users-table-wrap">
-    <table class="users-table">
+    <!-- Action Error Alert -->
+    <div v-if="actionError" class="action-error-alert">
+      <span>{{ actionError }}</span>
+    </div>
+
+    <!-- Main Table / Loader -->
+    <div v-if="loading && users.length === 0" class="state-container">
+      <Loader2 :size="28" class="animate-spin text-blue-600" />
+      <p class="state-text">Đang tải danh sách tài khoản...</p>
+    </div>
+
+    <div v-else-if="error" class="state-container error-state">
+      <p class="state-text text-red-600">{{ error }}</p>
+    </div>
+
+    <table v-else class="users-table">
       <thead>
         <tr>
           <th>Người dùng</th>
@@ -135,7 +76,7 @@ function statusVariant(status) {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="user in filteredUsers" :key="user.id" class="user-row">
+        <tr v-for="user in users" :key="user.id" class="user-row">
           <!-- User info -->
           <td>
             <div class="user-info">
@@ -178,7 +119,12 @@ function statusVariant(status) {
           <!-- Actions -->
           <td>
             <div class="user-actions">
-              <button class="action-btn view" :id="`view-user-${user.id}`" title="Xem">
+              <button
+                class="action-btn view"
+                :id="`view-user-${user.id}`"
+                title="Xem"
+                @click="emit('view-detail', user)"
+              >
                 <Eye :size="15" />
               </button>
               <button
@@ -186,8 +132,11 @@ function statusVariant(status) {
                 :class="user.status === 'locked' ? 'unlock' : 'lock'"
                 :id="`toggle-user-${user.id}`"
                 :title="user.status === 'locked' ? 'Mở khóa' : 'Khóa'"
+                :disabled="updatingUserId === user.id"
+                @click="promptToggleStatus(user)"
               >
-                <component :is="user.status === 'locked' ? Unlock : Lock" :size="15" />
+                <Loader2 v-if="updatingUserId === user.id" :size="15" class="animate-spin" />
+                <component v-else :is="user.status === 'locked' ? Unlock : Lock" :size="15" />
               </button>
             </div>
           </td>
@@ -195,9 +144,20 @@ function statusVariant(status) {
       </tbody>
     </table>
 
-    <div v-if="filteredUsers.length === 0" class="empty-state">
+    <div v-if="!loading && users.length === 0 && !error" class="empty-state">
       <p>Không tìm thấy tài khoản phù hợp</p>
     </div>
+
+    <!-- Confirm Modal -->
+    <ConfirmModal
+      :open="isConfirmOpen"
+      :title="confirmTitle"
+      :description="confirmDesc"
+      :confirm-text="selectedUser?.status === 'locked' ? 'Mở khóa' : 'Khóa tài khoản'"
+      :variant="selectedUser?.status === 'locked' ? 'default' : 'destructive'"
+      @close="isConfirmOpen = false"
+      @confirm="handleConfirm"
+    />
   </div>
 </template>
 
@@ -207,6 +167,35 @@ function statusVariant(status) {
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   overflow: hidden;
+}
+
+.action-error-alert {
+  padding: 12px 16px;
+  background-color: #fef2f2;
+  border-bottom: 1px solid #fee2e2;
+  color: #b91c1c;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.state-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px;
+  gap: 12px;
+}
+
+.state-text {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+.error-state .state-text {
+  color: #dc2626;
+  font-weight: 500;
 }
 
 .users-table {
@@ -322,12 +311,17 @@ function statusVariant(status) {
   transition: all 0.15s;
 }
 
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .action-btn.view {
   background-color: #f1f5f9;
   color: #64748b;
 }
 
-.action-btn.view:hover {
+.action-btn.view:hover:not(:disabled) {
   background-color: #e2e8f0;
 }
 
@@ -336,7 +330,7 @@ function statusVariant(status) {
   color: #dc2626;
 }
 
-.action-btn.lock:hover {
+.action-btn.lock:hover:not(:disabled) {
   background-color: #fecaca;
 }
 
@@ -345,7 +339,7 @@ function statusVariant(status) {
   color: #059669;
 }
 
-.action-btn.unlock:hover {
+.action-btn.unlock:hover:not(:disabled) {
   background-color: #a7f3d0;
 }
 
@@ -353,5 +347,26 @@ function statusVariant(status) {
   padding: 40px;
   text-align: center;
   color: #94a3b8;
+}
+
+/* Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.text-blue-600 {
+  color: #2563eb;
+}
+.text-red-600 {
+  color: #dc2626;
 }
 </style>

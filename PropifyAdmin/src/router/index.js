@@ -68,6 +68,11 @@ const routes = [
         component: () => import('@/pages/Users/Page.vue'),
       },
       {
+        path: 'users/:id',
+        name: 'UserDetail',
+        component: () => import('@/pages/Users/UserDetail.vue'),
+      },
+      {
         path: 'utilities',
         name: 'Utilities',
         component: () => import('@/pages/Utilities/Page.vue'),
