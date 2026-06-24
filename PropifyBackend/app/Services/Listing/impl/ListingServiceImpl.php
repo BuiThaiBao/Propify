@@ -178,8 +178,6 @@ final class ListingServiceImpl implements ListingService
     ): LengthAwarePaginator {
         $strategy = ListingSortingStrategyFactory::make($sortBy);
         $page = request()->input('page', 1);
-        $cacheKey = 'listings:public:'.md5(serialize([
-            'version' => 5,
         $cacheKey = 'listings:public:' . md5(serialize([
             'version' => 6, // Bumped version since cache schema changed
             'sort' => $sortBy,
@@ -269,7 +267,7 @@ final class ListingServiceImpl implements ListingService
         ?string $propertyType = null
     ): Collection {
         $cacheKey = 'listings:public:map:' . md5(serialize([
-            'version' => 4, // Bumped version
+            'version' => 3,
             'demand_type' => $demandType,
             'keyword' => $keyword,
             'search_field' => $searchField,
