@@ -173,12 +173,15 @@ final class ListingServiceImpl implements ListingService
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?float $minArea = null,
-        ?float $maxArea = null
+        ?float $maxArea = null,
+        ?string $propertyType = null
     ): LengthAwarePaginator {
         $strategy = ListingSortingStrategyFactory::make($sortBy);
         $page = request()->input('page', 1);
         $cacheKey = 'listings:public:'.md5(serialize([
             'version' => 5,
+        $cacheKey = 'listings:public:' . md5(serialize([
+            'version' => 6, // Bumped version since cache schema changed
             'sort' => $sortBy,
             'demand_type' => $demandType,
             'keyword' => $keyword,
@@ -190,9 +193,10 @@ final class ListingServiceImpl implements ListingService
             'max_price' => $maxPrice,
             'min_area' => $minArea,
             'max_area' => $maxArea,
+            'property_type' => $propertyType,
         ]));
 
-        return Cache::tags(['listings:public'])->remember($cacheKey, 300, function () use ($strategy, $demandType, $keyword, $perPage, $searchField, $posterType, $minPrice, $maxPrice, $minArea, $maxArea) {
+        return Cache::tags(['listings:public'])->remember($cacheKey, 300, function () use ($strategy, $demandType, $keyword, $perPage, $searchField, $posterType, $minPrice, $maxPrice, $minArea, $maxArea, $propertyType) {
             return $this->listingRepository->paginatePublic(
                 $strategy,
                 $demandType,
@@ -203,7 +207,8 @@ final class ListingServiceImpl implements ListingService
                 $minPrice,
                 $maxPrice,
                 $minArea,
-                $maxArea
+                $maxArea,
+                $propertyType
             );
         });
     }
@@ -260,10 +265,11 @@ final class ListingServiceImpl implements ListingService
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?float $minArea = null,
-        ?float $maxArea = null
+        ?float $maxArea = null,
+        ?string $propertyType = null
     ): Collection {
-        $cacheKey = 'listings:public:map:'.md5(serialize([
-            'version' => 3,
+        $cacheKey = 'listings:public:map:' . md5(serialize([
+            'version' => 4, // Bumped version
             'demand_type' => $demandType,
             'keyword' => $keyword,
             'search_field' => $searchField,
@@ -272,6 +278,7 @@ final class ListingServiceImpl implements ListingService
             'max_price' => $maxPrice,
             'min_area' => $minArea,
             'max_area' => $maxArea,
+            'property_type' => $propertyType,
         ]));
 
         return Cache::tags(['listings:public'])->remember($cacheKey, 300, fn () => $this->listingRepository->getMapListings(
@@ -283,6 +290,7 @@ final class ListingServiceImpl implements ListingService
             maxPrice: $maxPrice,
             minArea: $minArea,
             maxArea: $maxArea,
+            propertyType: $propertyType,
         ));
     }
 

@@ -56,25 +56,25 @@
             ]"
           >
             <!-- Header -->
-            <header class="px-4 pt-5 pb-6">
+            <header class="px-0 pt-5 pb-6">
               <!-- Badge -->
-              <div class="mb-3 flex h-[5rem] items-start">
-                <span v-if="getIconSrc(pkg)" class="relative inline-block">
+              <div class="mb-3 flex h-[5rem] items-center px-4">
+                <span v-if="getIconSrc(pkg)" class="relative inline-block -ml-5">
                   <img :src="getIconSrc(pkg)" class="block h-[5rem] w-auto" alt="" />
-                  <span class="absolute top-[30%] right-0 flex h-[37%] items-center justify-center px-3.5 text-[0.9rem] font-extrabold tracking-wide text-white whitespace-nowrap">
+                  <span class="absolute top-[30%] left-9 flex h-[37%] items-center justify-center px-3.5 text-[0.9rem] font-extrabold tracking-wide text-white whitespace-nowrap">
                     {{ getBadgeLabel(pkg) }}
                   </span>
                 </span>
                 <span
                   v-else
-                  class="mt-[1.5rem] inline-flex h-8 items-center rounded-full bg-slate-200 px-3.5 text-[0.8rem] font-bold text-slate-600"
+                  class="inline-flex h-8 items-center rounded-full bg-slate-200 px-3.5 text-[0.8rem] font-bold text-slate-600"
                 >
                   {{ getBadgeLabel(pkg) }}
                 </span>
               </div>
 
               <!-- Price -->
-              <div class="flex items-baseline gap-1">
+              <div class="flex px-4 items-baseline gap-1">
                 <span class="text-[22px] font-extrabold leading-tight text-black">
                   {{ isFreePackage(pkg) ? 'Miễn phí' : `${formatCurrency(pkg.price)}đ` }}
                 </span>
@@ -83,7 +83,7 @@
             </header>
 
             <!-- Pricing Table -->
-            <div class="px-4">
+            <div class="px-6">
               <div
                 v-for="pricing in sortedPricings(pkg)"
                 :key="pricing.id || pricing.duration_days"
@@ -220,15 +220,12 @@ function getFeatures(pkg) {
 
   if (priority >= 4) {
     return [
-      { text: 'Gói DUY NHẤT tích hợp 3D', enabled: true },
       { text: 'TOP 1 phủ sóng trên hệ sinh thái', enabled: true },
       { text: 'Giao diện hiển thị chuyên biệt', enabled: true },
-      { text: 'Tự động đẩy tin MIỄN PHÍ', enabled: true },
     ];
   }
   if (priority === 3) {
     return [
-      { text: 'Không tích hợp 3D', enabled: false },
       { text: `Nhận tag ${getBadgeLabel(pkg)}`, enabled: true },
       { text: `Người xem ước tính X${Math.round(multiplier)}`, enabled: true },
       { text: 'Kích thước lớn, tăng lượt xem', enabled: true },
@@ -237,14 +234,12 @@ function getFeatures(pkg) {
   }
   if (priority === 2) {
     return [
-      { text: 'Không tích hợp 3D', enabled: false },
       { text: `Nhận tag ${getBadgeLabel(pkg)}`, enabled: true },
       { text: `Người xem ước tính X${Math.round(multiplier)}`, enabled: true },
       { text: 'TOP 3 hiển thị trong danh sách', enabled: true },
     ];
   }
   return [
-    { text: 'Không tích hợp 3D', enabled: false },
     { text: 'Miễn phí hiển thị trong danh sách', enabled: true },
     { text: 'Lượt tiếp cận tự nhiên', enabled: true },
   ];

@@ -32,6 +32,7 @@ async function fetchPublicListingsPage(options) {
     min_area: options.minArea !== null ? options.minArea : undefined,
     max_area: options.maxArea !== null ? options.maxArea : undefined,
     sort: options.sortBy || undefined,
+    property_type: options.propertyType || undefined,
   });
 
   const data = response?.data?.data || [];
@@ -60,6 +61,15 @@ export function usePublicListings(options = {}) {
   const minArea = ref(null);
   const maxArea = ref(null);
   const sortBy = ref(String(route?.query?.sort || ""));
+  const propertyType = ref(route?.query?.property_type || "");
+
+  watch(
+    () => route?.query?.property_type,
+    (newVal) => {
+      propertyType.value = newVal || "";
+      currentPage.value = 1;
+    },
+  );
 
   watch(
     () => route?.query?.q,
@@ -99,6 +109,7 @@ export function usePublicListings(options = {}) {
     min_area: minArea.value !== null ? minArea.value : undefined,
     max_area: maxArea.value !== null ? maxArea.value : undefined,
     sort: sortBy.value || undefined,
+    property_type: propertyType.value || undefined,
   });
 
   const queryKey = computed(() =>
@@ -120,6 +131,7 @@ export function usePublicListings(options = {}) {
         minArea: minArea.value,
         maxArea: maxArea.value,
         sortBy: sortBy.value,
+        propertyType: propertyType.value,
       }),
     enabled,
     placeholderData: keepPreviousData,
@@ -191,6 +203,7 @@ export function usePublicListings(options = {}) {
       minArea.value,
       maxArea.value,
       sortBy.value,
+      propertyType.value,
     ],
     ([
       isEnabled,
@@ -204,6 +217,7 @@ export function usePublicListings(options = {}) {
       nextMinArea,
       nextMaxArea,
       nextSort,
+      nextPropertyType,
     ]) => {
       if (!isEnabled) return;
 
@@ -226,6 +240,7 @@ export function usePublicListings(options = {}) {
           min_area: nextMinArea !== null ? nextMinArea : undefined,
           max_area: nextMaxArea !== null ? nextMaxArea : undefined,
           sort: nextSort || undefined,
+          property_type: nextPropertyType || undefined,
         }),
         queryFn: () =>
           fetchPublicListingsPage({
@@ -240,6 +255,7 @@ export function usePublicListings(options = {}) {
             minArea: nextMinArea,
             maxArea: nextMaxArea,
             sortBy: nextSort,
+            propertyType: nextPropertyType,
           }),
         staleTime: 60 * 1000,
       });
@@ -255,6 +271,7 @@ export function usePublicListings(options = {}) {
       maxArea.value,
       sortBy.value,
       searchField.value,
+      propertyType.value,
     ],
     () => {
       currentPage.value = 1;
@@ -293,6 +310,21 @@ export function usePublicListings(options = {}) {
         query: {
           ...route.query,
           sort: normalizedNextSort || undefined,
+        },
+      })
+      .catch(() => {});
+  });
+
+  watch(propertyType, (nextVal) => {
+    const currentVal = String(route?.query?.property_type || "");
+    const normalizedNextVal = String(nextVal || "");
+    if (currentVal === normalizedNextVal) return;
+
+    router
+      .replace({
+        query: {
+          ...route.query,
+          property_type: normalizedNextVal || undefined,
         },
       })
       .catch(() => {});
@@ -349,6 +381,7 @@ export function usePublicListings(options = {}) {
     minArea,
     maxArea,
     sortBy,
+    propertyType,
     init,
     refetchListings,
     onSearch,

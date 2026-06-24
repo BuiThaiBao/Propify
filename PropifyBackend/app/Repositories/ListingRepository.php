@@ -40,7 +40,8 @@ interface ListingRepository
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?float $minArea = null,
-        ?float $maxArea = null
+        ?float $maxArea = null,
+        ?string $propertyType = null
     ): LengthAwarePaginator;
 
     public function getMapListings(
@@ -51,7 +52,8 @@ interface ListingRepository
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?float $minArea = null,
-        ?float $maxArea = null
+        ?float $maxArea = null,
+        ?string $propertyType = null
     ): Collection;
 
     public function paginateAdmin(
