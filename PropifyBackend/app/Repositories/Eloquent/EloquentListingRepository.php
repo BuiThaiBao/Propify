@@ -197,6 +197,7 @@ final class EloquentListingRepository implements ListingRepository
         );
 
         return $this->adminBaseQuery($criteria)
+            ->withCount('reports')
             ->with([
                 'property.attributes.group',
                 'images',

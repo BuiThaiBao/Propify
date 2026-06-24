@@ -90,6 +90,7 @@ const normalizedPosts = computed(() =>
     createdAtText: formatAdminDateTime(post.created_at),
     submittedAtText: formatAdminDateTime(post.submitted_at),
     publishedAtText: formatAdminDateTime(post.published_at),
+    reportsCount: Number(post.reports_count || post.report_count || 0),
   })),
 )
 
@@ -397,7 +398,22 @@ onBeforeUnmount(() => {
             <td class="col-image">
               <img :src="post.imageUrl" :alt="post.title" class="post-img" />
             </td>
-            <td class="col-title title-text">{{ post.title || '--' }}</td>
+            <td class="col-title title-text">
+              <span class="title-with-warning">
+                <span class="title-value">{{ post.title || '--' }}</span>
+                <span
+                  v-if="post.reportsCount > 0"
+                  class="listing-warning-indicator"
+                  aria-label="Tin đăng nhận được cảnh báo từ khách hàng"
+                  @click.stop
+                >
+                  <Info :size="14" stroke-width="2.5" />
+                  <span class="listing-warning-tooltip">
+                    Tin đăng nhận được cảnh báo từ khách hàng
+                  </span>
+                </span>
+              </span>
+            </td>
             <td class="col-address address-text">{{ post.address }}</td>
             <td class="col-price price-text">{{ post.priceText }}</td>
             <td class="col-package">{{ post.packageName }}</td>
@@ -714,6 +730,75 @@ thead .sticky-right {
   font-weight: 500;
   line-height: 1.45;
   word-break: break-word;
+}
+
+.title-with-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.title-value {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.listing-warning-indicator {
+  position: relative;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ff4d4f;
+  cursor: help;
+}
+
+.listing-warning-tooltip {
+  position: absolute;
+  z-index: 30;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  width: max-content;
+  max-width: 260px;
+  transform: translateX(-50%) translateY(4px);
+  border-radius: 6px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: normal;
+  text-align: center;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.16s ease,
+    transform 0.16s ease,
+    visibility 0.16s ease;
+}
+
+.listing-warning-tooltip::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 8px;
+  height: 8px;
+  background: #0f172a;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.listing-warning-indicator:hover .listing-warning-tooltip,
+.listing-warning-indicator:focus-visible .listing-warning-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
 }
 
 .address-text {

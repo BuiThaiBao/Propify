@@ -134,6 +134,7 @@ final class ListingResource extends JsonResource
                 'note' => $appointment->note,
                 'status' => $appointment->status,
             ])->values(),
+            'reports_count' => (int) ($this->reports_count ?? 0),
             'status_histories' => $this->whenLoaded('statusHistories', fn () => $this->statusHistories->map(fn ($history) => [
                 'id' => $history->id,
                 'user_id' => $history->user_id,
