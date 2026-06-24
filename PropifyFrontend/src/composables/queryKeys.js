@@ -14,6 +14,7 @@ export const listingKeys = {
       min_area: params.min_area,
       max_area: params.max_area,
       sort: params.sort || '',
+      property_type: params.property_type,
     },
   ],
   mapList: (params = {}) => [...listingKeys.all, 'map', params],

@@ -28,10 +28,6 @@ services:
       - redis_data:/data
     networks:
       - app-network
-
-volumes:
-  project_mysql_data:
-  redis_data:
-
+    restart: always
 networks:
   app-network:

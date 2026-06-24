@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ChevronDown, Search } from 'lucide-vue-next'
 
 const props = defineProps({
@@ -7,7 +7,8 @@ const props = defineProps({
   searchField: { type: String, default: 'title' },
   status: { type: String, default: 'all' },
   type: { type: String, default: 'all' },
-  priceRange: { type: String, default: 'all' },
+  minPrice: { type: [Number, String], default: null },
+  maxPrice: { type: [Number, String], default: null },
   packageId: { type: [String, Number], default: 'all' },
   packages: { type: Array, default: () => [] },
   statusCounts: { type: Object, default: () => ({}) },
@@ -18,23 +19,17 @@ const emit = defineEmits([
   'update:searchField',
   'update:status',
   'update:type',
-  'update:priceRange',
+  'update:minPrice',
+  'update:maxPrice',
   'update:packageId',
 ])
+
+const PRICE_LIMIT = 75000000000
 
 const searchFieldOptions = [
   { value: 'title', label: 'Tên tin đăng' },
   { value: 'owner', label: 'Người đăng' },
   { value: 'address', label: 'Địa chỉ' },
-]
-
-const priceOptions = [
-  { value: 'all', label: 'Khoảng giá: Tất cả' },
-  { value: 'under_1b', label: 'Dưới 1 tỷ' },
-  { value: '1b_3b', label: '1 - 3 tỷ' },
-  { value: '3b_5b', label: '3 - 5 tỷ' },
-  { value: '5b_10b', label: '5 - 10 tỷ' },
-  { value: 'over_10b', label: 'Trên 10 tỷ' },
 ]
 
 const typeOptions = [
@@ -52,6 +47,10 @@ const statusOptions = [
 ]
 
 const openDropdown = ref(null)
+const draftMinPrice = ref('')
+const draftMaxPrice = ref('')
+const priceTrigger = ref(null)
+const priceMenuStyle = ref({})
 
 const packageOptions = computed(() => [
   { value: 'all', label: 'Gói tin: Tất cả' },
@@ -61,12 +60,70 @@ const packageOptions = computed(() => [
   })),
 ])
 
+const normalizedMinPrice = computed(() => normalizePrice(props.minPrice))
+const normalizedMaxPrice = computed(() => normalizePrice(props.maxPrice))
+
+const priceLabel = computed(() => {
+  const min = normalizedMinPrice.value
+  const max = normalizedMaxPrice.value
+
+  if (min === null && max === null) return 'Khoảng giá: Tất cả'
+  if (min !== null && max !== null) return `${formatCompactPrice(min)} - ${formatCompactPrice(max)}`
+  if (min !== null) return `Từ ${formatCompactPrice(min)}`
+  return `Đến ${formatCompactPrice(max)}`
+})
+
+const draftMinPercent = computed(() => ((normalizePrice(draftMinPrice.value) ?? 0) / PRICE_LIMIT) * 100)
+const draftMaxPercent = computed(() => ((normalizePrice(draftMaxPrice.value) ?? PRICE_LIMIT) / PRICE_LIMIT) * 100)
+
+function normalizePrice(value) {
+  if (value === null || value === undefined || value === '') return null
+  const numberValue = Number(value)
+  if (!Number.isFinite(numberValue) || numberValue < 0) return null
+  return Math.min(Math.round(numberValue), PRICE_LIMIT)
+}
+
+function formatCurrency(value) {
+  return `${Number(value || 0).toLocaleString('vi-VN')} VND`
+}
+
+function formatCompactPrice(value) {
+  const numberValue = Number(value || 0)
+  if (numberValue >= 1000000000) {
+    return `${Number((numberValue / 1000000000).toFixed(1)).toLocaleString('vi-VN')} tỷ`
+  }
+  if (numberValue >= 1000000) {
+    return `${Number((numberValue / 1000000).toFixed(0)).toLocaleString('vi-VN')} triệu`
+  }
+  return formatCurrency(numberValue)
+}
+
 function selectedLabel(options, value) {
   return options.find((option) => option.value === String(value))?.label || options[0]?.label || ''
 }
 
+function updatePriceMenuPosition() {
+  if (openDropdown.value !== 'price' || !priceTrigger.value) return
+
+  const rect = priceTrigger.value.getBoundingClientRect()
+  const width = Math.min(390, window.innerWidth - 32)
+  const left = Math.min(Math.max(rect.left, 16), window.innerWidth - width - 16)
+
+  priceMenuStyle.value = {
+    position: 'fixed',
+    top: `${rect.bottom + 8}px`,
+    left: `${left}px`,
+    width: `${width}px`,
+  }
+}
+
 function toggleDropdown(name) {
   openDropdown.value = openDropdown.value === name ? null : name
+  if (openDropdown.value === 'price') {
+    draftMinPrice.value = normalizedMinPrice.value ?? ''
+    draftMaxPrice.value = normalizedMaxPrice.value ?? ''
+    nextTick(updatePriceMenuPosition)
+  }
 }
 
 function selectDropdown(eventName, value) {
@@ -77,6 +134,58 @@ function selectDropdown(eventName, value) {
 function statusCount(value) {
   return Number(props.statusCounts?.[value] ?? 0)
 }
+
+function setDraftPrice(target, value) {
+  const normalized = normalizePrice(value)
+  const nextValue = normalized === null ? '' : normalized
+
+  if (target === 'min') {
+    draftMinPrice.value = nextValue
+    if (draftMaxPrice.value !== '' && normalizePrice(draftMaxPrice.value) !== null && Number(draftMinPrice.value) > Number(draftMaxPrice.value)) {
+      draftMaxPrice.value = draftMinPrice.value
+    }
+    return
+  }
+
+  draftMaxPrice.value = nextValue
+  if (draftMinPrice.value !== '' && normalizePrice(draftMinPrice.value) !== null && Number(draftMaxPrice.value) < Number(draftMinPrice.value)) {
+    draftMinPrice.value = draftMaxPrice.value
+  }
+}
+
+function resetPrice() {
+  draftMinPrice.value = ''
+  draftMaxPrice.value = ''
+  emit('update:minPrice', null)
+  emit('update:maxPrice', null)
+  openDropdown.value = null
+}
+
+function applyPrice() {
+  emit('update:minPrice', normalizePrice(draftMinPrice.value))
+  emit('update:maxPrice', normalizePrice(draftMaxPrice.value))
+  openDropdown.value = null
+}
+
+watch(
+  () => [props.minPrice, props.maxPrice],
+  () => {
+    if (openDropdown.value !== 'price') return
+    draftMinPrice.value = normalizedMinPrice.value ?? ''
+    draftMaxPrice.value = normalizedMaxPrice.value ?? ''
+    nextTick(updatePriceMenuPosition)
+  },
+)
+
+onMounted(() => {
+  window.addEventListener('resize', updatePriceMenuPosition)
+  window.addEventListener('scroll', updatePriceMenuPosition, true)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updatePriceMenuPosition)
+  window.removeEventListener('scroll', updatePriceMenuPosition, true)
+})
 </script>
 
 <template>
@@ -105,23 +214,11 @@ function statusCount(value) {
       </div>
 
       <div class="filter-selects">
-        <div class="custom-select" :class="{ open: openDropdown === 'price' }">
-          <button type="button" class="filter-trigger" @click="toggleDropdown('price')">
-            <span>{{ selectedLabel(priceOptions, priceRange) }}</span>
+        <div class="custom-select price-select" :class="{ open: openDropdown === 'price' }">
+          <button ref="priceTrigger" type="button" class="filter-trigger" @click="toggleDropdown('price')">
+            <span>{{ priceLabel }}</span>
             <ChevronDown :size="17" />
           </button>
-          <div v-if="openDropdown === 'price'" class="select-menu">
-            <button
-              v-for="option in priceOptions"
-              :key="option.value"
-              type="button"
-              class="select-option"
-              :class="{ selected: priceRange === option.value }"
-              @click="selectDropdown('update:priceRange', option.value)"
-            >
-              {{ option.label }}
-            </button>
-          </div>
         </div>
 
         <div class="custom-select" :class="{ open: openDropdown === 'type' }">
@@ -163,6 +260,73 @@ function statusCount(value) {
         </div>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div v-if="openDropdown === 'price'" class="price-menu" :style="priceMenuStyle">
+        <div class="price-input-grid">
+          <label class="price-field">
+            <span>Từ</span>
+            <input
+              :value="draftMinPrice"
+              type="number"
+              min="0"
+              :max="PRICE_LIMIT"
+              step="1000000"
+              placeholder="Nhập số tiền"
+              @input="setDraftPrice('min', $event.target.value)"
+            />
+          </label>
+          <label class="price-field">
+            <span>Đến</span>
+            <input
+              :value="draftMaxPrice"
+              type="number"
+              min="0"
+              :max="PRICE_LIMIT"
+              step="1000000"
+              placeholder="Nhập số tiền"
+              @input="setDraftPrice('max', $event.target.value)"
+            />
+          </label>
+        </div>
+
+        <div class="range-wrap">
+          <div class="range-track"></div>
+          <div
+            class="range-fill"
+            :style="{ left: `${draftMinPercent}%`, right: `${100 - draftMaxPercent}%` }"
+          ></div>
+          <input
+            :value="normalizePrice(draftMinPrice) ?? 0"
+            class="range-input"
+            type="range"
+            min="0"
+            :max="PRICE_LIMIT"
+            step="1000000"
+            @input="setDraftPrice('min', $event.target.value)"
+          />
+          <input
+            :value="normalizePrice(draftMaxPrice) ?? PRICE_LIMIT"
+            class="range-input"
+            type="range"
+            min="0"
+            :max="PRICE_LIMIT"
+            step="1000000"
+            @input="setDraftPrice('max', $event.target.value)"
+          />
+        </div>
+
+        <div class="price-scale">
+          <span>{{ formatCurrency(0) }}</span>
+          <span>{{ formatCurrency(PRICE_LIMIT) }}</span>
+        </div>
+
+        <div class="price-actions">
+          <button type="button" class="price-reset" @click="resetPrice">Đặt lại</button>
+          <button type="button" class="price-apply" @click="applyPrice">Đồng ý</button>
+        </div>
+      </div>
+    </Teleport>
 
     <div class="status-tabs">
       <button
@@ -217,6 +381,7 @@ function statusCount(value) {
   font-size: 13px;
   outline: none;
   cursor: pointer;
+  appearance: none;
 }
 
 .search-input-wrap {
@@ -259,6 +424,10 @@ function statusCount(value) {
   min-width: 158px;
 }
 
+.price-select {
+  min-width: 228px;
+}
+
 .filter-trigger {
   width: 100%;
   height: 38px;
@@ -272,7 +441,7 @@ function statusCount(value) {
   background: #fff;
   color: #1e3a5f;
   font-size: 13px;
-  line-height: 1;
+  line-height: 1.35;
   cursor: pointer;
   transition:
     border-color 0.16s ease,
@@ -281,6 +450,9 @@ function statusCount(value) {
 }
 
 .filter-trigger span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 18px;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -321,6 +493,166 @@ function statusCount(value) {
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
 }
 
+.price-menu {
+  z-index: 1000;
+  padding: 18px 22px 0;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+}
+
+.price-menu::before {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 14px;
+  width: 14px;
+  height: 14px;
+  border-top: 1px solid #dbe3ef;
+  border-left: 1px solid #dbe3ef;
+  background: #fff;
+  transform: rotate(45deg);
+}
+
+.price-input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.price-field {
+  display: grid;
+  gap: 8px;
+  color: #172554;
+  font-size: 13px;
+}
+
+.price-field input {
+  width: 100%;
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  color: #0f172a;
+  font-size: 13px;
+  outline: none;
+}
+
+.price-field input:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.range-wrap {
+  position: relative;
+  height: 18px;
+}
+
+.range-track,
+.range-fill {
+  position: absolute;
+  top: 7px;
+  height: 4px;
+  border-radius: 999px;
+}
+
+.range-track {
+  left: 0;
+  right: 0;
+  background: #e2e8f0;
+}
+
+.range-fill {
+  background: #172554;
+}
+
+.range-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+  pointer-events: none;
+}
+
+.range-input::-webkit-slider-thumb {
+  width: 15px;
+  height: 15px;
+  border: 0;
+  border-radius: 999px;
+  background: #172554;
+  cursor: pointer;
+  appearance: none;
+  pointer-events: auto;
+}
+
+.range-input::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border: 0;
+  border-radius: 999px;
+  background: #172554;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.range-input::-webkit-slider-runnable-track {
+  background: transparent;
+}
+
+.range-input::-moz-range-track {
+  background: transparent;
+}
+
+.price-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  color: #172554;
+  font-size: 13px;
+}
+
+.price-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 18px;
+  margin: 20px -22px 0;
+  padding: 18px 22px;
+  border-top: 1px solid #e8edf5;
+}
+
+.price-reset,
+.price-apply {
+  min-width: 84px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.price-reset {
+  background: transparent;
+  color: #2563eb;
+}
+
+.price-apply {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.price-reset:hover {
+  background: #eff6ff;
+}
+
+.price-apply:hover {
+  background: #2563eb;
+}
+
 .select-option {
   width: 100%;
   min-height: 34px;
@@ -346,25 +678,6 @@ function statusCount(value) {
   background: #e0f2fe;
   color: #0369a1;
   font-weight: 700;
-}
-
-.filter-select {
-  min-width: 158px;
-  height: 38px;
-  padding: 0 34px 0 12px;
-  border: 1px solid #dbe3ef;
-  border-radius: 8px;
-  background: #fff;
-  color: #1e3a5f;
-  font-size: 13px;
-  outline: none;
-  cursor: pointer;
-}
-
-.field-select,
-.filter-select {
-  appearance: none;
-  background-image: none;
 }
 
 .status-tabs {
@@ -413,7 +726,6 @@ function statusCount(value) {
   }
 
   .search-control,
-  .filter-select,
   .custom-select,
   .filter-selects {
     width: 100%;

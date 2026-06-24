@@ -26,7 +26,7 @@
           </div>
 
           <div
-            v-if="imageList.length > 1"
+            v-if="false"
             class="pointer-events-none absolute inset-0 z-20 flex items-center justify-between px-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
           >
             <button

@@ -615,6 +615,7 @@
                           Sửa tin đăng
                         </button>
                         <button
+                          v-if="item.status === 'ACTIVE'"
                           class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                           @click.stop="handleDropdownAction('upgrade', item)"
                         >
@@ -1059,6 +1060,7 @@
                           Sửa tin đăng
                         </button>
                         <button
+                          v-if="item.status === 'ACTIVE'"
                           class="w-full text-left px-4 py-2.5 text-[0.85rem] text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
                           @click.stop="handleDropdownAction('upgrade', item)"
                         >
@@ -1574,7 +1576,7 @@
                 "
               >
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                Bán {{ favoriteCounts.sale }}
+                Mua Bán {{ favoriteCounts.sale }}
               </button>
             </div>
 
@@ -1583,7 +1585,7 @@
               <input
                 v-model="favoriteSearchQuery"
                 type="text"
-                class="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none transition focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20"
+                class="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-8 text-sm outline-none transition focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20"
                 placeholder="Nhập giá trị tìm kiếm..."
                 @input="favoriteCurrentPage = 1"
               />
@@ -1602,6 +1604,30 @@
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.3-4.3" />
               </svg>
+              <button
+                v-if="favoriteSearchQuery"
+                type="button"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                @click="
+                  favoriteSearchQuery = '';
+                  favoriteCurrentPage = 1;
+                "
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M18 6 6 18" />
+                  <path d="m6 6 12 12" />
+                </svg>
+              </button>
             </div>
           </div>
 
@@ -1792,7 +1818,7 @@
                 "
               >
                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                Bán {{ viewedCounts.sale }}
+                Mua Bán {{ viewedCounts.sale }}
               </button>
             </div>
 

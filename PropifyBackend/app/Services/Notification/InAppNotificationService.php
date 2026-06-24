@@ -23,13 +23,11 @@ final class InAppNotificationService
             'data' => $data,
         ]);
 
-        // Broadcast the notification in real-time when the WebSocket server is available.
-        // Wrapped in try/catch so a missing Reverb/Pusher server never breaks the caller.
         try {
             NotificationSent::dispatch($notification);
         } catch (\Throwable $e) {
-            logger()->warning('[InAppNotificationService] Broadcast failed — WebSocket server may be unavailable.', [
-                'error' => $e->getMessage(),
+            logger()->error('Failed to broadcast NotificationSent: '.$e->getMessage(), [
+                'exception' => $e,
                 'notification_id' => $notification->id,
             ]);
         }

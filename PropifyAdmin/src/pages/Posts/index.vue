@@ -16,7 +16,8 @@ const searchQuery = ref('')
 const searchField = ref('title')
 const filterStatus = ref('all')
 const filterType = ref('all')
-const filterPriceRange = ref('all')
+const filterMinPrice = ref(null)
+const filterMaxPrice = ref(null)
 const filterPackageId = ref('all')
 const packages = ref([])
 const listings = ref([])
@@ -66,7 +67,8 @@ function buildParams() {
   if (filterStatus.value !== 'all')
     params.status = statusParamMap[filterStatus.value] ?? filterStatus.value
   if (filterType.value !== 'all') params.demand_type = typeParamMap[filterType.value]
-  if (filterPriceRange.value !== 'all') params.price_range = filterPriceRange.value
+  if (filterMinPrice.value !== null && filterMinPrice.value !== '') params.min_price = filterMinPrice.value
+  if (filterMaxPrice.value !== null && filterMaxPrice.value !== '') params.max_price = filterMaxPrice.value
   if (filterPackageId.value !== 'all') params.package_id = filterPackageId.value
 
   return params
@@ -148,7 +150,7 @@ function goToPage(page) {
   fetchListings()
 }
 
-watch([filterStatus, filterType, filterPriceRange, filterPackageId, searchField], () => {
+watch([filterStatus, filterType, filterMinPrice, filterMaxPrice, filterPackageId, searchField], () => {
   pagination.current_page = 1
   fetchListings()
 })
@@ -179,7 +181,8 @@ onMounted(async () => {
       v-model:search-field="searchField"
       v-model:status="filterStatus"
       v-model:type="filterType"
-      v-model:price-range="filterPriceRange"
+      v-model:min-price="filterMinPrice"
+      v-model:max-price="filterMaxPrice"
       v-model:package-id="filterPackageId"
       :packages="packages"
       :status-counts="statusCounts"

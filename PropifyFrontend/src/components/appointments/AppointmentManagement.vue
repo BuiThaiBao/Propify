@@ -64,6 +64,12 @@
               {{ bookingStatusHint(booking).text }}
             </p>
             <p v-if="booking.note" class="text-xs text-slate-400 mt-1 italic">{{ getNoteLabel(booking) }}: {{ getDisplayNote(booking) }}</p>
+            <p
+              v-if="activeView === 'received' && booking.status === 'PENDING'"
+              class="mt-2 text-xs font-semibold text-rose-600"
+            >
+              Vui lòng xác nhận lịch hẹn của khách. Thời gian còn lại {{ getCountdownText(booking) }}
+            </p>
           </div>
           <div class="flex items-center gap-2 shrink-0">
             <template v-if="activeView === 'received' && booking.status === 'PENDING'">
@@ -268,6 +274,32 @@ function bookingStatusHint(booking) {
   return null;
 }
 
+const now = ref(new Date());
+let countdownInterval = null;
+
+function getCountdownText(booking) {
+  if (!booking.confirm_deadline) return '00:00';
+  const deadlineStr = booking.confirm_deadline.replace(' ', 'T');
+  const deadline = new Date(deadlineStr);
+  const diffMs = deadline.getTime() - now.value.getTime();
+
+  if (diffMs <= 0) {
+    return '00:00';
+  }
+
+  const diffSec = Math.floor(diffMs / 1000);
+  const hours = Math.floor(diffSec / 3600);
+  const minutes = Math.floor((diffSec % 3600) / 60);
+  const seconds = diffSec % 60;
+
+  const pad = (num) => String(num).padStart(2, '0');
+
+  if (hours > 0) {
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  }
+  return `${pad(minutes)}:${pad(seconds)}`;
+}
+
 function formatDate(t) { if (!t) return ''; const d = new Date(t); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
 function formatTime(t) { return t ? t.substring(0,5) : ''; }
 
@@ -382,10 +414,16 @@ function subscribeAppointmentUpdates() {
 onMounted(() => {
   fetchBookings();
   subscribeAppointmentUpdates();
+  countdownInterval = setInterval(() => {
+    now.value = new Date();
+  }, 1000);
 });
 
 onUnmounted(() => {
   leaveAppointmentChannel();
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+  }
 });
 
 watch(

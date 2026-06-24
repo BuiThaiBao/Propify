@@ -7,12 +7,12 @@ use App\Models\Listing;
 use App\Models\Package;
 use App\Models\Transaction;
 use App\Models\User;
-use App\Services\Payment\VnpayService;
+use App\Services\Payment\Gateway\PaymentProviderFactory;
 
 final class CreateUpgradePaymentCommand
 {
     public function __construct(
-        private readonly VnpayService $vnpayService,
+        private readonly PaymentProviderFactory $paymentProviderFactory,
     ) {}
 
     public function execute(
@@ -40,6 +40,6 @@ final class CreateUpgradePaymentCommand
         $transaction->update(['vnp_txn_ref' => 'PFY'.$transaction->id]);
         ExpirePendingTransactionJob::dispatch($transaction->id)->delay($paymentExpiresAt);
 
-        return $this->vnpayService->createPaymentUrl($transaction->fresh(), $clientIp);
+        return $this->paymentProviderFactory->for('VNPAY')->createPaymentUrl($transaction->fresh(), $clientIp);
     }
 }
