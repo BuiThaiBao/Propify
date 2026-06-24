@@ -63,6 +63,8 @@ interface ListingRepository
         int $perPage,
         ?string $searchField = 'title',
         ?string $priceRange = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
         ?int $packageId = null,
     ): LengthAwarePaginator;
 
@@ -74,6 +76,8 @@ interface ListingRepository
         ?string $keyword,
         ?string $searchField = 'title',
         ?string $priceRange = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
         ?int $packageId = null,
     ): array;
 

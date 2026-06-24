@@ -286,33 +286,42 @@ function demandLabel(value) {
 
 function formatRentTerm(value) {
   if (!value) return EMPTY_LABEL
-  const text = String(value)
-  const monthMatch = text.match(/\d+/)
-  if (monthMatch) return `${monthMatch[0]} tháng`
-  return text
+  const normalized = String(value).trim().toLowerCase()
+  return (
+    {
+      '1_month': '1 tháng',
+      '3_months': '3 tháng',
+      '6_months': '6 tháng',
+      '1_year': '1 năm',
+    }[normalized] || value
+  )
 }
 
 function formatRentPaymentInterval(value) {
   if (!value) return EMPTY_LABEL
-  const normalized = String(value).toUpperCase()
-  const monthMatch = normalized.match(/\d+/)
-  if (monthMatch) return `${monthMatch[0]} tháng/lần`
+  const normalized = String(value).trim().toLowerCase()
   return (
     {
-      MONTHLY: '1 tháng/lần',
-      QUARTERLY: '3 tháng/lần',
-      HALF_YEARLY: '6 tháng/lần',
-      YEARLY: '12 tháng/lần',
+      monthly: '1 tháng/lần',
+      quarter: '3 tháng/lần',
+      half_year: '6 tháng/lần',
+      yearly: '1 năm/lần',
     }[normalized] || value
   )
 }
 
 function formatRentDeposit(value) {
   if (!value) return EMPTY_LABEL
-  const text = String(value)
-  const monthMatch = text.match(/\d+/)
-  if (monthMatch) return `${monthMatch[0]} tháng`
-  return text
+  const normalized = String(value).trim().toLowerCase()
+  return (
+    {
+      none: 'Không',
+      '1_month': '1 tháng',
+      '3_months': '3 tháng',
+      '6_months': '6 tháng',
+      '1_year': '1 năm',
+    }[normalized] || value
+  )
 }
 
 function directionLabel(value) {

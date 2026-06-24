@@ -35,6 +35,8 @@ final class AdminListingController extends Controller
         $keyword = $request->input('keyword');
         $searchField = $request->input('search_field', 'title');
         $priceRange = $request->input('price_range');
+        $minPrice = $request->filled('min_price') ? (float) $request->input('min_price') : null;
+        $maxPrice = $request->filled('max_price') ? (float) $request->input('max_price') : null;
         $packageId = $request->input('package_id');
 
         $paginator = $this->listingService->getAllForAdmin(
@@ -44,6 +46,8 @@ final class AdminListingController extends Controller
             perPage: $perPage,
             searchField: $searchField,
             priceRange: $priceRange,
+            minPrice: $minPrice,
+            maxPrice: $maxPrice,
             packageId: is_numeric($packageId) ? (int) $packageId : null,
         );
         $statusCounts = $this->listingService->getAdminStatusCounts(
@@ -51,6 +55,8 @@ final class AdminListingController extends Controller
             keyword: $keyword,
             searchField: $searchField,
             priceRange: $priceRange,
+            minPrice: $minPrice,
+            maxPrice: $maxPrice,
             packageId: is_numeric($packageId) ? (int) $packageId : null,
         );
 

@@ -30,7 +30,14 @@ final class DatabaseChannel implements NotificationChannel
             'data' => $data,
         ]);
 
-        NotificationSent::dispatch($notification);
+        try {
+            NotificationSent::dispatch($notification);
+        } catch (\Throwable $e) {
+            logger()->error('Failed to broadcast NotificationSent via DatabaseChannel: '.$e->getMessage(), [
+                'exception' => $e,
+                'notification_id' => $notification->id,
+            ]);
+        }
     }
 
     private function titleFor(NotificationType $type, array $data): string

@@ -20,6 +20,9 @@ Schedule::command('packages:expire')->everyMinute();
 // ── Payment Expiration: Hết hạn giao dịch thanh toán chưa hoàn tất ──
 Schedule::command('transactions:expire-pending --minutes=15')->everyMinute();
 
+// ── Appointment Completion: Lịch đã xác nhận, qua giờ kết thúc → HOÀN THÀNH ──
+Schedule::command('appointments:complete-past')->everyMinute();
+
 // ── Package Notification: Email nhắc gia hạn (7 ngày cuối) ──────────
 // Gửi 1 email/ngày lúc 9h sáng cho các listing sắp hết hạn
 Schedule::command('packages:notify-expiring')->dailyAt('09:00');

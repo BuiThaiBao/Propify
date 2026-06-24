@@ -8,7 +8,6 @@ use App\Enums\ErrorCode;
 use App\Events\Listing\ListingSaved;
 use App\Exceptions\BusinessException;
 use App\Models\Listing;
-use App\Models\ListingStatusHistory;
 use App\Models\Package;
 use App\Models\Transaction;
 use App\Models\User;
@@ -19,6 +18,10 @@ use App\Services\Listing\Commands\SubmitListingVerificationCommand;
 use App\Services\Listing\Commands\UnlistListingCommand;
 use App\Services\Listing\Commands\UpdateListingCommand;
 use App\Services\Listing\ListingService;
+use App\Services\Listing\Moderation\ApproveListingCommand;
+use App\Services\Listing\Moderation\LockListingCommand;
+use App\Services\Listing\Moderation\ModerationContext;
+use App\Services\Listing\Moderation\RejectListingCommand;
 use App\Services\Listing\Sorting\ListingSortingStrategyFactory;
 use App\Services\Listing\State\ListingStatusStateFactory;
 use App\Services\Listing\Upgrade\CreateUpgradePaymentCommand;
@@ -44,8 +47,10 @@ final class ListingServiceImpl implements ListingService
         private readonly UpgradeListingCommand $upgradeListingCommand,
         private readonly CreateUpgradePaymentCommand $createUpgradePaymentCommand,
         private readonly ListingVerificationService $listingVerificationService,
-    ) {
-    }
+        private readonly ApproveListingCommand $approveListingCommand,
+        private readonly RejectListingCommand $rejectListingCommand,
+        private readonly LockListingCommand $lockListingCommand,
+    ) {}
 
     public function create(User $user, CreateListingDto $dto): Listing
     {
@@ -122,7 +127,7 @@ final class ListingServiceImpl implements ListingService
                 throw new BusinessException(ErrorCode::ListingAlreadyLocked);
             }
 
-            if (!$this->statusStateFactory->make($listing->status)->canTransitionTo('LOCKED')) {
+            if (! $this->statusStateFactory->make($listing->status)->canTransitionTo('LOCKED')) {
                 throw new BusinessException(ErrorCode::ListingCannotBeLocked);
             }
 
@@ -173,6 +178,8 @@ final class ListingServiceImpl implements ListingService
     ): LengthAwarePaginator {
         $strategy = ListingSortingStrategyFactory::make($sortBy);
         $page = request()->input('page', 1);
+        $cacheKey = 'listings:public:'.md5(serialize([
+            'version' => 5,
         $cacheKey = 'listings:public:' . md5(serialize([
             'version' => 6, // Bumped version since cache schema changed
             'sort' => $sortBy,
@@ -213,9 +220,21 @@ final class ListingServiceImpl implements ListingService
         int $perPage,
         ?string $searchField = 'title',
         ?string $priceRange = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
         ?int $packageId = null,
     ): LengthAwarePaginator {
-        return $this->listingRepository->paginateAdmin($status, $demandType, $keyword, $perPage, $searchField, $priceRange, $packageId);
+        return $this->listingRepository->paginateAdmin(
+            $status,
+            $demandType,
+            $keyword,
+            $perPage,
+            $searchField,
+            $priceRange,
+            $minPrice,
+            $maxPrice,
+            $packageId
+        );
     }
 
     public function getAdminStatusCounts(
@@ -223,9 +242,19 @@ final class ListingServiceImpl implements ListingService
         ?string $keyword,
         ?string $searchField = 'title',
         ?string $priceRange = null,
+        ?float $minPrice = null,
+        ?float $maxPrice = null,
         ?int $packageId = null,
     ): array {
-        return $this->listingRepository->getAdminStatusCounts($demandType, $keyword, $searchField, $priceRange, $packageId);
+        return $this->listingRepository->getAdminStatusCounts(
+            $demandType,
+            $keyword,
+            $searchField,
+            $priceRange,
+            $minPrice,
+            $maxPrice,
+            $packageId
+        );
     }
 
     public function getMapListings(
@@ -252,7 +281,7 @@ final class ListingServiceImpl implements ListingService
             'property_type' => $propertyType,
         ]));
 
-        return Cache::tags(['listings:public'])->remember($cacheKey, 300, fn() => $this->listingRepository->getMapListings(
+        return Cache::tags(['listings:public'])->remember($cacheKey, 300, fn () => $this->listingRepository->getMapListings(
             demandType: $demandType,
             keyword: $keyword,
             searchField: $searchField,
@@ -271,53 +300,16 @@ final class ListingServiceImpl implements ListingService
             throw new BusinessException(ErrorCode::AuthForbidden);
         }
 
-        if ($status === 'REJECTED' && trim((string) $rejectionReason) === '') {
-            throw new BusinessException(ErrorCode::BadRequest, 'Vui lòng nhập lý do từ chối.');
-        }
+        // Điều phối theo trạng thái đích (Command). Mỗi lệnh dùng chung khung kiểm duyệt
+        // (Template Method) + State::assertCanTransition; nghiệp vụ giữ nguyên như cũ.
+        $ctx = new ModerationContext($adminUserId, $rejectionReason);
 
-        $listing = DB::transaction(function () use ($listingId, $status, $rejectionReason, $adminUserId) {
-            $listing = Listing::query()->lockForUpdate()->find($listingId);
-            if (!$listing) {
-                throw new BusinessException(ErrorCode::ListingNotFound);
-            }
-            $this->statusStateFactory->assertCanTransition($listing->status, $status);
-
-            $listing->status = $status;
-            if ($status === 'REJECTED') {
-                $listing->rejection_reason = $rejectionReason;
-            }
-
-            if ($status === 'ACTIVE') {
-                $listing->published_at = now();
-                $listing->approved_by = $adminUserId;
-            }
-
-            $listing->save();
-
-            ListingStatusHistory::create([
-                'user_id' => $adminUserId,
-                'listing_id' => $listing->id,
-                'action' => $status,
-                'reason' => $rejectionReason,
-            ]);
-
-            return $listing;
-        });
-        $loaded = $listing->load([
-            'property.attributes.group',
-            'images',
-            'videos',
-            'verificationDocuments',
-            'appointmentSlots',
-            'appointments',
-            'owner',
-            'approver',
-            'package',
-        ]);
-
-        ListingSaved::dispatch($loaded, null, 'admin_status_changed');
-
-        return $loaded;
+        return match ($status) {
+            'ACTIVE' => $this->approveListingCommand->execute($listingId, $ctx),
+            'REJECTED' => $this->rejectListingCommand->execute($listingId, $ctx),
+            'LOCKED' => $this->lockListingCommand->execute($listingId, $ctx),
+            default => throw new BusinessException(ErrorCode::BadRequest),
+        };
     }
 
     public function updateVerificationForAdmin(int $listingId, bool $isVerified, ?string $reason = null, ?int $adminUserId = null): Listing
@@ -372,13 +364,13 @@ final class ListingServiceImpl implements ListingService
     {
         $listing = Listing::find($listingId);
 
-        if (!$listing) {
+        if (! $listing) {
             throw new BusinessException(ErrorCode::ListingNotFound);
         }
 
         $newPackage = Package::find($packageId);
 
-        if (!$newPackage) {
+        if (! $newPackage) {
             throw new BusinessException(ErrorCode::PackageNotFound);
         }
 
@@ -387,7 +379,7 @@ final class ListingServiceImpl implements ListingService
             ->where('is_active', true)
             ->first();
 
-        if (!$pricing) {
+        if (! $pricing) {
             throw new BusinessException(ErrorCode::PackagePricingNotFound);
         }
 
@@ -448,17 +440,17 @@ final class ListingServiceImpl implements ListingService
         $score = 0;
 
         // Title rõ ràng (>= 10 ký tự)
-        if (!empty($dto->title) && mb_strlen($dto->title) >= 10) {
+        if (! empty($dto->title) && mb_strlen($dto->title) >= 10) {
             $score += 10;
         }
 
         // Có description (>= 20 ký tự)
-        if (!empty($dto->description) && mb_strlen($dto->description) >= 20) {
+        if (! empty($dto->description) && mb_strlen($dto->description) >= 20) {
             $score += 10;
         }
 
         // Có ảnh
-        if (!empty($dto->images) && count($dto->images) > 0) {
+        if (! empty($dto->images) && count($dto->images) > 0) {
             $score += 20;
         }
 
@@ -471,7 +463,7 @@ final class ListingServiceImpl implements ListingService
         $hasValidPrice = $dto->isNegotiable || ($dto->price !== null && $dto->price > 0);
         $hasFullInfo = $hasValidPrice
             && ($dto->area > 0)
-            && (!empty($dto->addressDetail) || !empty($dto->projectName));
+            && (! empty($dto->addressDetail) || ! empty($dto->projectName));
         if ($hasFullInfo) {
             $score += 20;
         }
