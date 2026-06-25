@@ -749,39 +749,22 @@
           <div
             class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500"
           >
-            <p>Tổng cộng {{ verificationPagination.total }} tin</p>
+            <p>Tổng cộng {{ listingPagination.total }} tin</p>
             <div class="flex items-center gap-2">
               <button
                 type="button"
                 class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50"
-                :disabled="
-                  verificationPagination.currentPage <= 1 || verificationLoading
-                "
-                @click="
-                  loadVerificationListings(
-                    verificationPagination.currentPage - 1,
-                  )
-                "
+                :disabled="listingPagination.currentPage <= 1 || listingsLoading"
+                @click="loadMyListings(listingPagination.currentPage - 1)"
               >
                 Trước
               </button>
-              <span
-                >Trang {{ verificationPagination.currentPage }}/{{
-                  verificationPagination.lastPage
-                }}</span
-              >
+              <span>Trang {{ listingPagination.currentPage }}/{{ listingPagination.lastPage }}</span>
               <button
                 type="button"
                 class="rounded-lg border border-slate-200 px-3 py-1.5 disabled:opacity-50"
-                :disabled="
-                  verificationPagination.currentPage >=
-                    verificationPagination.lastPage || verificationLoading
-                "
-                @click="
-                  loadVerificationListings(
-                    verificationPagination.currentPage + 1,
-                  )
-                "
+                :disabled="listingPagination.currentPage >= listingPagination.lastPage || listingsLoading"
+                @click="loadMyListings(listingPagination.currentPage + 1)"
               >
                 Sau
               </button>
@@ -798,13 +781,23 @@
             Danh sách xác thực BĐS
           </h2>
 
-          <div class="grid grid-cols-1 gap-3 mb-4">
+          <div class="grid grid-cols-1 gap-3 mb-4 lg:grid-cols-[1fr_auto]">
             <input
               v-model.trim="verificationFilters.keyword"
               type="text"
               class="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-sky-400"
               placeholder="Nhập giá trị tìm kiếm..."
             />
+
+            <select
+              v-model="verificationFilters.demandType"
+              class="h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none transition focus:border-sky-400"
+              @change="loadVerificationListings(1)"
+            >
+              <option value="">Loại tin: Tất cả</option>
+              <option value="SALE">Mua bán</option>
+              <option value="RENT">Cho thuê</option>
+            </select>
           </div>
 
           <div
@@ -2603,6 +2596,7 @@ const verificationLoaded = ref(false);
 const verificationFilters = reactive({
   keyword: "",
   status: "",
+  demandType: "",
 });
 const verificationPagination = reactive({
   currentPage: 1,
@@ -2694,6 +2688,7 @@ const lockAppealModalOpen = ref(false);
 const lockAppealTarget = ref(null);
 const listingActionMessage = ref("");
 const listingActionSuccess = ref(false);
+let listingActionMessageTimer = null;
 const favoritesLoaded = ref(false);
 const favoritesLoading = ref(false);
 const favoriteListings = ref([]);
@@ -2721,6 +2716,24 @@ function statusLabel(status) {
     listingStatusOptions.value.find((option) => option.value === status)
       ?.label || status
   );
+}
+
+function clearListingActionMessage() {
+  if (listingActionMessageTimer) {
+    window.clearTimeout(listingActionMessageTimer);
+    listingActionMessageTimer = null;
+  }
+  listingActionMessage.value = "";
+}
+
+function showListingActionMessage(message, success = false) {
+  clearListingActionMessage();
+  listingActionSuccess.value = success;
+  listingActionMessage.value = message;
+  listingActionMessageTimer = window.setTimeout(() => {
+    listingActionMessage.value = "";
+    listingActionMessageTimer = null;
+  }, 5000);
 }
 
 function statusTabColorClass(status) {
@@ -3038,7 +3051,7 @@ async function loadVerificationListings(page = 1) {
       per_page: 10,
       keyword: verificationFilters.keyword || undefined,
       status: verificationFilters.status || undefined,
-      demand_type: "SALE",
+      demand_type: verificationFilters.demandType || undefined,
     });
 
     const data = response?.data?.data || [];
@@ -3107,12 +3120,11 @@ async function handleConfirmUnlistListing() {
   }
 
   unlistingListing.value = true;
-  listingActionMessage.value = "";
+  clearListingActionMessage();
 
   try {
     await listingService.unlist(unlistListingTarget.value.id);
-    listingActionSuccess.value = true;
-    listingActionMessage.value = "Gỡ tin đăng thành công.";
+    showListingActionMessage("Gỡ tin đăng thành công.", true);
     unlistListingModalOpen.value = false;
     unlistListingTarget.value = null;
     if (activeTab.value === "verifications") {
@@ -3121,10 +3133,10 @@ async function handleConfirmUnlistListing() {
       await loadMyListings(listingPagination.currentPage);
     }
   } catch (error) {
-    listingActionSuccess.value = false;
-    listingActionMessage.value =
-      error?.response?.data?.message ||
-      "Không thể gỡ tin đăng. Vui lòng thử lại.";
+    showListingActionMessage(
+      error?.response?.data?.message || "Không thể gỡ tin đăng. Vui lòng thử lại.",
+      false,
+    );
   } finally {
     unlistingListing.value = false;
   }
@@ -3132,8 +3144,7 @@ async function handleConfirmUnlistListing() {
 
 function openLockAppealModal(item) {
   if (item?.status !== "LOCKED") {
-    listingActionSuccess.value = false;
-    listingActionMessage.value = "Chỉ có thể phản ánh tin đang bị khóa.";
+    showListingActionMessage("Chỉ có thể phản ánh tin đang bị khóa.", false);
     return;
   }
 
@@ -3445,19 +3456,22 @@ onMounted(async () => {
   }
 
   if (route.query.payment === "success") {
-    listingActionSuccess.value = true;
-    listingActionMessage.value = "Nâng cấp gói tin thành công.";
+    showListingActionMessage("Nâng cấp gói tin thành công.", true);
     router.replace({ query: { tab: "listings" } }).catch(() => {});
   } else if (route.query.payment === "failed") {
-    listingActionSuccess.value = false;
-    listingActionMessage.value =
-      "Thanh toán chưa thành công. Gói tin chưa được nâng cấp.";
+    showListingActionMessage(
+      "Thanh toán chưa thành công. Gói tin chưa được nâng cấp.",
+      false,
+    );
     router.replace({ query: { tab: "listings" } }).catch(() => {});
   }
 });
 
 onUnmounted(() => {
   document.removeEventListener("click", closeDropdown);
+  if (listingActionMessageTimer) {
+    window.clearTimeout(listingActionMessageTimer);
+  }
 });
 
 function startEditing() {
