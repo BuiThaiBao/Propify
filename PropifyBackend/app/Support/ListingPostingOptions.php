@@ -89,7 +89,7 @@ final class ListingPostingOptions
                 ['value' => 'BROKER', 'label' => 'Môi giới'],
             ],
             'listing_statuses' => [
-                ['value' => 'DRAFT', 'label' => 'Nháp'],
+                ['value' => 'DRAFT', 'label' => 'Tin nháp'],
                 ['value' => 'PENDING', 'label' => 'Chờ duyệt'],
                 ['value' => 'ACTIVE', 'label' => 'Đang đăng'],
                 ['value' => 'EXPIRED', 'label' => 'Hết hạn'],
