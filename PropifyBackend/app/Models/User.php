@@ -4,6 +4,9 @@ namespace App\Models;
 
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
+use App\Services\User\States\ActiveUserState;
+use App\Services\User\States\BannedUserState;
+use App\Services\User\States\UserState;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -129,5 +132,16 @@ final class User extends Authenticatable implements JWTSubject
     public function sentMessages(): HasMany
     {
         return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    /**
+     * Get the State Pattern object representing the user's status.
+     */
+    public function getState(): UserState
+    {
+        return match ($this->status) {
+            UserStatus::Banned => new BannedUserState($this),
+            default => new ActiveUserState($this),
+        };
     }
 }

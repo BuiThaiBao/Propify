@@ -989,9 +989,6 @@ onBeforeUnmount(() => {
                         report.reporter?.email ||
                         `User #${report.reporter?.id || '--'}`
                       }}</strong>
-                      <span class="warning-status" :class="reportStatusClass(report.status)">{{
-                        reportStatusLabel(report.status)
-                      }}</span>
                     </div>
                     <div class="warning-reasons">
                       <span v-for="label in report.reason_labels" :key="label">{{ label }}</span>
@@ -1551,28 +1548,6 @@ onBeforeUnmount(() => {
 .warning-user-row strong {
   font-size: 14px;
   color: #0f172a;
-}
-.warning-status {
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 800;
-}
-.warning-status.new {
-  background: #fee2e2;
-  color: #ef4444;
-}
-.warning-status.processing {
-  background: #fef3c7;
-  color: #d97706;
-}
-.warning-status.resolved {
-  background: #dcfce7;
-  color: #16a34a;
-}
-.warning-status.rejected {
-  background: #f1f5f9;
-  color: #64748b;
 }
 .warning-reasons {
   display: flex;

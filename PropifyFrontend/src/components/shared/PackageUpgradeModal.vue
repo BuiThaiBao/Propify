@@ -317,32 +317,23 @@ function getPushPrice(pkg) {
 function getFeatures(pkg) {
   const featMap = {
     diamond: [
-      { text: 'Gói <strong>DUY NHẤT</strong> tích hợp 3D', enabled: true },
       { text: '<strong>TOP 1</strong> phủ sóng trên hệ sinh thái', enabled: true },
       { text: 'Giao diện hiển thị chuyên biệt', enabled: true },
-      { text: 'Tự động đẩy tin <strong>MIỄN PHÍ</strong>', enabled: true },
     ],
     electron: [
-      { text: 'Gói <strong>DUY NHẤT</strong> tích hợp 3D', enabled: true },
       { text: '<strong>TOP 1</strong> phủ sóng trên hệ sinh thái', enabled: true },
       { text: 'Giao diện hiển thị chuyên biệt', enabled: true },
-      { text: 'Tự động đẩy tin <strong>MIỄN PHÍ</strong>', enabled: true },
     ],
     ruby: [
-      { text: 'Không tích hợp 3D', enabled: false },
-      { text: 'Nhận tag <strong>Ruby</strong>', enabled: true },
       { text: 'Người xem ước tính <strong>X10</strong>', enabled: true },
       { text: 'Kích thước lớn, tăng lượt xem', enabled: true },
       { text: '<strong>TOP 2</strong> hiển thị trong danh sách', enabled: true },
     ],
     gold: [
-      { text: 'Không tích hợp 3D', enabled: false },
-      { text: 'Nhận tag <strong>Vàng</strong>', enabled: true },
       { text: 'Người xem ước tính <strong>X6</strong>', enabled: true },
       { text: '<strong>TOP 3</strong> hiển thị trong danh sách', enabled: true },
     ],
     free: [
-      { text: 'Không tích hợp 3D', enabled: false },
       { text: 'Miễn phí hiển thị trong danh sách', enabled: true },
       { text: 'Lượt tiếp cận tự nhiên', enabled: true },
     ],

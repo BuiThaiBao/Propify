@@ -5,6 +5,7 @@ use App\Helpers\ApiResponse;
 use App\Http\Controllers\Api\V1\Admin\AdminAuditLogController;
 use App\Http\Controllers\Api\V1\Admin\AdminListingController;
 use App\Http\Controllers\Api\V1\Admin\AdminTransactionController;
+use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\Amenity\AmenityController;
 use App\Http\Controllers\Api\V1\Amenity\ListingAmenityController;
 use App\Http\Controllers\Api\V1\Appointment\AppointmentBookingController;
@@ -307,6 +308,12 @@ Route::prefix('v1/admin')->as('admin.')->middleware(['auth:api', 'admin'])->grou
     Route::get('/transactions/export', [AdminTransactionController::class, 'export'])->name('transactions.export');
     Route::get('/transactions/{id}', [AdminTransactionController::class, 'show'])->whereNumber('id')->name('transactions.show');
     Route::post('/transactions/{id}/notes', [AdminTransactionController::class, 'storeNote'])->whereNumber('id')->name('transactions.store-note');
+
+    // Users
+    Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+    Route::get('/users/{id}', [AdminUserController::class, 'show'])->whereNumber('id')->name('users.show');
+    Route::get('/users/{id}/listings', [AdminUserController::class, 'listings'])->whereNumber('id')->name('users.listings');
+    Route::patch('/users/{id}/status', [AdminUserController::class, 'changeStatus'])->name('users.change-status');
 });
 
 // Route login fallback để tránh RouteNotFoundException

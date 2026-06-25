@@ -2590,7 +2590,7 @@ onUnmounted(() => {
 .report-modal-title {
   text-align: center;
   font-size: 22px;
-  font-weight: 400;
+  font-weight: 700;
   color: #1e293b;
 }
 
