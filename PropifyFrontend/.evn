@@ -1,0 +1,9 @@
+VITE_API_URL="http://localhost:8000/api"
+VITE_GOOGLE_AUTH_URL="http://localhost:8000/api/v1/auth/google"
+VITE_AUTH_ACCESS_COOKIE="propify_user_access_token"
+
+# ── WebSocket / Reverb ────────────────────────────────────────────
+VITE_REVERB_APP_KEY="n5g3tu9ypmzdgsj4vwhg"
+VITE_REVERB_HOST="localhost"
+VITE_REVERB_PORT="8080"
+VITE_REVERB_SCHEME="http"
