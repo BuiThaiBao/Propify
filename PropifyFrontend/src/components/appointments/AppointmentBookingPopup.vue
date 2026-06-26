@@ -175,21 +175,27 @@
 </template>
 
 <script setup>
+// 1. Imports
 import { ref, computed, watch } from 'vue';
-import appointmentService from '@/services/appointmentService';
+import { useAppointmentSlots, useCreateBooking } from '@/composables/useAppointments';
 import { useAuthStore } from '@/stores/auth';
 
+// 2. Props & Emits
 const props = defineProps({
   visible: { type: Boolean, default: false },
   listingId: { type: [Number, String], required: true },
 });
 
 const emit = defineEmits(['close', 'success']);
-const authStore = useAuthStore();
 
-const loading = ref(false);
-const errorMsg = ref('');
-const slotsData = ref([]);
+// 3. State
+const authStore = useAuthStore();
+const listingIdRef = computed(() => props.listingId);
+const slotsEnabled = ref(false);
+
+const { slots, isLoading: loading, error: slotsError, refetch } = useAppointmentSlots(listingIdRef, { enabled: slotsEnabled });
+const createMutation = useCreateBooking();
+
 const selectedDateIndex = ref(0);
 const selectedSlotId = ref(null);
 const dateScrollIndex = ref(0);
@@ -218,10 +224,17 @@ const form = ref({
 
 const dayLabels = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
 
+// 4. Computed
+const errorMsg = computed(() => {
+  if (slotsError.value) return 'Không thể tải lịch hẹn.';
+  if (slots.value.length === 0 && !loading.value && slotsEnabled.value) return 'Chưa có lịch hẹn nào cho bài đăng này.';
+  return '';
+});
+
 const allDates = computed(() => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  return slotsData.value.map(item => {
+  return slots.value.map(item => {
     const d = new Date(item.date + 'T00:00:00');
     const isToday = d.getTime() === today.getTime();
     return {
@@ -258,6 +271,43 @@ const canAutofillProfile = computed(() => {
   return Boolean(profile.full_name || profile.phone || profile.email);
 });
 
+const canSubmit = computed(() => {
+  const phoneDigits = form.value.phone.replace(/\D/g, '');
+  const email = form.value.email.trim();
+  return selectedSlotId.value
+    && form.value.full_name.trim()
+    && VIETNAM_PHONE_PATTERN.test(phoneDigits)
+    && /^[^@\s]+@gmail\.com$/i.test(email)
+    && !nameError.value
+    && !phoneError.value
+    && !emailError.value;
+});
+
+// 5. Watchers
+watch(() => props.visible, (val) => {
+  if (val) {
+    slotsEnabled.value = true;
+    refetch();
+    selectedDateIndex.value = 0;
+    selectedSlotId.value = null;
+    dateScrollIndex.value = 0;
+    form.value = { full_name: '', phone: '', email: '', note: '' };
+    nameError.value = '';
+    phoneError.value = '';
+    emailError.value = '';
+    phoneTouched.value = false;
+    emailTouched.value = false;
+    if (phoneValidateTimer) clearTimeout(phoneValidateTimer);
+    if (emailValidateTimer) clearTimeout(emailValidateTimer);
+  } else {
+    slotsEnabled.value = false;
+  }
+});
+
+// 6. Lifecycle
+// (none needed)
+
+// 7. Functions
 function validateName() {
   nameError.value = form.value.full_name.trim() ? '' : 'Vui lòng nhập họ và tên.';
 }
@@ -332,37 +382,9 @@ function formatTime(time) {
   return time.substring(0, 5);
 }
 
-const canSubmit = computed(() => {
-  const phoneDigits = form.value.phone.replace(/\D/g, '');
-  const email = form.value.email.trim();
-  return selectedSlotId.value
-    && form.value.full_name.trim()
-    && VIETNAM_PHONE_PATTERN.test(phoneDigits)
-    && /^[^@\s]+@gmail\.com$/i.test(email)
-    && !nameError.value
-    && !phoneError.value
-    && !emailError.value;
-});
-
-async function fetchSlots() {
-  loading.value = true;
-  errorMsg.value = '';
-  slotsData.value = [];
-  selectedDateIndex.value = 0;
-  selectedSlotId.value = null;
-  dateScrollIndex.value = 0;
-  try {
-    const res = await appointmentService.getAppointmentSlots(props.listingId);
-    slotsData.value = res.data.data || [];
-    if (slotsData.value.length === 0) {
-      errorMsg.value = 'Chưa có lịch hẹn nào cho bài đăng này.';
-    }
-  } catch (err) {
-    const msg = getApiErrorMessage(err, 'Không thể tải lịch hẹn.');
-    errorMsg.value = msg;
-  } finally {
-    loading.value = false;
-  }
+function fetchSlots() {
+  slotsEnabled.value = true;
+  refetch();
 }
 
 function showConfirm() {
@@ -378,7 +400,7 @@ async function doSubmit() {
   submitting.value = true;
   try {
     const selectedDate = allDates.value[selectedDateIndex.value]?.date;
-    const res = await appointmentService.createBooking({
+    const res = await createMutation.mutateAsync({
       slot_id: selectedSlotId.value,
       date: selectedDate,
       full_name: form.value.full_name.trim(),
@@ -409,20 +431,6 @@ async function doSubmit() {
 function close() {
   emit('close');
 }
-
-watch(() => props.visible, (val) => {
-  if (val) {
-    fetchSlots();
-    form.value = { full_name: '', phone: '', email: '', note: '' };
-    nameError.value = '';
-    phoneError.value = '';
-    emailError.value = '';
-    phoneTouched.value = false;
-    emailTouched.value = false;
-    if (phoneValidateTimer) clearTimeout(phoneValidateTimer);
-    if (emailValidateTimer) clearTimeout(emailValidateTimer);
-  }
-});
 
 function onPhoneInput() {
   phoneTouched.value = true;

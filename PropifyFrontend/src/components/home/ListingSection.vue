@@ -261,12 +261,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+// 1. Imports
+import { computed, onMounted, watch } from "vue";
 import ListingCardHome from "@/components/shared/ListingCardHome.vue";
 import { useHomeListings } from "@/composables/useHomeListings";
 import { useFavoriteListings } from "@/composables/useFavoriteListings";
+import { useRecentlyViewed } from "@/composables/useRecentlyViewed";
 import { useAuthStore } from "@/stores/auth";
-import recentlyViewedService from "@/services/recentlyViewedService";
 import {
   formatPrice,
   getThumb,
@@ -275,9 +276,12 @@ import {
   timeAgo,
 } from "@/utils/listingFormatters";
 
+// 2. Props & Emits (none)
+
+// 3. State & Composables
+const authStore = useAuthStore();
 const { saleListings, rentListings, saleLoading, rentLoading, init } =
   useHomeListings();
-const authStore = useAuthStore();
 const {
   favoriteListings,
   favoriteLoading,
@@ -286,36 +290,25 @@ const {
   loadFavorites,
 } = useFavoriteListings();
 
-const viewedListings = ref([]);
-const viewedLoading = ref(false);
+const isAuthenticatedRef = computed(() => authStore.isAuthenticated);
+const { recentlyViewed, isLoading: viewedLoading } = useRecentlyViewed(isAuthenticatedRef);
 
-async function loadRecentlyViewed() {
-  viewedLoading.value = true;
-  try {
-    const data = await recentlyViewedService.getRecentlyViewed(
-      authStore.isAuthenticated,
-    );
-    // Take the top 3 viewed listings
-    viewedListings.value = data.slice(0, 3);
-  } catch (err) {
-    console.error("Failed to load recently viewed:", err);
-    viewedListings.value = [];
-  } finally {
-    viewedLoading.value = false;
-  }
-}
+// 4. Computed
+const viewedListings = computed(() => (recentlyViewed.value || []).slice(0, 3));
 
-onMounted(() => {
-  init();
-  loadFavorites();
-  loadRecentlyViewed();
-});
-
+// 5. Watchers
 watch(
   () => authStore.isAuthenticated,
   () => {
     loadFavorites();
-    loadRecentlyViewed();
   },
 );
+
+// 6. Lifecycle
+onMounted(() => {
+  init();
+  loadFavorites();
+});
+
+// 7. Functions (none needed — all logic handled by composables)
 </script>

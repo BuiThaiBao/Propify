@@ -51,7 +51,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import chatService from '@/services/chatService';
+import { useUserSearch } from '@/composables/useUserSearch';
 import { useChatFormatters } from '@/composables/useChatFormatters';
 
 const props = defineProps({
@@ -63,15 +63,16 @@ const emit = defineEmits(['update:modelValue', 'submit']);
 
 const { initials } = useChatFormatters();
 const query = ref('');
-const results = ref([]);
-const loading = ref(false);
+const debouncedQuery = ref('');
+const { results, isLoading: loading } = useUserSearch(debouncedQuery);
 const submitting = ref(false);
 const selectedUsers = ref([]);
+let debounceTimer = null;
+
 const selectedIds = computed(() => new Set(selectedUsers.value.map((user) => user.id)));
 const filteredResults = computed(() =>
   results.value.filter((user) => !props.existingMemberIds.includes(user.id)),
 );
-let debounceTimer = null;
 
 watch(
   () => props.modelValue,
@@ -82,9 +83,8 @@ watch(
 
 function reset() {
   query.value = '';
-  results.value = [];
+  debouncedQuery.value = '';
   selectedUsers.value = [];
-  loading.value = false;
   clearTimeout(debounceTimer);
 }
 
@@ -102,25 +102,12 @@ function onSearch() {
   clearTimeout(debounceTimer);
   const normalized = query.value.trim();
   if (normalized.length < 2) {
-    results.value = [];
+    debouncedQuery.value = '';
     return;
   }
-
   debounceTimer = setTimeout(() => {
-    searchUsers(normalized);
+    debouncedQuery.value = normalized;
   }, 300);
-}
-
-async function searchUsers(value) {
-  loading.value = true;
-  try {
-    const response = await chatService.searchUserByPhone(value);
-    results.value = response.data?.data ?? [];
-  } catch {
-    results.value = [];
-  } finally {
-    loading.value = false;
-  }
 }
 
 async function submit() {

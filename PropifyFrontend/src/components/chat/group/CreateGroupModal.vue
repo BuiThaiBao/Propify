@@ -58,27 +58,33 @@
 </template>
 
 <script setup>
+// 1. Imports
 import { computed, ref, watch } from 'vue';
-import chatService from '@/services/chatService';
 import { useChatFormatters } from '@/composables/useChatFormatters';
+import { useUserSearch } from '@/composables/useUserSearch';
 
+// 2. Props & Emits
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
 });
-
 const emit = defineEmits(['update:modelValue', 'created']);
 
+// 3. State & Composables
 const { initials } = useChatFormatters();
 const name = ref('');
 const query = ref('');
-const results = ref([]);
-const loading = ref(false);
-const submitting = ref(false);
+const debouncedQuery = ref('');
 const selectedUsers = ref([]);
-const selectedIds = computed(() => new Set(selectedUsers.value.map((user) => user.id)));
-const canSubmit = computed(() => name.value.length >= 2 && selectedUsers.value.length > 0);
+const submitting = ref(false);
 let debounceTimer = null;
 
+const { results, isLoading: loading } = useUserSearch(debouncedQuery);
+
+// 4. Computed
+const selectedIds = computed(() => new Set(selectedUsers.value.map((user) => user.id)));
+const canSubmit = computed(() => name.value.length >= 2 && selectedUsers.value.length > 0);
+
+// 5. Watchers
 watch(
   () => props.modelValue,
   (open) => {
@@ -86,12 +92,14 @@ watch(
   },
 );
 
+// 6. Lifecycle (none)
+
+// 7. Functions
 function reset() {
   name.value = '';
   query.value = '';
-  results.value = [];
+  debouncedQuery.value = '';
   selectedUsers.value = [];
-  loading.value = false;
   clearTimeout(debounceTimer);
 }
 
@@ -109,25 +117,13 @@ function onSearch() {
   clearTimeout(debounceTimer);
   const normalized = query.value.trim();
   if (normalized.length < 2) {
-    results.value = [];
+    debouncedQuery.value = '';
     return;
   }
 
   debounceTimer = setTimeout(() => {
-    searchUsers(normalized);
+    debouncedQuery.value = normalized;
   }, 300);
-}
-
-async function searchUsers(value) {
-  loading.value = true;
-  try {
-    const response = await chatService.searchUserByPhone(value);
-    results.value = response.data?.data ?? [];
-  } catch {
-    results.value = [];
-  } finally {
-    loading.value = false;
-  }
 }
 
 async function submit() {

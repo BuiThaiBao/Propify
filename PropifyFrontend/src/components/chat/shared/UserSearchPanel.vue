@@ -68,61 +68,55 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+// 1. Imports
+import { ref, computed } from 'vue';
 import { useChatFormatters } from '@/composables/useChatFormatters';
-import chatService from '@/services/chatService';
+import { useUserSearch } from '@/composables/useUserSearch';
 
+// 2. Props & Emits
 defineProps({
   visible: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['start-chat']);
 
+// 3. State
 const { initials } = useChatFormatters();
 const phone = ref('');
-const results = ref([]);
-const loading = ref(false);
-const error = ref('');
+const debouncedPhone = ref('');
 const startingChat = ref(false);
 let debounceTimer = null;
 
+const { results, isLoading: loading, error: searchError } = useUserSearch(debouncedPhone);
+
+// 4. Computed
+const error = computed(() => {
+  if (searchError.value) return 'fetch_error';
+  if (debouncedPhone.value && !loading.value && results.value.length === 0) return 'empty';
+  return '';
+});
+
+// 5. Watchers
+
+// 6. Lifecycle
+
+// 7. Functions
 function onInput() {
   const digits = phone.value.replace(/\D/g, '');
   if (digits.length < 3) {
-    results.value = [];
-    error.value = '';
+    debouncedPhone.value = '';
     return;
   }
 
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
-    fetchResults(digits);
+    debouncedPhone.value = digits;
   }, 350);
-}
-
-async function fetchResults(query) {
-  loading.value = true;
-  error.value = '';
-
-  try {
-    const res = await chatService.searchUserByPhone(query);
-    results.value = res.data?.data ?? [];
-    if (results.value.length === 0) {
-      error.value = 'empty';
-    }
-  } catch {
-    results.value = [];
-    error.value = 'fetch_error';
-  } finally {
-    loading.value = false;
-  }
 }
 
 function clear() {
   phone.value = '';
-  results.value = [];
-  error.value = '';
-  loading.value = false;
+  debouncedPhone.value = '';
   clearTimeout(debounceTimer);
 }
 
