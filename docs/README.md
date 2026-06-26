@@ -1,129 +1,74 @@
-# Tài Liệu Activity Diagrams - Propify
+# Tài Liệu Sơ Đồ Hệ Thống - Propify
 
-Thư mục này chứa các sơ đồ activity diagram cho các chức năng chính của hệ thống Propify.
+Thư mục này chứa các sơ đồ Activity Diagram và Sequence Diagram cho các chức năng chính của hệ thống Propify.
 
 ## 📋 Tổng Quan
 
-Tất cả các sơ đồ được tạo theo format PlantUML, tập trung vào **tương tác giữa User và System**, không đi sâu vào chi tiết code implementation.
+- **Activity Diagrams**: Tập trung vào tương tác luồng nghiệp vụ giữa **User** và **System**.
+- **Sequence Diagrams**: Tập trung vào tương tác chi tiết giữa các thành phần kỹ thuật theo đúng mô hình phân lớp: **User/Admin → Frontend → Controller/API → Request/Validation → Service/Command → Entity → Repository → Database**.
 
 **Cách xem sơ đồ:**
-1. Mở file `.md` bất kỳ
-2. Copy nội dung PlantUML (trong block ```plantuml)
-3. Paste vào: https://www.plantuml.com/plantuml/uml/
-4. Hoặc dùng VS Code extension: `jebbs.plantuml`
+1. Mở file `.md` bất kỳ dưới đây.
+2. Copy nội dung PlantUML (trong block ```plantuml ... ```).
+3. Paste vào trang online: https://www.plantuml.com/plantuml/uml/
+4. Hoặc sử dụng extension **PlantUML** trong VS Code (`Alt+D` để preview).
 
 ---
 
-## 🔐 Chức Năng Authentication (3 sơ đồ)
+## 🔐 Chức Năng Authentication
 
-| Sơ đồ | File | Mô tả |
-|-------|------|-------|
-| Đăng ký tài khoản | [activity-diagram-dang-ky-tai-khoan.md](activity-diagram-dang-ky-tai-khoan.md) | User đăng ký → Nhận OTP → Xác thực → Kích hoạt tài khoản |
-| Đăng nhập | [activity-diagram-dang-nhap.md](activity-diagram-dang-nhap.md) | Email/Password hoặc Google OAuth |
-| Quên mật khẩu | [activity-diagram-quen-mat-khau.md](activity-diagram-quen-mat-khau.md) | Reset password với OTP qua email |
-
----
-
-## 🏠 Chức Năng Quản Lý Tin Đăng (4 sơ đồ)
-
-| Sơ đồ | File | Mô tả |
-|-------|------|-------|
-| Tạo tin đăng | [activity-diagram-them-moi-tin-dang.md](activity-diagram-them-moi-tin-dang.md) | Đăng tin mới (lưu nháp hoặc gửi duyệt) |
-| Chỉnh sửa tin đăng | [activity-diagram-chinh-sua-tin-dang.md](activity-diagram-chinh-sua-tin-dang.md) | Cập nhật tin đã tạo |
-| Nâng cấp gói tin | [activity-diagram-nang-cap-goi-tin.md](activity-diagram-nang-cap-goi-tin.md) | Mua gói VIP/Nổi bật với thanh toán VNPay |
-| Xác thực tin đăng | [activity-diagram-xac-thuc-tin-dang-user.md](activity-diagram-xac-thuc-tin-dang-user.md) | User upload giấy tờ để xác thực BĐS |
+| Chức năng | Activity Diagram | Sequence Diagram | Mô tả |
+| :--- | :--- | :--- | :--- |
+| **Đăng ký tài khoản** | [Activity](activity-diagram-dang-ky-tai-khoan.md) | [Sequence](sequence-diagram-dang-ky-tai-khoan.md) | Nhập thông tin → Nhận OTP email → Xác thực → Kích hoạt |
+| **Đăng nhập** | [Activity](activity-diagram-dang-nhap.md) | [Sequence](sequence-diagram-dang-nhap.md) | Email + Password hoặc Google OAuth |
+| **Quên mật khẩu** | [Activity](activity-diagram-quen-mat-khau.md) | [Sequence](sequence-diagram-quen-mat-khau.md) | Reset password qua mã OTP gửi về email |
 
 ---
 
-## 📅 Chức Năng Lịch Hẹn (2 sơ đồ)
+## 🏠 Chức Năng Quản Lý Tin Đăng
 
-| Sơ đồ | File | Mô tả |
-|-------|------|-------|
-| Đặt lịch hẹn | [activity-diagram-dat-lich-hen.md](activity-diagram-dat-lich-hen.md) | Khách đặt lịch xem BĐS |
-| Xử lý lịch hẹn | [activity-diagram-xu-ly-lich-hen.md](activity-diagram-xu-ly-lich-hen.md) | Chủ nhà xác nhận/từ chối lịch hẹn |
-
----
-
-## 💳 Chức Năng Thanh Toán (1 sơ đồ)
-
-| Sơ đồ | File | Mô tả |
-|-------|------|-------|
-| Thanh toán | [activity-diagram-thanh-toan.md](activity-diagram-thanh-toan.md) | Quy trình thanh toán qua VNPay |
+| Chức năng | Activity Diagram | Sequence Diagram | Mô tả |
+| :--- | :--- | :--- | :--- |
+| **Tạo tin đăng** | [Activity](activity-diagram-them-moi-tin-dang.md) | [Sequence](sequence-diagram-tao-tin-dang.md) | Đăng tin mới (lưu nháp hoặc gửi phê duyệt) |
+| **Chỉnh sửa tin đăng** | [Activity](activity-diagram-chinh-sua-tin-dang.md) | [Sequence](sequence-diagram-chinh-sua-tin-dang.md) | Cập nhật thông tin tin đăng hiện có |
+| **Nâng cấp gói tin** | [Activity](activity-diagram-nang-cap-goi-tin.md) | [Sequence](sequence-diagram-nang-cap-goi-tin.md) | Mua/Nâng cấp gói VIP/Nổi bật |
+| **Xác thực tin đăng (User)** | [Activity](activity-diagram-xac-thuc-tin-dang-user.md) | [Sequence](sequence-diagram-xac-thuc-tin-dang-user.md) | Gửi CCCD + Giấy tờ pháp lý để lấy badge xác thực |
 
 ---
 
-## 👨‍💼 Chức Năng Admin (3 sơ đồ)
+## 📅 Chức Năng Lịch Hẹn
 
-| Sơ đồ | File | Mô tả |
-|-------|------|-------|
-| Duyệt/Từ chối tin đăng | [activity-diagram-admin-duyet-tin-dang.md](activity-diagram-admin-duyet-tin-dang.md) | Admin kiểm duyệt tin PENDING → ACTIVE/REJECTED/LOCKED |
-| Xác thực tin đăng | [activity-diagram-admin-xac-thuc-tin-dang.md](activity-diagram-admin-xac-thuc-tin-dang.md) | Admin duyệt giấy tờ xác thực BĐS |
-| Khóa/Mở khóa tài khoản | [activity-diagram-admin-khoa-tai-khoan.md](activity-diagram-admin-khoa-tai-khoan.md) | Admin khóa/mở khóa user vi phạm |
-
----
-
-## 📊 Thống Kê
-
-- **Tổng số sơ đồ:** 13
-- **Chức năng User:** 10
-- **Chức năng Admin:** 3
-- **Format:** PlantUML Activity Diagram
-- **Focus:** User-System Interaction (không có code chi tiết)
+| Chức năng | Activity Diagram | Sequence Diagram | Mô tả |
+| :--- | :--- | :--- | :--- |
+| **Đặt lịch hẹn** | [Activity](activity-diagram-dat-lich-hen.md) | [Sequence](sequence-diagram-dat-lich-hen.md) | Khách đặt lịch đi xem bất động sản |
+| **Xác nhận/Từ chối lịch** | [Activity](activity-diagram-xu-ly-lich-hen.md) | [Sequence](sequence-diagram-xu-ly-lich-hen.md) | Chủ tin đăng phê duyệt hoặc từ chối lịch hẹn |
 
 ---
 
-## 🎨 Cấu Trúc Sơ Đồ
+## 💳 Chức Năng Thanh Toán
 
-Mỗi sơ đồ có cấu trúc chuẩn:
-
-```
-# Tiêu Đề
-
----
-
-## Activity Diagram (User - System Interaction)
-
-```plantuml
-@startuml
-... PlantUML code ...
-@enduml
-```
-
-## Giải Thích
-
-Brief explanation of the flow...
+| Chức năng | Activity Diagram | Sequence Diagram | Mô tả |
+| :--- | :--- | :--- | :--- |
+| **Thanh toán** | [Activity](activity-diagram-thanh-toan.md) | [Sequence](sequence-diagram-thanh-toan.md) | Quy trình tích hợp thanh toán cổng VNPay |
 
 ---
 
-**Cách xem sơ đồ**: Copy nội dung PlantUML vào https://www.plantuml.com/plantuml/uml/
-```
+## 👨‍💼 Chức Năng Admin
 
-### Quy Ước Đặt Tên File
-
-- `activity-diagram-<ten-chuc-nang>.md`
-- Tên file dạng kebab-case (lowercase, dấu gạch ngang)
-- Prefix `admin-` cho các chức năng admin
-
----
-
-## 🚀 Cách Sử Dụng
-
-1. **Xem nhanh**: Mở file `.md` trực tiếp trên GitHub/GitLab
-2. **Render diagram**: 
-   - Online: Copy PlantUML code → Paste vào https://www.plantuml.com/plantuml/uml/
-   - VS Code: Cài extension `PlantUML` → Mở file → Press `Alt+D`
-   - IntelliJ/PhpStorm: Cài plugin `PlantUML Integration`
+| Chức năng | Activity Diagram | Sequence Diagram | Mô tả |
+| :--- | :--- | :--- | :--- |
+| **Duyệt/Từ chối tin** | [Activity](activity-diagram-admin-duyet-tin-dang.md) | [Sequence](sequence-diagram-admin-duyet-tin-dang.md) | Admin kiểm duyệt tin đăng chờ duyệt |
+| **Xác thực tin đăng** | [Activity](activity-diagram-admin-xac-thuc-tin-dang.md) | [Sequence](sequence-diagram-admin-xac-thuc-tin-dang.md) | Admin kiểm duyệt giấy tờ xác thực của BĐS |
+| **Khóa/Mở khóa tài khoản** | [Activity](activity-diagram-admin-khoa-tai-khoan.md) | [Sequence](sequence-diagram-admin-khoa-tai-khoan.md) | Admin quản lý trạng thái hoạt động của User |
 
 ---
 
-## 📝 Lưu Ý
+## 📊 Thống Kê Tài Liệu
 
-- Các sơ đồ tập trung vào **luồng tương tác** giữa User và System
-- **Không bao gồm**: Chi tiết code implementation, API endpoints cụ thể
-- **Phù hợp cho**: Product Owner, BA, QA, Developer mới join dự án
+- **Tổng số file sơ đồ**: 26 file (13 Activity + 13 Sequence)
+- **Cấu trúc thư mục**:
+  - `activity-diagram-*.md`: Chứa mã PlantUML Activity và giải thích.
+  - `sequence-diagram-*.md`: Chứa mã PlantUML Sequence (phân lớp từ UI đến Database) và giải thích.
+- **Last Updated**: 2026-06-26
 
 ---
-
-**Last Updated:** 2026-06-25  
-**Version:** 1.0  
-**Author:** Claude AI
