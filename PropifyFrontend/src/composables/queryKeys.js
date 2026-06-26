@@ -31,3 +31,22 @@ export const favoriteKeys = {
   ids: () => [...favoriteKeys.all, 'ids'],
   list: () => [...favoriteKeys.all, 'list'],
 };
+
+export const appointmentKeys = {
+  all: ['appointments'],
+  slots: (listingId) => [...appointmentKeys.all, 'slots', Number(listingId)],
+  myBookings: () => [...appointmentKeys.all, 'my'],
+  receivedBookings: () => [...appointmentKeys.all, 'received'],
+  bookings: (view) => [...appointmentKeys.all, view],
+};
+
+export const notificationKeys = {
+  all: ['notifications'],
+  list: (params = {}) => [...notificationKeys.all, 'list', params],
+  unreadCount: () => [...notificationKeys.all, 'unread-count'],
+};
+
+export const recentlyViewedKeys = {
+  all: ['recentlyViewed'],
+  list: (isAuthenticated) => [...recentlyViewedKeys.all, 'list', { isAuthenticated }],
+};

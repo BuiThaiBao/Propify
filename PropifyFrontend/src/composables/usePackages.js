@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue';
-import { useQuery, useQueryClient } from '@tanstack/vue-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query';
 import packageService from '@/services/packageService';
+import listingService from '@/services/listingService';
 import { packageKeys } from '@/composables/queryKeys';
 
 async function fetchPackagesQuery() {
@@ -38,4 +39,11 @@ export function usePackages() {
     error: computed(() => query.error.value ? 'Không thể tải bảng giá. Vui lòng thử lại.' : ''),
     fetchPackages,
   };
+}
+
+export function useUpgradeListing() {
+  return useMutation({
+    mutationFn: ({ listingId, packageId, durationDays }) =>
+      listingService.upgradeListing(listingId, packageId, durationDays),
+  });
 }

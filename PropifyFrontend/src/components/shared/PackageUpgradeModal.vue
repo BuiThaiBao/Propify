@@ -161,10 +161,11 @@
 </template>
 
 <script setup>
+// ── Imports ──────────────────────────────────────────────────────────
 import { ref, computed, watch } from 'vue';
-import packageService from '@/services/packageService';
-import listingService from '@/services/listingService';
+import { usePackages, useUpgradeListing } from '@/composables/usePackages';
 
+// ── Props / Emits ────────────────────────────────────────────────────
 const props = defineProps({
   visible: { type: Boolean, default: false },
   listingId: { type: [Number, null], default: null },
@@ -173,9 +174,10 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'upgraded']);
 
-const loading = ref(false);
-const packages = ref([]);
-const upgrading = ref(false);
+// ── State / Composables ─────────────────────────────────────────────
+const { packages, loading, fetchPackages } = usePackages();
+const { mutateAsync: doUpgradeListing, isPending: upgrading } = useUpgradeListing();
+
 const upgradingPkgId = ref(null);
 const selectedPkg = ref(null);
 const selectedPricing = ref(null);
@@ -183,6 +185,13 @@ const confirmVisible = ref(false);
 const pendingPkg = ref(null);
 const paymentError = ref('');
 
+const priorityIconMap = {
+  2: '/vip.svg',
+  3: '/premium.svg',
+  4: '/diamond.svg',
+};
+
+// ── Computed ─────────────────────────────────────────────────────────
 // Only show: electron, ruby, gold, free (exclude silver/bac)
 const displayPackages = computed(() => {
   const allowedSlugs = ['diamond', 'electron', 'ruby', 'gold', 'free'];
@@ -198,26 +207,21 @@ const currentPackageName = computed(() => {
   return pkg?.name || 'Cơ bản';
 });
 
-watch(() => props.visible, async (val) => {
+const confirmActionLabel = computed(() => {
+  if (!pendingPkg.value) return 'nâng cấp lên';
+  return isCurrent(pendingPkg.value) ? 'gia hạn' : 'nâng cấp lên';
+});
+
+// ── Watchers ─────────────────────────────────────────────────────────
+watch(() => props.visible, (val) => {
   if (val) {
     selectedPkg.value = null;
     selectedPricing.value = null;
-    await fetchPackages();
+    fetchPackages();
   }
 });
 
-async function fetchPackages() {
-  loading.value = true;
-  try {
-    const res = await packageService.getPackages();
-    packages.value = res?.data?.data || [];
-  } catch {
-    packages.value = [];
-  } finally {
-    loading.value = false;
-  }
-}
-
+// ── Functions ────────────────────────────────────────────────────────
 function isCurrent(pkg) {
   return pkg.id === props.currentPackageId;
 }
@@ -246,11 +250,6 @@ function doUpgrade(pkg) {
   confirmVisible.value = true;
 }
 
-const confirmActionLabel = computed(() => {
-  if (!pendingPkg.value) return 'nâng cấp lên';
-  return isCurrent(pendingPkg.value) ? 'gia hạn' : 'nâng cấp lên';
-});
-
 function closeConfirm() {
   if (upgrading.value) return;
 
@@ -262,12 +261,15 @@ function closeConfirm() {
 async function confirmUpgrade() {
   if (!props.listingId || upgrading.value || !selectedPricing.value || !pendingPkg.value) return;
 
-  upgrading.value = true;
   upgradingPkgId.value = pendingPkg.value.id;
   paymentError.value = '';
 
   try {
-    const response = await listingService.upgradeListing(props.listingId, pendingPkg.value.id, selectedPricing.value.duration_days);
+    const response = await doUpgradeListing({
+      listingId: props.listingId,
+      packageId: pendingPkg.value.id,
+      durationDays: selectedPricing.value.duration_days,
+    });
     const paymentUrl = response?.data?.data?.payment_url;
 
     if (!paymentUrl) {
@@ -278,7 +280,6 @@ async function confirmUpgrade() {
   } catch (err) {
     paymentError.value = err?.response?.data?.message || err?.message || 'Thao tác thất bại. Vui lòng thử lại.';
   } finally {
-    upgrading.value = false;
     upgradingPkgId.value = null;
   }
 }
@@ -297,12 +298,6 @@ function slugLabel(slug) {
   const map = { diamond: 'Diamond', electron: 'Electron', ruby: 'Ruby', gold: 'Vàng', free: 'Tin thường' };
   return map[slug] || slug;
 }
-
-const priorityIconMap = {
-  2: '/vip.svg',
-  3: '/premium.svg',
-  4: '/diamond.svg',
-};
 
 function getIconSrc(pkg) {
   const priority = Number(pkg.priority || 0);

@@ -158,16 +158,21 @@
 </template>
 
 <script setup>
+// ── Imports ──────────────────────────────────────────────────────────
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { getEcho } from '@/plugins/echo';
-import appointmentService from '@/services/appointmentService';
+import { useBookings, useUpdateBookingStatus, useCancelBooking } from '@/composables/useAppointments';
 
+// ── State ────────────────────────────────────────────────────────────
 const authStore = useAuthStore();
 const activeView = ref('my');
 const activeFilter = ref('ALL');
-const loading = ref(false);
-const bookings = ref([]);
+
+const { bookings, isLoading: loading, invalidateBookings } = useBookings(activeView);
+const updateBookingStatusMutation = useUpdateBookingStatus();
+const cancelBookingMutation = useCancelBooking();
+
 const actionLoading = ref(null);
 
 const approveVisible = ref(false);
@@ -209,6 +214,10 @@ const statusFilters = [
   { value: 'EXPIRED', label: 'Quá hạn', color: 'bg-slate-300' },
 ];
 
+const now = ref(new Date());
+let countdownInterval = null;
+
+// ── Computed ─────────────────────────────────────────────────────────
 const filteredBookings = computed(() => {
   if (activeFilter.value === 'ALL') return bookings.value;
   return bookings.value.filter(b => b.status === activeFilter.value);
@@ -220,19 +229,43 @@ const canSubmitReason = computed(() => {
   return dlgCustomReason.value.trim().length > 0;
 });
 
+// ── Watchers ─────────────────────────────────────────────────────────
+watch(
+  () => authStore.user?.id,
+  () => {
+    subscribeAppointmentUpdates();
+  },
+);
+
+// ── Lifecycle ────────────────────────────────────────────────────────
+onMounted(() => {
+  subscribeAppointmentUpdates();
+  countdownInterval = setInterval(() => {
+    now.value = new Date();
+  }, 1000);
+});
+
+onUnmounted(() => {
+  leaveAppointmentChannel();
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+  }
+});
+
+// ── Functions ────────────────────────────────────────────────────────
 function countByStatus(s) {
   if (s === 'ALL') return bookings.value.length;
   return bookings.value.filter(b => b.status === s).length;
 }
 
 function statusBadge(s) {
-  return { 
-    PENDING: { label: 'Chờ xử lý', class: 'bg-amber-100 text-amber-700' }, 
-    APPROVED: { label: 'Đã xác nhận', class: 'bg-sky-100 text-sky-700' }, 
-    COMPLETED: { label: 'Hoàn thành', class: 'bg-emerald-100 text-emerald-700' }, 
+  return {
+    PENDING: { label: 'Chờ xử lý', class: 'bg-amber-100 text-amber-700' },
+    APPROVED: { label: 'Đã xác nhận', class: 'bg-sky-100 text-sky-700' },
+    COMPLETED: { label: 'Hoàn thành', class: 'bg-emerald-100 text-emerald-700' },
     CANCELLED_BY_POSTER: { label: 'Chủ nhà hủy', class: 'bg-rose-100 text-rose-700' },
     CANCELLED_BY_VIEWER: { label: 'Khách hủy', class: 'bg-slate-100 text-slate-600' },
-    EXPIRED: { label: 'Quá thời gian xác nhận', class: 'bg-slate-100 text-slate-500' }
+    EXPIRED: { label: 'Quá thời gian xác nhận', class: 'bg-slate-100 text-slate-500' },
   }[s] || { label: s, class: 'bg-slate-100 text-slate-600' };
 }
 
@@ -274,9 +307,6 @@ function bookingStatusHint(booking) {
   return null;
 }
 
-const now = ref(new Date());
-let countdownInterval = null;
-
 function getCountdownText(booking) {
   if (!booking.confirm_deadline) return '00:00';
   const deadlineStr = booking.confirm_deadline.replace(' ', 'T');
@@ -311,14 +341,7 @@ function getNoteLabel(b) {
 }
 function getDisplayNote(b) { if (!b.note) return ''; const m = b.note.match(/\[.*?\]\s*(.*)/); return m ? m[1] : b.note; }
 
-async function fetchBookings() {
-  loading.value = true;
-  try { const r = activeView.value === 'my' ? await appointmentService.getMyBookings() : await appointmentService.getReceivedBookings(); bookings.value = r.data.data || []; }
-  catch { bookings.value = []; }
-  finally { loading.value = false; }
-}
-
-function switchView(v) { if (activeView.value === v) return; activeView.value = v; activeFilter.value = 'ALL'; fetchBookings(); }
+function switchView(v) { if (activeView.value === v) return; activeView.value = v; activeFilter.value = 'ALL'; }
 
 function handleApprove(b) { dlgBookingId.value = b.id; approveVisible.value = true; }
 function handleReject(b) { dlgBookingId.value = b.id; dlgReason.value = ''; dlgCustomReason.value = ''; rejectVisible.value = true; }
@@ -330,23 +353,59 @@ function getFinalReason() {
 
 async function doApprove() {
   dlgLoading.value = true;
-  try { await appointmentService.updateBookingStatus(dlgBookingId.value, 'APPROVED'); approveVisible.value = false; toast(true, 'Xác nhận thành công!'); await fetchBookings(); }
-  catch (e) { approveVisible.value = false; toast(false, 'Thất bại', e.response?.data?.message || 'Không thể xác nhận.'); }
-  finally { dlgLoading.value = false; }
+  try {
+    await updateBookingStatusMutation.mutateAsync({
+      bookingId: dlgBookingId.value,
+      status: 'APPROVED',
+    });
+    approveVisible.value = false;
+    toast(true, 'Xác nhận thành công!');
+    invalidateBookings();
+  } catch (e) {
+    approveVisible.value = false;
+    toast(false, 'Thất bại', e.response?.data?.message || 'Không thể xác nhận.');
+  } finally {
+    dlgLoading.value = false;
+  }
 }
 
 async function doReject() {
-  if (!canSubmitReason.value) return; dlgLoading.value = true;
-  try { await appointmentService.updateBookingStatus(dlgBookingId.value, 'CANCELLED_BY_POSTER', getFinalReason()); rejectVisible.value = false; toast(true, 'Đã từ chối lịch hẹn'); await fetchBookings(); }
-  catch (e) { rejectVisible.value = false; toast(false, 'Thất bại', e.response?.data?.message || 'Có lỗi xảy ra.'); }
-  finally { dlgLoading.value = false; }
+  if (!canSubmitReason.value) return;
+  dlgLoading.value = true;
+  try {
+    await updateBookingStatusMutation.mutateAsync({
+      bookingId: dlgBookingId.value,
+      status: 'CANCELLED_BY_POSTER',
+      note: getFinalReason(),
+    });
+    rejectVisible.value = false;
+    toast(true, 'Đã từ chối lịch hẹn');
+    invalidateBookings();
+  } catch (e) {
+    rejectVisible.value = false;
+    toast(false, 'Thất bại', e.response?.data?.message || 'Có lỗi xảy ra.');
+  } finally {
+    dlgLoading.value = false;
+  }
 }
 
 async function doCancel() {
-  if (!canSubmitReason.value) return; dlgLoading.value = true;
-  try { await appointmentService.cancelBooking(dlgBookingId.value, getFinalReason()); cancelVisible.value = false; toast(true, 'Đã hủy lịch hẹn'); await fetchBookings(); }
-  catch (e) { cancelVisible.value = false; toast(false, 'Thất bại', e.response?.data?.message || 'Có lỗi xảy ra.'); }
-  finally { dlgLoading.value = false; }
+  if (!canSubmitReason.value) return;
+  dlgLoading.value = true;
+  try {
+    await cancelBookingMutation.mutateAsync({
+      bookingId: dlgBookingId.value,
+      reason: getFinalReason(),
+    });
+    cancelVisible.value = false;
+    toast(true, 'Đã hủy lịch hẹn');
+    invalidateBookings();
+  } catch (e) {
+    cancelVisible.value = false;
+    toast(false, 'Thất bại', e.response?.data?.message || 'Có lỗi xảy ra.');
+  } finally {
+    dlgLoading.value = false;
+  }
 }
 
 function toast(ok, title, msg = '') { toastOk.value = ok; toastTitle.value = title; toastMsg.value = msg; toastVisible.value = true; setTimeout(() => { toastVisible.value = false; }, ok ? 1200 : 3000); }
@@ -389,7 +448,7 @@ function subscribeAppointmentUpdates() {
 
   leaveAppointmentChannel();
 
-  echo.private(channelName).listen('.notification.sent', async (event) => {
+  echo.private(channelName).listen('.notification.sent', (event) => {
     const notification = event?.notification;
 
     if (!notification || notification.type !== 'appointment_status_updated') {
@@ -401,7 +460,7 @@ function subscribeAppointmentUpdates() {
     }
 
     syncFilterForUpdatedBooking(notification.data?.status);
-    await fetchBookings();
+    invalidateBookings();
 
     if (notification.title) {
       toast(true, notification.title, notification.content || '');
@@ -410,28 +469,6 @@ function subscribeAppointmentUpdates() {
 
   subscribedChannelName = channelName;
 }
-
-onMounted(() => {
-  fetchBookings();
-  subscribeAppointmentUpdates();
-  countdownInterval = setInterval(() => {
-    now.value = new Date();
-  }, 1000);
-});
-
-onUnmounted(() => {
-  leaveAppointmentChannel();
-  if (countdownInterval) {
-    clearInterval(countdownInterval);
-  }
-});
-
-watch(
-  () => authStore.user?.id,
-  () => {
-    subscribeAppointmentUpdates();
-  },
-);
 </script>
 
 <style scoped>

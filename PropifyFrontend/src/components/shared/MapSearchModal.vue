@@ -242,23 +242,25 @@
 </template>
 
 <script setup>
+// 1. Imports
 import { nextTick, onMounted, onBeforeUnmount, ref, watch, computed } from 'vue';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import realEstateLightStyle from '@/assets/maps/real-estate-light.json';
-import listingService from '@/services/listingService';
+import { useMapListings } from '@/composables/useMapListings';
 import bedIcon from '@/assets/images/details/giuong.png';
 import bathIcon from '@/assets/images/details/bontam.png';
 import areaIcon from '@/assets/images/details/shape.png';
 
+// 2. Props & Emits
 const props = defineProps({ open: Boolean, filters: { type: Object, default: () => ({}) } });
 defineEmits(['close']);
 
+// 3. State & Composables
 const mapEl = ref(null);
 let map = null;
 let activeMarkers = [];
 let activePopups = [];
-let items = [];
 const selectedListing = ref(null);
 let userMarker = null;
 
@@ -267,6 +269,7 @@ const localPosterType = ref('ALL'); // 'ALL', 'OWNER', 'BROKER'
 const sortBy = ref('DEFAULT');
 const showSortDropdown = ref(false);
 const isSidebarOpen = ref(true);
+const mapQueryEnabled = ref(false);
 
 const sortOptions = [
   { value: 'DEFAULT', label: 'Thông thường' },
@@ -278,6 +281,10 @@ const sortOptions = [
   { value: 'AREA_DESC', label: 'Diện tích giảm dần' }
 ];
 
+const filtersRef = computed(() => props.filters);
+const { items, refetch } = useMapListings(filtersRef, { enabled: mapQueryEnabled });
+
+// 4. Computed
 const currentSortLabel = computed(() => {
   return sortOptions.find(o => o.value === sortBy.value)?.label || 'Thông thường';
 });
@@ -296,44 +303,15 @@ const headerTitle = computed(() => {
   }
 });
 
-function selectSort(val) {
-  sortBy.value = val;
-  showSortDropdown.value = false;
-}
-
-const closeDropdown = (e) => {
-  if (showSortDropdown.value) {
-    const wrapper = document.getElementById('sort-dropdown-wrapper');
-    if (wrapper && !wrapper.contains(e.target)) {
-      showSortDropdown.value = false;
-    }
-  }
-};
-
-const handleIframeMessage = (event) => {
-  if (event.origin !== window.location.origin) return;
-  if (event.data?.type === 'select-listing-from-detail') {
-    const listing = event.data.listing;
-    if (listing) {
-      selectListingCard(listing);
-    }
-  }
-};
-
-onMounted(() => {
-  window.addEventListener('click', closeDropdown);
-  window.addEventListener('message', handleIframeMessage);
-});
-
 const visibleListings = computed(() => {
-  if (!currentBounds.value || !items.length) return [];
+  if (!currentBounds.value || !items.value.length) return [];
   const bounds = currentBounds.value;
   const north = bounds.getNorth();
   const south = bounds.getSouth();
   const east = bounds.getEast();
   const west = bounds.getWest();
 
-  return items.filter((item) => {
+  return items.value.filter((item) => {
     const lat = Number(item.latitude);
     const lng = Number(item.longitude);
     return lat >= south && lat <= north && lng >= west && lng <= east;
@@ -381,6 +359,99 @@ const filteredVisibleListings = computed(() => {
   return sortedList;
 });
 
+// 5. Watchers
+watch(items, () => {
+  renderMarkers();
+  if (map) {
+    currentBounds.value = map.getBounds();
+  }
+});
+
+watch(() => props.open, async (isOpen) => {
+  if (!isOpen) {
+    mapQueryEnabled.value = false;
+    selectedListing.value = null;
+    currentBounds.value = null;
+    localPosterType.value = 'ALL';
+    sortBy.value = 'DEFAULT';
+    showSortDropdown.value = false;
+    isSidebarOpen.value = true;
+    if (userMarker) {
+      userMarker.remove();
+      userMarker = null;
+    }
+    if (map) {
+      map.remove();
+      map = null;
+      clearMarkers();
+    }
+    return;
+  }
+  mapQueryEnabled.value = true;
+  await nextTick();
+  if (!map) {
+    map = new maplibregl.Map({
+      container: mapEl.value,
+      style: buildMapStyle(),
+      center: [106.4, 16.5],
+      zoom: 5.3,
+      minZoom: 4.5,
+      maxZoom: 20,
+    });
+    map.on('load', () => {
+      map.on('zoomend', () => {
+        renderMarkers();
+        currentBounds.value = map.getBounds();
+      });
+      map.on('moveend', () => {
+        renderMarkers();
+        currentBounds.value = map.getBounds();
+      });
+      currentBounds.value = map.getBounds();
+    });
+  } else {
+    map.resize();
+    currentBounds.value = map.getBounds();
+  }
+});
+
+// 6. Lifecycle
+onMounted(() => {
+  window.addEventListener('click', closeDropdown);
+  window.addEventListener('message', handleIframeMessage);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('click', closeDropdown);
+  window.removeEventListener('message', handleIframeMessage);
+  if (map) map.remove();
+});
+
+// 7. Functions
+function selectSort(val) {
+  sortBy.value = val;
+  showSortDropdown.value = false;
+}
+
+const closeDropdown = (e) => {
+  if (showSortDropdown.value) {
+    const wrapper = document.getElementById('sort-dropdown-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+      showSortDropdown.value = false;
+    }
+  }
+};
+
+const handleIframeMessage = (event) => {
+  if (event.origin !== window.location.origin) return;
+  if (event.data?.type === 'select-listing-from-detail') {
+    const listing = event.data.listing;
+    if (listing) {
+      selectListingCard(listing);
+    }
+  }
+};
+
 function selectListingCard(item) {
   selectedListing.value = item;
   if (map) {
@@ -394,11 +465,11 @@ function selectListingCard(item) {
 
 function showUserMarker(lat, lng) {
   if (!map) return;
-  
+
   if (userMarker) {
     userMarker.remove();
   }
-  
+
   const el = document.createElement('div');
   el.style.width = '20px';
   el.style.height = '20px';
@@ -407,7 +478,7 @@ function showUserMarker(lat, lng) {
   el.style.border = '3px solid #fff';
   el.style.boxShadow = '0 0 10px rgba(30, 107, 254, 0.6)';
   el.style.position = 'relative';
-  
+
   const pulse = document.createElement('div');
   pulse.style.position = 'absolute';
   pulse.style.inset = '-6px';
@@ -416,7 +487,7 @@ function showUserMarker(lat, lng) {
   pulse.style.animation = 'gps-pulse 1.8s infinite ease-out';
   pulse.style.opacity = '0';
   el.appendChild(pulse);
-  
+
   if (!document.getElementById('gps-pulse-style')) {
     const style = document.createElement('style');
     style.id = 'gps-pulse-style';
@@ -428,7 +499,7 @@ function showUserMarker(lat, lng) {
     `;
     document.head.appendChild(style);
   }
-  
+
   userMarker = new maplibregl.Marker({ element: el })
     .setLngLat([lng, lat])
     .addTo(map);
@@ -439,11 +510,11 @@ function getUserLocation() {
     console.warn("Trình duyệt không hỗ trợ định vị vị trí.");
     return;
   }
-  
+
   const successCallback = (position) => {
     const lat = position.coords.latitude;
     const lng = position.coords.longitude;
-    
+
     if (map) {
       map.easeTo({
         center: [lng, lat],
@@ -453,7 +524,7 @@ function getUserLocation() {
       showUserMarker(lat, lng);
     }
   };
-  
+
   const errorCallback = (error) => {
     console.warn("High accuracy geolocation failed, trying low accuracy fallback...", error);
     navigator.geolocation.getCurrentPosition(
@@ -468,7 +539,7 @@ function getUserLocation() {
       }
     );
   };
-  
+
   navigator.geolocation.getCurrentPosition(
     successCallback,
     errorCallback,
@@ -512,7 +583,7 @@ function replaceMapTilerKey(value, key) {
 function buildMapStyle() {
   const mapTilerKey = import.meta.env.VITE_MAPTILER_KEY;
   const style = replaceMapTilerKey(realEstateLightStyle, mapTilerKey);
-  
+
   // Set empty data to prevent missing source data errors
   style.sources.property.data = {
     type: 'FeatureCollection',
@@ -550,7 +621,7 @@ function clusterHtml(count) {
   const logCount = Math.log10(count);
   const size = Math.round(Math.min(Math.max(38 + logCount * 16, 38), 85));
   const fontSize = Math.round(Math.min(Math.max(12 + logCount * 1.5, 12), 16));
-  
+
   return `<div style="width:${size}px;height:${size}px;background:#1e293b;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:${fontSize}px;box-shadow:0 4px 12px rgba(15,23,42,0.25);border:2px solid #fff;">${count.toLocaleString('vi-VN')}</div>`;
 }
 
@@ -598,23 +669,23 @@ function clearMarkers() {
 function renderMarkers() {
   if (!map) return;
   clearMarkers();
-  
-  const clusters = toGridClusters(items, 60);
+
+  const clusters = toGridClusters(items.value, 60);
   for (const cluster of clusters) {
     const count = cluster.points.length;
-    
+
     const el = document.createElement('div');
     el.style.cursor = 'pointer';
     el.innerHTML = count === 1 ? singleHtml() : clusterHtml(count);
-    
-    const centerCoords = count === 1 
-      ? [cluster.points[0].longitude, cluster.points[0].latitude] 
+
+    const centerCoords = count === 1
+      ? [cluster.points[0].longitude, cluster.points[0].latitude]
       : [cluster.center.lng, cluster.center.lat];
-      
+
     const marker = new maplibregl.Marker({ element: el })
       .setLngLat(centerCoords)
       .addTo(map);
-      
+
     activeMarkers.push(marker);
 
     if (count > 1) {
@@ -627,7 +698,7 @@ function renderMarkers() {
       });
     } else {
       const point = cluster.points[0];
-      
+
       const popup = new maplibregl.Popup({
         closeButton: false,
         closeOnClick: false,
@@ -644,80 +715,11 @@ function renderMarkers() {
       el.addEventListener('mouseleave', () => {
         popup.remove();
       });
-      
+
       el.addEventListener('click', () => {
         selectedListing.value = point;
       });
     }
   }
 }
-
-async function loadMapData() {
-  const res = await listingService.getMapListings(props.filters);
-  const rawItems = res?.data?.data?.data ?? res?.data?.data ?? [];
-  items = rawItems.filter((x) => x.latitude !== null && x.longitude !== null);
-  renderMarkers();
-  if (map) {
-    currentBounds.value = map.getBounds();
-  }
-}
-
-watch(() => props.open, async (isOpen) => {
-  if (!isOpen) {
-    selectedListing.value = null;
-    currentBounds.value = null;
-    localPosterType.value = 'ALL';
-    sortBy.value = 'DEFAULT';
-    showSortDropdown.value = false;
-    isSidebarOpen.value = true;
-    if (userMarker) {
-      userMarker.remove();
-      userMarker = null;
-    }
-    if (map) {
-      map.remove();
-      map = null;
-      clearMarkers();
-    }
-    return;
-  }
-  await nextTick();
-  if (!map) {
-    map = new maplibregl.Map({
-      container: mapEl.value,
-      style: buildMapStyle(),
-      center: [106.4, 16.5],
-      zoom: 5.3,
-      minZoom: 4.5,
-      maxZoom: 20,
-    });
-    map.on('load', async () => {
-      map.on('zoomend', () => {
-        renderMarkers();
-        currentBounds.value = map.getBounds();
-      });
-      map.on('moveend', () => {
-        renderMarkers();
-        currentBounds.value = map.getBounds();
-      });
-      await loadMapData();
-      currentBounds.value = map.getBounds();
-    });
-  } else {
-    map.resize();
-    await loadMapData();
-    currentBounds.value = map.getBounds();
-  }
-});
-
-// Resizing watchers are removed because the absolute-positioned map container's layout size never changes when sidebars open/close.
-
-watch(() => props.filters, async () => {
-  if (props.open) await loadMapData();
-}, { deep: true });
-
-onBeforeUnmount(() => {
-  window.removeEventListener('click', closeDropdown);
-  window.removeEventListener('message', handleIframeMessage);
-  if (map) map.remove();
-});</script>
+</script>

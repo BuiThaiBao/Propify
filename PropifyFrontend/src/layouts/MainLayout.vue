@@ -13,6 +13,6 @@
 
 <script setup>
 import AppFooter from "@/components/common/AppFooter.vue";
-import HeroSection from "@/components/common/Home/HeroSection.vue";
-import ListingSection from "@/components/common/Home/ListingSection.vue";
+import HeroSection from "@/components/home/HeroSection.vue";
+import ListingSection from "@/components/home/ListingSection.vue";
 </script>
