@@ -5,22 +5,18 @@ import {
   Download,
   Copy,
   Check,
-  Eye,
-  Trash2,
   Receipt,
   DollarSign,
   CheckCircle,
-  AlertCircle,
   Clock,
   Loader2,
-  Calendar,
   X,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-vue-next'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import StatCard from '@/components/shared/StatCard.vue'
-import ConfirmModal from '@/components/shared/ConfirmModal.vue'
+import { DataTable, Pagination, Modal } from '@/components/crud'
 import { useTransactionApi } from '@/composables/useTransactionApi'
 import { usePackageApi } from '@/composables/usePackageApi'
 import {
@@ -224,6 +220,38 @@ async function handleExport() {
   }
 }
 
+const tableColumns = [
+  { key: 'code', label: 'Mã Giao Dịch', width: '130px' },
+  { key: 'customer', label: 'Khách Hàng', width: '20%', nowrap: false },
+  { key: 'package', label: 'Gói Tin', width: '15%' },
+  { key: 'amount', label: 'Số Tiền', width: '12%' },
+  { key: 'paymentMethod', label: 'Phương Thức', width: '110px' },
+  { key: 'transactionDate', label: 'Ngày Giao Dịch', width: '15%' },
+  { key: 'status', label: 'Trạng Thái', width: '12%' },
+  { key: 'note', label: 'Ghi Chú Kế Toán', width: '20%', nowrap: false },
+]
+
+const normalizedTxs = computed(() =>
+  transactions.value.map((tx) => ({
+    id: tx.id,
+    vnp_txn_ref: tx.vnp_txn_ref,
+    code: tx.vnp_txn_ref || '#' + tx.id,
+    full_name: tx.user?.full_name || 'Khách vãng lai',
+    phone: tx.user?.phone || '-',
+    email: tx.user?.email || '-',
+    packageName: tx.package?.name || '-',
+    packageSlug: tx.package?.slug,
+    durationDays: tx.duration_days,
+    amount: formatTransactionAmount(tx.amount),
+    paymentMethod: tx.payment_method || 'VNPay',
+    transactionDate: formatTransactionDateTime(tx.transaction_date),
+    status: tx.status,
+    statusLabel: tx.status === 'SUCCESS' ? 'Thành công' : tx.status === 'PENDING' ? 'Chờ xử lý' : tx.status === 'EXPIRED' ? 'Hết hạn thanh toán' : 'Thất bại',
+    latestNote: tx.notes?.[0]?.note,
+    latestNoteAuthor: tx.notes?.[0]?.admin?.full_name,
+  }))
+)
+
 // Tính toán các trang hiển thị thông minh
 const formatVND = (value) => formatTransactionAmount(value)
 const formatDateTime = (value) => formatTransactionDateTime(value)
@@ -391,809 +419,194 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Bảng dữ liệu -->
-    <div
-      class="table-container bg-card border border-border/50 rounded-xl shadow-card overflow-hidden"
-    >
-      <!-- Loading State -->
-      <div v-if="loading && transactions.length === 0" class="loading-state py-12">
-        <Loader2 class="animate-spin text-primary mx-auto mb-4" :size="36" />
-        <p class="text-muted-foreground text-sm">Đang tải lịch sử giao dịch...</p>
-      </div>
-
-      <!-- Empty State -->
-      <div v-else-if="transactions.length === 0" class="empty-state py-12 text-center">
-        <Receipt class="text-muted-foreground/30 mx-auto mb-4" :size="48" />
-        <h3 class="text-lg font-medium text-foreground mb-1">Không tìm thấy giao dịch nào</h3>
-        <p class="text-muted-foreground text-sm max-w-md mx-auto">
-          Thử thay đổi từ khóa tìm kiếm hoặc điều chỉnh bộ lọc ngày/trạng thái.
-        </p>
-      </div>
-
-      <!-- Bảng thực tế -->
-      <div v-else class="overflow-x-auto">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th style="width: 130px">Mã Giao Dịch</th>
-              <th>Khách Hàng</th>
-              <th>Gói Tin</th>
-              <th>Số Tiền</th>
-              <th style="width: 110px">Phương Thức</th>
-              <th>Ngày Giao Dịch</th>
-              <th>Trạng Thái</th>
-              <th>Ghi Chú Kế Toán</th>
-              <th style="width: 80px; text-align: center">Xem</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="tx in transactions" :key="tx.id" class="table-row">
-              <!-- Mã GD -->
-              <td class="font-mono text-xs">
-                <div class="flex items-center gap-1.5">
-                  <span class="font-semibold text-foreground">#{{ tx.id }}</span>
-                  <button
-                    v-if="tx.vnp_txn_ref"
-                    class="btn-copy"
-                    title="Copy mã tham chiếu"
-                    @click="copyToClipboard(tx.vnp_txn_ref, tx.id)"
-                  >
-                    <Check v-if="copiedId === tx.id" :size="12" class="text-success" />
-                    <Copy v-else :size="12" />
-                  </button>
-                </div>
-                <div class="text-[10px] text-muted-foreground mt-0.5" v-if="tx.vnp_txn_ref">
-                  Ref: {{ tx.vnp_txn_ref }}
-                </div>
-              </td>
-
-              <!-- Khách hàng -->
-              <td>
-                <div class="font-medium text-foreground text-sm">
-                  {{ tx.user?.full_name || 'Khách vãng lai' }}
-                </div>
-                <div class="text-xs text-muted-foreground mt-0.5">
-                  {{ tx.user?.phone || '-' }} | {{ tx.user?.email || '-' }}
-                </div>
-              </td>
-
-              <!-- Gói tin -->
-              <td>
-                <span
-                  class="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded"
-                  :class="getPackageBadgeClass(tx.package?.slug)"
-                >
-                  {{ tx.package?.name || '-' }}
-                </span>
-                <div class="text-[10px] text-muted-foreground mt-1">
-                  Thời hạn: {{ tx.duration_days }} ngày
-                </div>
-              </td>
-
-              <!-- Số tiền -->
-              <td class="font-semibold text-foreground text-sm">
-                {{ formatVND(tx.amount) }}
-              </td>
-
-              <!-- Phương thức -->
-              <td>
-                <span class="badge-payment">{{ tx.payment_method || 'VNPay' }}</span>
-              </td>
-
-              <!-- Ngày giao dịch -->
-              <td class="text-xs text-muted-foreground">
-                {{ formatDateTime(tx.transaction_date) }}
-              </td>
-
-              <!-- Trạng thái -->
-              <td>
-                <span
-                  class="badge-status"
-                  :class="{
-                    'bg-success/10 text-success': tx.status === 'SUCCESS',
-                    'bg-warning/10 text-warning': tx.status === 'PENDING',
-                    'bg-destructive/10 text-destructive': tx.status === 'FAILED',
-                    'bg-muted text-muted-foreground': tx.status === 'EXPIRED',
-                  }"
-                >
-                  {{
-                    tx.status === 'SUCCESS'
-                      ? 'Thành công'
-                      : tx.status === 'PENDING'
-                        ? 'Chờ xử lý'
-                        : tx.status === 'EXPIRED'
-                          ? 'Hết hạn thanh toán'
-                          : 'Thất bại'
-                  }}
-                </span>
-              </td>
-
-              <!-- Ghi chú mới nhất -->
-              <td>
-                <div
-                  class="text-xs text-muted-foreground max-w-[200px] truncate"
-                  :title="tx.notes?.[0]?.note"
-                >
-                  {{ tx.notes?.[0]?.note || '-' }}
-                </div>
-                <div class="text-[10px] text-muted-foreground/75 mt-0.5" v-if="tx.notes?.[0]">
-                  Bởi {{ tx.notes[0].admin?.full_name }}
-                </div>
-              </td>
-
-              <!-- Action -->
-              <td style="text-align: center">
-                <button class="btn-icon" @click="openDetail(tx.id)" title="Xem chi tiết & đối soát">
-                  <Eye :size="16" />
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Phân trang -->
-      <div
-        v-if="transactions.length > 0"
-        class="pagination-bar border-t border-border/50 p-4 flex items-center justify-between"
+    <!-- Data table -->
+    <div class="bg-card border border-border/50 rounded-xl shadow-card overflow-hidden">
+      <DataTable
+        :columns="tableColumns"
+        :rows="normalizedTxs"
+        :loading="loading"
+        loading-text="Đang tải lịch sử giao dịch..."
+        empty-text="Không tìm thấy giao dịch nào"
       >
-        <div class="pagination-actions">
-          <button
-            class="page-btn"
-            :disabled="meta.current_page === 1 || loading"
-            @click="loadTransactions(meta.current_page - 1)"
-            aria-label="Trang trước"
-          >
-            <ChevronLeft :size="18" />
-          </button>
-          <span class="page-summary"> Trang {{ meta.current_page }} / {{ meta.last_page }} </span>
-          <button
-            class="page-btn"
-            :disabled="meta.current_page === meta.last_page || loading"
-            @click="loadTransactions(meta.current_page + 1)"
-            aria-label="Trang sau"
-          >
-            <ChevronRight :size="18" />
-          </button>
-        </div>
-        <p class="total-summary">
-          Hiển thị tối đa {{ meta.per_page }} / {{ meta.total }} giao dịch
-        </p>
-      </div>
-    </div>
-
-    <!-- Modal Chi Tiết Giao Dịch -->
-    <div
-      v-if="showDetailModal && selectedTx"
-      class="modal-backdrop"
-      @click.self="showDetailModal = false"
-    >
-      <div
-        class="modal-content bg-card border border-border/50 rounded-2xl shadow-lg w-full max-w-3xl overflow-hidden"
-      >
-        <!-- Header -->
-        <div class="modal-header border-b border-border/50 p-5 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="modal-icon gradient-primary">
-              <Receipt :size="18" color="white" />
-            </div>
-            <div>
-              <h3 class="text-lg font-bold text-foreground m-0">
-                Chi tiết giao dịch #{{ selectedTx.id }}
-              </h3>
-              <p class="text-xs text-muted-foreground m-0 mt-0.5">
-                Ngày thực hiện: {{ formatDateTime(selectedTx.transaction_date) }}
-              </p>
-            </div>
-          </div>
-          <button class="btn-close" @click="showDetailModal = false">
-            <X :size="18" />
-          </button>
-        </div>
-
-        <!-- Body -->
-        <div class="modal-body p-6 overflow-y-auto max-h-[70vh]">
-          <div class="grid grid-cols-2 gap-6 mb-6">
-            <!-- Thông tin khách hàng & Bài đăng -->
-            <div class="modal-card">
-              <h4 class="modal-section-title">Thông tin giao dịch</h4>
-              <div class="info-list">
-                <div class="info-item">
-                  <span class="info-label">Khách hàng:</span>
-                  <span class="info-value font-medium">{{
-                    selectedTx.user?.full_name || 'Khách vãng lai'
-                  }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Liên hệ:</span>
-                  <span class="info-value"
-                    >{{ selectedTx.user?.phone || '-' }} | {{ selectedTx.user?.email || '-' }}</span
-                  >
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Gói dịch vụ:</span>
-                  <div class="flex items-center gap-1.5 justify-end">
-                    <span
-                      class="text-[11px] font-semibold px-2 py-0.5 rounded"
-                      :class="getPackageBadgeClass(selectedTx.package?.slug)"
-                    >
-                      {{ selectedTx.package?.name }}
-                    </span>
-                    <span class="info-value text-xs font-medium"
-                      >({{ selectedTx.duration_days }} ngày)</span
-                    >
-                  </div>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Tin đăng ID:</span>
-                  <span class="info-value">#{{ selectedTx.listing?.id || '-' }}</span>
-                </div>
-                <div class="info-item" v-if="selectedTx.listing">
-                  <span class="info-label">Tiêu đề tin:</span>
-                  <span
-                    class="info-value truncate block max-w-[200px]"
-                    :title="selectedTx.listing?.title"
-                    >{{ selectedTx.listing?.title }}</span
-                  >
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Hạn gói tin:</span>
-                  <span class="info-value text-success font-medium">{{
-                    formatDateTime(selectedTx.expires_at)
-                  }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Thông tin đối soát VNPay -->
-            <div class="modal-card">
-              <h4 class="modal-section-title">Đối soát cổng VNPay</h4>
-              <div class="info-list">
-                <div class="info-item">
-                  <span class="info-label">Trạng thái:</span>
-                  <span
-                    class="badge-status text-xs"
-                    :class="{
-                      'bg-success/10 text-success': selectedTx.status === 'SUCCESS',
-                      'bg-warning/10 text-warning': selectedTx.status === 'PENDING',
-                      'bg-destructive/10 text-destructive': selectedTx.status === 'FAILED',
-                      'bg-muted text-muted-foreground': selectedTx.status === 'EXPIRED',
-                    }"
-                  >
-                    {{
-                      selectedTx.status === 'SUCCESS'
-                        ? 'Thành công'
-                        : selectedTx.status === 'PENDING'
-                          ? 'Chờ xử lý'
-                          : selectedTx.status === 'EXPIRED'
-                            ? 'Hết hạn thanh toán'
-                            : 'Thất bại'
-                    }}
-                  </span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Số tiền:</span>
-                  <span class="info-value text-foreground font-bold">{{
-                    formatVND(selectedTx.amount)
-                  }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Mã Ref hệ thống:</span>
-                  <span class="info-value font-mono flex items-center gap-1.5">
-                    {{ selectedTx.vnp_txn_ref || '-' }}
-                    <button
-                      v-if="selectedTx.vnp_txn_ref"
-                      class="btn-copy-small"
-                      @click="copyToClipboard(selectedTx.vnp_txn_ref, 'ref')"
-                    >
-                      <Check v-if="copiedId === 'ref'" :size="10" class="text-success" />
-                      <Copy v-else :size="10" />
-                    </button>
-                  </span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Mã GD VNPay:</span>
-                  <span class="info-value font-mono flex items-center gap-1.5">
-                    {{ selectedTx.vnp_transaction_no || '-' }}
-                    <button
-                      v-if="selectedTx.vnp_transaction_no"
-                      class="btn-copy-small"
-                      @click="copyToClipboard(selectedTx.vnp_transaction_no, 'vnpno')"
-                    >
-                      <Check v-if="copiedId === 'vnpno'" :size="10" class="text-success" />
-                      <Copy v-else :size="10" />
-                    </button>
-                  </span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Ngân hàng thanh toán:</span>
-                  <span class="info-value font-semibold">{{
-                    selectedTx.vnp_bank_code || '-'
-                  }}</span>
-                </div>
-                <div class="info-item">
-                  <span class="info-label">Mã phản hồi:</span>
-                  <span
-                    class="info-value"
-                    :class="
-                      selectedTx.vnp_response_code === '00' ? 'text-success' : 'text-destructive'
-                    "
-                  >
-                    {{ selectedTx.vnp_response_code || '-' }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Audit Trail Notes (Timeline) -->
-          <div class="note-section border-t border-border/50 pt-5">
-            <h4 class="modal-section-title mb-4">Nhật ký đối soát & ghi chú kế toán</h4>
-
-            <div class="note-timeline mb-6" v-if="selectedTx.notes && selectedTx.notes.length > 0">
-              <div v-for="note in selectedTx.notes" :key="note.id" class="timeline-item">
-                <div class="timeline-marker"></div>
-                <div class="timeline-content bg-muted p-3.5 rounded-lg border border-border/50">
-                  <div class="flex justify-between items-start mb-1.5">
-                    <span class="text-xs font-semibold text-foreground">{{
-                      note.admin?.full_name || 'Admin'
-                    }}</span>
-                    <span class="text-[10px] text-muted-foreground">{{
-                      formatDateTime(note.created_at)
-                    }}</span>
-                  </div>
-                  <p class="text-xs text-muted-foreground m-0 whitespace-pre-wrap leading-relaxed">
-                    {{ note.note }}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div
-              v-else
-              class="text-center py-6 bg-muted rounded-lg border border-border/50 border-dashed mb-6"
+        <template #cell(code)="{ row }">
+          <div class="flex items-center gap-1.5">
+            <span class="font-semibold text-foreground font-mono text-xs">#{{ row.id }}</span>
+            <button
+              v-if="row.vnp_txn_ref"
+              class="inline-flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:bg-muted cursor-pointer border-none"
+              title="Copy mã tham chiếu"
+              @click="copyToClipboard(row.vnp_txn_ref, row.id)"
             >
-              <Clock :size="24" class="text-muted-foreground/40 mx-auto mb-2" />
-              <p class="text-xs text-muted-foreground m-0">Chưa có nhật ký/ghi chú đối soát nào.</p>
-            </div>
+              <Check v-if="copiedId === row.id" :size="12" class="text-success" />
+              <Copy v-else :size="12" />
+            </button>
+          </div>
+          <div v-if="row.vnp_txn_ref" class="text-[10px] text-muted-foreground mt-0.5">Ref: {{ row.vnp_txn_ref }}</div>
+        </template>
+        <template #cell(customer)="{ row }">
+          <div class="font-medium text-foreground text-sm">{{ row.full_name }}</div>
+          <div class="text-xs text-muted-foreground mt-0.5">{{ row.phone }} | {{ row.email }}</div>
+        </template>
+        <template #cell(package)="{ row }">
+          <span class="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded" :class="getPackageBadgeClass(row.packageSlug)">
+            {{ row.packageName }}
+          </span>
+          <div class="text-[10px] text-muted-foreground mt-1">Thời hạn: {{ row.durationDays }} ngày</div>
+        </template>
+        <template #cell(amount)="{ value }">
+          <span class="font-semibold text-foreground text-sm">{{ value }}</span>
+        </template>
+        <template #cell(status)="{ row }">
+          <span class="px-2 py-0.5 rounded text-xs font-semibold"
+            :class="{
+              'bg-success/10 text-success': row.status === 'SUCCESS',
+              'bg-warning/10 text-warning': row.status === 'PENDING',
+              'bg-destructive/10 text-destructive': row.status === 'FAILED',
+              'bg-muted text-muted-foreground': row.status === 'EXPIRED',
+            }"
+          >{{ row.statusLabel }}</span>
+        </template>
+        <template #cell(note)="{ row }">
+          <div class="text-xs text-muted-foreground max-w-[200px] truncate" :title="row.latestNote">{{ row.latestNote || '-' }}</div>
+          <div v-if="row.latestNoteAuthor" class="text-[10px] text-muted-foreground/75 mt-0.5">Bởi {{ row.latestNoteAuthor }}</div>
+        </template>
+        <template #actions="{ row }">
+          <button class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition cursor-pointer border-none" @click="openDetail(row.id)" title="Xem chi tiết & đối soát">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </template>
+      </DataTable>
 
-            <!-- Thêm Note mới -->
-            <div class="add-note-wrapper bg-muted/30 p-4 border border-border/50 rounded-xl">
-              <label for="new-note-input" class="text-xs font-semibold text-foreground block mb-2"
-                >Thêm ghi chú đối soát mới</label
-              >
-              <textarea
-                id="new-note-input"
-                v-model="newNote"
-                rows="3"
-                placeholder="Nhập ghi chú (VD: Đối soát thành công, hoàn tiền thủ công ngày..., lý do lỗi cổng thanh toán...)"
-                class="form-textarea w-full text-xs"
-              ></textarea>
-              <div class="flex justify-end mt-3">
-                <button
-                  class="btn-save-note"
-                  :disabled="savingNote || !newNote.trim()"
-                  @click="confirmSaveNote"
-                >
-                  <Loader2 v-if="savingNote" class="animate-spin mr-1.5" :size="12" />
-                  Lưu ghi chú
-                </button>
+      <Pagination
+        v-if="meta.total > 0"
+        :current-page="meta.current_page"
+        :last-page="meta.last_page"
+        :total="meta.total"
+        :per-page="meta.per_page"
+        :loading="loading"
+        @page-change="loadTransactions"
+      />
+    </div>
+
+    <!-- Detail Modal -->
+    <Modal :open="showDetailModal && !showConfirmNoteModal" title="" :closeable="!savingNote" max-width="2xl" @close="showDetailModal = false">
+      <template v-if="selectedTx" #title>Chi tiết giao dịch #{{ selectedTx.id }}</template>
+      <template v-if="selectedTx">
+        <p class="text-xs text-muted-foreground mb-4">Ngày thực hiện: {{ formatDateTime(selectedTx.transaction_date) }}</p>
+        <div class="grid grid-cols-2 gap-6 mb-6">
+          <div class="bg-slate-50/50 border border-border p-4 rounded-xl">
+            <h4 class="text-sm font-bold border-b border-border pb-1.5 mb-3">Thông tin giao dịch</h4>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between"><span class="text-muted-foreground">Khách hàng:</span><strong>{{ selectedTx.user?.full_name || 'Khách vãng lai' }}</strong></div>
+              <div class="flex justify-between"><span class="text-muted-foreground">Liên hệ:</span><span>{{ selectedTx.user?.phone || '-' }} | {{ selectedTx.user?.email || '-' }}</span></div>
+              <div class="flex justify-between"><span class="text-muted-foreground">Gói dịch vụ:</span><span class="font-semibold">{{ selectedTx.package?.name }} ({{ selectedTx.duration_days }} ngày)</span></div>
+              <div class="flex justify-between"><span class="text-muted-foreground">Tin đăng ID:</span><span>#{{ selectedTx.listing?.id || '-' }}</span></div>
+              <div v-if="selectedTx.listing" class="flex justify-between"><span class="text-muted-foreground">Tiêu đề tin:</span><span class="truncate max-w-[200px] text-right" :title="selectedTx.listing?.title">{{ selectedTx.listing?.title }}</span></div>
+              <div class="flex justify-between"><span class="text-muted-foreground">Hạn gói tin:</span><span class="text-success font-medium">{{ formatDateTime(selectedTx.expires_at) }}</span></div>
+            </div>
+          </div>
+
+          <div class="bg-slate-50/50 border border-border p-4 rounded-xl">
+            <h4 class="text-sm font-bold border-b border-border pb-1.5 mb-3">Đối soát cổng VNPay</h4>
+            <div class="space-y-3 text-sm">
+              <div class="flex justify-between">
+                <span class="text-muted-foreground">Trạng thái:</span>
+                <span v-if="selectedTx.status === 'SUCCESS'" class="text-success font-semibold">Thành công</span>
+                <span v-else-if="selectedTx.status === 'PENDING'" class="text-warning font-semibold">Chờ xử lý</span>
+                <span v-else-if="selectedTx.status === 'EXPIRED'" class="text-muted-foreground">Hết hạn</span>
+                <span v-else class="text-destructive font-semibold">Thất bại</span>
               </div>
+              <div class="flex justify-between"><span class="text-muted-foreground">Số tiền:</span><strong>{{ formatVND(selectedTx.amount) }}</strong></div>
+              <div class="flex justify-between items-center">
+                <span class="text-muted-foreground">Mã Ref:</span>
+                <span class="font-mono flex items-center gap-1">{{ selectedTx.vnp_txn_ref || '-' }}
+                  <button v-if="selectedTx.vnp_txn_ref" class="inline-flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:bg-muted cursor-pointer border-none" @click="copyToClipboard(selectedTx.vnp_txn_ref, 'ref')">
+                    <Check v-if="copiedId === 'ref'" :size="10" class="text-success" /><Copy v-else :size="10" />
+                  </button>
+                </span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-muted-foreground">Mã GD VNPay:</span>
+                <span class="font-mono flex items-center gap-1">{{ selectedTx.vnp_transaction_no || '-' }}
+                  <button v-if="selectedTx.vnp_transaction_no" class="inline-flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:bg-muted cursor-pointer border-none" @click="copyToClipboard(selectedTx.vnp_transaction_no, 'vnpno')">
+                    <Check v-if="copiedId === 'vnpno'" :size="10" class="text-success" /><Copy v-else :size="10" />
+                  </button>
+                </span>
+              </div>
+              <div class="flex justify-between"><span class="text-muted-foreground">Ngân hàng:</span><span class="font-semibold">{{ selectedTx.vnp_bank_code || '-' }}</span></div>
+              <div class="flex justify-between"><span class="text-muted-foreground">Mã phản hồi:</span><span :class="selectedTx.vnp_response_code === '00' ? 'text-success' : 'text-destructive'">{{ selectedTx.vnp_response_code || '-' }}</span></div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Confirm Modal khi lưu note -->
-    <ConfirmModal
-      :show="showConfirmNoteModal"
-      title="Xác nhận ghi chú"
-      message="Bạn có chắc chắn muốn lưu ghi chú đối soát này? Ghi chú sau khi lưu sẽ được thêm vào nhật ký audit trail và không thể xóa hay chỉnh sửa."
-      confirm-text="Xác nhận lưu"
-      cancel-text="Hủy"
-      :loading="savingNote"
-      @confirm="saveNote"
-      @cancel="showConfirmNoteModal = false"
-    />
+        <!-- Notes -->
+        <div class="border-t border-border/50 pt-5">
+          <h4 class="text-sm font-bold mb-4">Nhật ký đối soát & ghi chú kế toán</h4>
+
+          <div v-if="selectedTx.notes && selectedTx.notes.length > 0" class="space-y-3 mb-4">
+            <div v-for="note in selectedTx.notes" :key="note.id" class="flex gap-3">
+              <div class="w-2 h-2 rounded-full bg-primary mt-1.5 shrink-0" />
+              <div class="flex-1 bg-muted p-3 rounded-lg border border-border/50">
+                <div class="flex justify-between items-start mb-1">
+                  <span class="text-xs font-semibold text-foreground">{{ note.admin?.full_name || 'Admin' }}</span>
+                  <span class="text-[10px] text-muted-foreground">{{ formatDateTime(note.created_at) }}</span>
+                </div>
+                <p class="text-xs text-muted-foreground m-0 whitespace-pre-wrap">{{ note.note }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="text-center py-6 bg-muted rounded-lg border border-border/50 border-dashed mb-4">
+            <Clock :size="24" class="text-muted-foreground/40 mx-auto mb-2" />
+            <p class="text-xs text-muted-foreground m-0">Chưa có nhật ký/ghi chú đối soát nào.</p>
+          </div>
+
+          <!-- Add note -->
+          <div class="bg-muted/30 p-4 border border-border/50 rounded-xl">
+            <label class="text-xs font-semibold text-foreground block mb-2">Thêm ghi chú đối soát mới</label>
+            <textarea
+              v-model="newNote"
+              rows="3"
+              placeholder="Nhập ghi chú..."
+              class="w-full p-3 text-xs border border-border rounded-lg outline-none focus:border-primary resize-vertical bg-card box-border font-inherit"
+            ></textarea>
+            <div class="flex justify-end mt-3">
+              <button
+                class="inline-flex items-center gap-1 px-4 py-2 text-xs font-bold rounded-lg border-none bg-primary text-white cursor-pointer hover:opacity-90 transition disabled:opacity-50"
+                :disabled="savingNote || !newNote.trim()"
+                @click="confirmSaveNote"
+              >
+                <Loader2 v-if="savingNote" class="animate-spin" :size="12" />
+                Lưu ghi chú
+              </button>
+            </div>
+          </div>
+        </div>
+      </template>
+    </Modal>
+
+    <!-- Confirm save note -->
+    <Modal :open="showConfirmNoteModal" title="Xác nhận ghi chú" max-width="sm" @close="showConfirmNoteModal = false">
+      <p class="text-sm text-muted-foreground">Ghi chú sau khi lưu sẽ được thêm vào nhật ký audit trail và không thể xóa hay chỉnh sửa.</p>
+      <template #footer>
+        <button class="px-4 py-2 text-sm font-semibold rounded-lg border border-border bg-card text-foreground cursor-pointer hover:bg-muted transition disabled:opacity-50" :disabled="savingNote" @click="showConfirmNoteModal = false">Hủy</button>
+        <button class="px-4 py-2 text-sm font-semibold rounded-lg border-none bg-primary text-white cursor-pointer hover:opacity-90 transition disabled:opacity-50 inline-flex items-center gap-1" :disabled="savingNote || !newNote.trim()" @click="saveNote">Xác nhận lưu</button>
+      </template>
+    </Modal>
   </div>
 </template>
 
 <style scoped>
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-
-/* Filter panel */
-.filter-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.filter-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: hsl(var(--muted-foreground));
-  margin-bottom: 6px;
-}
-
-.form-input {
-  width: 100%;
-  height: 38px;
-  padding: 0 12px;
-  font-size: 13px;
-  border: 1px solid hsl(var(--border));
-  border-radius: 8px;
-  background-color: hsl(var(--card));
-  color: hsl(var(--foreground));
-  outline: none;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.form-input:focus {
-  border-color: hsl(var(--primary));
-  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.15);
-}
-
-.search-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.search-icon {
-  position: absolute;
-  left: 12px;
-  color: hsl(var(--muted-foreground));
-  pointer-events: none;
-}
-
-.search-input {
-  padding-left: 36px;
-}
-
-.form-textarea {
-  width: 100%;
-  padding: 10px 12px;
-  font-size: 13px;
-  border: 1px solid hsl(var(--border));
-  border-radius: 8px;
-  background-color: hsl(var(--card));
-  color: hsl(var(--foreground));
-  outline: none;
-  resize: vertical;
-}
-
-.form-textarea:focus {
-  border-color: hsl(var(--primary));
-  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.15);
-}
-
-/* Buttons */
-.btn-export {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 9px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid hsl(var(--border));
-  border-radius: 8px;
-  background-color: hsl(var(--card));
-  color: hsl(var(--foreground));
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.btn-export:hover:not(:disabled) {
-  background-color: hsl(var(--muted));
-}
-
-.btn-export:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-reset {
-  height: 38px;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 500;
-  border: 1px solid hsl(var(--border));
-  border-radius: 8px;
-  background-color: hsl(var(--muted));
-  color: hsl(var(--foreground));
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.btn-reset:hover {
-  background-color: hsl(var(--border) / 0.8);
-}
-
-.pagination-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.page-btn {
-  width: 34px;
-  height: 34px;
-  border: 1px solid #dbe3ef;
-  border-radius: 7px;
-  background: #ffffff;
-  color: #1e3a5f;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.page-btn:hover:not(:disabled) {
-  background: #f8fafc;
-}
-
-.page-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
-.page-summary,
-.total-summary {
-  color: #64748b;
-  font-size: 13px;
-  margin: 0;
-}
-
-.btn-copy,
-.btn-copy-small {
-  background: none;
-  border: none;
-  padding: 3px;
-  border-radius: 4px;
-  color: hsl(var(--muted-foreground));
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-copy:hover,
-.btn-copy-small:hover {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--foreground));
-}
-
-.btn-icon {
-  background: none;
-  border: none;
-  padding: 6px;
-  border-radius: 6px;
-  color: hsl(var(--primary));
-  cursor: pointer;
-  display: inline-flex;
-}
-
-.btn-icon:hover {
-  background-color: hsl(var(--primary) / 0.1);
-}
-
-.btn-save-note {
-  display: flex;
-  align-items: center;
-  padding: 8px 16px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 6px;
-  background-color: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  border: none;
-  cursor: pointer;
-  transition: opacity 0.15s;
-}
-
-.btn-save-note:hover:not(:disabled) {
-  opacity: 0.9;
-}
-
-.btn-save-note:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Badges */
-.badge-payment {
-  font-size: 11px;
-  font-weight: 600;
-  background-color: hsl(var(--muted));
-  color: hsl(var(--foreground));
-  padding: 3px 8px;
-  border-radius: 6px;
-}
-
-.badge-status {
-  display: inline-flex;
-  align-items: center;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 100px;
-}
-
-.badge-success {
-  background-color: hsl(var(--success) / 0.1);
-  color: hsl(var(--success));
-}
-
-.badge-warning {
-  background-color: hsl(var(--warning) / 0.1);
-  color: hsl(var(--warning));
-}
-
-.badge-destructive {
-  background-color: hsl(var(--destructive) / 0.1);
-  color: hsl(var(--destructive));
-}
-
-/* Data Table */
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.data-table th {
-  background-color: hsl(var(--muted) / 0.5);
-  font-size: 11px;
-  font-weight: 600;
-  color: hsl(var(--muted-foreground));
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 14px 20px;
-  border-bottom: 1px solid hsl(var(--border) / 0.5);
-}
-
-.data-table td {
-  padding: 14px 20px;
-  border-bottom: 1px solid hsl(var(--border) / 0.5);
-  vertical-align: middle;
-}
-
-.table-row {
-  transition: background-color 0.15s ease;
-}
-
-.table-row:hover {
-  background-color: hsl(var(--muted) / 0.2);
-}
-
-/* Modal */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(15, 23, 42, 0.4);
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(4px);
-  padding: 20px;
-}
-
-.modal-content {
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-close {
-  background: none;
-  border: none;
-  color: hsl(var(--muted-foreground));
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
-  display: inline-flex;
-}
-
-.btn-close:hover {
-  background-color: hsl(var(--muted));
-  color: hsl(var(--foreground));
-}
-
-.modal-card {
-  background-color: hsl(var(--muted) / 0.25);
-  border: 1px solid hsl(var(--border) / 0.5);
-  border-radius: 12px;
-  padding: 16px;
-}
-
-.modal-section-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: hsl(var(--foreground));
-  margin: 0 0 14px 0;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.info-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.info-item {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-}
-
-.info-label {
-  color: hsl(var(--muted-foreground));
-}
-
-.info-value {
-  color: hsl(var(--foreground));
-  text-align: right;
-}
-
-/* Note timeline */
-.note-timeline {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  position: relative;
-  padding-left: 16px;
-  border-left: 1px solid hsl(var(--border));
-}
-
-.timeline-item {
-  position: relative;
-}
-
-.timeline-marker {
-  position: absolute;
-  left: -21px;
-  top: 6px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background-color: hsl(var(--primary));
-  border: 2px solid hsl(var(--card));
-}
-
-@media (max-width: 1024px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  .filter-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .filter-grid {
-    grid-template-columns: 1fr;
-  }
-}
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.filter-label { display: block; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); margin-bottom: 6px; }
+.form-input { width: 100%; height: 38px; padding: 0 12px; font-size: 13px; border: 1px solid hsl(var(--border)); border-radius: 8px; background-color: hsl(var(--card)); color: hsl(var(--foreground)); outline: none; box-sizing: border-box; }
+.form-input:focus { border-color: hsl(var(--primary)); box-shadow: 0 0 0 2px hsl(var(--primary) / 0.15); }
+.search-input-wrapper { position: relative; display: flex; align-items: center; }
+.search-icon { position: absolute; left: 12px; color: hsl(var(--muted-foreground)); pointer-events: none; }
+.search-input { padding-left: 36px; }
+.btn-reset { height: 38px; padding: 0 16px; font-size: 13px; font-weight: 500; border: 1px solid hsl(var(--border)); border-radius: 8px; background-color: hsl(var(--muted)); color: hsl(var(--foreground)); cursor: pointer; }
+.btn-export { display: flex; align-items: center; gap: 8px; padding: 9px 16px; font-size: 13px; font-weight: 600; border: 1px solid hsl(var(--border)); border-radius: 8px; background-color: hsl(var(--card)); color: hsl(var(--foreground)); cursor: pointer; }
+@media (max-width: 1024px) { .stats-grid { grid-template-columns: 1fr; } .filter-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .filter-grid { grid-template-columns: 1fr; } }
 </style>

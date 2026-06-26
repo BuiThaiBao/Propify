@@ -1,10 +1,10 @@
 <script setup>
 import { onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import PostsFilter from './PostsFilter.vue'
 import PostsTable from './PostsTable.vue'
+import { Pagination } from '@/components/crud'
 import { listingService } from '@/services/listingService'
 import { usePackageApi } from '@/composables/usePackageApi'
 
@@ -201,83 +201,14 @@ onMounted(async () => {
       @open-detail="openListingDetail"
     />
 
-    <div v-if="pagination.total > 0" class="posts-pagination">
-      <div class="pagination-actions">
-        <button
-          class="page-btn"
-          :disabled="pagination.current_page === 1 || loading"
-          @click="goToPage(pagination.current_page - 1)"
-          aria-label="Trang trước"
-        >
-          <ChevronLeft :size="18" />
-        </button>
-        <span class="page-summary">
-          Trang {{ pagination.current_page }} / {{ pagination.last_page }}
-        </span>
-        <button
-          class="page-btn"
-          :disabled="pagination.current_page === pagination.last_page || loading"
-          @click="goToPage(pagination.current_page + 1)"
-          aria-label="Trang sau"
-        >
-          <ChevronRight :size="18" />
-        </button>
-      </div>
-      <p class="total-summary">
-        Hiển thị tối đa {{ pagination.per_page }} / {{ pagination.total }} tin đăng
-      </p>
-    </div>
+    <Pagination
+      v-if="pagination.total > 0"
+      :current-page="pagination.current_page"
+      :last-page="pagination.last_page"
+      :total="pagination.total"
+      :loading="loading"
+      @page-change="goToPage"
+    />
   </div>
 </template>
 
-<style scoped>
-.posts-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.pagination-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.page-btn {
-  width: 34px;
-  height: 34px;
-  border: 1px solid #dbe3ef;
-  border-radius: 7px;
-  background: #ffffff;
-  color: #1e3a5f;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.page-btn:hover:not(:disabled) {
-  background: #f8fafc;
-}
-
-.page-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
-.page-summary,
-.total-summary {
-  color: #64748b;
-  font-size: 13px;
-  margin: 0;
-}
-
-@media (max-width: 720px) {
-  .posts-pagination {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-}
-</style>
