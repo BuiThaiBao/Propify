@@ -15,6 +15,8 @@ final class UserTransactionController extends Controller
         $validated = $request->validate([
             'status' => 'nullable|string|in:PENDING,SUCCESS,FAILED,EXPIRED',
             'per_page' => 'nullable|integer|min:10|max:100',
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
         ]);
 
         $query = Transaction::query()
@@ -24,6 +26,12 @@ final class UserTransactionController extends Controller
 
         if (! empty($validated['status'])) {
             $query->where('status', $validated['status']);
+        }
+        if (! empty($validated['from_date'])) {
+            $query->whereDate('transaction_date', '>=', $validated['from_date']);
+        }
+        if (! empty($validated['to_date'])) {
+            $query->whereDate('transaction_date', '<=', $validated['to_date']);
         }
 
         $perPage = (int) ($validated['per_page'] ?? 10);

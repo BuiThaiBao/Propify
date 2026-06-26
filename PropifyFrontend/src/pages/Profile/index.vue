@@ -1964,6 +1964,112 @@
           </h2>
 
           <div class="flex flex-col gap-4">
+            <!-- Search by listing name -->
+            <div class="relative">
+              <svg
+                class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z"
+                />
+              </svg>
+              <input
+                v-model.trim="transactionFilters.keyword"
+                type="text"
+                class="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm outline-none transition focus:border-sky-400"
+                placeholder="Tìm kiếm theo tên tin đăng..."
+              />
+            </div>
+
+            <!-- Date range filter -->
+            <div class="flex flex-wrap items-center gap-3">
+              <div class="flex items-center gap-2 text-sm text-slate-600">
+                <span>Từ ngày:</span>
+                <div class="relative">
+                  <input
+                    :value="transactionFilters.fromDate"
+                    @input="onFromDateInput"
+                    type="text"
+                    placeholder="DD/MM/YYYY"
+                    maxlength="10"
+                    class="h-9 w-[130px] rounded-lg border border-slate-200 pl-2.5 pr-8 text-sm outline-none transition focus:border-sky-400"
+                  />
+                  <input
+                    ref="fromDatePicker"
+                    type="date"
+                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    @change="onFromDateChange"
+                  />
+                  <svg
+                    class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <path d="M16 2v4M8 2v4M3 10h18" />
+                  </svg>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 text-sm text-slate-600">
+                <span>Đến ngày:</span>
+                <div class="relative">
+                  <input
+                    :value="transactionFilters.toDate"
+                    @input="onToDateInput"
+                    type="text"
+                    placeholder="DD/MM/YYYY"
+                    maxlength="10"
+                    class="h-9 w-[130px] rounded-lg border border-slate-200 pl-2.5 pr-8 text-sm outline-none transition focus:border-sky-400"
+                  />
+                  <input
+                    ref="toDatePicker"
+                    type="date"
+                    class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                    @change="onToDateChange"
+                  />
+                  <svg
+                    class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <rect x="3" y="4" width="18" height="18" rx="2" />
+                    <path d="M16 2v4M8 2v4M3 10h18" />
+                  </svg>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="h-9 rounded-lg bg-sky-500 px-4 text-xs font-semibold text-white transition hover:bg-sky-600 disabled:opacity-50"
+                :disabled="!!dateError"
+                @click="loadTransactions(1)"
+              >
+                Lọc
+              </button>
+              <span v-if="dateError" class="text-xs text-rose-500">{{ dateError }}</span>
+              <button
+                v-if="transactionFilters.fromDate || transactionFilters.toDate"
+                type="button"
+                class="h-9 rounded-lg border border-slate-200 px-4 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                @click="
+                  transactionFilters.fromDate = '';
+                  transactionFilters.toDate = '';
+                  loadTransactions(1);
+                "
+              >
+                Bỏ lọc
+              </button>
+            </div>
+
             <!-- Status Filters -->
             <div
               class="flex flex-wrap gap-2 border-b border-slate-100 pb-4 mb-2"
@@ -2069,7 +2175,7 @@
                       Đang tải dữ liệu...
                     </td>
                   </tr>
-                  <tr v-else-if="transactions.length === 0">
+                  <tr v-else-if="filteredTransactions.length === 0">
                     <td
                       class="px-4 py-6 text-center text-slate-400"
                       colspan="8"
@@ -2079,7 +2185,7 @@
                   </tr>
                   <tr
                     v-else
-                    v-for="item in transactions"
+                    v-for="item in filteredTransactions"
                     :key="item.id"
                     class="border-t border-slate-100 hover:bg-slate-50/50 transition"
                   >
@@ -2145,7 +2251,7 @@
 
             <!-- Pagination -->
             <div
-              v-if="transactionsPagination.lastPage > 1"
+              v-if="!isSearchingTransactions && transactionsPagination.lastPage > 1"
               class="mt-4 flex items-center justify-between gap-3 text-sm text-slate-500"
             >
               <p>Tổng cộng {{ transactionsPagination.total }} giao dịch</p>
@@ -2183,6 +2289,12 @@
                 </button>
               </div>
             </div>
+            <p
+              v-else-if="isSearchingTransactions"
+              class="mt-4 text-sm text-slate-500"
+            >
+              Tìm thấy {{ filteredTransactions.length }} kết quả
+            </p>
           </div>
         </section>
       </main>
@@ -3283,6 +3395,8 @@ function openNotificationsTab() {
 
 // ── Transactions ──
 const transactions = ref([]);
+const allTransactions = ref([]);
+const allTransactionsLoaded = ref(false);
 const transactionsLoading = ref(false);
 const transactionsLoaded = ref(false);
 const transactionsPagination = ref({
@@ -3293,6 +3407,9 @@ const transactionsPagination = ref({
 });
 const transactionFilters = ref({
   status: "",
+  keyword: "",
+  fromDate: "",
+  toDate: "",
 });
 
 async function loadTransactions(page = 1) {
@@ -3302,6 +3419,8 @@ async function loadTransactions(page = 1) {
       page,
       per_page: transactionsPagination.value.perPage,
       status: transactionFilters.value.status || undefined,
+      from_date: transactionFilters.value.fromDate ? transactionFilters.value.fromDate.split('/').reverse().join('-') : undefined,
+      to_date: transactionFilters.value.toDate ? transactionFilters.value.toDate.split('/').reverse().join('-') : undefined,
     });
 
     const data = response?.data?.data || [];
@@ -3324,12 +3443,113 @@ async function loadTransactions(page = 1) {
   }
 }
 
+async function loadAllTransactions() {
+  if (allTransactionsLoaded.value) return;
+  transactionsLoading.value = true;
+  try {
+    const all = [];
+    let page = 1;
+    let lastPage = 1;
+    do {
+      const response = await userService.getTransactions({
+        page,
+        per_page: 100,
+        status: transactionFilters.value.status || undefined,
+      });
+      const data = response?.data?.data || [];
+      const meta = response?.data?.meta || {};
+      all.push(...data);
+      lastPage = Number(meta.last_page || 1);
+      page++;
+    } while (page <= lastPage);
+    allTransactions.value = all;
+    allTransactionsLoaded.value = true;
+  } catch (error) {
+    console.error(error);
+    allTransactions.value = [];
+  } finally {
+    transactionsLoading.value = false;
+  }
+}
+
 function openTransactionsTab() {
   activeTab.value = "transactions";
   if (!transactionsLoaded.value) {
     loadTransactions(1);
   }
 }
+
+const filteredTransactions = computed(() => {
+  const kw = (transactionFilters.value.keyword || "").toLowerCase().trim();
+  if (!kw) return transactions.value;
+  return allTransactions.value.filter((item) => {
+    const title = item.listing?.title || "";
+    return title.toLowerCase().includes(kw);
+  });
+});
+
+const isSearchingTransactions = computed(() => {
+  return (transactionFilters.value.keyword || "").trim().length > 0;
+});
+
+const dateError = computed(() => {
+  const f = transactionFilters.value.fromDate;
+  const t = transactionFilters.value.toDate;
+  if (!f || !t) return '';
+  const [fd, fm, fy] = f.split('/');
+  const [td, tm, ty] = t.split('/');
+  if (!fd || !fm || !fy || !td || !tm || !ty) return '';
+  const from = new Date(+fy, +fm - 1, +fd);
+  const to = new Date(+ty, +tm - 1, +td);
+  if (from > to) return 'Ngày bắt đầu không được lớn hơn ngày kết thúc';
+  return '';
+});
+
+const fromDatePicker = ref(null);
+const toDatePicker = ref(null);
+
+function onFromDateInput(e) {
+  let val = e.target.value.replace(/[^0-9]/g, '').slice(0, 8);
+  let formatted = '';
+  if (val.length > 4) formatted = val.slice(0, 2) + '/' + val.slice(2, 4) + '/' + val.slice(4);
+  else if (val.length > 2) formatted = val.slice(0, 2) + '/' + val.slice(2);
+  else formatted = val;
+  transactionFilters.value.fromDate = formatted;
+}
+function onFromDateChange(e) {
+  if (e.target.value) {
+    const [y, m, d] = e.target.value.split('-');
+    transactionFilters.value.fromDate = `${d}/${m}/${y}`;
+  }
+}
+function onToDateInput(e) {
+  let val = e.target.value.replace(/[^0-9]/g, '').slice(0, 8);
+  let formatted = '';
+  if (val.length > 4) formatted = val.slice(0, 2) + '/' + val.slice(2, 4) + '/' + val.slice(4);
+  else if (val.length > 2) formatted = val.slice(0, 2) + '/' + val.slice(2);
+  else formatted = val;
+  transactionFilters.value.toDate = formatted;
+}
+function onToDateChange(e) {
+  if (e.target.value) {
+    const [y, m, d] = e.target.value.split('-');
+    transactionFilters.value.toDate = `${d}/${m}/${y}`;
+  }
+}
+
+let transactionSearchTimeout = null;
+watch(
+  () => transactionFilters.value.keyword,
+  (val) => {
+    if (transactionSearchTimeout) clearTimeout(transactionSearchTimeout);
+    transactionSearchTimeout = setTimeout(() => {
+      const kw = (val || "").trim();
+      if (kw) {
+        loadAllTransactions();
+      }
+    }, 300);
+  },
+);
 
 function formatTransactionAmount(value) {
   const num = Number(value || 0);
