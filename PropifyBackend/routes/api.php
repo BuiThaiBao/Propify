@@ -3,6 +3,7 @@
 use App\Enums\ErrorCode;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Api\V1\Admin\AdminAuditLogController;
+use App\Http\Controllers\Api\V1\Admin\AdminDashboardController;
 use App\Http\Controllers\Api\V1\Admin\AdminListingController;
 use App\Http\Controllers\Api\V1\Admin\AdminTransactionController;
 use App\Http\Controllers\Api\V1\Admin\AdminUserController;
@@ -298,6 +299,7 @@ Route::prefix('v1/packages')->as('packages.admin.')->middleware('auth:api')->gro
 
 // ==================== ADMIN ROUTES ====================
 Route::prefix('v1/admin')->as('admin.')->middleware(['auth:api', 'admin'])->group(function () {
+    Route::get('/dashboard/stats', [AdminDashboardController::class, 'stats'])->name('dashboard.stats');
     Route::get('/listings', [AdminListingController::class, 'index'])->name('listings.index');
     Route::get('/listings/{id}', [AdminListingController::class, 'show'])->where('id', '[0-9]+')->name('listings.show');
     Route::get('/listings/{id}/reports', [AdminListingController::class, 'reports'])->where('id', '[0-9]+')->name('listings.reports');
