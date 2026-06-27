@@ -110,6 +110,7 @@ const {
   typingUsers,
   totalUnread,
   isChatVisible,
+  popupOpen,
   groupMembers,
   loadingMembers,
   isGroupAdmin,
@@ -132,7 +133,7 @@ const {
   updateGroup,
 } = chatStore;
 
-const isOpen = ref(false);
+const isOpen = popupOpen;
 const showSearch = ref(false);
 const searchPanel = ref(null);
 const msgContainer = ref(null);

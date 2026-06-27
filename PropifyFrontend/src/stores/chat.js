@@ -17,6 +17,7 @@ export const useChatStore = defineStore('chat', () => {
   const hasMore = ref(false);
   const typingUsers = ref(new Set());
   const isChatVisible = ref(false);
+  const popupOpen = ref(false);
   const groupMembers = ref([]);
   const loadingMembers = ref(false);
   const { queue, isOnline, enqueue, remove, setupListeners } = useMessageQueue();
@@ -468,6 +469,7 @@ export const useChatStore = defineStore('chat', () => {
     typingUsers,
     totalUnread,
     isChatVisible,
+    popupOpen,
     queue,
     isOnline,
     groupMembers,

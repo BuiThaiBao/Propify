@@ -1118,6 +1118,7 @@ const showLoginPopup = ref(false);
 const showRegisterPopup = ref(false);
 const openAppointmentAfterAuth = ref(false);
 const openReportAfterAuth = ref(false);
+const openChatAfterAuth = ref(false);
 const mapMode = ref("standard");
 const isMap3dEnabled = ref(false);
 const mapModalOpen = ref(false);
@@ -1493,8 +1494,15 @@ async function goToChat() {
     null;
   const listingId = listing.value?.id || null;
 
-  if (!authStore.isAuthenticated || !ownerId) {
-    router.push({ name: "Chat" });
+  if (!authStore.isAuthenticated) {
+    openChatAfterAuth.value = true;
+    showRegisterPopup.value = false;
+    showLoginPopup.value = true;
+    return;
+  }
+
+  if (!ownerId) {
+    pushToast("Không thể nhắn tin với người đăng tin này.", "error");
     return;
   }
 
@@ -1502,9 +1510,11 @@ async function goToChat() {
     await chatStore.openConversationWith(ownerId, listingId);
   } catch (error) {
     console.warn("[Detail] Cannot open chat conversation:", error);
+    pushToast("Không thể mở hộp thoại chat.", "error");
+    return;
   }
 
-  router.push({ name: "Chat" });
+  chatStore.popupOpen = true;
 }
 
 function openAppointmentBooking() {
@@ -1525,6 +1535,7 @@ function closeAuthPopup() {
   showRegisterPopup.value = false;
   openAppointmentAfterAuth.value = false;
   openReportAfterAuth.value = false;
+  openChatAfterAuth.value = false;
 }
 
 async function handleAuthSuccess() {
@@ -1542,6 +1553,12 @@ async function handleAuthSuccess() {
     openReportAfterAuth.value = false;
     await nextTick();
     openReportModal();
+  }
+
+  if (openChatAfterAuth.value) {
+    openChatAfterAuth.value = false;
+    await nextTick();
+    goToChat();
   }
 }
 
