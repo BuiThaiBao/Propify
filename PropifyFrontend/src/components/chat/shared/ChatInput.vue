@@ -111,9 +111,10 @@ async function uploadAndSend(file) {
   uploading.value = true;
   emit('file-uploading', true);
   try {
-    const { public_url, file_name, file_size, mime_type } = await chatUploadService.upload(file, type);
-    const meta = { file_name, file_size, mime_type };
-    emit('send', public_url, type, meta);
+    const { file_key, file_name, file_size, mime_type } = await chatUploadService.upload(file, type);
+    const publicUrl = await chatUploadService.getFileUrl(file_key);
+    const meta = { file_name, file_size, mime_type, file_key };
+    emit('send', publicUrl, type, meta);
     inputText.value = '';
     resetHeight();
   } catch (err) {

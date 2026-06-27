@@ -162,9 +162,11 @@ Route::prefix('v1/appointment-bookings')->as('appointment-bookings.')->middlewar
 
 // ==================== CHAT ROUTES ====================
 Route::prefix('v1/chat')->as('chat.')->middleware('auth:api')->group(function () {
-    // Upload file lên R2 (multipart)
-    Route::post('/upload', [FileUploadController::class, 'upload'])
-        ->name('upload');
+    // Presign URL cho upload trực tiếp R2
+    Route::post('/presign', [FileUploadController::class, 'presign'])
+        ->name('presign');
+    Route::get('/file-url', [FileUploadController::class, 'getFileUrl'])
+        ->name('file-url');
 
     // Danh sách conversations của user
     Route::get('/conversations', [ChatController::class, 'getConversations'])

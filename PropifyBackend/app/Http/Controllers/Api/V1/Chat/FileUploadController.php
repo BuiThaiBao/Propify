@@ -5,48 +5,31 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Chat;
 
 use App\Helpers\ApiResponse;
+use App\Models\ChatUpload;
 use Aws\S3\S3Client;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
- * Upload file chat: backend nhận file, upload lên R2, trả về URL.
+ * Upload file chat qua Presigned URL + DB mapping.
  *
- * POST /v1/chat/upload
- * Body: multipart/form-data { file, type }
+ * Flow:
+ *   1. POST /v1/chat/presign – tạo Presigned PUT URL, lưu mapping file_key → metadata
+ *   2. FE PUT file thẳng lên R2
+ *   3. FE gửi message với public_url (presigned GET)
+ *   4. GET /v1/chat/file-url – tạo Presigned GET URL khi user mở message
  */
 final class FileUploadController
 {
-    public function upload(Request $request): JsonResponse
+    private S3Client $client;
+    private string $bucket;
+
+    public function __construct()
     {
-        $request->validate([
-            'file' => ['required', 'file', 'max:30720'], // max 30MB
-            'type' => ['required', 'string', Rule::in(['image', 'file'])],
-        ]);
-
-        $file = $request->file('file');
-        $type = $request->input('type');
-
-        $extension = $file->getClientOriginalExtension() ?: 'bin';
-        $userId = $request->user()?->id ?? 'anonymous';
-        $fileKey = sprintf(
-            'chat/%s/%s.%s',
-            $userId,
-            (string) Str::uuid(),
-            $extension,
-        );
-
-        // Upload lên R2
-        $disk = Storage::disk('r2');
-        $disk->put($fileKey, file_get_contents($file->getRealPath()), [
-            'ContentType' => $file->getMimeType() ?: 'application/octet-stream',
-        ]);
-
-        // Tạo Presigned GET URL (7 ngày)
-        $client = new S3Client([
+        $this->bucket = config('filesystems.disks.r2.bucket');
+        $this->client = new S3Client([
             'version' => 'latest',
             'region' => 'auto',
             'endpoint' => config('filesystems.disks.r2.endpoint'),
@@ -57,20 +40,74 @@ final class FileUploadController
             'use_path_style_endpoint' => true,
             'signature_version' => 'v4',
         ]);
+    }
 
-        $getCommand = $client->getCommand('GetObject', [
-            'Bucket' => config('filesystems.disks.r2.bucket'),
+    /**
+     * Bước 1: Tạo Presigned PUT URL + lưu mapping.
+     */
+    public function presign(Request $request): JsonResponse
+    {
+        $request->validate([
+            'type' => ['required', 'string', Rule::in(['image', 'file'])],
+            'extension' => ['required', 'string', 'max:10'],
+            'content_type' => ['required', 'string', 'max:100'],
+            'file_name' => ['required', 'string', 'max:255'],
+            'file_size' => ['required', 'integer', 'min:1', 'max:31457280'], // 30MB
+        ]);
+
+        $userId = $request->user()->id;
+        $fileKey = sprintf(
+            'chat/%s/%s.%s',
+            $userId,
+            (string) Str::uuid(),
+            $request->input('extension'),
+        );
+
+        // Lưu mapping
+        ChatUpload::create([
+            'user_id' => $userId,
+            'file_key' => $fileKey,
+            'original_name' => $request->input('file_name'),
+            'file_size' => $request->input('file_size'),
+            'mime_type' => $request->input('content_type'),
+            'type' => $request->input('type'),
+        ]);
+
+        // Presigned PUT URL (15 phút)
+        $putCommand = $this->client->getCommand('PutObject', [
+            'Bucket' => $this->bucket,
+            'Key' => $fileKey,
+            'ContentType' => $request->input('content_type'),
+        ]);
+        $presignedPut = $this->client->createPresignedRequest($putCommand, '+15 minutes');
+        $presignedUrl = (string) $presignedPut->getUri();
+
+        return ApiResponse::success([
+            'presigned_url' => $presignedUrl,
+            'file_key' => $fileKey,
+        ]);
+    }
+
+    /**
+     * Bước 2: Lấy Presigned GET URL từ file_key (gọi khi render message).
+     */
+    public function getFileUrl(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file_key' => ['required', 'string', 'max:500'],
+        ]);
+
+        $fileKey = $request->input('file_key');
+
+        $getCommand = $this->client->getCommand('GetObject', [
+            'Bucket' => $this->bucket,
             'Key' => $fileKey,
         ]);
-        $presignedGetRequest = $client->createPresignedRequest($getCommand, '+7 days');
-        $publicUrl = (string) $presignedGetRequest->getUri();
+        $presignedGet = $this->client->createPresignedRequest($getCommand, '+7 days');
+        $publicUrl = (string) $presignedGet->getUri();
 
         return ApiResponse::success([
             'public_url' => $publicUrl,
-            'file_key' => $fileKey,
-            'file_name' => $file->getClientOriginalName(),
-            'file_size' => $file->getSize(),
-            'mime_type' => $file->getMimeType(),
         ]);
     }
 }
