@@ -83,25 +83,33 @@ const pendingFile = ref(null);
 
 let typingTimer = null;
 
+function onFileChange(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  event.target.value = '';
+
+  // Validate size ngay khi chọn file
+  if (file.size > MAX_FILE_SIZE) {
+    const mb = MAX_FILE_SIZE / 1024 / 1024;
+    emit('file-error', `File vượt quá ${mb}MB. Vui lòng chọn file nhỏ hơn.`);
+    return;
+  }
+
+  const isImage = file.type.startsWith('image/');
+  const prefix = isImage ? '🖼️ ' : '📎 ';
+  inputText.value = `${prefix}${file.name}`;
+  pendingFile.value = file;
+  nextTick(() => inputRef.value?.focus());
+}
+
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 async function uploadAndSend(file) {
   const isImage = file.type.startsWith('image/');
   const type = isImage ? 'image' : 'file';
 
-  // Validate size trước khi upload
-  if (file.size > MAX_FILE_SIZE) {
-    const mb = MAX_FILE_SIZE / 1024 / 1024;
-    emit('file-error', `File vượt quá ${mb}MB. Vui lòng chọn file nhỏ hơn.`);
-    inputText.value = '';
-    resetHeight();
-    return;
-  }
-
   uploading.value = true;
   emit('file-uploading', true);
-
-  try {
     const { public_url, file_name, file_size, mime_type } = await chatUploadService.upload(file, type);
     const meta = { file_name, file_size, mime_type };
     emit('send', public_url, type, meta);
