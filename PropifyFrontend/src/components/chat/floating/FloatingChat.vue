@@ -58,7 +58,7 @@
             />
           </div>
 
-          <ChatInput compact :disabled="sending" @send="sendMsg" @typing="onInputChange" />
+          <ChatInput compact @send="sendMsg" @typing="onInputChange" />
         </template>
       </ChatWindow>
 
