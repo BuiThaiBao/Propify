@@ -2,40 +2,50 @@
 
 ```plantuml
 @startuml
-title Quên Mật Khẩu
+title Minh họa Quên Mật Khẩu (Boundary - Controller - Service - Entity - Repository - Database)
 
 actor "User" as User
-participant "Frontend" as FE
-participant "AuthController" as Controller
-participant "AuthService" as Service
-participant "UserRepository" as Repo
+boundary "LoginForm / MobileApp\n«boundary»" as FE
+control "AuthController / API\n«controller»" as Controller
+control "AuthService\n«service»" as Service
+entity "User\n«entity»" as Entity
+entity "UserRepository\n«repository»" as Repo
 database "Database" as DB
 
 User -> FE: Nhập email
-FE -> Controller: POST /auth/forgot-password
+FE -> Controller: POST /auth/forgot-password\n(email)
 Controller -> Service: forgotPassword(email)
 Service -> Repo: findByEmail(email)
-alt Tồn tại
-  Service -> Service: Gửi OTP
+Repo -> DB: SELECT * FROM users WHERE email = ?
+DB --> Repo: user
+alt Email tồn tại
+  Repo --> Service: User
+  Service -> Service: sendOTP()
   Service --> Controller: success
-  Controller --> FE: 200
-  User -> FE: OTP + mật khẩu mới
-  FE -> Controller: POST /auth/reset-password
-  Controller -> Service: resetPassword(dto)
+  Controller --> FE: 200 OK
+  FE --> User: Nhập OTP + mật khẩu mới
+  User -> FE: OTP + newPassword
+  FE -> Controller: POST /auth/reset-password\n(otp, newPassword)
+  Controller -> Service: resetPassword(email, otp, newPassword)
+  Service -> Entity: validateOTP()
   alt OTP đúng
-    Service -> Repo: updatePassword
-    Repo -> DB: UPDATE
+    Service -> Repo: updatePassword(email, hash)
+    Repo -> DB: UPDATE users SET password = ?
+    DB --> Repo: success
+    Repo --> Service: ok
     Service --> Controller: success
-    Controller --> FE: 200
-  else Sai
-    Service --> Controller: error
-    Controller --> FE: 401
+    Controller --> FE: 200 OK
+    FE --> User: Mật khẩu đã được đặt lại
+  else OTP sai
+    Service --> Controller: InvalidOTP
+    Controller --> FE: 400 Bad Request
+    FE --> User: Sai mã OTP
   end
-else Không tồn tại
-  Service --> Controller: not found
-  Controller --> FE: 404
+else Email không tồn tại
+  Repo --> Service: null
+  Service --> Controller: NotFound
+  Controller --> FE: 404 Not Found
+  FE --> User: Email chưa đăng ký
 end
 @enduml
 ```
-
-**3-layer:** Controller -> Service -> Repository -> DB.

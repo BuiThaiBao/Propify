@@ -2,35 +2,48 @@
 
 ```plantuml
 @startuml
-title Chỉnh Sửa Tin Đăng
+title Minh họa Chỉnh Sửa Tin Đăng (Boundary - Controller - Service - Entity - Repository - Database)
 
 actor "Owner" as Owner
-participant "Frontend" as FE
-participant "ListingController" as Controller
-participant "ListingService" as Service
-participant "ListingRepository" as Repo
+boundary "EditForm / MobileApp\n«boundary»" as FE
+control "ListingController / API\n«controller»" as Controller
+control "ListingService\n«service»" as Service
+entity "Listing\n«entity»" as ListingEntity
+entity "ListingRepository\n«repository»" as Repo
 database "Database" as DB
 
-Owner -> FE: Mở chỉnh sửa
+Owner -> FE: Mở trang chỉnh sửa
 FE -> Controller: GET /listings/{id}
 Controller -> Service: findById(id)
-Service -> Repo: find
-Repo -> DB: SELECT
-DB --> Repo: listing
-Service --> Controller: Listing
-Controller --> FE: Listing
-Owner -> FE: Sửa + upload ảnh mới
-FE -> Controller: PUT /listings/{id}
-Controller -> Service: update(dto)
-Service -> Repo: updateProperty + listing
-Repo -> DB: UPDATE
-Service -> Repo: syncImages
-Repo -> DB: DELETE + INSERT
-Service -> Service: clearCache()
-Service --> Controller: success
-Controller --> FE: 200
-FE --> Owner: Thành công
+Service -> Repo: find(id)
+Repo -> DB: SELECT * FROM listings WHERE id = ?
+DB --> Repo: listingData
+Repo --> Service: Listing
+Service --> Controller: ListingResource
+Controller --> FE: 200 OK + Listing
+FE --> Owner: Hiển thị form chỉnh sửa
+Owner -> FE: Sửa thông tin
+Owner -> FE: Bấm "Lưu"
+FE -> Controller: PUT /listings/{id}\n(updateData)
+Controller -> Service: update(id, dto)
+Service -> ListingEntity: update(dto)
+Service -> ListingEntity: validate()
+
+alt Dữ liệu không hợp lệ
+  ListingEntity --> Service: ValidationError
+  Service --> Controller: ValidationError
+  Controller --> FE: 422 Lỗi dữ liệu
+  FE --> Owner: Hiển thị lỗi
+else Hợp lệ
+  Service -> Repo: update(Listing)
+  Repo -> DB: UPDATE listings SET ...
+  DB --> Repo: success
+  Repo -> DB: Xóa ảnh cũ + INSERT ảnh mới
+  DB --> Repo: success
+  Repo --> Service: ok
+  Service --> Controller: success
+  Controller --> FE: 200 OK
+  FE --> Owner: Cập nhật thành công
+end
 @enduml
 ```
-
-**3-layer:** Controller -> Service -> Repository -> DB.
