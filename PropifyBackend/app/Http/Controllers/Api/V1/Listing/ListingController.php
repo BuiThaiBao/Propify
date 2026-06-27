@@ -194,11 +194,19 @@ final class ListingController
         }
 
         if ($listing->status !== 'LOCKED') {
-            return ApiResponse::error('Chỉ có thể phản ánh tin đang bị khóa.', 422);
+            return ApiResponse::error(
+                message: 'Chỉ có thể phản ánh tin đang bị khóa.',
+                statusCode: 422,
+                errorCode: ErrorCode::ListingNotLocked
+            );
         }
 
         if ($this->createListingLockAppealCommand->hasPendingAppeal($request->user(), $listing)) {
-            return ApiResponse::error('Bạn đã gửi phản ánh cho tin này và đang chờ xử lý.', 409);
+            return ApiResponse::error(
+                message: 'Bạn đã gửi phản ánh cho tin này và đang chờ xử lý.',
+                statusCode: 409,
+                errorCode: ErrorCode::AppealAlreadyPending
+            );
         }
 
         $appeal = $this->createListingLockAppealCommand->handle(
@@ -227,15 +235,15 @@ final class ListingController
             perPage: $perPage,
         );
 
-        $countsQuery = Listing::where('owner_id', $request->user()->id)
-            ->when($request->input('demand_type'), function ($query, $demandType) {
-                $query->where('demand_type', $demandType);
-            })
-            ->selectRaw('status, count(*) as count')
-            ->groupBy('status')
-            ->pluck('count', 'status')
-            ->toArray();
-        $countsQuery['ALL'] = array_sum($countsQuery);
+        // Build counts from withCount on the paginator items
+        $counts = ['ALL' => $paginator->total()];
+        foreach ($paginator->items() as $listing) {
+            if (isset($listing->status_counts) && is_array($listing->status_counts)) {
+                foreach ($listing->status_counts as $statusCount) {
+                    $counts[$statusCount['status']] = ($counts[$statusCount['status']] ?? 0) + $statusCount['count'];
+                }
+            }
+        }
 
         return ApiResponse::success(
             data: ListingResource::collection($paginator->items()),
@@ -245,7 +253,7 @@ final class ListingController
                 'last_page' => $paginator->lastPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
-                'counts' => $countsQuery,
+                'counts' => $counts,
             ],
         );
     }

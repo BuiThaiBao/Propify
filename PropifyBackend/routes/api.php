@@ -193,12 +193,13 @@ Route::prefix('v1/chat')->as('chat.')->middleware('auth:api')->group(function ()
 });
 
 // ==================== GEOCODING PROXY ROUTES (public — no auth needed) ====================
-Route::prefix('v1/geocoding')->as('geocoding.')->group(function () {
+Route::prefix('v1/geocoding')->as('geocoding.')->middleware('throttle:30,1')->group(function () {
     Route::get('/reverse', [GeocodingController::class, 'reverse'])->name('reverse');
     Route::get('/search', [GeocodingController::class, 'search'])->name('search');
 });
 
 Route::get('v1/payments/vnpay/return', VnpayReturnController::class)
+    ->middleware('throttle:10,1')
     ->name('payments.vnpay.return');
 
 Route::prefix('v1/listings')->as('listings.')->group(function () {
