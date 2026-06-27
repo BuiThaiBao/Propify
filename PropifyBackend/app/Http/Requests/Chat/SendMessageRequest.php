@@ -19,6 +19,10 @@ final class SendMessageRequest extends FormRequest
             'type' => ['sometimes', 'string', Rule::in(ListingPostingOptions::values('message_types'))],
             'body' => ['required_if:type,text', 'nullable', 'string', 'max:5000'],
             'file_url' => ['required_if:type,image,file', 'nullable', 'string', 'url'],
+            'metadata' => ['nullable', 'array'],
+            'metadata.file_name' => ['nullable', 'string', 'max:255'],
+            'metadata.file_size' => ['nullable', 'integer', 'min:0'],
+            'metadata.mime_type' => ['nullable', 'string', 'max:100'],
         ];
     }
 

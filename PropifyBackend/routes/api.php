@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\Appointment\AppointmentSlotController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\Auth\GoogleController;
 use App\Http\Controllers\Api\V1\Chat\ChatController;
+use App\Http\Controllers\Api\V1\Chat\FileUploadController;
 use App\Http\Controllers\Api\V1\Chat\GroupChatController;
 use App\Http\Controllers\Api\V1\Cloudinary\CloudinaryController;
 use App\Http\Controllers\Api\V1\Geocoding\GeocodingController;
@@ -161,6 +162,10 @@ Route::prefix('v1/appointment-bookings')->as('appointment-bookings.')->middlewar
 
 // ==================== CHAT ROUTES ====================
 Route::prefix('v1/chat')->as('chat.')->middleware('auth:api')->group(function () {
+    // Upload file lên R2 (multipart)
+    Route::post('/upload', [FileUploadController::class, 'upload'])
+        ->name('upload');
+
     // Danh sách conversations của user
     Route::get('/conversations', [ChatController::class, 'getConversations'])
         ->name('conversations.index');

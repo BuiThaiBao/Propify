@@ -19,6 +19,63 @@ const PROPERTY_TYPE_LABELS = {
 const DEFAULT_THUMB =
   "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=60";
 
+const CLOUDINARY_REGEX = /res\.cloudinary\.com\/[^/]+\/image\/upload\/(?:v\d+\/)?(.+)/;
+
+/**
+ * Thêm cloudinary transform vào URL ảnh.
+ * @param {string} url
+ * @param {object} opts - { width?, quality?, format? }
+ * @returns {string}
+ */
+export function optimizeImage(url, opts = {}) {
+  if (!url || !CLOUDINARY_REGEX.test(url)) return url;
+
+  const { width = 0, quality = "auto", format = "auto" } = opts;
+  const parts = [];
+
+  parts.push(format === "auto" ? "f_auto" : `f_${format}`);
+  parts.push(quality === "auto" ? "q_auto" : `q_${quality}`);
+  if (width > 0) parts.push(`w_${width}`);
+
+  return url.replace(
+    /(res\.cloudinary\.com\/[^/]+\/image\/upload)\//,
+    `$1/${parts.join(",")}/`,
+  );
+}
+
+/**
+ * Lấy URL ảnh thumbnail cho listing card (tối ưu).
+ * Fallback: nếu không có ảnh, lấy frame đầu tiên từ video.
+ */
+export function getThumb(item) {
+  // Ưu tiên ảnh có sẵn
+  if (Array.isArray(item?.images) && item.images.length > 0) {
+    const thumb = item.images.find(
+      (image) => image?.is_thumbnail || image?.isThumbnail,
+    );
+    const raw = thumb?.url || item.images[0]?.url || item?.thumbnail || DEFAULT_THUMB;
+    return optimizeImage(raw, { width: 300, quality: "auto" });
+  }
+
+  // Fallback sang video thumbnail
+  if (Array.isArray(item?.videos) && item.videos.length > 0) {
+    return getVideoThumb(item.videos[0]?.url, { width: 300 });
+  }
+
+  return optimizeImage(item?.thumbnail || DEFAULT_THUMB, { width: 300 });
+}
+
+/**
+ * Sinh thumbnail từ Cloudinary video (lấy frame đầu).
+ */
+export function getVideoThumb(videoUrl, opts = {}) {
+  if (!videoUrl) return DEFAULT_THUMB;
+  const thumb = videoUrl
+    .replace(/\/upload\//, "/upload/so_1/")
+    .replace(/\.\w+$/, ".jpg");
+  return optimizeImage(thumb, opts);
+}
+
 export function formatPrice(value) {
   const num = Number(value || 0);
   if (!num || num <= 0) return "Thỏa thuận";
@@ -59,19 +116,6 @@ export function isVerified(item) {
     Number(value) === 1 ||
     String(value).toUpperCase() === "VERIFIED"
   );
-}
-
-export function getThumb(item) {
-  if (Array.isArray(item?.images) && item.images.length > 0) {
-    const thumb = item.images.find(
-      (image) => image?.is_thumbnail || image?.isThumbnail,
-    );
-    return (
-      thumb?.url || item.images[0]?.url || item?.thumbnail || DEFAULT_THUMB
-    );
-  }
-
-  return item?.thumbnail || DEFAULT_THUMB;
 }
 
 export function getAuthor(item) {

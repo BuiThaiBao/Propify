@@ -210,7 +210,7 @@ export const useChatStore = defineStore('chat', () => {
     return updated;
   }
 
-  function buildOptimisticMessage(body, status = 'sending', id = `temp-${Date.now()}`) {
+  function buildOptimisticMessage(body, status = 'sending', id = `temp-${Date.now()}`, messageType = 'text') {
     const authStore = useAuthStore();
 
     return {
@@ -221,9 +221,9 @@ export const useChatStore = defineStore('chat', () => {
         full_name: authStore.user.full_name,
         avatar_url: authStore.user.avatar_url,
       },
-      type: 'text',
-      body: body.trim(),
-      file_url: null,
+      type: messageType,
+      body: messageType === 'text' ? body.trim() : null,
+      file_url: messageType !== 'text' ? body : null,
       created_at: new Date().toISOString(),
       _status: status,
     };
@@ -344,6 +344,38 @@ export const useChatStore = defineStore('chat', () => {
   async function loadMoreMessages() {
     if (!hasMore.value || !nextCursor.value || !activeConversation.value) return;
     await loadMessages(activeConversation.value.id, nextCursor.value);
+  }
+
+  async function sendFileMessage(fileUrl, type = 'image', meta = null) {
+    if (!activeConversation.value || !fileUrl) return;
+
+    ensureQueueListeners();
+
+    const metadata = meta ? { ...meta } : null;
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg = buildOptimisticMessage(fileUrl, 'sending', tempId, type);
+    if (metadata) optimisticMsg.metadata = metadata;
+    messages.value.push(optimisticMsg);
+    updateConversationLastMessage(activeConversation.value.id, optimisticMsg);
+    saveCache(activeConversation.value.id);
+
+    sending.value = true;
+    try {
+      const res = await chatService.sendFileMessage(activeConversation.value.id, type, fileUrl, metadata);
+      const realMsg = res.data.data;
+
+      const index = messages.value.findIndex((msg) => msg.id === tempId);
+      if (index !== -1) {
+        messages.value[index] = { ...realMsg, _status: 'sent' };
+      }
+
+      updateConversationLastMessage(activeConversation.value.id, realMsg);
+      saveCache(activeConversation.value.id);
+    } catch {
+      replaceMessageStatus(tempId, 'error');
+    } finally {
+      sending.value = false;
+    }
   }
 
   async function sendMessage(body) {
@@ -491,6 +523,7 @@ export const useChatStore = defineStore('chat', () => {
     updateGroup,
     loadMoreMessages,
     sendMessage,
+    sendFileMessage,
     sendTypingIndicator,
     unsubscribeActive,
     markAsRead,

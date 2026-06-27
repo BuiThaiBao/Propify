@@ -58,7 +58,7 @@
             />
           </div>
 
-          <ChatInput compact @send="sendMsg" @typing="onInputChange" />
+          <ChatInput compact @send="sendMsg" @typing="onInputChange" @file-error="onFileError" />
         </template>
       </ChatWindow>
 
@@ -226,9 +226,18 @@ async function handleUpdateGroup(payload) {
   await updateGroup(payload);
 }
 
-async function sendMsg(text) {
-  await sendMessage(text);
+async function sendMsg(text, type = 'text', meta = null) {
+  if (type === 'text') {
+    await sendMessage(text);
+  } else if (type === 'image' || type === 'file') {
+    chatStore.sendFileMessage(text, type, meta);
+  }
   scrollBottom();
+}
+
+function onFileError(msg) {
+  // FloatingChat không có toast, fallback console
+  console.warn('[Chat] File upload error:', msg);
 }
 
 let typingTimer = null;

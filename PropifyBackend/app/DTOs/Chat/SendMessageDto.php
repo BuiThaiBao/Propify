@@ -17,6 +17,7 @@ final readonly class SendMessageDto
         public readonly MessageType $type,
         public readonly ?string $body = null,
         public readonly ?string $fileUrl = null,
+        public readonly ?array $metadata = null,
     ) {}
 
     public static function fromRequest(SendMessageRequest $request, int $conversationId, int $senderId): self
@@ -27,6 +28,7 @@ final readonly class SendMessageDto
             type: MessageType::from($request->validated('type', 'text')),
             body: $request->validated('body'),
             fileUrl: $request->validated('file_url'),
+            metadata: $request->validated('metadata'),
         );
     }
 }
