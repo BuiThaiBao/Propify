@@ -94,7 +94,7 @@
           <MessageBubble v-for="msg in messages" :key="msg.id" :message="msg" :is-mine="msg.sender?.id === currentUserId" />
         </div>
 
-        <ChatInput :disabled="sending" @send="handleSend" @typing="handleTyping" />
+        <ChatInput @send="handleSend" @typing="handleTyping" />
       </template>
     </main>
     </div>

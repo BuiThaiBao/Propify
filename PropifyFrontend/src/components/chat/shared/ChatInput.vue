@@ -16,6 +16,12 @@
       </svg>
     </button>
 
+    <EmojiPicker
+      :open="emojiOpen"
+      @toggle="emojiOpen = !emojiOpen"
+      @select="insertEmoji"
+    />
+
     <div class="ci-input-wrap">
       <textarea
         ref="inputRef"
@@ -46,7 +52,8 @@
 </template>
 
 <script setup>
-import { nextTick, ref } from 'vue';
+import { nextTick, ref, onMounted, onUnmounted } from 'vue';
+import EmojiPicker from './EmojiPicker.vue';
 
 const props = defineProps({
   disabled: { type: Boolean, default: false },
@@ -57,6 +64,7 @@ const emit = defineEmits(['send', 'typing']);
 
 const inputText = ref('');
 const inputRef = ref(null);
+const emojiOpen = ref(false);
 
 let typingTimer = null;
 
@@ -95,6 +103,35 @@ function resetHeight() {
   const el = inputRef.value;
   if (el) el.style.height = 'auto';
 }
+
+function insertEmoji(emoji) {
+  const el = inputRef.value;
+  if (!el) {
+    inputText.value += emoji;
+    return;
+  }
+  const start = el.selectionStart;
+  const end = el.selectionEnd;
+  const text = inputText.value;
+  inputText.value = text.slice(0, start) + emoji + text.slice(end);
+  nextTick(() => {
+    el.focus();
+    el.selectionStart = el.selectionEnd = start + emoji.length;
+    autoResize();
+  });
+}
+
+function onDocClick(e) {
+  if (emojiOpen.value) {
+    const el = document.querySelector('.ci-root');
+    if (el && !el.contains(e.target)) {
+      emojiOpen.value = false;
+    }
+  }
+}
+
+onMounted(() => document.addEventListener('click', onDocClick));
+onUnmounted(() => document.removeEventListener('click', onDocClick));
 
 function onAttach() {
   alert('Tính năng đính kèm sắp ra mắt!');
