@@ -30,22 +30,22 @@
         />
 
         <template v-else>
-          <div ref="msgContainer" class="flex-1 overflow-y-auto px-3 pt-3 pb-1.5 flex flex-col gap-1 bg-[#f3f9ff] cw-msg-scroll" @scroll="onScroll">
+          <div ref="msgContainer" class="flex-1 overflow-y-auto px-3 pt-3 pb-2 flex flex-col gap-1 cw-msg-scroll" @scroll="onScroll">
             <button
               v-if="hasMore"
-              class="self-center mb-2 bg-blue-50 text-blue-600 border border-blue-100 px-3.5 py-1 rounded-full text-[0.75rem] cursor-pointer transition-all hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="self-center mb-2 bg-white text-blue-600 border border-blue-100 px-4 py-1.5 rounded-full text-[0.72rem] cursor-pointer transition-all hover:bg-blue-50 hover:border-blue-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               :disabled="loadingMessages"
               @click="loadMoreMessages"
             >
               {{ loadingMessages ? 'Đang tải...' : '↑ Tin nhắn cũ hơn' }}
             </button>
 
-            <div v-if="loadingMessages && messages.length === 0" class="flex flex-col gap-2.5">
+            <div v-if="loadingMessages && messages.length === 0" class="flex flex-col gap-3 px-1">
               <div
                 v-for="i in 4"
                 :key="i"
-                class="h-[34px] rounded-[14px] max-w-[60%] animate-[cwPulse_1.4s_ease-in-out_infinite]"
-                :class="i % 2 === 0 ? 'self-end bg-blue-100' : 'self-start bg-gray-200'"
+                class="h-9 rounded-[18px] max-w-[65%] animate-pulse"
+                :class="i % 2 === 0 ? 'self-end bg-blue-200/60' : 'self-start bg-gray-200/70'"
               />
             </div>
 
@@ -301,6 +301,12 @@ watch(
 }
 
 @media (max-width: 480px) {
-  .fixed.bottom-6.right-6 { bottom: 16px; right: 16px; }
+  .fixed.bottom-6.right-6 { bottom: 0; right: 0; left: 0; }
+  .fixed.bottom-6.right-6 :deep(.chat-window-root) {
+    width: 100% !important;
+    height: 100vh !important;
+    max-height: 100vh;
+    border-radius: 0;
+  }
 }
 </style>

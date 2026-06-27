@@ -1,6 +1,6 @@
 <template>
   <button
-    class="size-14 rounded-full bg-blue-600 border-none cursor-pointer text-white flex items-center justify-center relative shadow-lg shadow-blue-300/40 transition-all duration-200 shrink-0 hover:scale-[1.08] hover:shadow-xl hover:shadow-blue-300/50 active:scale-95"
+    class="chat-fab"
     :title="isOpen ? 'Đóng chat' : 'Tin nhắn'"
     @click="$emit('toggle')"
   >
@@ -16,12 +16,12 @@
 
     <span
       v-if="!isOpen && unreadCount > 0"
-      class="absolute -top-1 -right-1 min-w-5 h-5 bg-red-500 text-white text-[0.65rem] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white"
+      class="chat-badge"
     >
       {{ unreadCount > 9 ? '9+' : unreadCount }}
     </span>
 
-    <span v-if="!isOpen && unreadCount > 0" class="absolute inset-[-4px] rounded-full border-2 border-blue-400/60 float-pulse pointer-events-none" />
+    <span v-if="!isOpen && unreadCount > 0" class="chat-ring" />
   </button>
 </template>
 
@@ -35,17 +35,86 @@ defineEmits(['toggle']);
 </script>
 
 <style scoped>
-.icon-swap-enter-active, .icon-swap-leave-active { transition: all 0.15s; }
-.icon-swap-enter-from { opacity: 0; transform: rotate(-90deg) scale(0.7); }
-.icon-swap-leave-to { opacity: 0; transform: rotate(90deg) scale(0.7); }
+.chat-fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #4f6bff 0%, #3b5de7 50%, #2d4fd8 100%);
+  box-shadow:
+    0 4px 16px rgba(79, 107, 255, 0.35),
+    0 2px 8px rgba(79, 107, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
 
-.float-pulse {
+.chat-fab:hover {
+  transform: scale(1.08);
+  box-shadow:
+    0 8px 28px rgba(79, 107, 255, 0.45),
+    0 4px 12px rgba(79, 107, 255, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.chat-fab:active {
+  transform: scale(0.95);
+  box-shadow:
+    0 2px 8px rgba(79, 107, 255, 0.3),
+    inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.chat-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #ff4757, #e8303f);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(255, 71, 87, 0.4);
+}
+
+.chat-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(79, 107, 255, 0.4);
   animation: cwPulseRing 2s ease-out infinite;
+  pointer-events: none;
 }
 
 @keyframes cwPulseRing {
   0% { transform: scale(1); opacity: 0.8; }
-  70% { transform: scale(1.4); opacity: 0; }
-  100% { transform: scale(1.4); opacity: 0; }
+  70% { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* Icon swap transition */
+.icon-swap-enter-active,
+.icon-swap-leave-active {
+  transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.icon-swap-enter-from {
+  opacity: 0;
+  transform: rotate(-90deg) scale(0.6);
+}
+.icon-swap-leave-to {
+  opacity: 0;
+  transform: rotate(90deg) scale(0.6);
 }
 </style>
