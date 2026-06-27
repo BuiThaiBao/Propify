@@ -63,6 +63,11 @@ final class EloquentListingRepository implements ListingRepository
                 'appointments',
                 'package:id,name,slug,badge,color,priority',
             ])
+            ->withCount([
+                'statusHistories as status_counts' => function ($query) {
+                    $query->selectRaw('status, count(*) as count')->groupBy('status');
+                },
+            ])
             ->where('owner_id', $ownerId)
             ->when($status, function ($query) use ($status) {
                 $query->where('status', $status);
@@ -346,11 +351,18 @@ final class EloquentListingRepository implements ListingRepository
             })
             ->when($criteria->minPrice !== null || $criteria->maxPrice !== null, function ($q) use ($criteria) {
                 $q->whereHas('property', function ($propertyQuery) use ($criteria) {
+                    // Handle negotiable (NULL price) - include if maxPrice is set or no price filter
                     if ($criteria->minPrice !== null) {
-                        $propertyQuery->where('price', '>=', $criteria->minPrice);
+                        $propertyQuery->where(function ($q) use ($criteria) {
+                            $q->where('price', '>=', $criteria->minPrice)
+                              ->orWhereNull('price');
+                        });
                     }
                     if ($criteria->maxPrice !== null) {
-                        $propertyQuery->where('price', '<=', $criteria->maxPrice);
+                        $propertyQuery->where(function ($q) use ($criteria) {
+                            $q->where('price', '<=', $criteria->maxPrice)
+                              ->orWhereNull('price');
+                        });
                     }
                 });
             });

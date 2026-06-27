@@ -178,8 +178,8 @@ final class ListingServiceImpl implements ListingService
     ): LengthAwarePaginator {
         $strategy = ListingSortingStrategyFactory::make($sortBy);
         $page = request()->input('page', 1);
-        $cacheKey = 'listings:public:' . md5(serialize([
-            'version' => 6, // Bumped version since cache schema changed
+        $cacheParams = [
+            'version' => 6,
             'sort' => $sortBy,
             'demand_type' => $demandType,
             'keyword' => $keyword,
@@ -192,7 +192,9 @@ final class ListingServiceImpl implements ListingService
             'min_area' => $minArea,
             'max_area' => $maxArea,
             'property_type' => $propertyType,
-        ]));
+        ];
+        ksort($cacheParams);
+        $cacheKey = 'listings:public:' . md5(json_encode($cacheParams, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
         return Cache::tags(['listings:public'])->remember($cacheKey, 300, function () use ($strategy, $demandType, $keyword, $perPage, $searchField, $posterType, $minPrice, $maxPrice, $minArea, $maxArea, $propertyType) {
             return $this->listingRepository->paginatePublic(
@@ -266,7 +268,7 @@ final class ListingServiceImpl implements ListingService
         ?float $maxArea = null,
         ?string $propertyType = null
     ): Collection {
-        $cacheKey = 'listings:public:map:'.md5(serialize([
+        $cacheParams = [
             'version' => 3,
             'demand_type' => $demandType,
             'keyword' => $keyword,
@@ -277,7 +279,9 @@ final class ListingServiceImpl implements ListingService
             'min_area' => $minArea,
             'max_area' => $maxArea,
             'property_type' => $propertyType,
-        ]));
+        ];
+        ksort($cacheParams);
+        $cacheKey = 'listings:public:map:' . md5(json_encode($cacheParams, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
         return Cache::tags(['listings:public'])->remember($cacheKey, 300, fn () => $this->listingRepository->getMapListings(
             demandType: $demandType,

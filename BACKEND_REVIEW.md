@@ -99,17 +99,7 @@ return [
 ### 18. **ListingController::appealLock duplicate ownership check**
 Line 192-194: Check ownership ở controller thay vì delegate sang Service/Command. Violation SRP.
 
-### 19. **Inconsistent DTO Usage**
-Một số FormRequest có `toDto()` method, một số không. Nên standardize tất cả.
 
-
-### 22. **Missing API Versioning Strategy**
-Routes hardcoded `/v1/`. Khi cần v2 sẽ breaking change. Nên dùng header-based versioning hoặc prefix strategy rõ ràng.
-
-
-
-### 24. **Console Commands thiếu Description/Help**
-`routes/console.php` commands không có mô tả. `php artisan list` sẽ hiển thị rỗng.
 
 
 

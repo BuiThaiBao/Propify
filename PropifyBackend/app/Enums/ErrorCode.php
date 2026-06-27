@@ -78,6 +78,8 @@ enum ErrorCode: int
     case ListingUpgradeNotAllowed = 8004;
     case ListingNotOwned = 8005;
     case PackagePricingNotFound = 8006;
+    case ListingNotLocked = 8007;
+    case AppealAlreadyPending = 8008;
 
     public function message(): string
     {
@@ -139,6 +141,8 @@ enum ErrorCode: int
             self::ListingUpgradeNotAllowed => 'Không thể nâng cấp gói tin. Chỉ cho phép nâng cấp lên gói cao hơn.',
             self::ListingNotOwned => 'Bạn không phải chủ sở hữu tin đăng này',
             self::PackagePricingNotFound => 'Không tìm thấy giá cho thời hạn đã chọn. Vui lòng liên hệ quản trị.',
+            self::ListingNotLocked => 'Tin đăng không ở trạng thái bị khóa',
+            self::AppealAlreadyPending => 'Bạn đã gửi phản ánh cho tin này và đang chờ xử lý',
         };
     }
 
@@ -215,6 +219,8 @@ enum ErrorCode: int
             self::ListingUpgradeNotAllowed => Response::HTTP_UNPROCESSABLE_ENTITY,
             self::ListingNotOwned => Response::HTTP_FORBIDDEN,
             self::PackagePricingNotFound => Response::HTTP_NOT_FOUND,
+            self::ListingNotLocked => Response::HTTP_UNPROCESSABLE_ENTITY,
+            self::AppealAlreadyPending => Response::HTTP_CONFLICT,
             self::AlreadyGroupMember,
             self::NotGroupMember,
             self::GroupMemberLimitReached,
