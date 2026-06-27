@@ -102,7 +102,7 @@ function onFileChange(event) {
   nextTick(() => inputRef.value?.focus());
 }
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
 
 async function uploadAndSend(file) {
   const isImage = file.type.startsWith('image/');
@@ -110,6 +110,7 @@ async function uploadAndSend(file) {
 
   uploading.value = true;
   emit('file-uploading', true);
+  try {
     const { public_url, file_name, file_size, mime_type } = await chatUploadService.upload(file, type);
     const meta = { file_name, file_size, mime_type };
     emit('send', public_url, type, meta);
@@ -126,18 +127,6 @@ async function uploadAndSend(file) {
 
 function onAttach() {
   fileInputRef.value?.click();
-}
-
-function onFileChange(event) {
-  const file = event.target.files?.[0];
-  if (!file) return;
-  event.target.value = '';
-
-  const isImage = file.type.startsWith('image/');
-  const prefix = isImage ? '🖼️ ' : '📎 ';
-  inputText.value = `${prefix}${file.name}`;
-  pendingFile.value = file;
-  nextTick(() => inputRef.value?.focus());
 }
 
 function handleSubmit() {

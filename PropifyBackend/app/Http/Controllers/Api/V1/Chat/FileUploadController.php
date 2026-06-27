@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Chat;
 
 use App\Helpers\ApiResponse;
+use Aws\S3\S3Client;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -22,7 +23,7 @@ final class FileUploadController
     public function upload(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'max:10240'], // max 10MB
+            'file' => ['required', 'file', 'max:30720'], // max 30MB
             'type' => ['required', 'string', Rule::in(['image', 'file'])],
         ]);
 
@@ -32,9 +33,8 @@ final class FileUploadController
         $extension = $file->getClientOriginalExtension() ?: 'bin';
         $userId = $request->user()?->id ?? 'anonymous';
         $fileKey = sprintf(
-            'chat/%s/%s-%s.%s',
+            'chat/%s/%s.%s',
             $userId,
-            now()->format('Y/m/d'),
             (string) Str::uuid(),
             $extension,
         );
@@ -45,8 +45,19 @@ final class FileUploadController
             'ContentType' => $file->getMimeType() ?: 'application/octet-stream',
         ]);
 
-        // Tạo presigned GET URL — 7 ngày
-        $client = $this->makeS3Client();
+        // Tạo Presigned GET URL (7 ngày)
+        $client = new S3Client([
+            'version' => 'latest',
+            'region' => 'auto',
+            'endpoint' => config('filesystems.disks.r2.endpoint'),
+            'credentials' => [
+                'key' => config('filesystems.disks.r2.key'),
+                'secret' => config('filesystems.disks.r2.secret'),
+            ],
+            'use_path_style_endpoint' => true,
+            'signature_version' => 'v4',
+        ]);
+
         $getCommand = $client->getCommand('GetObject', [
             'Bucket' => config('filesystems.disks.r2.bucket'),
             'Key' => $fileKey,
@@ -60,21 +71,6 @@ final class FileUploadController
             'file_name' => $file->getClientOriginalName(),
             'file_size' => $file->getSize(),
             'mime_type' => $file->getMimeType(),
-        ]);
-    }
-
-    private function makeS3Client(): \Aws\S3\S3Client
-    {
-        return new \Aws\S3\S3Client([
-            'version' => 'latest',
-            'region' => 'auto',
-            'endpoint' => config('filesystems.disks.r2.endpoint'),
-            'credentials' => [
-                'key' => config('filesystems.disks.r2.key'),
-                'secret' => config('filesystems.disks.r2.secret'),
-            ],
-            'use_path_style_endpoint' => true,
-            'signature_version' => 'v4',
         ]);
     }
 }
