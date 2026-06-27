@@ -1,7 +1,7 @@
 import cloudinaryService from "@/services/cloudinaryService";
 
-export const MAX_LISTING_VIDEO_SIZE_BYTES = 100 * 1024 * 1024;
-export const MAX_LISTING_VIDEO_SIZE_LABEL = "100MB";
+export const MAX_LISTING_VIDEO_SIZE_BYTES = 10 * 1024 * 1024;
+export const MAX_LISTING_VIDEO_SIZE_LABEL = "10MB";
 
 export function useListingMediaUpload({ onStatus } = {}) {
   function notify(message) {
@@ -10,7 +10,7 @@ export function useListingMediaUpload({ onStatus } = {}) {
     }
   }
 
-  async function uploadSingle(file, mode = "image", { silent = false } = {}) {
+  async function uploadSingle(file, mode = "image", { silent = false, onProgress = null } = {}) {
     if (!file) return null;
     if (typeof file === "string") return file;
 
@@ -20,6 +20,11 @@ export function useListingMediaUpload({ onStatus } = {}) {
 
     if (!silent) {
       notify(mode === "video" ? "Đang tải lên video..." : "Đang tải lên hình ảnh...");
+    }
+
+    if (mode === "video") {
+      const res = await cloudinaryService.uploadVideo(file, "listing", { onProgress });
+      return res.secure_url;
     }
 
     const res = await cloudinaryService.uploadImage(file, "listing");

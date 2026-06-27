@@ -92,17 +92,27 @@
       >
         <div class="min-w-0">
           <section
-            v-if="displayImages.length"
+            v-if="displayImages.length || hasVideo"
             class="detail-card !p-0 border-slate-200/60 overflow-hidden mb-3"
           >
             <div class="relative overflow-hidden bg-slate-200">
-              <img
-                v-if="activeImage"
-                :src="activeImage"
-                class="aspect-[16/10] w-full cursor-zoom-in object-cover"
-                alt="Listing image"
-                @click="openImageLightbox(activeImageIndex)"
-              />
+              <template v-if="isVideoActive">
+                <video
+                  :src="activeVideoUrl"
+                  class="aspect-[16/10] w-full object-contain bg-black"
+                  controls
+                  playsinline
+                ></video>
+              </template>
+              <template v-else>
+                <img
+                  v-if="activeImage"
+                  :src="activeImage"
+                  class="aspect-[16/10] w-full cursor-zoom-in object-cover"
+                  alt="Listing image"
+                  @click="openImageLightbox(activeImageIndex)"
+                />
+              </template>
               <div class="absolute left-3 top-3 flex gap-2">
                 <span
                   v-if="isListingVerified"
@@ -115,7 +125,7 @@
                 >
               </div>
               <button
-                v-if="displayImages.length > 1"
+                v-if="totalMediaItems > 1"
                 class="absolute left-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur hover:bg-black/45"
                 aria-label="Ảnh trước"
                 @click.stop="prevImage"
@@ -123,28 +133,41 @@
                 <ChevronLeft class="h-5 w-5" />
               </button>
               <button
-                v-if="displayImages.length > 1"
+                v-if="totalMediaItems > 1"
                 class="absolute right-4 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur hover:bg-black/45"
                 aria-label="Ảnh sau"
                 @click.stop="nextImage"
               >
                 <ChevronRight class="h-5 w-5" />
               </button>
-              <div
-                class="absolute bottom-3 left-3 rounded-full bg-slate-900/70 px-3 py-1 text-xs font-semibold text-white"
-              >
-                Hình ảnh {{ activeImageIndex + 1 }}/{{ displayImages.length }}
-              </div>
             </div>
-            <div class="p-4 flex gap-2 overflow-x-auto pb-2">
+            <!-- Thumbnail strip — separated from main display -->
+            <div
+              v-if="totalMediaItems > 1"
+              class="flex gap-2 overflow-x-auto px-4 pb-4 pt-3 bg-[#f6f9fc]"
+            >
+              <!-- Video thumbnail -->
+              <button
+                v-if="hasVideo"
+                class="h-[60px] w-[80px] shrink-0 overflow-hidden rounded-lg border-2 bg-black transition relative"
+                :class="isVideoActive ? 'border-sky-500' : 'border-transparent opacity-80 hover:opacity-100'"
+                @click="activeImageIndex = displayImages.length"
+              >
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="#fff" opacity="0.9">
+                    <polygon points="8,5 19,12 8,19" />
+                  </svg>
+                </div>
+                <span class="absolute bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-semibold text-white drop-shadow">Video</span>
+              </button>
               <button
                 v-for="(img, idx) in displayImages"
-                :key="idx"
-                class="h-[54px] w-[70px] shrink-0 overflow-hidden rounded-lg border bg-white transition"
+                :key="'img-'+idx"
+                class="h-[60px] w-[80px] shrink-0 overflow-hidden rounded-lg border-2 bg-white transition"
                 :class="
-                  activeImageIndex === idx
-                    ? 'border-sky-500 ring-2 ring-sky-100'
-                    : 'border-slate-200 opacity-80 hover:opacity-100'
+                  activeImageIndex === idx && !isVideoActive
+                    ? 'border-sky-500'
+                    : 'border-transparent opacity-80 hover:opacity-100'
                 "
                 @click="activeImageIndex = idx"
               >
@@ -1170,9 +1193,28 @@ const displayImages = computed(() => {
   return [...listing.value.images].sort((a, b) => a.sort_order - b.sort_order);
 });
 
+const totalMediaItems = computed(() => {
+  return displayImages.value.length + (hasVideo.value ? 1 : 0);
+});
+
+const isVideoActive = computed(() => {
+  return hasVideo.value && activeImageIndex.value === displayImages.value.length;
+});
+
 const activeImage = computed(() => {
-  if (!displayImages.value.length) return null;
+  if (!displayImages.value.length || activeImageIndex.value < 0) return null;
   return displayImages.value[activeImageIndex.value]?.url;
+});
+
+const hasVideo = computed(() => {
+  const videos = listing.value?.videos;
+  return Array.isArray(videos) && videos.length > 0;
+});
+
+const activeVideoUrl = computed(() => {
+  if (!hasVideo.value) return null;
+  const isLastIndex = activeImageIndex.value === displayImages.value.length;
+  return isLastIndex ? (listing.value.videos[0].url || null) : null;
 });
 
 const hasLatLng = computed(() => {
@@ -1452,15 +1494,17 @@ function clickRelatedListing(item) {
 }
 
 function prevImage() {
+  const total = totalMediaItems.value;
   if (activeImageIndex.value > 0) {
     activeImageIndex.value--;
   } else {
-    activeImageIndex.value = displayImages.value.length - 1;
+    activeImageIndex.value = total - 1;
   }
 }
 
 function nextImage() {
-  if (activeImageIndex.value < displayImages.value.length - 1) {
+  const total = totalMediaItems.value;
+  if (activeImageIndex.value < total - 1) {
     activeImageIndex.value++;
   } else {
     activeImageIndex.value = 0;

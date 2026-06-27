@@ -30,19 +30,16 @@ final class CloudinaryServiceImpl implements CloudinaryService
     {
         $timestamp = time();
 
-        // Chỉ cần folder + timestamp — signed upload không cần upload_preset
         $paramsToSign = [
             'folder' => $folder,
             'timestamp' => $timestamp,
         ];
         ksort($paramsToSign);
 
-        // "folder=propify/avatars&timestamp=1234567890" + api_secret
         $stringToSign = collect($paramsToSign)
             ->map(fn ($value, $key) => "{$key}={$value}")
             ->join('&');
 
-        // ✅ Cloudinary yêu cầu SHA-1
         $signature = sha1($stringToSign.$this->apiSecret);
 
         Log::info('Cloudinary signature generated', [
@@ -57,6 +54,7 @@ final class CloudinaryServiceImpl implements CloudinaryService
             'cloud_name' => $this->cloudName,
             'timestamp' => $timestamp,
             'folder' => $folder,
+            'resource_type' => 'auto',
         ];
     }
 }

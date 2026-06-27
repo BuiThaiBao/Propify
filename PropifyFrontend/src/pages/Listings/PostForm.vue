@@ -133,17 +133,25 @@
                   {{ videoUploadError }}
                 </p>
                 <div
-                  v-if="videoPreviewName"
-                  class="mt-2 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600"
+                  v-if="videoPreviewUrl"
+                  class="mt-2 overflow-hidden rounded-lg border border-slate-200 bg-black"
                 >
-                  <span class="truncate">{{ videoPreviewName }}</span>
-                  <button
-                    type="button"
-                    class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-600"
-                    @click="removeVideo"
-                  >
-                    Xóa video
-                  </button>
+                  <video
+                    :src="videoPreviewUrl"
+                    class="w-full max-h-[200px] object-contain"
+                    controls
+                    playsinline
+                  ></video>
+                  <div class="flex items-center justify-between bg-slate-50 px-3 py-2">
+                    <span class="truncate text-xs text-slate-600">{{ videoPreviewName }}</span>
+                    <button
+                      type="button"
+                      class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-semibold text-red-600"
+                      @click="removeVideo"
+                    >
+                      Xóa video
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>
@@ -1737,6 +1745,7 @@ const imageUploadError = ref("");
 const videoUploadError = ref("");
 const verificationUploadError = ref("");
 const videoPreviewName = ref("");
+const videoPreviewUrl = ref("");
 const mediaCollapsed = ref(false);
 const infoCollapsed = ref(false);
 const detailCollapsed = ref(false);
@@ -3701,15 +3710,19 @@ function onVideoChange(event) {
     return;
   }
 
+  if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value);
   form.video = file;
   videoPreviewName.value = file.name;
+  videoPreviewUrl.value = URL.createObjectURL(file);
   pushToast("Đang tải lên video...", "info", 1400);
   event.target.value = "";
 }
 
 function removeVideo() {
+  if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value);
   form.video = null;
   videoPreviewName.value = "";
+  videoPreviewUrl.value = "";
   videoUploadError.value = "";
   pushToast("Đã xóa video", "success");
 }
@@ -4653,9 +4666,11 @@ function resetFormState() {
   clearSubmitError();
   validationErrors.value = {};
   imageUploadError.value = "";
+  if (videoPreviewUrl.value) URL.revokeObjectURL(videoPreviewUrl.value);
   videoUploadError.value = "";
   verificationUploadError.value = "";
   videoPreviewName.value = "";
+  videoPreviewUrl.value = "";
   priceFocused.value = false;
   activeScoreSection.value = "media";
   clearMapMarker();
