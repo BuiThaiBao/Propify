@@ -40,93 +40,77 @@
 
           <!-- Listings -->
           <div class="relative flex flex-col gap-6">
-            <!-- Loading overlay — shows on top of existing listings -->
+            <!-- Initial loading (first page) -->
             <div
-              v-if="saleLoading && saleListings.length > 0"
-              class="absolute inset-0 z-10 flex items-start justify-center pt-16 bg-white/60 backdrop-blur-[1px] rounded-xl"
+              v-if="isInitialLoading"
+              class="flex justify-center py-16"
             >
               <div
                 class="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"
               ></div>
             </div>
 
-            <div
-              v-if="saleLoading && saleListings.length === 0"
-              class="flex justify-center py-8"
-            >
+            <template v-else-if="saleListings.length === 0 && !loadingError">
               <div
-                class="h-8 w-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"
-              ></div>
-            </div>
-
-            <div
-              v-else-if="!saleLoading && saleListings.length === 0"
-              class="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400"
-            >
-              Chưa có tin mua bán nào.
-            </div>
-
-            <ListingRowCard
-              v-for="item in saleListings"
-              :key="item.id"
-              :listing="item"
-              :to="'/listings/' + item.id"
-              :unit="''"
-              :is-favorite="isFavorite(item)"
-              @toggle-favorite="toggleFavorite(item)"
-            />
-          </div>
-
-          <!-- Pagination — always visible when there are multiple pages -->
-          <nav
-            v-if="lastPage > 1"
-            class="mt-8 flex items-center justify-center gap-1"
-            aria-label="Phân trang"
-          >
-            <!-- Prev -->
-            <button
-              :disabled="currentPage <= 1 || saleLoading"
-              class="inline-flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-[10px] border border-slate-200 bg-white px-2 text-sm font-medium text-slate-600 transition-all hover:not-disabled:border-slate-300 hover:not-disabled:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-              @click="goToPage(currentPage - 1)"
-            >
-              <ChevronLeft class="w-4 h-4" />
-            </button>
-
-            <!-- Page numbers -->
-            <template v-for="page in visiblePages" :key="page">
-              <span
-                v-if="page === '...'"
-                class="px-2 text-gray-400 text-sm select-none"
-                >…</span
+                class="rounded-xl border border-dashed border-slate-200 bg-white p-6 text-center text-sm text-slate-400"
               >
-              <button
-                v-else
-                :disabled="saleLoading"
-                class="inline-flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-[10px] border border-slate-200 bg-white px-2 text-sm font-medium text-slate-600 transition-all hover:not-disabled:border-slate-300 hover:not-disabled:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-                :class="
-                  page === currentPage
-                    ? '!border-blue-500 !bg-blue-500 !text-white shadow-lg shadow-blue-500/30'
-                    : ''
-                "
-                @click="goToPage(page)"
-              >
-                {{ page }}
-              </button>
+                Chưa có tin mua bán nào.
+              </div>
             </template>
 
-            <!-- Next -->
-            <button
-              :disabled="currentPage >= lastPage || saleLoading"
-              class="inline-flex h-9 min-w-9 cursor-pointer items-center justify-center rounded-[10px] border border-slate-200 bg-white px-2 text-sm font-medium text-slate-600 transition-all hover:not-disabled:border-slate-300 hover:not-disabled:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-              @click="goToPage(currentPage + 1)"
+            <template v-else>
+              <ListingRowCard
+                v-for="item in saleListings"
+                :key="item.id"
+                :listing="item"
+                :to="'/listings/' + item.id"
+                :unit="''"
+                :is-favorite="isFavorite(item)"
+                @toggle-favorite="toggleFavorite(item)"
+              />
+            </template>
+          </div>
+
+          <!-- Infinite scroll sentinel + status -->
+          <div class="mt-6 flex flex-col items-center gap-3 pb-4">
+            <!-- Loading more spinner -->
+            <div
+              v-if="isLoadingMore"
+              class="flex items-center gap-2 text-sm text-slate-500"
             >
-              <ChevronRight class="w-4 h-4" />
-            </button>
-          </nav>
+              <div
+                class="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"
+              ></div>
+              Đang tải thêm...
+            </div>
+
+            <!-- Error + retry -->
+            <div
+              v-if="loadingError"
+              class="flex flex-col items-center gap-2"
+            >
+              <p class="text-sm text-red-500">{{ loadingError }}</p>
+              <button
+                class="rounded-lg border border-red-200 bg-red-50 px-4 py-1.5 text-sm font-medium text-red-600 cursor-pointer hover:bg-red-100 transition"
+                @click="loadMore"
+              >
+                Thử lại
+              </button>
+            </div>
+
+            <!-- End of list -->
+            <!-- removed "Đã tải hết danh sách" -->
+
+            <!-- Sentinel element for IntersectionObserver -->
+            <div
+              ref="sentinelRef"
+              class="h-4"
+            ></div>
+          </div>
         </div>
 
-        <!-- Right Column: Sidebar Filters -->
-        <div class="lg:col-span-3 flex flex-col gap-4">
+        <!-- Right Column: Sidebar Filters (sticky, scrollable) -->
+        <div class="lg:col-span-3 lg:sticky lg:top-24 lg:max-h-[calc(100vh-8rem)] lg:overflow-y-auto scrollbar-thin flex flex-col gap-4">
           <!-- Tìm kiếm theo bản đồ -->
           <div
             @click="isMapOpen = true"
@@ -602,10 +586,8 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch, computed } from "vue";
+import { onMounted, onUnmounted, ref, watch, computed } from "vue";
 import {
-  ChevronLeft,
-  ChevronRight,
   User,
   DollarSign,
   Ruler,
@@ -629,14 +611,10 @@ const currentDateStr = computed(() => {
 
 const {
   listings: saleListings,
-  isLoading: saleLoading,
   total: saleTotal,
-  currentPage,
-  lastPage,
   searchKeyword,
   searchField,
   suggestions: saleSuggestions,
-  visiblePages,
   posterType,
   minPrice,
   maxPrice,
@@ -644,9 +622,13 @@ const {
   maxArea,
   sortBy,
   propertyType,
+  hasMore,
+  loadingError,
+  isLoadingMore,
+  isInitialLoading,
   init,
+  loadMore,
   onSearch,
-  goToPage,
 } = usePublicListings({ demandType: "SALE" });
 const { init: prefetchHomeListings } = useHomeListings();
 const { init: prefetchRentListings } = usePublicListings({
@@ -655,6 +637,32 @@ const { init: prefetchRentListings } = usePublicListings({
 const { fetchPackages: prefetchPackages } = usePackages();
 const { isFavorite, toggleFavorite, loadFavorites } = useFavoriteListings();
 const isMapOpen = ref(false);
+const sentinelRef = ref(null);
+let observer = null;
+
+function setupObserver() {
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (entries[0].isIntersecting) {
+        loadMore();
+      }
+    },
+    { rootMargin: "200px" },
+  );
+  if (sentinelRef.value) observer.observe(sentinelRef.value);
+}
+
+onMounted(() => {
+  setupObserver();
+  init();
+  loadFavorites();
+  prefetchSiblingPages();
+});
+
+onUnmounted(() => {
+  if (observer) observer.disconnect();
+});
+
 const mapFilters = computed(() => ({
   demand_type: "SALE",
   keyword: searchKeyword.value,
@@ -781,11 +789,6 @@ watch([minAreaInput, maxAreaInput], () => {
   }
 });
 
-onMounted(() => {
-  init();
-  loadFavorites();
-  prefetchSiblingPages();
-});
 
 function prefetchSiblingPages() {
   const run = () => {
@@ -805,3 +808,9 @@ function prefetchSiblingPages() {
   window.setTimeout(run, 300);
 }
 </script>
+
+<style scoped>
+.scrollbar-thin::-webkit-scrollbar { width: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 99px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+</style>

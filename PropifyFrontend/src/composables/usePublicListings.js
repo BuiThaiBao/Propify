@@ -12,7 +12,7 @@ import { hydrateListingAddresses } from "@/utils/addressFormatter";
 function normalizeText(value) {
   return String(value || "")
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase();
 }
 
@@ -52,7 +52,6 @@ export function usePublicListings(options = {}) {
   const queryClient = useQueryClient();
 
   const enabled = ref(false);
-  const currentPage = ref(1);
   const searchKeyword = ref(route?.query?.q || "");
   const searchField = ref(String(route?.query?.search_field || "all"));
   const posterType = ref("");
@@ -63,11 +62,19 @@ export function usePublicListings(options = {}) {
   const sortBy = ref(String(route?.query?.sort || ""));
   const propertyType = ref(route?.query?.property_type || "");
 
+  // Infinite scroll state
+  const allListings = ref([]);          // accumulated across pages
+  const loadedPages = ref(0);            // how many pages have been fetched
+  const hasMore = ref(true);
+  const loadingError = ref(null);         // error message from last fetch
+  const isLoadingMore = ref(false);       // true while fetching next page
+  const isInitialLoading = ref(false);    // true only for very first fetch
+
   watch(
     () => route?.query?.property_type,
     (newVal) => {
       propertyType.value = newVal || "";
-      currentPage.value = 1;
+      resetInfiniteScroll();
     },
   );
 
@@ -75,7 +82,7 @@ export function usePublicListings(options = {}) {
     () => route?.query?.q,
     (newVal) => {
       searchKeyword.value = newVal || "";
-      currentPage.value = 1;
+      resetInfiniteScroll();
     },
   );
 
@@ -93,7 +100,7 @@ export function usePublicListings(options = {}) {
     () => route?.query?.search_field,
     (newVal) => {
       searchField.value = String(newVal || "all");
-      currentPage.value = 1;
+      resetInfiniteScroll();
     },
   );
 
@@ -112,8 +119,10 @@ export function usePublicListings(options = {}) {
     property_type: propertyType.value || undefined,
   });
 
+  // single page query (kept for cache / prefetch infra)
+  const currentPageForQuery = ref(1);
   const queryKey = computed(() =>
-    listingKeys.publicList(createPayload(currentPage.value)),
+    listingKeys.publicList(createPayload(currentPageForQuery.value)),
   );
 
   const query = useQuery({
@@ -122,7 +131,7 @@ export function usePublicListings(options = {}) {
       fetchPublicListingsPage({
         demandType,
         pageSize,
-        page: currentPage.value,
+        page: currentPageForQuery.value,
         keyword: searchKeyword.value,
         searchField: searchField.value,
         posterType: posterType.value,
@@ -138,9 +147,9 @@ export function usePublicListings(options = {}) {
     staleTime: 60 * 1000,
   });
 
-  const listings = computed(() => query.data.value?.data || []);
+  const listings = computed(() => allListings.value);
   const total = computed(() =>
-    Number(query.data.value?.meta?.total || listings.value.length || 0),
+    Number(query.data.value?.meta?.total || allListings.value.length || 0),
   );
   const lastPage = computed(() =>
     Number(query.data.value?.meta?.last_page || 1),
@@ -149,11 +158,111 @@ export function usePublicListings(options = {}) {
     () => query.isLoading.value || query.isFetching.value,
   );
 
+  // --- Infinite scroll: load next page ---
+  async function loadMore() {
+    if (isLoadingMore.value || !hasMore.value) return;
+    loadingError.value = null;
+    isLoadingMore.value = true;
+
+    const nextPage = loadedPages.value + 1;
+
+    try {
+      const result = await fetchPublicListingsPage({
+        demandType,
+        pageSize,
+        page: nextPage,
+        keyword: searchKeyword.value,
+        searchField: searchField.value,
+        posterType: posterType.value,
+        minPrice: minPrice.value,
+        maxPrice: maxPrice.value,
+        minArea: minArea.value,
+        maxArea: maxArea.value,
+        sortBy: sortBy.value,
+        propertyType: propertyType.value,
+      });
+
+      allListings.value = [...allListings.value, ...result.data];
+      loadedPages.value = nextPage;
+      hasMore.value = nextPage < (result.meta?.last_page || 1);
+    } catch (err) {
+      loadingError.value =
+        "Không thể tải thêm dữ liệu. Vui lòng kiểm tra kết nối.";
+    } finally {
+      isLoadingMore.value = false;
+    }
+  }
+
+  // Load first page when init() called
+  async function init() {
+    enabled.value = true;
+    isInitialLoading.value = true;
+    loadingError.value = null;
+
+    try {
+      const result = await fetchPublicListingsPage({
+        demandType,
+        pageSize,
+        page: 1,
+        keyword: searchKeyword.value,
+        searchField: searchField.value,
+        posterType: posterType.value,
+        minPrice: minPrice.value,
+        maxPrice: maxPrice.value,
+        minArea: minArea.value,
+        maxArea: maxArea.value,
+        sortBy: sortBy.value,
+        propertyType: propertyType.value,
+      });
+
+      allListings.value = result.data;
+      loadedPages.value = 1;
+      hasMore.value = 1 < (result.meta?.last_page || 1);
+      currentPageForQuery.value = 1;
+    } catch (err) {
+      loadingError.value =
+        "Không thể tải dữ liệu. Vui lòng kiểm tra kết nối.";
+    } finally {
+      isInitialLoading.value = false;
+    }
+  }
+
+  function resetInfiniteScroll() {
+    allListings.value = [];
+    loadedPages.value = 0;
+    hasMore.value = true;
+    loadingError.value = null;
+    isLoadingMore.value = false;
+    if (enabled.value) init();
+  }
+
+  function refetchListings() {
+    return init();
+  }
+
+  function onSearch(value) {
+    searchKeyword.value = value || "";
+    const normalizedNextQuery = searchKeyword.value.trim();
+    const currentQuery = String(route?.query?.q || "");
+    if (currentQuery === normalizedNextQuery) return;
+
+    const nextQuery = { ...route.query };
+    if (normalizedNextQuery) {
+      nextQuery.q = normalizedNextQuery;
+    } else {
+      delete nextQuery.q;
+    }
+
+    nextQuery.search_field =
+      searchField.value !== "all" ? searchField.value : undefined;
+    router.replace({ query: nextQuery }).catch(() => {});
+  }
+
   const suggestions = computed(() => {
     const queryText = normalizeText(searchKeyword.value);
     if (!queryText) return [];
 
-    const candidates = listings.value
+    const candidates = allListings.value
       .flatMap((item) => [
         item.title,
         item.property?.full_address,
@@ -167,101 +276,6 @@ export function usePublicListings(options = {}) {
       .slice(0, 8);
   });
 
-  const visiblePages = computed(() => {
-    const totalPages = lastPage.value;
-    const current = currentPage.value;
-
-    if (totalPages <= 7) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
-    }
-
-    const pages = [1];
-    if (current > 3) pages.push("...");
-
-    const start = Math.max(2, current - 1);
-    const end = Math.min(totalPages - 1, current + 1);
-    for (let page = start; page <= end; page += 1) {
-      pages.push(page);
-    }
-
-    if (current < totalPages - 2) pages.push("...");
-    pages.push(totalPages);
-
-    return pages;
-  });
-
-  watch(
-    () => [
-      enabled.value,
-      currentPage.value,
-      searchKeyword.value,
-      searchField.value,
-      lastPage.value,
-      posterType.value,
-      minPrice.value,
-      maxPrice.value,
-      minArea.value,
-      maxArea.value,
-      sortBy.value,
-      propertyType.value,
-    ],
-    ([
-      isEnabled,
-      page,
-      keyword,
-      selectedField,
-      totalPages,
-      nextPosterType,
-      nextMinPrice,
-      nextMaxPrice,
-      nextMinArea,
-      nextMaxArea,
-      nextSort,
-      nextPropertyType,
-    ]) => {
-      if (!isEnabled) return;
-
-      const nextPage = Number(page) + 1;
-      if (nextPage > Number(totalPages || 1)) return;
-
-      queryClient.prefetchQuery({
-        queryKey: listingKeys.publicList({
-          demand_type: demandType,
-          keyword: keyword?.trim(),
-          search_field:
-            selectedField && selectedField !== "all"
-              ? selectedField
-              : undefined,
-          per_page: pageSize,
-          page: nextPage,
-          poster_type: nextPosterType || undefined,
-          min_price: nextMinPrice !== null ? nextMinPrice : undefined,
-          max_price: nextMaxPrice !== null ? nextMaxPrice : undefined,
-          min_area: nextMinArea !== null ? nextMinArea : undefined,
-          max_area: nextMaxArea !== null ? nextMaxArea : undefined,
-          sort: nextSort || undefined,
-          property_type: nextPropertyType || undefined,
-        }),
-        queryFn: () =>
-          fetchPublicListingsPage({
-            demandType,
-            pageSize,
-            page: nextPage,
-            keyword,
-            searchField: selectedField,
-            posterType: nextPosterType,
-            minPrice: nextMinPrice,
-            maxPrice: nextMaxPrice,
-            minArea: nextMinArea,
-            maxArea: nextMaxArea,
-            sortBy: nextSort,
-            propertyType: nextPropertyType,
-          }),
-        staleTime: 60 * 1000,
-      });
-    },
-  );
-
   watch(
     () => [
       posterType.value,
@@ -274,7 +288,7 @@ export function usePublicListings(options = {}) {
       propertyType.value,
     ],
     () => {
-      currentPage.value = 1;
+      resetInfiniteScroll();
     },
   );
 
@@ -284,7 +298,6 @@ export function usePublicListings(options = {}) {
     const currentKeyword = String(route?.query?.q || "");
 
     searchKeyword.value = "";
-    currentPage.value = 1;
 
     if (currentField === normalizedNextField && currentKeyword === "") return;
 
@@ -330,51 +343,13 @@ export function usePublicListings(options = {}) {
       .catch(() => {});
   });
 
-  function init() {
-    enabled.value = true;
-  }
-
-  function refetchListings() {
-    enabled.value = true;
-    return query.refetch();
-  }
-
-  function onSearch(value) {
-    searchKeyword.value = value || "";
-    currentPage.value = 1;
-
-    const normalizedNextQuery = searchKeyword.value.trim();
-    const currentQuery = String(route?.query?.q || "");
-    if (currentQuery === normalizedNextQuery) return;
-
-    const nextQuery = { ...route.query };
-    if (normalizedNextQuery) {
-      nextQuery.q = normalizedNextQuery;
-    } else {
-      delete nextQuery.q;
-    }
-
-    nextQuery.search_field =
-      searchField.value !== "all" ? searchField.value : undefined;
-    router.replace({ query: nextQuery }).catch(() => {});
-  }
-
-  function goToPage(page) {
-    if (page < 1 || page > lastPage.value || page === currentPage.value) return;
-    currentPage.value = page;
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
   return {
     listings,
     isLoading,
     total,
-    currentPage,
-    lastPage,
     searchKeyword,
     searchField,
     suggestions,
-    visiblePages,
     posterType,
     minPrice,
     maxPrice,
@@ -385,6 +360,11 @@ export function usePublicListings(options = {}) {
     init,
     refetchListings,
     onSearch,
-    goToPage,
+    // infinite scroll specific
+    loadMore,
+    hasMore,
+    loadingError,
+    isLoadingMore,
+    isInitialLoading,
   };
 }
