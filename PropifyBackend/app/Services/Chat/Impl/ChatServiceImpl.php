@@ -72,6 +72,7 @@ final class ChatServiceImpl implements ChatService
             'type' => $dto->type->value,
             'body' => $dto->body,
             'file_url' => $dto->fileUrl,
+            'metadata' => $dto->metadata,
         ]);
 
         try {

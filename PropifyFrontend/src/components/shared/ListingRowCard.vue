@@ -12,6 +12,7 @@
             :src="imageList[activeImgIdx]"
             alt="Property"
             class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
           />
 
           <div v-if="packageIcon" class="absolute top-0 left-0">

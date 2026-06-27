@@ -53,11 +53,12 @@ const chatService = {
    * @param {'image'|'file'} type
    * @param {string} fileUrl
    */
-  sendFileMessage(conversationId, type, fileUrl) {
-    return api.post(`/v1/chat/conversations/${conversationId}/messages`, {
-      type,
-      file_url: fileUrl,
-    });
+  sendFileMessage(conversationId, type, fileUrl, metadata = null) {
+    const payload = { type, file_url: fileUrl };
+    if (metadata) {
+      payload.metadata = metadata;
+    }
+    return api.post(`/v1/chat/conversations/${conversationId}/messages`, payload);
   },
 
   /**

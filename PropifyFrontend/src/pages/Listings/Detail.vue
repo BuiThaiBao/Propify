@@ -1054,7 +1054,7 @@ import {
   hydrateListingAddresses,
   hydratePropertyAddress,
 } from "@/utils/addressFormatter";
-import { formatPrice, propertyTypeLabel } from "@/utils/listingFormatters";
+import { formatPrice, propertyTypeLabel, optimizeImage } from "@/utils/listingFormatters";
 import { selectRelatedListings } from "@/utils/relatedListingStrategies";
 import reportInfoIcon from "@/assets/images/details/report/image1.png";
 import reportWarningIcon from "@/assets/images/details/report/image2.png";
@@ -1189,8 +1189,12 @@ let lastStandardCamera = null;
 
 const displayImages = computed(() => {
   if (!listing.value?.images?.length) return [];
-  // Sort by sort_order
-  return [...listing.value.images].sort((a, b) => a.sort_order - b.sort_order);
+  return [...listing.value.images]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((img) => ({
+      ...img,
+      url: optimizeImage(img.url, { width: 860, quality: "auto" }),
+    }));
 });
 
 const totalMediaItems = computed(() => {
