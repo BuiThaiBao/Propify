@@ -6,26 +6,36 @@ title Quên Mật Khẩu
 
 actor "User" as User
 participant "Frontend" as FE
-participant "API" as API
+participant "AuthController" as Controller
+participant "AuthService" as Service
+participant "UserRepository" as Repo
 database "Database" as DB
 
 User -> FE: Nhập email
-FE -> API: POST /auth/forgot-password
-alt Email tồn tại
-  API -> API: Gửi OTP
-  API --> FE: 200
+FE -> Controller: POST /auth/forgot-password
+Controller -> Service: forgotPassword(email)
+Service -> Repo: findByEmail(email)
+alt Tồn tại
+  Service -> Service: Gửi OTP
+  Service --> Controller: success
+  Controller --> FE: 200
   User -> FE: OTP + mật khẩu mới
-  FE -> API: POST /auth/reset-password
+  FE -> Controller: POST /auth/reset-password
+  Controller -> Service: resetPassword(dto)
   alt OTP đúng
-    API -> DB: Cập nhật password
-    API --> FE: 200
+    Service -> Repo: updatePassword
+    Repo -> DB: UPDATE
+    Service --> Controller: success
+    Controller --> FE: 200
   else Sai
-    API --> FE: Lỗi
+    Service --> Controller: error
+    Controller --> FE: 401
   end
 else Không tồn tại
-  API --> FE: 404
+  Service --> Controller: not found
+  Controller --> FE: 404
 end
 @enduml
 ```
 
-**Luồng:** Email → OTP → Reset password.
+**3-layer:** Controller -> Service -> Repository -> DB.

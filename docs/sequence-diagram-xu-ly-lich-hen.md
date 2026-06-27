@@ -6,17 +6,28 @@ title Xử Lý Lịch Hẹn
 
 actor "Owner" as Owner
 participant "Frontend" as FE
-participant "API" as API
+participant "AppointmentController" as Controller
+participant "AppointmentService" as Service
+participant "AppointmentRepository" as Repo
 database "Database" as DB
 
-Owner -> FE: Xem lịch hẹn
-FE -> API: GET /appointments
-API --> FE: Danh sách
+Owner -> FE: Xem danh sách lịch
+FE -> Controller: GET /appointments
+Controller -> Service: getByOwner(userId)
+Service -> Repo: findByOwner
+Repo -> DB: SELECT
+DB --> Repo: appointments
+Service --> Controller: list
+Controller --> FE: appointments
 Owner -> FE: Xác nhận / Từ chối
-FE -> API: PUT /appointments/{id}
-API -> DB: Cập nhật
-API --> FE: 200
+FE -> Controller: PUT /appointments/{id}
+Controller -> Service: handle(action, id)
+Service -> Repo: updateStatus
+Repo -> DB: UPDATE
+Service -> Service: notify viewer
+Service --> Controller: success
+Controller --> FE: 200
 @enduml
 ```
 
-**Luồng:** Xem → Xác nhận/Từ chối.
+**3-layer:** Controller -> Service -> Repository -> DB.

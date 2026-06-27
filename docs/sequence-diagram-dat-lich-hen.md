@@ -6,18 +6,28 @@ title Đặt Lịch Hẹn
 
 actor "Viewer" as Viewer
 participant "Frontend" as FE
-participant "API" as API
+participant "AppointmentController" as Controller
+participant "AppointmentService" as Service
+participant "AppointmentRepository" as Repo
 database "Database" as DB
 
 Viewer -> FE: Xem chi tiết tin
-Viewer -> FE: Ấn "Đặt lịch"
-FE -> API: GET /slots
-API --> FE: Slot trống
+FE -> Controller: GET /slots?listing_id=
+Controller -> Service: getAvailableSlots(listingId)
+Service -> Repo: query slots
+Repo -> DB: SELECT
+DB --> Repo: slots
+Service --> Controller: slots
+Controller --> FE: available slots
 Viewer -> FE: Chọn slot
-FE -> API: POST /appointments
-API -> DB: Tạo appointment
-API --> FE: 201
+FE -> Controller: POST /appointments
+Controller -> Service: book(dto)
+Service -> Repo: create
+Repo -> DB: INSERT
+Service -> Service: notify owner
+Service --> Controller: appointment
+Controller --> FE: 201
 @enduml
 ```
 
-**Luồng:** Xem slot → Chọn → Đặt.
+**3-layer:** Controller -> Service -> Repository -> DB.

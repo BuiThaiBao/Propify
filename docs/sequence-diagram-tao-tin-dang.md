@@ -6,21 +6,41 @@ title Tạo Tin Đăng
 
 actor "Owner" as Owner
 participant "Frontend" as FE
-participant "API" as API
+participant "ListingController" as Controller
+participant "ListingService" as Service
+participant "CreateListingCommand" as Cmd
+participant "ListingRepository" as Repo
 database "Database" as DB
 
 Owner -> FE: Nhập thông tin + ảnh
 Owner -> FE: Bấm Đăng / Lưu nháp
-FE -> API: POST /listings
-API -> API: Validate
+FE -> Controller: POST /listings
+Controller -> Controller: validate()
 alt Hợp lệ
-  API -> DB: Tạo property + listing
-  API -> DB: Tạo ảnh, video, giấy tờ
-  API --> FE: 201 Created
+  Controller -> Service: create(user, dto)
+  Service -> Cmd: handle(user, dto)
+  Cmd -> Cmd: BEGIN TRANSACTION
+  Cmd -> Repo: createProperty
+  Repo -> DB: INSERT
+  Cmd -> Repo: createListing
+  Repo -> DB: INSERT
+  Cmd -> Repo: createImages
+  loop Ảnh
+    Repo -> DB: INSERT
+  end
+  opt Có video
+    Cmd -> Repo: createVideo
+    Repo -> DB: INSERT
+  end
+  Cmd -> Cmd: COMMIT
+  Service -> Service: clearCache()
+  Service --> Controller: Listing
+  Controller --> FE: 201 Created
+  FE --> Owner: Thành công
 else Không hợp lệ
-  API --> FE: 422
+  Controller --> FE: 422
 end
 @enduml
 ```
 
-**Luồng:** Nhập → Validate → Tạo DB → 201.
+**3-layer:** Controller -> Service -> Command -> Repository -> DB.

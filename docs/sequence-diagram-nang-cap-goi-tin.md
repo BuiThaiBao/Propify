@@ -6,19 +6,27 @@ title Nâng Cấp Gói Tin
 
 actor "Owner" as Owner
 participant "Frontend" as FE
-participant "API" as API
+participant "ListingController" as Controller
+participant "ListingService" as Service
+participant "ListingRepository" as Repo
 database "Database" as DB
 
 Owner -> FE: Chọn gói
-FE -> API: POST /listings/{id}/upgrade
-API -> API: Xử lý thanh toán
+FE -> Controller: POST /listings/{id}/upgrade
+Controller -> Service: upgradePackage(dto)
+Service -> Service: processPayment
 alt Thành công
-  API -> DB: Cập nhật package
-  API --> FE: 200
+  Service -> Repo: update package
+  Repo -> DB: UPDATE
+  Service -> Service: clearCache()
+  Service --> Controller: success
+  Controller --> FE: 200
+  FE --> Owner: Tin đã nâng cấp
 else Thất bại
-  API --> FE: Lỗi
+  Service --> Controller: payment error
+  Controller --> FE: lỗi thanh toán
 end
 @enduml
 ```
 
-**Luồng:** Chọn gói → Thanh toán → Cập nhật.
+**3-layer:** Controller -> Service -> Repository -> DB.

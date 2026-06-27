@@ -1,20 +1,27 @@
-# Sequence Diagram - Xác Thực Tin Đăng (User)
+# Sequence Diagram - Xác Thực (User)
 
 ```plantuml
 @startuml
-title Xác Thực (User)
+title Xác Thực Tin Đăng (User)
 
 actor "Owner" as Owner
 participant "Frontend" as FE
-participant "API" as API
+participant "ListingController" as Controller
+participant "ListingService" as Service
+participant "ListingRepository" as Repo
 database "Database" as DB
 
 Owner -> FE: Upload CCCD + giấy tờ
-FE -> API: POST /listings/{id}/verify
-API -> DB: Lưu documents
-API -> DB: Cập nhật trạng thái
-API --> FE: 200
+FE -> Controller: POST /listings/{id}/verify
+Controller -> Service: requestVerification(dto)
+Service -> Repo: saveDocuments
+Repo -> DB: INSERT
+Service -> Repo: update verification status
+Repo -> DB: UPDATE
+Service --> Controller: success
+Controller --> FE: 200
+FE --> Owner: Chờ admin duyệt
 @enduml
 ```
 
-**Luồng:** Upload giấy tờ → Gửi → Chờ duyệt.
+**3-layer:** Controller -> Service -> Repository -> DB.

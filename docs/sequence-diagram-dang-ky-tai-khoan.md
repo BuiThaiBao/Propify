@@ -6,27 +6,38 @@ title Đăng Ký Tài Khoản
 
 actor "User" as User
 participant "Frontend" as FE
-participant "API" as API
+participant "AuthController" as Controller
+participant "AuthService" as Service
+participant "UserRepository" as Repo
 database "Database" as DB
 
 User -> FE: Nhập thông tin
-FE -> API: POST /auth/register
-API -> API: Validate
+FE -> Controller: POST /auth/register
+Controller -> Controller: validate()
 alt Hợp lệ
-  API -> DB: Tạo user (PENDING)
-  API -> API: Gửi OTP
-  API --> FE: 201 OK
-  FE -> API: POST /auth/verify-otp
+  Controller -> Service: register(dto)
+  Service -> Repo: create (PENDING)
+  Repo -> DB: INSERT
+  Service -> Service: Gửi OTP
+  Service --> Controller: success
+  Controller --> FE: 201
+  FE -> Controller: POST /auth/verify-otp
+  Controller -> Service: verifyOtp(email, otp)
   alt OTP đúng
-    API -> DB: Kích hoạt user
-    API --> FE: 200 OK
-  else OTP sai
-    API --> FE: Lỗi
+    Service -> Repo: update status = ACTIVE
+    Repo -> DB: UPDATE
+    Service --> Controller: success
+    Controller --> FE: 200
+    FE --> User: Đăng ký thành công
+  else Sai
+    Service --> Controller: error
+    Controller --> FE: 401
   end
 else Không hợp lệ
-  API --> FE: 422
+  Controller --> FE: 422
+  FE --> User: Hiển thị lỗi
 end
 @enduml
 ```
 
-**Luồng:** Nhập → Validate → OTP → Kích hoạt.
+**3-layer:** Controller -> Service -> Repository -> DB.

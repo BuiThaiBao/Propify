@@ -6,21 +6,31 @@ title Chỉnh Sửa Tin Đăng
 
 actor "Owner" as Owner
 participant "Frontend" as FE
-participant "API" as API
+participant "ListingController" as Controller
+participant "ListingService" as Service
+participant "ListingRepository" as Repo
 database "Database" as DB
 
 Owner -> FE: Mở chỉnh sửa
-FE -> API: GET /listings/{id}
-API --> FE: Listing
+FE -> Controller: GET /listings/{id}
+Controller -> Service: findById(id)
+Service -> Repo: find
+Repo -> DB: SELECT
+DB --> Repo: listing
+Service --> Controller: Listing
+Controller --> FE: Listing
 Owner -> FE: Sửa + upload ảnh mới
-FE -> API: PUT /listings/{id}
-alt Hợp lệ
-  API -> DB: Cập nhật listing
-  API --> FE: 200
-else Lỗi
-  API --> FE: 422
-end
+FE -> Controller: PUT /listings/{id}
+Controller -> Service: update(dto)
+Service -> Repo: updateProperty + listing
+Repo -> DB: UPDATE
+Service -> Repo: syncImages
+Repo -> DB: DELETE + INSERT
+Service -> Service: clearCache()
+Service --> Controller: success
+Controller --> FE: 200
+FE --> Owner: Thành công
 @enduml
 ```
 
-**Luồng:** GET → Sửa → PUT → Cập nhật DB.
+**3-layer:** Controller -> Service -> Repository -> DB.

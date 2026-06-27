@@ -6,18 +6,29 @@ title Admin Xác Thực
 
 actor "Admin" as Admin
 participant "Frontend" as FE
-participant "API" as API
+participant "AdminController" as Controller
+participant "AdminService" as Service
+participant "ListingRepository" as Repo
 database "Database" as DB
 
 Admin -> FE: Danh sách chờ xác thực
-FE -> API: GET /admin/verifications
-API --> FE: Danh sách
+FE -> Controller: GET /admin/verifications
+Controller -> Service: getPendingVerifications()
+Service -> Repo: findByVerificationStatus
+Repo -> DB: SELECT
+DB --> Repo: listings
+Service --> Controller: list
+Controller --> FE: listings + documents
 Admin -> FE: Xem giấy tờ
 Admin -> FE: Xác thực / Từ chối
-FE -> API: PUT /admin/listings/{id}/verify
-API -> DB: Cập nhật
-API --> FE: 200
+FE -> Controller: PUT /admin/listings/{id}/verify
+Controller -> Service: verifyDocuments(id, decision)
+Service -> Repo: update is_verified
+Repo -> DB: UPDATE
+Service -> Service: notify owner
+Service --> Controller: success
+Controller --> FE: 200
 @enduml
 ```
 
-**Luồng:** Xem giấy tờ → Xác thực/Từ chối.
+**3-layer:** Controller -> Service -> Repository -> DB.
