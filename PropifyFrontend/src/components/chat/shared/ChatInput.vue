@@ -1,13 +1,13 @@
 <template>
   <form
-    class="flex items-end bg-white border-t border-gray-100"
-    :class="compact ? 'gap-2 px-3 py-2.5' : 'gap-2.5 px-3.5 py-3'"
+    class="ci-root"
+    :class="compact ? 'ci-compact' : ''"
     @submit.prevent="handleSubmit"
   >
     <button
       v-if="!compact"
       type="button"
-      class="p-2 rounded-xl text-gray-400 bg-transparent border-none cursor-pointer flex items-center justify-center transition-all shrink-0 mb-0.5 hover:bg-gray-100 hover:text-gray-600"
+      class="ci-attach-btn"
       title="Đính kèm file"
       @click="onAttach"
     >
@@ -16,16 +16,12 @@
       </svg>
     </button>
 
-    <div
-      class="flex-1 flex items-end bg-gray-50 border border-gray-200 transition-all focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 focus-within:bg-white"
-      :class="compact ? 'rounded-[20px] px-3.5 py-2' : 'rounded-2xl px-4 py-2'"
-    >
+    <div class="ci-input-wrap">
       <textarea
         ref="inputRef"
         v-model="inputText"
-        class="flex-1 bg-transparent border-none outline-none text-gray-800 font-[inherit] leading-relaxed resize-none overflow-hidden block [scrollbar-width:none] placeholder-gray-400"
-        :class="compact ? 'text-[0.85rem] max-h-[80px]' : 'text-[0.875rem] max-h-[120px]'"
-        style="scrollbar-width: none;"
+        class="ci-input"
+        :class="compact ? 'ci-input-compact' : ''"
         :placeholder="compact ? 'Aa' : 'Nhập tin nhắn...'"
         rows="1"
         :disabled="disabled"
@@ -37,16 +33,11 @@
 
     <button
       type="submit"
-      class="flex items-center justify-center transition-all shrink-0 mb-0.5 disabled:opacity-40 disabled:cursor-not-allowed border-none cursor-pointer"
-      :class="[
-        compact ? 'size-[34px] rounded-full' : 'size-9 rounded-xl',
-        inputText.trim()
-          ? 'bg-blue-600 text-white shadow-md shadow-blue-200 hover:bg-blue-700 scale-100 hover:scale-105'
-          : 'bg-gray-100 text-gray-400',
-      ]"
+      class="ci-send-btn"
+      :class="{ 'ci-send-active': !!inputText.trim() }"
       :disabled="disabled || !inputText.trim()"
     >
-      <svg :width="compact ? 18 : 17" :height="compact ? 18 : 17" viewBox="0 0 24 24" fill="none" stroke="currentColor" :stroke-width="compact ? 2 : 2.2">
+      <svg :width="compact ? 18 : 17" :height="compact ? 18 : 17" viewBox="0 0 24 24" fill="none" :stroke="inputText.trim() ? 'currentColor' : 'currentColor'" :stroke-width="compact ? 2 : 2.2">
         <line x1="22" y1="2" x2="11" y2="13" />
         <polygon points="22 2 15 22 11 13 2 9 22 2" />
       </svg>
@@ -95,7 +86,6 @@ function onInput() {
 function autoResize() {
   const el = inputRef.value;
   if (!el) return;
-
   const maxHeight = props.compact ? 80 : 120;
   el.style.height = '0';
   el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
@@ -112,5 +102,119 @@ function onAttach() {
 </script>
 
 <style scoped>
-textarea::-webkit-scrollbar { display: none; }
+.ci-root {
+  display: flex;
+  align-items: flex-end;
+  padding: 10px 12px 10px 14px;
+  background: #fff;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  gap: 8px;
+}
+
+.ci-compact {
+  padding: 8px 12px 8px 12px;
+  gap: 6px;
+}
+
+.ci-attach-btn {
+  padding: 6px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: #b0b0c0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  margin-bottom: 2px;
+}
+
+.ci-attach-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: #6b6b80;
+}
+
+.ci-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  background: #f3f4f8;
+  border: 1px solid transparent;
+  border-radius: 22px;
+  transition: all 0.2s ease;
+}
+
+.ci-input-wrap:focus-within {
+  background: #fff;
+  border-color: #4f6bff;
+  box-shadow: 0 0 0 3px rgba(79, 107, 255, 0.12);
+}
+
+.ci-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #1a1a2e;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: none;
+  overflow: hidden;
+  display: block;
+  padding: 9px 14px;
+  font-size: 0.85rem;
+  max-height: 80px;
+}
+
+.ci-input::placeholder {
+  color: #b0b0c0;
+}
+
+.ci-input-compact {
+  padding: 7px 14px;
+  font-size: 0.85rem;
+  max-height: 80px;
+}
+
+.ci-input::-webkit-scrollbar {
+  display: none;
+}
+
+.ci-send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #e8e8f0;
+  color: #b0b0c0;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  flex-shrink: 0;
+  margin-bottom: 1px;
+}
+
+.ci-send-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.ci-send-active {
+  background: linear-gradient(135deg, #4f6bff, #3b5de7);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(79, 107, 255, 0.3);
+}
+
+.ci-send-active:hover {
+  transform: scale(1.08);
+  box-shadow: 0 5px 16px rgba(79, 107, 255, 0.4);
+}
+
+.ci-send-active:active {
+  transform: scale(0.92);
+}
 </style>
