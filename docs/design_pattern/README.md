@@ -4,6 +4,8 @@ Thư mục này chứa phân tích chi tiết các **Design Pattern** được �
 
 ## Danh sách tài liệu phân tích
 
+- **[🏗️ Kiến Trúc Tổng Thể Hệ Thống](kien_truc_tong_the.md)** - Phân tích kiến trúc PM (Clean + Hexagonal Architecture), sơ đồ tổng thể các layer và luồng data.
+- **[🗺️ Sơ Đồ Lớp Tổng Thể Toàn Project](class_diagram_tong_the.md)** - Sơ đồ class tổng thể của dự án (Class Diagram), chia theo các phân hệ nghiệp vụ, biểu diễn mối quan hệ phụ thuộc.
 - **[📚 Lý Thuyết & Triển Khai Chi Tiết](ly_thuyet_va_trien_khai_chi_tiet.md)** - File chính để trình bày với giảng viên: Lý do chọn pattern, tác dụng, code triển khai, trích dẫn code mẫu cho tất cả 10 Design Pattern.
 - **[📊 Bảng Tổng Hợp Design Pattern & Chức Năng](tong_hop_design_pattern.md)** - Bảng đối chiếu toàn bộ 35 lần áp dụng pattern.
 
