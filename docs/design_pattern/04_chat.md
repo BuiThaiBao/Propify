@@ -6,7 +6,10 @@ Tài liệu này phân tích chi tiết các Design Pattern được áp dụng 
 
 ## 1. Facade Pattern (Giao diện đơn giản cho phân hệ Chat phức tạp)
 
-### 1.1. Ánh xạ thành phần (Mapping)
+### 1.1. Vấn đề cần giải quyết (Problem)
+Nghiệp vụ Chat bao gồm rất nhiều thao tác tương tác chéo phức tạp trên nhiều bảng dữ liệu và logic khác nhau: Tạo cuộc hội thoại, lưu tin nhắn, phân nhóm chat, quản lý thành viên nhóm chat, kiểm soát quyền tham gia (`assertParticipant`), cập nhật trạng thái đọc tin nhắn và đẩy tin nhắn realtime. Nếu Controller trực tiếp thao tác và phối hợp với các thực thể này, Controller sẽ bị quá tải thông tin, gây khó khăn cho việc bảo trì và thay đổi cấu trúc dữ liệu của phân hệ chat.
+
+### 1.2. Ánh xạ thành phần (Mapping)
 
 | Thành phần chuẩn UML GoF | Lớp cụ thể trong dự án | Ghi chú |
 |---|---|---|
@@ -14,13 +17,13 @@ Tài liệu này phân tích chi tiết các Design Pattern được áp dụng 
 | **Facade Implementation** | `App\Services\Chat\Impl\ChatServiceImpl` | Lớp che giấu độ phức tạp: Conversation, Message, GroupMember, Participant. |
 | **Subsystems (Repositories)** | `App\Repositories\ChatRepository` | Nhiều Repository phối hợp lưu dữ liệu hội thoại, tin nhắn, thành viên. |
 
-### 1.2. Giải thích Trách nhiệm (Responsibility)
+### 1.3. Giải thích Trách nhiệm (Responsibility)
 
 - **`ChatService` (Facade)**: Định nghĩa các phương thức nghiệp vụ của phân hệ Chat: tạo/conversation, gửi tin nhắn, tạo nhóm chat, quản lý thành viên, đọc tin nhắn, đánh dấu đã đọc.
 - **`ChatServiceImpl`**: Lớp triển khai quy tụ tất cả logic điều hướng dữ liệu giữa các Repository và các models như `Conversation`, `Message`, `User`. Nó chịu trách nhiệm kiểm tra xem user có quyền truy cập vào conversation hay không (`assertParticipant`), lấy ra danh sách tin nhắn phân trang, và đảm bảo sự đồng bộ dữ liệu giữa các bảng.
 - **`ChatRepository`**: Đảm nhận các thao tác cơ sở dữ liệu cụ thể: tìm conversation, lấy messages dạng cursor pagination, tạo message, cập nhật `last_seen`.
 
-### 1.3. Sơ đồ lớp (Class Diagram) bằng PlantUML
+### 1.4. Sơ đồ lớp (Class Diagram) bằng PlantUML
 
 ```plantuml
 @startuml
@@ -52,7 +55,7 @@ ChatServiceImpl --> ChatRepository : "orchestrates"
 @enduml
 ```
 
-### 1.4. Đánh giá ưu điểm
+### 1.5. Đánh giá ưu điểm
 
 - **Đơn giản hóa giao tiếp**: Controller tương tác với phân hệ chat chỉ qua một Service đơn nhất (`ChatService`) thay vì phải truy cập rải rác qua nhiều tầng Conversation/Message/GroupMember repositories, giữ cho Controllers mỏng nhẹ.
 - **Đóng gói quy tắc nghiệp vụ**: Các logic như `assertParticipant` (chỉ người tham gia mới được gửi/đọc tin nhắn) được tập trung trong Facade thay vì rải rác khắp nơi, giúp dễ dàng bảo trì và kiểm thử.
@@ -61,7 +64,10 @@ ChatServiceImpl --> ChatRepository : "orchestrates"
 
 ## 2. Observer & Adapter Pattern (Đồng bộ truyền phát realtime qua WebSocket)
 
-### 2.1. Ánh xạ thành phần (Mapping)
+### 2.1. Vấn đề cần giải quyết (Problem)
+Khi tin nhắn được gửi, hệ thống bắt buộc phải thông báo realtime cho người nhận qua kết nối WebSocket để hiển thị tin nhắn ngay lập tức mà khách hàng không cần tải lại trang. Tuy nhiên, việc truyền phát realtime qua WebSocket tốn thời gian và có thể xảy ra lỗi kết nối mạng. Nếu thực hiện đồng bộ trực tiếp trong luồng lưu tin nhắn chính, API sẽ bị nghẽn (block) khiến tốc độ phản hồi cực kỳ chậm, đồng thời lỗi WebSocket sẽ khiến giao dịch lưu tin nhắn bị lỗi theo.
+
+### 2.2. Ánh xạ thành phần (Mapping)
 
 | Thành phần chuẩn UML GoF | Lớp cụ thể trong dự án | Ghi chú |
 |---|---|---|
@@ -69,7 +75,7 @@ ChatServiceImpl --> ChatRepository : "orchestrates"
 | **Observer** | `App\Listeners\Chat\BroadcastMessageListener` (nếu có) hoặc direct dispatch của `Laravel Reverb` | Lắng nghe và Broadcast tới WebSocket. |
 | **Adapter/Service** | `Laravel\Reverb` (Through Laravel Broadcasting) | Dịch vụ WebSocket native của Laravel, đóng vai trò Adapter phát tín hiệu realtime. |
 
-### 2.2. Giải thích Trách nhiệm (Responsibility)
+### 2.3. Giải thích Trách nhiệm (Responsibility)
 
 - **`MessageSent`**: Event chứa toàn bộ đối tượng Message (bao gồm sender, body, file_url, metadata...). Event được dispatch ngay trong phương thức `ChatServiceImpl::sendMessage()` sau khi message được lưu vào database thành công.
 - **Laravel Broadcasting + Reverb**: Hệ thống `ShouldBroadcast` của Laravel đảm nhận vai trò Adapter, nhận Event từ code PHP và chuyển đổi thành tín hiệu WebSocket gửi realtime đến các client đang kết nối. Các bên liên quan (chủ nhà, người xem tin) ngay lập tức nhận được thông báo tin nhắn mới.

@@ -1,8 +1,10 @@
 # Báo cáo Phân tích Design Pattern Dự án Propify
 
-Thư mục này chứa phân tích chi tiết các **Design Pattern** được áp dụng trong từng chức năng cụ thể của hệ thống nền tảng dịch vụ bất động sản Propify. Mỗi file dưới đây đều được trình bày theo cấu trúc: **Ánh xạ thành phần → Giải thích trách nhiệm → Sơ đồ Class PlantUML → Đánh giá ưu điểm**.
+Thư mục này chứa phân tích chi tiết các **Design Pattern** được áp dụng trong từng chức năng cụ thể của hệ thống nền tảng dịch vụ bất động sản Propify. Mỗi file dưới đây đều được trình bày theo cấu trúc: **Vấn đề cần giải quyết → Ánh xạ thành phần → Giải thích trách nhiệm → Sơ đồ Class PlantUML → Đánh giá ưu điểm**.
 
 ## Danh sách phân tích chi tiết
+
+- **[Bảng Tổng Hợp Tất Cả Design Pattern & Chức Năng](tong_hop_design_pattern.md)** - Bảng đối chiếu toàn bộ các pattern đã áp dụng.
 
 | # | Chức năng | Các Design Pattern áp dụng | Số lượng |
 |---|-----------|----------------------------|----------|
@@ -13,8 +15,9 @@ Thư mục này chứa phân tích chi tiết các **Design Pattern** được �
 | 5 | [Đặt lịch hẹn / Xử lý lịch hẹn](05_appointment.md) | `State` (quản lý vòng đời), `Command` (action), `Strategy` (tính hạn chờ) | **3** |
 | 6 | [Thanh toán](06_payment.md) | `Adapter` (PaymentGateway), `Factory Method` (PaymentProviderFactory) | **2** |
 | 7 | [Tạo tin / Admin duyệt tin](07_admin_moderation.md) | `Template Method` (khung kiểm duyệt), `State` (trạng thái tin đăng), `Command` (tạo tin) | **3** |
+| 8 | [Lưu trữ & Truyền tải Media](08_media_storage.md) | `Adapter` (Cloudflare R2), `Adapter` (Cloudinary signature) | **2** |
 
-**Tổng cộng: 7 chức năng → 25 lần áp dụng Design Pattern**
+**Tổng cộng: 8 phân hệ → 27 lần áp dụng Design Pattern trong phân tích chi tiết (Tổng 35 lần áp dụng thực tế)**
 
 ## Biểu đồ tổng quan
 
