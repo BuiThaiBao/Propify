@@ -82,6 +82,8 @@ use App\Services\Listing\Reports\Rules\PreventDuplicateListingReportHandler;
 use App\Services\Listing\Verification\Impl\ListingVerificationServiceImpl;
 use App\Services\Listing\Verification\ListingVerificationService;
 use App\Services\Media\CloudinaryUploadSignatureAdapter;
+use App\Services\Media\FileStorageAdapter;
+use App\Services\Media\R2FileStorageAdapter;
 use App\Services\Media\UploadSignatureAdapter;
 use App\Services\Notification\Channel\DatabaseChannel;
 use App\Services\Notification\Channel\EmailChannel;
@@ -183,6 +185,7 @@ final class AppServiceProvider extends ServiceProvider
         // ── Cloudinary bindings ───────────────────────────────────────────
         $this->app->bind(CloudinaryService::class, CloudinaryServiceImpl::class);
         $this->app->bind(UploadSignatureAdapter::class, CloudinaryUploadSignatureAdapter::class);
+        $this->app->bind(FileStorageAdapter::class, R2FileStorageAdapter::class);
 
         // ── Chat bindings ─────────────────────────────────────────────────
         $this->app->bind(ChatRepository::class, EloquentChatRepository::class);

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1\Chat;
 
 use App\Helpers\ApiResponse;
+use App\Services\Media\FileStorageAdapter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -19,6 +19,10 @@ use Illuminate\Validation\Rule;
  */
 final class FileUploadController
 {
+    public function __construct(
+        private readonly FileStorageAdapter $storage,
+    ) {}
+
     public function upload(Request $request): JsonResponse
     {
         $request->validate([
@@ -39,20 +43,13 @@ final class FileUploadController
             $extension,
         );
 
-        // Upload lên R2
-        $disk = Storage::disk('r2');
-        $disk->put($fileKey, file_get_contents($file->getRealPath()), [
-            'ContentType' => $file->getMimeType() ?: 'application/octet-stream',
-        ]);
-
-        // Tạo presigned GET URL — 7 ngày
-        $client = $this->makeS3Client();
-        $getCommand = $client->getCommand('GetObject', [
-            'Bucket' => config('filesystems.disks.r2.bucket'),
-            'Key' => $fileKey,
-        ]);
-        $presignedGetRequest = $client->createPresignedRequest($getCommand, '+7 days');
-        $publicUrl = (string) $presignedGetRequest->getUri();
+        // Upload lên R2 qua Adapter
+        $this->storage->upload(
+            path: $fileKey,
+            contents: file_get_contents($file->getRealPath()),
+            mimeType: $file->getMimeType() ?: 'application/octet-stream',
+        );
+        $publicUrl = $this->storage->getPublicUrl($fileKey);
 
         return ApiResponse::success([
             'public_url' => $publicUrl,
@@ -60,21 +57,6 @@ final class FileUploadController
             'file_name' => $file->getClientOriginalName(),
             'file_size' => $file->getSize(),
             'mime_type' => $file->getMimeType(),
-        ]);
-    }
-
-    private function makeS3Client(): \Aws\S3\S3Client
-    {
-        return new \Aws\S3\S3Client([
-            'version' => 'latest',
-            'region' => 'auto',
-            'endpoint' => config('filesystems.disks.r2.endpoint'),
-            'credentials' => [
-                'key' => config('filesystems.disks.r2.key'),
-                'secret' => config('filesystems.disks.r2.secret'),
-            ],
-            'use_path_style_endpoint' => true,
-            'signature_version' => 'v4',
         ]);
     }
 }
