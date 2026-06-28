@@ -6,7 +6,10 @@ Tài liệu này phân tích chi tiết các Design Pattern được áp dụng 
 
 ## 1. Template Method Pattern (Khung xử lý kiểm duyệt tin đăng của Admin)
 
-### 1.1. Ánh xạ thành phần (Mapping)
+### 1.1. Vấn đề cần giải quyết (Problem)
+Quy trình kiểm duyệt một tin đăng bất động sản bởi Admin bao gồm nhiều bước hạ tầng giống hệt nhau ở mọi hành động (Duyệt, Từ chối, Khóa): Kiểm tra dữ liệu -> Mở transaction cơ sở dữ liệu -> Lấy bản ghi tin đăng và khóa dòng (`lockForUpdate`) -> Kiểm tra điều kiện chuyển đổi trạng thái -> Thay đổi trạng thái -> Lưu database -> Ghi lịch sử thay đổi trạng thái (`ListingStatusHistory`) -> Phát sự kiện thông báo (`ListingSaved`). Nếu không áp dụng Template Method, lập trình viên sẽ phải sao chép toàn bộ khối code giao dịch dữ liệu, bảo mật và phát sự kiện này cho từng Command riêng biệt, dẫn đến trùng lặp mã nguồn cực kỳ nghiêm trọng và dễ bỏ sót các bước ghi log/event quan trọng.
+
+### 1.2. Ánh xạ thành phần (Mapping)
 
 | Thành phần chuẩn UML GoF | Lớp cụ thể trong dự án | Ghi chú |
 |---|---|---|
@@ -15,7 +18,7 @@ Tài liệu này phân tích chi tiết các Design Pattern được áp dụng 
 | **ConcreteClass B** | `App\Services\Listing\Moderation\RejectListingCommand` | Từ chối tin: yêu cầu bắt buộc nhập lý do, chuyển sang REJECTED. |
 | **ConcreteClass C** | `App\Services\Listing\Moderation\LockListingCommand` | Khóa tin đăng: chuyển sang LOCKED. |
 
-### 1.2. Giải thích Trách nhiệm (Responsibility)
+### 1.3. Giải thích Trách nhiệm (Responsibility)
 
 - **`AbstractListingModerationCommand`**: Thiết lập khung thuật toán cố định trong phương thức `final public function execute(int $listingId, ModerationContext $ctx)`:
   1. `validate()`: Gọi hook kiểm tra dữ liệu đầu vào.
@@ -29,7 +32,7 @@ Tài liệu này phân tích chi tiết các Design Pattern được áp dụng 
 - **`RejectListingCommand`**: Triển khai thêm hook `validate()` để bắt buộc nhập lý do từ chối, điền trạng thái đích là `REJECTED` và lưu lý do.
 - **`LockListingCommand`**: Điền trạng thái đích là `LOCKED`.
 
-### 1.3. Sơ đồ lớp (Class Diagram) bằng PlantUML
+### 1.4. Sơ đồ lớp (Class Diagram) bằng PlantUML
 
 ```plantuml
 @startuml
@@ -62,7 +65,7 @@ AbstractListingModerationCommand <|-- LockListingCommand
 @enduml
 ```
 
-### 1.4. Đánh giá ưu điểm
+### 1.5. Đánh giá ưu điểm
 
 - **Tái sử dụng mã nguồn tối đa (Code Reuse)**: Toàn bộ quy trình nặng về mặt hạ tầng (Transaction, Lock database, ghi nhận Status History, Dispatch Event, Nạp các quan hệ dữ liệu liên quan) được viết duy nhất một lần ở lớp cha `AbstractListingModerationCommand`.
 - **An toàn bảo mật dữ liệu**: Các lớp con không cần lo lắng về việc mở/đóng transaction hay quên phát Event, giúp triệt tiêu các lỗi rò rỉ dữ liệu hoặc bỏ sót sự kiện hệ thống.
@@ -71,7 +74,10 @@ AbstractListingModerationCommand <|-- LockListingCommand
 
 ## 2. State Pattern (Quản lý trạng thái vòng đời của Tin đăng)
 
-### 2.1. Ánh xạ thành phần (Mapping)
+### 2.1. Vấn đề cần giải quyết (Problem)
+Vòng đời của một tin đăng trải qua rất nhiều trạng thái: DRAFT (Bản nháp), PENDING (Chờ duyệt), ACTIVE (Đang đăng), REJECTED (Bị từ chối), LOCKED (Bị khóa), UNLISTED (Ẩn tin). Hệ thống cần kiểm soát nghiêm ngặt các điều kiện chuyển trạng thái để đảm bảo dữ liệu không bị chuyển đổi sai mục đích hoặc bất hợp pháp (Ví dụ: Tin DRAFT không thể nhảy cóc lên ACTIVE; tin LOCKED không được ẩn tin mà bắt buộc phải mở khóa trước). Nếu không dùng State Pattern, logic kiểm tra chuyển trạng thái này sẽ bị phân tán rải rác trong nhiều Controller hoặc Service và dễ phát sinh các lỗ hổng logic.
+
+### 2.2. Ánh xạ thành phần (Mapping)
 
 | Thành phần chuẩn UML GoF | Lớp cụ thể trong dự án | Ghi chú |
 |---|---|---|
@@ -80,7 +86,7 @@ AbstractListingModerationCommand <|-- LockListingCommand
 | **AbstractState** | `App\Services\Listing\State\AbstractListingStatusState` | Lớp cơ sở kiểm tra việc chuyển trạng thái dựa trên danh sách cho phép. |
 | **ConcreteState** | `DraftListingState`, `PendingListingState`, `ActiveListingState`, `RejectedListingState`, `LockedListingState`, `UnlistedListingState` | Các trạng thái cụ thể của tin đăng trong hệ thống. |
 
-### 2.2. Giải thích Trách nhiệm (Responsibility)
+### 2.3. Giải thích Trách nhiệm (Responsibility)
 
 - **`ListingStatusState`**: Khai báo phương thức `value()` trả về chuỗi trạng thái và `canTransitionTo(string $nextStatus)` trả về boolean.
 - **`AbstractListingStatusState`**: Triển khai `canTransitionTo()` bằng cách kiểm tra giá trị trạng thái đích nằm trong mảng `allowedTransitions()` của trạng thái hiện tại.
@@ -89,7 +95,7 @@ AbstractListingModerationCommand <|-- LockListingCommand
 - **`ActiveListingState` (ACTIVE)**: Có thể bị khóa (`LOCKED`), từ chối (`REJECTED`), hoặc người dùng ẩn tin (`UNLISTED`).
 - **`UnlistedListingState` (UNLISTED)**: Là trạng thái kết thúc, không được chuyển sang trạng thái nào khác.
 
-### 2.3. Sơ đồ lớp (Class Diagram) bằng PlantUML
+### 2.4. Sơ đồ lớp (Class Diagram) bằng PlantUML
 
 ```plantuml
 @startuml
@@ -125,7 +131,7 @@ AbstractListingStatusState <|-- ActiveListingState
 @enduml
 ```
 
-### 2.4. Đánh giá ưu điểm
+### 2.5. Đánh giá ưu điểm
 
 - **Khóa chặt luồng dữ liệu (Data Integrity)**: Đảm bảo một tin đăng nháp (`DRAFT`) không thể nhảy cóc thẳng lên `ACTIVE` mà bắt buộc phải qua `PENDING` chờ duyệt. Tương tự, tin đăng đang bị khóa `LOCKED` bắt buộc phải duyệt lại (`ACTIVE`) chứ không thể đổi trạng thái lung tung.
 - **Dễ dàng bảo trì**: Tất cả luật chuyển đổi trạng thái của tin đăng được khai báo tập trung trong thuộc tính `allowedTransitions` của từng lớp, làm mã nguồn vô cùng sạch sẽ.
@@ -134,7 +140,10 @@ AbstractListingStatusState <|-- ActiveListingState
 
 ## 3. Command Pattern (Đóng gói nghiệp vụ Tạo/Cập nhật tin đăng)
 
-### 3.1. Ánh xạ thành phần (Mapping)
+### 3.1. Vấn đề cần giải quyết (Problem)
+Tạo hoặc cập nhật tin đăng bất động sản là nghiệp vụ cốt lõi và phức tạp: Validate thông tin DTO, tạo bản ghi thuộc tính nhà đất (`Property`), liên kết các thuộc tính tiện ích bổ sung (`attributes`), tính toán điểm chất lượng tin đăng (`score`), lưu trữ danh sách hình ảnh, video và các tài liệu pháp lý đính kèm, phát sự kiện lưu tin đăng. Nếu đặt các logic này trực tiếp trong Controller, Controller sẽ bị phình to và rất khó tái sử dụng khi cần tạo tin đăng từ Console Command hoặc từ API cào dữ liệu bên ngoài.
+
+### 3.2. Ánh xạ thành phần (Mapping)
 
 | Thành phần chuẩn UML GoF | Lớp cụ thể trong dự án | Ghi chú |
 |---|---|---|
@@ -142,7 +151,7 @@ AbstractListingStatusState <|-- ActiveListingState
 | **ConcreteCommand** | `App\Services\Listing\Commands\CreateListingCommand` | Đóng gói logic tạo mới tin đăng (bao gồm lưu BĐS, hình ảnh, video). |
 | **Receiver** | `App\Repositories\ListingRepository` | Repository thực hiện lưu thông tin xuống database. |
 
-### 3.2. Giải thích Trách nhiệm (Responsibility)
+### 3.3. Giải thích Trách nhiệm (Responsibility)
 
 - **`CreateListingCommand`**: Có nhiệm vụ:
   1. Gọi Pipeline validate dữ liệu nghiệp vụ tin đăng (`ListingSubmissionValidationPipeline`).
@@ -153,7 +162,7 @@ AbstractListingStatusState <|-- ActiveListingState
   6. Lưu trữ thông tin tài liệu xác minh (nếu người dùng yêu cầu xác thực).
   7. Phát event `ListingSaved` để kích hoạt các nghiệp vụ ngoài (ví dụ gửi mail thông báo cho admin).
 
-### 3.3. Đánh giá ưu điểm
+### 3.4. Đánh giá ưu điểm
 
 - **Cô lập hoàn toàn quy trình tạo tin phức tạp**: Quá trình tạo một tin đăng bất động sản chứa rất nhiều thông tin đính kèm (hình ảnh, video, tài liệu pháp lý, thuộc tính chi tiết căn hộ). Command Pattern giúp tách biệt hoàn toàn luồng xử lý phức tạp này khỏi Controller, đảm bảo tính dễ bảo trì.
 - **Tính toán điểm chất lượng tự động**: Hàm `calculateContentScore` được đóng gói bên trong Command giúp hệ thống tự động chuẩn hóa điểm chất lượng tin trước khi lưu CSDL, đảm bảo dữ liệu luôn chính xác và đồng nhất.
