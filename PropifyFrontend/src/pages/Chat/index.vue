@@ -1,5 +1,15 @@
 <template>
   <div class="flex flex-col h-[calc(100vh-70px)] bg-gray-50 font-[Inter,sans-serif]">
+    <!-- Toast Stack -->
+    <div class="toast-stack">
+      <div
+        v-for="toast in toasts"
+        :key="toast.id"
+        :class="['toast-item', `toast-${toast.type}`]"
+      >
+        {{ toast.message }}
+      </div>
+    </div>
     <!-- Breadcrumbs -->
     <div class="px-5 pt-3 bg-white border-b border-gray-200 shrink-0">
       <Breadcrumb :crumbs="[
@@ -94,7 +104,7 @@
           <MessageBubble v-for="msg in messages" :key="msg.id" :message="msg" :is-mine="msg.sender?.id === currentUserId" />
         </div>
 
-        <ChatInput @send="handleSend" @typing="handleTyping" />
+        <ChatInput @send="handleSend" @typing="handleTyping" @file-error="handleFileError" />
       </template>
     </main>
     </div>
@@ -140,7 +150,15 @@ const isPartnerTyping = computed(() => typingUsers.size > 0);
 const { initials: getInitials } = useChatFormatters();
 const showCreateGroup = ref(false);
 const showGroupInfo = ref(false);
+const toasts = ref([]);
+const toastCounter = ref(0);
+function pushToast(message, type = 'info', duration = 3000) {
+  const id = ++toastCounter.value;
+  toasts.value.push({ id, message, type });
+  setTimeout(() => { toasts.value = toasts.value.filter((t) => t.id !== id); }, duration);
+}
 async function handleSend(body) { await sendMessage(body); scrollToBottom(); }
+function handleFileError(msg) { pushToast(msg, 'error'); }
 let typingTimeout = null;
 function handleTyping() { sendTypingIndicator(); clearTimeout(typingTimeout); typingTimeout = setTimeout(() => {}, 3000); }
 async function handleCreateGroup(payload) {
@@ -182,4 +200,35 @@ onUnmounted(() => { clearTimeout(typingTimeout); });
 @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
 @keyframes msgShimmer { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 @media (max-width: 767px) { aside { display: none; } }
+
+/* Toast styles */
+.toast-stack {
+  position: fixed;
+  top: 84px;
+  right: 24px;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast-item {
+  pointer-events: auto;
+  min-width: 250px;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: #333;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  animation: toastIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.toast-error {
+  background: #ff4757;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 </style>

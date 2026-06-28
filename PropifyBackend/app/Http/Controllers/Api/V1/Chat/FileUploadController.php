@@ -22,7 +22,7 @@ final class FileUploadController
     public function upload(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'max:10240'], // max 10MB
+            'file' => ['required', 'file', 'max:30720'], // max 30MB
             'type' => ['required', 'string', Rule::in(['image', 'file'])],
         ]);
 

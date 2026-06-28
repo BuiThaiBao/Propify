@@ -1,5 +1,15 @@
 <template>
   <Teleport to="body">
+    <!-- Toast Stack -->
+    <div class="toast-stack">
+      <div
+        v-for="toast in toasts"
+        :key="toast.id"
+        :class="['toast-item', `toast-${toast.type}`]"
+      >
+        {{ toast.message }}
+      </div>
+    </div>
     <div v-if="authStore.isAuthenticated" class="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-3 font-[Inter,-apple-system,sans-serif]">
       <ChatWindow :open="isOpen" :has-conversation="!!activeConversation">
         <ChatWindowHeader
@@ -133,6 +143,14 @@ const {
   updateGroup,
 } = chatStore;
 
+const toasts = ref([]);
+const toastCounter = ref(0);
+function pushToast(message, type = 'info', duration = 3000) {
+  const id = ++toastCounter.value;
+  toasts.value.push({ id, message, type });
+  setTimeout(() => { toasts.value = toasts.value.filter((t) => t.id !== id); }, duration);
+}
+
 const isOpen = popupOpen;
 const showSearch = ref(false);
 const searchPanel = ref(null);
@@ -236,8 +254,7 @@ async function sendMsg(text, type = 'text', meta = null) {
 }
 
 function onFileError(msg) {
-  // FloatingChat không có toast, fallback console
-  console.warn('[Chat] File upload error:', msg);
+  pushToast(msg, 'error');
 }
 
 let typingTimer = null;

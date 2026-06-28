@@ -18,7 +18,10 @@ const chatUploadService = {
     formData.append('type', type);
 
     const res = await api.post('/v1/chat/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        'Accept': 'application/json'
+      },
       onUploadProgress: onProgress
         ? (e) => {
             if (e.lengthComputable) {
