@@ -18,5 +18,10 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# Cấu hình tăng giới hạn upload file cho PHP
+RUN echo "upload_max_filesize = 35M" > /usr/local/etc/php/conf.d/uploads.ini \
+ && echo "post_max_size = 35M" >> /usr/local/etc/php/conf.d/uploads.ini \
+ && echo "memory_limit = 256M" >> /usr/local/etc/php/conf.d/uploads.ini
+
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["php-fpm"]
