@@ -2,9 +2,12 @@
 
 Thư mục này chứa phân tích chi tiết các **Design Pattern** được áp dụng trong từng chức năng cụ thể của hệ thống nền tảng dịch vụ bất động sản Propify. Mỗi file dưới đây đều được trình bày theo cấu trúc: **Vấn đề cần giải quyết → Ánh xạ thành phần → Giải thích trách nhiệm → Sơ đồ Class PlantUML → Đánh giá ưu điểm**.
 
-## Danh sách phân tích chi tiết
+## Danh sách tài liệu phân tích
 
-- **[Bảng Tổng Hợp Tất Cả Design Pattern & Chức Năng](tong_hop_design_pattern.md)** - Bảng đối chiếu toàn bộ các pattern đã áp dụng.
+- **[📚 Lý Thuyết & Triển Khai Chi Tiết](ly_thuyet_va_trien_khai_chi_tiet.md)** - File chính để trình bày với giảng viên: Lý do chọn pattern, tác dụng, code triển khai, trích dẫn code mẫu cho tất cả 10 Design Pattern.
+- **[📊 Bảng Tổng Hợp Design Pattern & Chức Năng](tong_hop_design_pattern.md)** - Bảng đối chiếu toàn bộ 35 lần áp dụng pattern.
+
+## Danh sách phân tích theo chức năng
 
 | # | Chức năng | Các Design Pattern áp dụng | Số lượng |
 |---|-----------|----------------------------|----------|
