@@ -4838,7 +4838,13 @@ async function submitListing() {
   }
 
   try {
-    pushToast("Đang tải ảnh và giấy tờ lên...", "info", 2500);
+    if (
+      listingMediaUpload.hasPendingUpload(form, {
+        includeVerification: form.requestVerification,
+      })
+    ) {
+      pushToast("Đang tải ảnh và giấy tờ lên...", "info", 2500);
+    }
     await listingMediaUpload.uploadListingMediaPayload(form);
 
     // 4. Submit to Backend
