@@ -7,105 +7,47 @@ import { useTransactionApi } from '@/composables/useTransactionApi'
 import { formatTransactionAmount } from '@/utils/transactionFormatters'
 
 const period = ref('year')
-const selectedYear = ref(new Date().getFullYear().toString())
 const stats = ref(null)
 const error = ref('')
-const { exportReport, loading } = useTransactionApi()
+const statsLoading = ref(false)
+const exportingFormat = ref('')
+const customFromDate = ref(formatDateInput(addDays(new Date(), -7)))
+const customToDate = ref(formatDateInput(new Date()))
 
-// Custom date selection
-const customFromDate = ref(new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().slice(0, 10))
-const customToDate = ref(new Date().toISOString().slice(0, 10))
+const { exportReport } = useTransactionApi()
 
-function validateCustomDates() {
-  if (!customFromDate.value || !customToDate.value) return false
+const periodOptions = [
+  { value: 'month', label: 'Tháng này' },
+  { value: 'quarter', label: 'Quý này' },
+  { value: 'year', label: 'Năm nay' },
+  { value: 'custom', label: 'Tự chọn ngày' },
+]
 
-  const from = new Date(customFromDate.value)
-  const to = new Date(customToDate.value)
-
-  if (to < from) {
-    alert('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.')
-    customToDate.value = customFromDate.value
-    return false
-  }
-
-  const diffTime = Math.abs(to - from)
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-  if (diffDays > 30) {
-    alert('Khoảng thời gian chọn tối đa là 30 ngày.')
-    const limitDate = new Date(from)
-    limitDate.setDate(from.getDate() + 30)
-
-    const y = limitDate.getFullYear()
-    const m = String(limitDate.getMonth() + 1).padStart(2, '0')
-    const d = String(limitDate.getDate()).padStart(2, '0')
-    customToDate.value = `${y}-${m}-${d}`
-    return false
-  }
-
-  return true
-}
-
-watch([customFromDate, customToDate], () => {
-  if (period.value === 'custom') {
-    validateCustomDates()
-  }
-})
-
-function getDateRange(period) {
-  const now = new Date()
-  let fromDate = new Date()
-
-  if (period === 'custom') {
-    return { from_date: customFromDate.value, to_date: customToDate.value }
-  }
-
-  if (period === 'month') {
-    fromDate = new Date(now.getFullYear(), now.getMonth(), 1)
-  } else if (period === 'quarter') {
-    const quarterMonth = Math.floor(now.getMonth() / 3) * 3
-    fromDate = new Date(now.getFullYear(), quarterMonth, 1)
-  } else if (period === 'year') {
-    fromDate = new Date(now.getFullYear(), 0, 1)
-  }
-
-  const fmt = (d) => {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
-  }
-
-  return { from_date: fmt(fromDate), to_date: fmt(now) }
-}
-
-async function handleExport(format) {
-  try {
-    const range = getDateRange(period.value)
-    const params = {
-      from_date: range.from_date,
-      to_date: range.to_date,
-      status: 'SUCCESS',
-    }
-    await exportReport(format, params)
-  } catch (err) {
-    alert('Không thể xuất báo cáo: ' + err.message)
-  }
-}
-
-const summary = computed(() => stats.value?.summary || {})
+const selectedRange = computed(() => getDateRange(period.value))
+const selectedPeriodLabel = computed(
+  () => periodOptions.find((item) => item.value === period.value)?.label || 'Năm nay',
+)
+const rangeLabel = computed(() => stats.value?.label || selectedPeriodLabel.value)
+const summary = computed(() => ({
+  total_revenue: 0,
+  sold_packages: 0,
+  average_monthly_revenue: 0,
+  revenue_change_percent: 0,
+  sold_packages_change_percent: 0,
+  comparison_label: 'so với kỳ trước',
+  ...(stats.value?.summary || {}),
+}))
 const monthlyRevenue = computed(() => stats.value?.monthly_revenue || defaultMonthlyRevenue())
 const packageDistribution = computed(() => stats.value?.package_distribution || [])
-const hasRevenueData = computed(() => monthlyRevenue.value.some((item) => item.revenue > 0))
+const hasRevenueData = computed(() => monthlyRevenue.value.some((item) => Number(item.revenue || 0) > 0))
 const totalPackageSales = computed(() =>
   packageDistribution.value.reduce((sum, item) => sum + Number(item.count || 0), 0),
 )
-const maxRevenue = computed(() => Math.max(...monthlyRevenue.value.map((item) => item.revenue), 1000000))
+const maxRevenue = computed(() => Math.max(...monthlyRevenue.value.map((item) => Number(item.revenue || 0)), 1))
 
-// Bar chart config — wide viewBox so bars fill full container
 const barChartH = 320
 const barChartW = 1000
-const padL = 64
+const padL = 70
 const padR = 12
 const padT = 16
 const padB = 34
@@ -120,7 +62,6 @@ const barWidth = computed(() => {
 const donutTotal = computed(() =>
   packageDistribution.value.reduce((total, item) => total + Number(item.percentage || 0), 0),
 )
-
 const donutArcs = computed(() => {
   if (!packageDistribution.value.length || donutTotal.value <= 0) return []
 
@@ -128,6 +69,7 @@ const donutArcs = computed(() => {
   return packageDistribution.value.map((item) => {
     const start = cumulative
     cumulative += Number(item.percentage || 0)
+
     return {
       ...item,
       path: getArcPath(start, cumulative, donutTotal.value),
@@ -136,19 +78,91 @@ const donutArcs = computed(() => {
 })
 
 async function loadRevenueStats() {
-  loading.value = true
+  if (period.value === 'custom' && !validateCustomDates()) return
+
+  statsLoading.value = true
   error.value = ''
 
   try {
-    const response = await fetchRevenueStats({ year: selectedYear.value })
+    const response = await fetchRevenueStats({
+      period: period.value,
+      ...selectedRange.value,
+    })
     stats.value = response.data?.data || null
   } catch (err) {
-    error.value =
-      err.response?.data?.message || err.message || 'Không thể tải thống kê doanh thu.'
+    error.value = err.response?.data?.message || err.message || 'Không thể tải thống kê doanh thu.'
     stats.value = null
   } finally {
-    loading.value = false
+    statsLoading.value = false
   }
+}
+
+async function handleExport(format) {
+  if (period.value === 'custom' && !validateCustomDates()) return
+
+  exportingFormat.value = format
+
+  try {
+    await exportReport(format, {
+      status: 'SUCCESS',
+      ...selectedRange.value,
+    })
+  } catch (err) {
+    alert('Không thể xuất báo cáo: ' + (err.response?.data?.message || err.message))
+  } finally {
+    exportingFormat.value = ''
+  }
+}
+
+function getDateRange(value) {
+  const now = new Date()
+
+  if (value === 'custom') {
+    return { from_date: customFromDate.value, to_date: customToDate.value }
+  }
+
+  let fromDate = new Date(now.getFullYear(), 0, 1)
+
+  if (value === 'month') {
+    fromDate = new Date(now.getFullYear(), now.getMonth(), 1)
+  } else if (value === 'quarter') {
+    const quarterMonth = Math.floor(now.getMonth() / 3) * 3
+    fromDate = new Date(now.getFullYear(), quarterMonth, 1)
+  }
+
+  return {
+    from_date: formatDateInput(fromDate),
+    to_date: formatDateInput(now),
+  }
+}
+
+function validateCustomDates() {
+  if (!customFromDate.value || !customToDate.value) return false
+
+  const from = new Date(customFromDate.value)
+  const to = new Date(customToDate.value)
+
+  if (to < from) {
+    customToDate.value = customFromDate.value
+    error.value = 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.'
+    return false
+  }
+
+  error.value = ''
+  return true
+}
+
+function addDays(date, days) {
+  const cloned = new Date(date)
+  cloned.setDate(cloned.getDate() + days)
+  return cloned
+}
+
+function formatDateInput(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function defaultMonthlyRevenue() {
@@ -227,7 +241,10 @@ function getArcPath(startValue, endValue, total) {
   return `M${x1},${y1} A${donutOuterR},${donutOuterR} 0 ${large} 1 ${x2},${y2} L${ix1},${iy1} A${donutInnerR},${donutInnerR} 0 ${large} 0 ${ix2},${iy2} Z`
 }
 
-watch(selectedYear, loadRevenueStats)
+watch(period, loadRevenueStats)
+watch([customFromDate, customToDate], () => {
+  if (period.value === 'custom') loadRevenueStats()
+})
 
 onMounted(loadRevenueStats)
 </script>
@@ -237,52 +254,65 @@ onMounted(loadRevenueStats)
     <PageHeader
       title="Doanh thu & Báo cáo"
       description="Thống kê doanh thu và phân tích hiệu quả kinh doanh từ giao dịch thực tế"
-    >
-      <template #actions>
-        <div v-if="period === 'custom'" class="flex items-center gap-2 mr-2">
-          <input
-            type="date"
-            v-model="customFromDate"
-            class="form-input text-xs h-9 bg-card border border-border rounded-lg px-2 outline-none"
-            style="width: 130px; height: 38px;"
-          />
-          <span class="text-xs text-muted-foreground">đến</span>
-          <input
-            type="date"
-            v-model="customToDate"
-            class="form-input text-xs h-9 bg-card border border-border rounded-lg px-2 outline-none"
-            style="width: 130px; height: 38px;"
-          />
+    />
+
+    <section class="revenue-toolbar">
+      <div class="toolbar-left">
+        <div class="period-segment" aria-label="Bộ lọc thời gian">
+          <button
+            v-for="option in periodOptions"
+            :key="option.value"
+            type="button"
+            class="period-chip"
+            :class="{ active: period === option.value }"
+            @click="period = option.value"
+          >
+            {{ option.label }}
+          </button>
         </div>
-        <div class="period-select-wrap">
-          <Calendar :size="16" color="hsl(215,16%,47%)" />
-          <select v-model="period" class="period-select" id="period-select">
-            <option value="month">Tháng này</option>
-            <option value="quarter">Quý này</option>
-            <option value="year">Năm nay</option>
-            <option value="custom">Tự chọn ngày</option>
-          </select>
+
+        <div v-if="period === 'custom'" class="date-range-panel">
+          <label class="date-field">
+            <span>Từ ngày</span>
+            <div class="date-control">
+              <Calendar :size="15" />
+              <input v-model="customFromDate" type="date" />
+            </div>
+          </label>
+          <label class="date-field">
+            <span>Đến ngày</span>
+            <div class="date-control">
+              <Calendar :size="15" />
+              <input v-model="customToDate" type="date" />
+            </div>
+          </label>
         </div>
+      </div>
+
+      <div class="toolbar-actions">
         <button
-          class="btn-export text-success hover:bg-success/10"
+          class="btn-export"
+          id="btn-export-excel"
+          :disabled="statsLoading || exportingFormat !== ''"
           @click="handleExport('excel')"
-          :disabled="loading"
         >
-          <Loader2 v-if="loading" class="animate-spin" :size="16" />
+          <Loader2 v-if="exportingFormat === 'excel'" class="spin" :size="16" />
           <Download v-else :size="16" />
           Xuất Excel
         </button>
+
         <button
-          class="btn-export text-destructive hover:bg-destructive/10"
+          class="btn-export"
+          id="btn-export-pdf"
+          :disabled="statsLoading || exportingFormat !== ''"
           @click="handleExport('pdf')"
-          :disabled="loading"
         >
-          <Loader2 v-if="loading" class="animate-spin" :size="16" />
+          <Loader2 v-if="exportingFormat === 'pdf'" class="spin" :size="16" />
           <Download v-else :size="16" />
           Xuất PDF
         </button>
-      </template>
-    </PageHeader>
+      </div>
+    </section>
 
     <div v-if="error" class="state-card error-card">
       <span>{{ error }}</span>
@@ -296,30 +326,32 @@ onMounted(loadRevenueStats)
       <div class="summary-card">
         <p class="summary-label">Tổng doanh thu</p>
         <p class="summary-value">
-          <span v-if="loading" class="skeleton skeleton-value"></span>
+          <span v-if="statsLoading" class="skeleton skeleton-value"></span>
           <span v-else>{{ formatCurrency(summary.total_revenue) }}</span>
         </p>
         <p class="summary-change" :class="changeClass(summary.revenue_change_percent)">
-          {{ formatPercent(summary.revenue_change_percent) }} so với năm trước
+          {{ formatPercent(summary.revenue_change_percent) }} {{ summary.comparison_label }}
         </p>
       </div>
+
       <div class="summary-card">
         <p class="summary-label">Gói đã bán</p>
         <p class="summary-value">
-          <span v-if="loading" class="skeleton skeleton-value"></span>
+          <span v-if="statsLoading" class="skeleton skeleton-value"></span>
           <span v-else>{{ Number(summary.sold_packages || 0).toLocaleString('vi-VN') }}</span>
         </p>
         <p class="summary-change" :class="changeClass(summary.sold_packages_change_percent)">
-          {{ formatPercent(summary.sold_packages_change_percent) }} so với năm trước
+          {{ formatPercent(summary.sold_packages_change_percent) }} {{ summary.comparison_label }}
         </p>
       </div>
+
       <div class="summary-card">
         <p class="summary-label">Doanh thu trung bình/tháng</p>
         <p class="summary-value">
-          <span v-if="loading" class="skeleton skeleton-value"></span>
+          <span v-if="statsLoading" class="skeleton skeleton-value"></span>
           <span v-else>{{ formatCurrency(summary.average_monthly_revenue) }}</span>
         </p>
-        <p class="summary-change">{{ selectedYear }} · {{ formatFullCurrency(summary.total_revenue) }}</p>
+        <p class="summary-change">{{ rangeLabel }} · {{ formatFullCurrency(summary.total_revenue) }}</p>
       </div>
     </div>
 
@@ -327,11 +359,11 @@ onMounted(loadRevenueStats)
       <div class="chart-card">
         <div class="chart-heading">
           <h2 class="chart-title">Doanh thu theo tháng</h2>
-          <p class="chart-subtitle">Chỉ tính giao dịch thành công trong năm {{ selectedYear }}</p>
+          <p class="chart-subtitle">Chỉ tính giao dịch thành công trong {{ rangeLabel.toLowerCase() }}</p>
         </div>
 
         <div class="chart-body">
-          <div v-if="loading" class="chart-loading">
+          <div v-if="statsLoading" class="chart-loading">
             <Loader2 :size="20" class="spin" />
             Đang tải dữ liệu...
           </div>
@@ -362,7 +394,7 @@ onMounted(loadRevenueStats)
               </text>
             </g>
 
-            <g v-for="(item, index) in monthlyRevenue" :key="item.month">
+            <g v-for="(item, index) in monthlyRevenue" :key="`${item.year}-${item.month_number}`">
               <rect
                 :x="barX(index)"
                 :y="barY(item.revenue)"
@@ -373,10 +405,7 @@ onMounted(loadRevenueStats)
                 ry="6"
                 class="bar-rect"
               >
-                <title>
-                  {{ item.month }}: {{ formatFullCurrency(item.revenue) }} ·
-                  {{ item.packages }} gói
-                </title>
+                <title>{{ item.month }}: {{ formatFullCurrency(item.revenue) }} · {{ item.packages }} gói</title>
               </rect>
               <text
                 :x="barX(index) + barWidth / 2"
@@ -391,8 +420,8 @@ onMounted(loadRevenueStats)
           </svg>
         </div>
 
-        <p v-if="!loading && !hasRevenueData" class="empty-note">
-          Chưa có giao dịch thành công trong năm {{ selectedYear }}.
+        <p v-if="!statsLoading && !hasRevenueData" class="empty-note">
+          Chưa có giao dịch thành công trong {{ rangeLabel.toLowerCase() }}.
         </p>
       </div>
 
@@ -458,23 +487,98 @@ onMounted(loadRevenueStats)
 </template>
 
 <style scoped>
-.period-select-wrap {
+.revenue-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: -6px 0 24px;
+  padding: 14px;
+  border: 1px solid hsl(var(--border) / 0.65);
+  border-radius: 14px;
+  background: hsl(var(--card));
+  box-shadow: var(--shadow-card);
+}
+
+.toolbar-left,
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.period-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  background: hsl(var(--muted) / 0.55);
+}
+
+.period-chip {
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.period-chip:hover {
+  color: hsl(var(--foreground));
+}
+
+.period-chip.active {
+  background: hsl(var(--card));
+  color: hsl(var(--primary));
+  box-shadow: 0 1px 2px hsl(220 40% 2% / 0.08);
+}
+
+.date-range-panel {
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: hsl(var(--card));
+  padding: 4px;
   border: 1px solid hsl(var(--border));
-  border-radius: 8px;
-  padding: 8px 12px;
+  border-radius: 10px;
+  background: hsl(var(--card));
 }
 
-.period-select {
-  background: transparent;
-  border: none;
-  font-size: 14px;
+.date-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 8px;
+  color: hsl(var(--muted-foreground));
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.date-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   color: hsl(var(--foreground));
+}
+
+.date-control input {
+  width: 118px;
+  border: 0;
+  background: transparent;
+  color: hsl(var(--foreground));
+  font: inherit;
+  font-size: 13px;
   outline: none;
-  cursor: pointer;
 }
 
 .btn-export,
@@ -483,14 +587,15 @@ onMounted(loadRevenueStats)
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.15s, opacity 0.15s;
+  transition: background-color 0.15s, opacity 0.15s, box-shadow 0.15s;
 }
 
 .btn-export {
-  padding: 10px 16px;
+  height: 42px;
+  padding: 0 16px;
   border: 1px solid hsl(var(--border));
   background-color: hsl(var(--card));
   color: hsl(var(--foreground));
