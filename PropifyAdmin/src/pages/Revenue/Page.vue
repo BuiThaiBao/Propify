@@ -7,6 +7,10 @@ import { useTransactionApi } from '@/composables/useTransactionApi'
 import { formatTransactionAmount } from '@/utils/transactionFormatters'
 
 const period = ref('year')
+const selectedYear = ref(new Date().getFullYear().toString())
+const stats = ref(null)
+const error = ref('')
+const { exportReport, loading } = useTransactionApi()
 
 // Custom date selection
 const customFromDate = ref(new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().slice(0, 10))
@@ -89,32 +93,16 @@ async function handleExport(format) {
   }
 }
 
-const monthlyRevenue = [
-  { month: 'T1', revenue: 12000000, packages: 45 },
-  { month: 'T2', revenue: 18000000, packages: 62 },
-  { month: 'T3', revenue: 15000000, packages: 55 },
-  { month: 'T4', revenue: 22000000, packages: 78 },
-  { month: 'T5', revenue: 28000000, packages: 95 },
-  { month: 'T6', revenue: 25000000, packages: 88 },
-  { month: 'T7', revenue: 32000000, packages: 110 },
-  { month: 'T8', revenue: 30000000, packages: 105 },
-  { month: 'T9', revenue: 35000000, packages: 120 },
-  { month: 'T10', revenue: 38000000, packages: 130 },
-  { month: 'T11', revenue: 42000000, packages: 145 },
-  { month: 'T12', revenue: 45000000, packages: 155 },
-]
-
-const packageDistribution = [
-  { name: 'Cơ bản', value: 40, color: 'hsl(215, 16%, 80%)' },
-  { name: 'Tiêu chuẩn', value: 35, color: 'hsl(217, 91%, 60%)' },
-  { name: 'Premium', value: 20, color: 'hsl(38, 92%, 50%)' },
-  { name: 'Doanh nghiệp', value: 5, color: 'hsl(142, 71%, 45%)' },
-]
-
-const formatCurrency = formatCompactCurrency
+const summary = computed(() => stats.value?.summary || {})
+const monthlyRevenue = computed(() => stats.value?.monthly_revenue || defaultMonthlyRevenue())
+const packageDistribution = computed(() => stats.value?.package_distribution || [])
+const hasRevenueData = computed(() => monthlyRevenue.value.some((item) => item.revenue > 0))
+const totalPackageSales = computed(() =>
+  packageDistribution.value.reduce((sum, item) => sum + Number(item.count || 0), 0),
+)
+const maxRevenue = computed(() => Math.max(...monthlyRevenue.value.map((item) => item.revenue), 1000000))
 
 // Bar chart config — wide viewBox so bars fill full container
-const maxRev = Math.max(...monthlyRevenue.map((d) => d.revenue))
 const barChartH = 320
 const barChartW = 1000
 const padL = 64
@@ -160,20 +148,6 @@ async function loadRevenueStats() {
     stats.value = null
   } finally {
     loading.value = false
-  }
-}
-
-async function handleExport() {
-  exporting.value = true
-
-  try {
-    await exportCsv({
-      status: 'SUCCESS',
-      from_date: `${selectedYear.value}-01-01`,
-      to_date: `${selectedYear.value}-12-31`,
-    })
-  } finally {
-    exporting.value = false
   }
 }
 
