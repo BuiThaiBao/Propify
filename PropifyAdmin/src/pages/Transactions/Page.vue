@@ -25,7 +25,7 @@ import {
   getTransactionPackageBadgeClass,
 } from '@/utils/transactionFormatters'
 
-const { fetchTransactions, fetchTransaction, storeNote, exportCsv, loading, error } =
+const { fetchTransactions, fetchTransaction, storeNote, exportReport, loading, error } =
   useTransactionApi()
 const { fetchPackages } = usePackageApi()
 
@@ -202,8 +202,8 @@ async function saveNote() {
   }
 }
 
-// Tải file CSV
-async function handleExport() {
+// Tải file báo cáo (Excel/PDF)
+async function handleExport(format) {
   try {
     const params = {
       search: searchDebounced.value,
@@ -214,7 +214,7 @@ async function handleExport() {
       min_amount: filters.value.min_amount || undefined,
       max_amount: filters.value.max_amount || undefined,
     }
-    await exportCsv(params)
+    await exportReport(format, params)
   } catch (err) {
     alert('Không thể xuất báo cáo: ' + (error.value || err.message))
   }
@@ -295,18 +295,7 @@ onMounted(() => {
       title="Lịch sử giao dịch"
       description="Quản lý lịch sử nạp tiền đối soát và ghi chú kế toán nội bộ"
     >
-      <template #actions>
-        <button
-          class="btn-export"
-          @click="handleExport"
-          :disabled="loading"
-          id="export-transactions-btn"
-        >
-          <Loader2 v-if="loading" class="animate-spin" :size="16" />
-          <Download v-else :size="16" />
-          Xuất báo cáo (CSV)
-        </button>
-      </template>
+      <template #actions></template>
     </PageHeader>
 
     <!-- Thống kê nhanh ở trên -->

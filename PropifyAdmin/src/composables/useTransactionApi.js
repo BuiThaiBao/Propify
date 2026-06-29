@@ -46,24 +46,27 @@ export function useTransactionApi() {
     return response.data.data
   }
 
-  const exportCsv = async (params = {}) => {
+  const exportReport = async (format, params = {}) => {
     const response = await runRequest(
       () =>
         api.get('/v1/admin/transactions/export', {
-          params,
+          params: { ...params, format },
           responseType: 'blob',
         }),
       'Có lỗi xảy ra khi tải báo cáo',
     )
 
-    const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' })
+    const mimeType = format === 'pdf' ? 'application/pdf' : 'application/vnd.ms-excel'
+    const extension = format === 'pdf' ? 'pdf' : 'xls'
+
+    const blob = new Blob([response.data], { type: mimeType })
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
 
     const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
     const timeStr = new Date().toTimeString().slice(0, 8).replace(/:/g, '')
-    link.setAttribute('download', `bao_cao_giao_dich_${dateStr}_${timeStr}.csv`)
+    link.setAttribute('download', `bao_cao_giao_dich_${dateStr}_${timeStr}.${extension}`)
 
     document.body.appendChild(link)
     link.click()
@@ -77,7 +80,7 @@ export function useTransactionApi() {
     fetchTransactions,
     fetchTransaction,
     storeNote,
-    exportCsv,
+    exportReport,
     loading,
     error,
   }

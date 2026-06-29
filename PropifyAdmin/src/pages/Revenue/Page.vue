@@ -1,11 +1,95 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import PageHeader from '@/components/shared/PageHeader.vue'
-import { Download, Calendar } from 'lucide-vue-next'
+import { Download, Calendar, Loader2 } from 'lucide-vue-next'
 
 import { formatCompactCurrency } from '@/utils/transactionFormatters'
+import { useTransactionApi } from '@/composables/useTransactionApi'
+
+const { exportReport, loading } = useTransactionApi()
 
 const period = ref('year')
+
+// Custom date selection
+const customFromDate = ref(new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().slice(0, 10))
+const customToDate = ref(new Date().toISOString().slice(0, 10))
+
+function validateCustomDates() {
+  if (!customFromDate.value || !customToDate.value) return false
+
+  const from = new Date(customFromDate.value)
+  const to = new Date(customToDate.value)
+
+  if (to < from) {
+    alert('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.')
+    customToDate.value = customFromDate.value
+    return false
+  }
+
+  const diffTime = Math.abs(to - from)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffDays > 30) {
+    alert('Khoảng thời gian chọn tối đa là 30 ngày.')
+    const limitDate = new Date(from)
+    limitDate.setDate(from.getDate() + 30)
+
+    const y = limitDate.getFullYear()
+    const m = String(limitDate.getMonth() + 1).padStart(2, '0')
+    const d = String(limitDate.getDate()).padStart(2, '0')
+    customToDate.value = `${y}-${m}-${d}`
+    return false
+  }
+
+  return true
+}
+
+watch([customFromDate, customToDate], () => {
+  if (period.value === 'custom') {
+    validateCustomDates()
+  }
+})
+
+function getDateRange(period) {
+  const now = new Date()
+  let fromDate = new Date()
+
+  if (period === 'custom') {
+    return { from_date: customFromDate.value, to_date: customToDate.value }
+  }
+
+  if (period === 'month') {
+    fromDate = new Date(now.getFullYear(), now.getMonth(), 1)
+  } else if (period === 'quarter') {
+    const quarterMonth = Math.floor(now.getMonth() / 3) * 3
+    fromDate = new Date(now.getFullYear(), quarterMonth, 1)
+  } else if (period === 'year') {
+    fromDate = new Date(now.getFullYear(), 0, 1)
+  }
+
+  const fmt = (d) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
+  return { from_date: fmt(fromDate), to_date: fmt(now) }
+}
+
+async function handleExport(format) {
+  try {
+    const range = getDateRange(period.value)
+    const params = {
+      from_date: range.from_date,
+      to_date: range.to_date,
+      status: 'SUCCESS',
+    }
+    await exportReport(format, params)
+  } catch (err) {
+    alert('Không thể xuất báo cáo: ' + err.message)
+  }
+}
 
 const monthlyRevenue = [
   { month: 'T1', revenue: 12000000, packages: 45 },
@@ -97,15 +181,48 @@ const arcs = packageDistribution.map((p) => {
       description="Thống kê doanh thu và phân tích hiệu quả kinh doanh"
     >
       <template #actions>
+        <div v-if="period === 'custom'" class="flex items-center gap-2 mr-2">
+          <input
+            type="date"
+            v-model="customFromDate"
+            class="form-input text-xs h-9 bg-card border border-border rounded-lg px-2 outline-none"
+            style="width: 130px; height: 38px;"
+          />
+          <span class="text-xs text-muted-foreground">đến</span>
+          <input
+            type="date"
+            v-model="customToDate"
+            class="form-input text-xs h-9 bg-card border border-border rounded-lg px-2 outline-none"
+            style="width: 130px; height: 38px;"
+          />
+        </div>
         <div class="period-select-wrap">
           <Calendar :size="16" color="hsl(215,16%,47%)" />
           <select v-model="period" class="period-select" id="period-select">
             <option value="month">Tháng này</option>
             <option value="quarter">Quý này</option>
-            <option value="year">Năm 2024</option>
+            <option value="year">Năm nay</option>
+            <option value="custom">Tự chọn ngày</option>
           </select>
         </div>
-        <button class="btn-export" id="btn-export"><Download :size="16" /> Xuất báo cáo</button>
+        <button
+          class="btn-export text-success hover:bg-success/10"
+          @click="handleExport('excel')"
+          :disabled="loading"
+        >
+          <Loader2 v-if="loading" class="animate-spin" :size="16" />
+          <Download v-else :size="16" />
+          Xuất Excel
+        </button>
+        <button
+          class="btn-export text-destructive hover:bg-destructive/10"
+          @click="handleExport('pdf')"
+          :disabled="loading"
+        >
+          <Loader2 v-if="loading" class="animate-spin" :size="16" />
+          <Download v-else :size="16" />
+          Xuất PDF
+        </button>
       </template>
     </PageHeader>
 
