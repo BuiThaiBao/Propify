@@ -4,6 +4,46 @@ export const MAX_LISTING_VIDEO_SIZE_BYTES = 10 * 1024 * 1024;
 export const MAX_LISTING_VIDEO_SIZE_LABEL = "10MB";
 
 export function useListingMediaUpload({ onStatus } = {}) {
+  function isPersistedMediaUrl(value) {
+    if (typeof value !== "string") return false;
+    const url = value.trim();
+    return url !== "" && !url.startsWith("blob:") && !url.startsWith("data:");
+  }
+
+  function getExistingUrl(value) {
+    if (isPersistedMediaUrl(value)) return value;
+    if (value && typeof value === "object" && isPersistedMediaUrl(value.url)) {
+      return value.url;
+    }
+    if (value && typeof value === "object" && isPersistedMediaUrl(value.secure_url)) {
+      return value.secure_url;
+    }
+    return null;
+  }
+
+  function isUploadableFile(value) {
+    return Boolean(value) && typeof value !== "string" && !getExistingUrl(value);
+  }
+
+  function hasUploadableFiles(files) {
+    return Array.from(files || []).some(isUploadableFile);
+  }
+
+  function hasPendingUpload(payload, { includeVerification = true } = {}) {
+    if (!payload) return false;
+
+    if (hasUploadableFiles(payload.images)) return true;
+    if (isUploadableFile(payload.video)) return true;
+
+    if (!includeVerification) return false;
+
+    return (
+      isUploadableFile(payload.identityCardFront) ||
+      isUploadableFile(payload.identityCardBack) ||
+      hasUploadableFiles(payload.legalDocuments)
+    );
+  }
+
   function notify(message) {
     if (typeof onStatus === "function") {
       onStatus(message);
@@ -12,7 +52,8 @@ export function useListingMediaUpload({ onStatus } = {}) {
 
   async function uploadSingle(file, mode = "image", { silent = false, onProgress = null } = {}) {
     if (!file) return null;
-    if (typeof file === "string") return file;
+    const existingUrl = getExistingUrl(file);
+    if (existingUrl) return existingUrl;
 
     if (mode === "video" && file.size > MAX_LISTING_VIDEO_SIZE_BYTES) {
       throw new Error(`Dung lượng video vượt quá ${MAX_LISTING_VIDEO_SIZE_LABEL}. Vui lòng chọn video nhỏ hơn.`);
@@ -34,12 +75,15 @@ export function useListingMediaUpload({ onStatus } = {}) {
   async function uploadMultiple(files, mode = "image") {
     const uploadableFiles = Array.from(files || []).filter(Boolean);
     if (!uploadableFiles.length) return [];
+    const newFilesCount = uploadableFiles.filter(isUploadableFile).length;
 
-    notify(
-      mode === "video"
-        ? "Đang tải lên video..."
-        : `Đang tải lên ${uploadableFiles.length} hình ảnh...`,
-    );
+    if (newFilesCount > 0) {
+      notify(
+        mode === "video"
+          ? "Đang tải lên video..."
+          : `Đang tải lên ${newFilesCount} hình ảnh...`,
+      );
+    }
 
     const urls = await Promise.all(
       uploadableFiles.map((file) => uploadSingle(file, mode, { silent: true })),
@@ -111,5 +155,6 @@ export function useListingMediaUpload({ onStatus } = {}) {
     uploadListingMediaPayload,
     uploadDraftMediaPayload,
     uploadVerificationPayload,
+    hasPendingUpload,
   };
 }
