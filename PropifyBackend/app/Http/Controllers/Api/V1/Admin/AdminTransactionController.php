@@ -6,13 +6,104 @@ use App\Helpers\ApiResponse;
 use App\Http\Resources\TransactionResource;
 use App\Models\Transaction;
 use App\Models\TransactionNote;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class AdminTransactionController extends Controller
 {
+    public function revenueStats(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'year' => 'nullable|integer|min:2000|max:'.(Carbon::now()->year + 1),
+        ]);
+
+        $year = (int) ($validated['year'] ?? Carbon::now()->year);
+        $previousYear = $year - 1;
+
+        $successfulTransactions = Transaction::query()
+            ->where('status', 'SUCCESS')
+            ->whereYear('transaction_date', $year);
+
+        $previousSuccessfulTransactions = Transaction::query()
+            ->where('status', 'SUCCESS')
+            ->whereYear('transaction_date', $previousYear);
+
+        $totalRevenue = (float) (clone $successfulTransactions)->sum('amount');
+        $soldPackages = (int) (clone $successfulTransactions)->count();
+        $previousRevenue = (float) (clone $previousSuccessfulTransactions)->sum('amount');
+        $previousSoldPackages = (int) (clone $previousSuccessfulTransactions)->count();
+
+        $monthlyRows = (clone $successfulTransactions)
+            ->selectRaw('MONTH(transaction_date) as month, SUM(amount) as revenue, COUNT(*) as packages')
+            ->groupByRaw('MONTH(transaction_date)')
+            ->pluck('revenue', 'month');
+
+        $monthlyPackageRows = (clone $successfulTransactions)
+            ->selectRaw('MONTH(transaction_date) as month, COUNT(*) as packages')
+            ->groupByRaw('MONTH(transaction_date)')
+            ->pluck('packages', 'month');
+
+        $monthlyRevenue = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $monthlyRevenue[] = [
+                'month' => 'T'.$month,
+                'month_number' => $month,
+                'revenue' => (float) ($monthlyRows[$month] ?? 0),
+                'packages' => (int) ($monthlyPackageRows[$month] ?? 0),
+            ];
+        }
+
+        $palette = ['#3b82f6', '#f59e0b', '#22c55e', '#94a3b8', '#ef4444', '#8b5cf6'];
+
+        $packageRows = (clone $successfulTransactions)
+            ->leftJoin('packages', 'transactions.package_id', '=', 'packages.id')
+            ->select([
+                'packages.id',
+                DB::raw("COALESCE(packages.name, 'Không xác định') as name"),
+                'packages.slug',
+                'packages.color',
+                DB::raw('COUNT(transactions.id) as sold_count'),
+                DB::raw('SUM(transactions.amount) as revenue'),
+            ])
+            ->groupBy('packages.id', 'packages.name', 'packages.slug', 'packages.color')
+            ->orderByDesc('sold_count')
+            ->get();
+
+        $totalSoldByPackage = (int) $packageRows->sum('sold_count');
+        $packageDistribution = $packageRows->values()->map(function ($row, int $index) use ($totalSoldByPackage, $palette) {
+            $soldCount = (int) $row->sold_count;
+
+            return [
+                'id' => $row->id,
+                'name' => $row->name,
+                'slug' => $row->slug,
+                'color' => $row->color ?: $palette[$index % count($palette)],
+                'count' => $soldCount,
+                'revenue' => (float) $row->revenue,
+                'percentage' => $totalSoldByPackage > 0
+                    ? round(($soldCount / $totalSoldByPackage) * 100, 1)
+                    : 0,
+            ];
+        });
+
+        return ApiResponse::success(data: [
+            'year' => $year,
+            'summary' => [
+                'total_revenue' => $totalRevenue,
+                'sold_packages' => $soldPackages,
+                'average_monthly_revenue' => round($totalRevenue / 12, 2),
+                'revenue_change_percent' => $this->percentageChange($totalRevenue, $previousRevenue),
+                'sold_packages_change_percent' => $this->percentageChange($soldPackages, $previousSoldPackages),
+            ],
+            'monthly_revenue' => $monthlyRevenue,
+            'package_distribution' => $packageDistribution,
+        ], message: 'Lấy thống kê doanh thu thành công.');
+    }
+
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -251,5 +342,14 @@ final class AdminTransactionController extends Controller
         }
 
         return $query;
+    }
+
+    private function percentageChange(float|int $current, float|int $previous): float
+    {
+        if ((float) $previous === 0.0) {
+            return (float) $current > 0 ? 100.0 : 0.0;
+        }
+
+        return round((($current - $previous) / $previous) * 100, 1);
     }
 }
