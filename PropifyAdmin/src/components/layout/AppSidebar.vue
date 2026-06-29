@@ -5,7 +5,6 @@ import { useAuthStore } from '@/stores/auth'
 import {
   LayoutDashboard,
   FileText,
-  Package,
   Users,
   Settings,
   BarChart3,
@@ -24,7 +23,6 @@ const auth = useAuthStore()
 const menuItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Quản lý tin đăng', url: '/posts', icon: FileText },
-  { title: 'Quản lý gói tin', url: '/packages', icon: Package },
   { title: 'Quản lý tài khoản', url: '/users', icon: Users },
   { title: 'Audit logs', url: '/audit-logs', icon: History },
   { title: 'Lịch sử giao dịch', url: '/transactions', icon: Receipt },

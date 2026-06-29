@@ -20,19 +20,30 @@ final class AdminTransactionController extends Controller
     public function revenueStats(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'year' => 'nullable|integer|min:2000|max:'.(Carbon::now()->year + 1),
+            'period' => 'nullable|string|in:month,quarter,year,custom',
+            'from_date' => 'nullable|required_if:period,custom|date',
+            'to_date' => 'nullable|required_if:period,custom|date|after_or_equal:from_date',
         ]);
 
-        $year = (int) ($validated['year'] ?? Carbon::now()->year);
-        $previousYear = $year - 1;
+        $period = $validated['period'] ?? 'year';
+        [$fromDate, $toDate] = $this->resolveRevenueDateRange($validated);
+        $previousDays = $fromDate->diffInDays($toDate) + 1;
+        $previousToDate = $fromDate->copy()->subDay();
+        $previousFromDate = $previousToDate->copy()->subDays($previousDays - 1);
 
         $successfulTransactions = Transaction::query()
             ->where('status', 'SUCCESS')
-            ->whereYear('transaction_date', $year);
+            ->whereBetween('transaction_date', [
+                $fromDate->copy()->startOfDay(),
+                $toDate->copy()->endOfDay(),
+            ]);
 
         $previousSuccessfulTransactions = Transaction::query()
             ->where('status', 'SUCCESS')
-            ->whereYear('transaction_date', $previousYear);
+            ->whereBetween('transaction_date', [
+                $previousFromDate->copy()->startOfDay(),
+                $previousToDate->copy()->endOfDay(),
+            ]);
 
         $totalRevenue = (float) (clone $successfulTransactions)->sum('amount');
         $soldPackages = (int) (clone $successfulTransactions)->count();
@@ -40,23 +51,25 @@ final class AdminTransactionController extends Controller
         $previousSoldPackages = (int) (clone $previousSuccessfulTransactions)->count();
 
         $monthlyRows = (clone $successfulTransactions)
-            ->selectRaw('MONTH(transaction_date) as month, SUM(amount) as revenue, COUNT(*) as packages')
-            ->groupByRaw('MONTH(transaction_date)')
-            ->pluck('revenue', 'month');
-
-        $monthlyPackageRows = (clone $successfulTransactions)
-            ->selectRaw('MONTH(transaction_date) as month, COUNT(*) as packages')
-            ->groupByRaw('MONTH(transaction_date)')
-            ->pluck('packages', 'month');
+            ->selectRaw('YEAR(transaction_date) as year, MONTH(transaction_date) as month, SUM(amount) as revenue, COUNT(*) as packages')
+            ->groupByRaw('YEAR(transaction_date), MONTH(transaction_date)')
+            ->get()
+            ->keyBy(fn ($row) => $row->year.'-'.$row->month);
 
         $monthlyRevenue = [];
-        for ($month = 1; $month <= 12; $month++) {
+        $cursor = $fromDate->copy()->startOfMonth();
+        $lastMonth = $toDate->copy()->startOfMonth();
+        while ($cursor <= $lastMonth) {
+            $key = $cursor->year.'-'.$cursor->month;
+            $row = $monthlyRows->get($key);
             $monthlyRevenue[] = [
-                'month' => 'T'.$month,
-                'month_number' => $month,
-                'revenue' => (float) ($monthlyRows[$month] ?? 0),
-                'packages' => (int) ($monthlyPackageRows[$month] ?? 0),
+                'month' => $cursor->year === $toDate->year ? 'T'.$cursor->month : 'T'.$cursor->month.'/'.$cursor->year,
+                'month_number' => $cursor->month,
+                'year' => $cursor->year,
+                'revenue' => (float) ($row?->revenue ?? 0),
+                'packages' => (int) ($row?->packages ?? 0),
             ];
+            $cursor->addMonth();
         }
 
         $palette = ['#3b82f6', '#f59e0b', '#22c55e', '#94a3b8', '#ef4444', '#8b5cf6'];
@@ -93,13 +106,17 @@ final class AdminTransactionController extends Controller
         });
 
         return ApiResponse::success(data: [
-            'year' => $year,
+            'period' => $period,
+            'from_date' => $fromDate->toDateString(),
+            'to_date' => $toDate->toDateString(),
+            'label' => $this->revenuePeriodLabel($period, $fromDate, $toDate),
             'summary' => [
                 'total_revenue' => $totalRevenue,
                 'sold_packages' => $soldPackages,
-                'average_monthly_revenue' => round($totalRevenue / 12, 2),
+                'average_monthly_revenue' => round($totalRevenue / max(count($monthlyRevenue), 1), 2),
                 'revenue_change_percent' => $this->percentageChange($totalRevenue, $previousRevenue),
                 'sold_packages_change_percent' => $this->percentageChange($soldPackages, $previousSoldPackages),
+                'comparison_label' => 'so với kỳ trước',
             ],
             'monthly_revenue' => $monthlyRevenue,
             'package_distribution' => $packageDistribution,
@@ -298,5 +315,39 @@ final class AdminTransactionController extends Controller
         }
 
         return round((($current - $previous) / $previous) * 100, 1);
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function resolveRevenueDateRange(array $validated): array
+    {
+        $period = $validated['period'] ?? 'year';
+        $now = Carbon::now();
+
+        if ($period === 'custom') {
+            return [
+                Carbon::parse($validated['from_date'])->startOfDay(),
+                Carbon::parse($validated['to_date'])->endOfDay(),
+            ];
+        }
+
+        $fromDate = match ($period) {
+            'month' => $now->copy()->startOfMonth(),
+            'quarter' => $now->copy()->startOfQuarter(),
+            default => $now->copy()->startOfYear(),
+        };
+
+        return [$fromDate->startOfDay(), $now->copy()->endOfDay()];
+    }
+
+    private function revenuePeriodLabel(string $period, Carbon $fromDate, Carbon $toDate): string
+    {
+        return match ($period) {
+            'month' => 'Tháng này',
+            'quarter' => 'Quý này',
+            'custom' => $fromDate->format('d/m/Y').' - '.$toDate->format('d/m/Y'),
+            default => 'Năm nay',
+        };
     }
 }
