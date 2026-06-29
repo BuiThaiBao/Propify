@@ -9,9 +9,11 @@ use App\Models\TransactionNote;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Services\Payment\Export\TransactionExportStrategyFactory;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 final class AdminTransactionController extends Controller
 {
@@ -103,6 +105,10 @@ final class AdminTransactionController extends Controller
             'package_distribution' => $packageDistribution,
         ], message: 'Lấy thống kê doanh thu thành công.');
     }
+
+    public function __construct(
+        private readonly TransactionExportStrategyFactory $exportFactory
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -211,9 +217,10 @@ final class AdminTransactionController extends Controller
         ], 'Thêm ghi chú giao dịch thành công.');
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request): Response
     {
         $validated = $request->validate([
+            'format' => 'required|string|in:excel,pdf,xlsx,xls',
             'status' => 'nullable|string|in:PENDING,SUCCESS,FAILED,EXPIRED',
             'payment_method' => 'nullable|string|max:50',
             'package_id' => 'nullable|integer|exists:packages,id',
@@ -230,69 +237,9 @@ final class AdminTransactionController extends Controller
 
         $query = $this->applyFilters($query, $validated);
 
-        $response = new StreamedResponse(function () use ($query) {
-            $handle = fopen('php://output', 'w');
+        $strategy = $this->exportFactory->make($validated['format']);
 
-            // UTF-8 BOM để Excel hiển thị đúng font Tiếng Việt
-            fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
-
-            // Headers của file CSV
-            fputcsv($handle, [
-                'ID Giao Dịch',
-                'Mã Tham Chiếu Hệ Thống (vnp_txn_ref)',
-                'Mã Giao Dịch VNPay (vnp_transaction_no)',
-                'Khách Hàng',
-                'Email',
-                'Số Điện Thoại',
-                'Tin Đăng ID',
-                'Tin Đăng',
-                'Gói Dịch Vụ',
-                'Thời Hạn (Ngày)',
-                'Số Tiền',
-                'Phương Thức',
-                'Trạng Thái',
-                'Mã Ngân Hàng',
-                'Ngày Giao Dịch',
-                'Ghi Chú Kế Toán (Mới Nhất)',
-            ]);
-
-            // Chunk dữ liệu để tránh tràn bộ nhớ khi dữ liệu lớn
-            $query->chunk(500, function ($transactions) use ($handle) {
-                foreach ($transactions as $t) {
-                    $latestNote = $t->notes->first();
-                    $noteText = $latestNote ? sprintf('[%s] %s: %s', $latestNote->created_at?->format('d/m/Y H:i'), $latestNote->admin?->full_name, $latestNote->note) : '';
-
-                    fputcsv($handle, [
-                        $t->id,
-                        $t->vnp_txn_ref,
-                        $t->vnp_transaction_no,
-                        $t->user?->full_name,
-                        $t->user?->email,
-                        $t->user?->phone,
-                        $t->listing?->id,
-                        $t->listing?->title,
-                        $t->package?->name,
-                        $t->duration_days,
-                        $t->amount,
-                        $t->payment_method,
-                        $t->status,
-                        $t->vnp_bank_code,
-                        $t->transaction_date?->format('d/m/Y H:i:s'),
-                        $noteText,
-                    ]);
-                }
-            });
-
-            fclose($handle);
-        }, 200, [
-            'Content-Type' => 'text/csv; charset=utf-8',
-            'Content-Disposition' => 'attachment; filename="bao_cao_giao_dich_'.date('Ymd_His').'.csv"',
-            'Cache-Control' => 'no-cache, must-revalidate',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-        ]);
-
-        return $response;
+        return $strategy->export($query);
     }
 
     private function applyFilters($query, array $filters)

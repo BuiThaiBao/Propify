@@ -6,49 +6,115 @@ import { fetchRevenueStats } from '@/services/revenueService'
 import { useTransactionApi } from '@/composables/useTransactionApi'
 import { formatTransactionAmount } from '@/utils/transactionFormatters'
 
-const currentYear = new Date().getFullYear()
-const selectedYear = ref(currentYear)
-const loading = ref(false)
-const exporting = ref(false)
-const error = ref('')
-const stats = ref(null)
+const period = ref('year')
 
-const { exportCsv } = useTransactionApi()
+// Custom date selection
+const customFromDate = ref(new Date(new Date().setDate(new Date().getDate() - 7)).toISOString().slice(0, 10))
+const customToDate = ref(new Date().toISOString().slice(0, 10))
 
-const yearOptions = computed(() => {
-  const startYear = Math.max(2024, currentYear - 5)
-  const years = []
+function validateCustomDates() {
+  if (!customFromDate.value || !customToDate.value) return false
 
-  for (let year = currentYear; year >= startYear; year--) {
-    years.push(year)
+  const from = new Date(customFromDate.value)
+  const to = new Date(customToDate.value)
+
+  if (to < from) {
+    alert('Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.')
+    customToDate.value = customFromDate.value
+    return false
   }
 
-  return years
+  const diffTime = Math.abs(to - from)
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+  if (diffDays > 30) {
+    alert('Khoảng thời gian chọn tối đa là 30 ngày.')
+    const limitDate = new Date(from)
+    limitDate.setDate(from.getDate() + 30)
+
+    const y = limitDate.getFullYear()
+    const m = String(limitDate.getMonth() + 1).padStart(2, '0')
+    const d = String(limitDate.getDate()).padStart(2, '0')
+    customToDate.value = `${y}-${m}-${d}`
+    return false
+  }
+
+  return true
+}
+
+watch([customFromDate, customToDate], () => {
+  if (period.value === 'custom') {
+    validateCustomDates()
+  }
 })
 
-const summary = computed(
-  () =>
-    stats.value?.summary || {
-      total_revenue: 0,
-      sold_packages: 0,
-      average_monthly_revenue: 0,
-      revenue_change_percent: 0,
-      sold_packages_change_percent: 0,
-    },
-)
+function getDateRange(period) {
+  const now = new Date()
+  let fromDate = new Date()
 
-const monthlyRevenue = computed(() => stats.value?.monthly_revenue || defaultMonthlyRevenue())
-const packageDistribution = computed(() => stats.value?.package_distribution || [])
-const hasRevenueData = computed(() => Number(summary.value.total_revenue || 0) > 0)
-const totalPackageSales = computed(() =>
-  packageDistribution.value.reduce((total, item) => total + Number(item.count || 0), 0),
-)
+  if (period === 'custom') {
+    return { from_date: customFromDate.value, to_date: customToDate.value }
+  }
 
-const maxRevenue = computed(() => {
-  const values = monthlyRevenue.value.map((item) => Number(item.revenue || 0))
-  return Math.max(...values, 1)
-})
+  if (period === 'month') {
+    fromDate = new Date(now.getFullYear(), now.getMonth(), 1)
+  } else if (period === 'quarter') {
+    const quarterMonth = Math.floor(now.getMonth() / 3) * 3
+    fromDate = new Date(now.getFullYear(), quarterMonth, 1)
+  } else if (period === 'year') {
+    fromDate = new Date(now.getFullYear(), 0, 1)
+  }
 
+  const fmt = (d) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
+  return { from_date: fmt(fromDate), to_date: fmt(now) }
+}
+
+async function handleExport(format) {
+  try {
+    const range = getDateRange(period.value)
+    const params = {
+      from_date: range.from_date,
+      to_date: range.to_date,
+      status: 'SUCCESS',
+    }
+    await exportReport(format, params)
+  } catch (err) {
+    alert('Không thể xuất báo cáo: ' + err.message)
+  }
+}
+
+const monthlyRevenue = [
+  { month: 'T1', revenue: 12000000, packages: 45 },
+  { month: 'T2', revenue: 18000000, packages: 62 },
+  { month: 'T3', revenue: 15000000, packages: 55 },
+  { month: 'T4', revenue: 22000000, packages: 78 },
+  { month: 'T5', revenue: 28000000, packages: 95 },
+  { month: 'T6', revenue: 25000000, packages: 88 },
+  { month: 'T7', revenue: 32000000, packages: 110 },
+  { month: 'T8', revenue: 30000000, packages: 105 },
+  { month: 'T9', revenue: 35000000, packages: 120 },
+  { month: 'T10', revenue: 38000000, packages: 130 },
+  { month: 'T11', revenue: 42000000, packages: 145 },
+  { month: 'T12', revenue: 45000000, packages: 155 },
+]
+
+const packageDistribution = [
+  { name: 'Cơ bản', value: 40, color: 'hsl(215, 16%, 80%)' },
+  { name: 'Tiêu chuẩn', value: 35, color: 'hsl(217, 91%, 60%)' },
+  { name: 'Premium', value: 20, color: 'hsl(38, 92%, 50%)' },
+  { name: 'Doanh nghiệp', value: 5, color: 'hsl(142, 71%, 45%)' },
+]
+
+const formatCurrency = formatCompactCurrency
+
+// Bar chart config — wide viewBox so bars fill full container
+const maxRev = Math.max(...monthlyRevenue.map((d) => d.revenue))
 const barChartH = 320
 const barChartW = 1000
 const padL = 64
@@ -199,16 +265,47 @@ onMounted(loadRevenueStats)
       description="Thống kê doanh thu và phân tích hiệu quả kinh doanh từ giao dịch thực tế"
     >
       <template #actions>
+        <div v-if="period === 'custom'" class="flex items-center gap-2 mr-2">
+          <input
+            type="date"
+            v-model="customFromDate"
+            class="form-input text-xs h-9 bg-card border border-border rounded-lg px-2 outline-none"
+            style="width: 130px; height: 38px;"
+          />
+          <span class="text-xs text-muted-foreground">đến</span>
+          <input
+            type="date"
+            v-model="customToDate"
+            class="form-input text-xs h-9 bg-card border border-border rounded-lg px-2 outline-none"
+            style="width: 130px; height: 38px;"
+          />
+        </div>
         <div class="period-select-wrap">
           <Calendar :size="16" color="hsl(215,16%,47%)" />
-          <select v-model="selectedYear" class="period-select" id="period-select">
-            <option v-for="year in yearOptions" :key="year" :value="year">Năm {{ year }}</option>
+          <select v-model="period" class="period-select" id="period-select">
+            <option value="month">Tháng này</option>
+            <option value="quarter">Quý này</option>
+            <option value="year">Năm nay</option>
+            <option value="custom">Tự chọn ngày</option>
           </select>
         </div>
-        <button class="btn-export" id="btn-export" :disabled="exporting" @click="handleExport">
-          <Loader2 v-if="exporting" :size="16" class="spin" />
+        <button
+          class="btn-export text-success hover:bg-success/10"
+          @click="handleExport('excel')"
+          :disabled="loading"
+        >
+          <Loader2 v-if="loading" class="animate-spin" :size="16" />
           <Download v-else :size="16" />
-          Xuất báo cáo
+          Xuất Excel
+        </button>
+        <button
+          class="btn-export text-destructive hover:bg-destructive/10"
+          @click="handleExport('pdf')"
+          :disabled="loading"
+        >
+          <Loader2 v-if="loading" class="animate-spin" :size="16" />
+          <Download v-else :size="16" />
+          Xuất PDF
         </button>
       </template>
     </PageHeader>
