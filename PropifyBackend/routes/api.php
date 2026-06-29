@@ -312,6 +312,7 @@ Route::prefix('v1/admin')->as('admin.')->middleware(['auth:api', 'admin'])->grou
     Route::patch('/listings/{id}/status', [AdminListingController::class, 'changeStatus'])->name('listings.change-status');
     Route::patch('/listings/{id}/verification', [AdminListingController::class, 'updateVerification'])->where('id', '[0-9]+')->name('listings.verification');
     Route::get('/audit-logs', [AdminAuditLogController::class, 'index'])->name('audit-logs.index');
+    Route::get('/revenue/stats', [AdminTransactionController::class, 'revenueStats'])->name('revenue.stats');
     Route::get('/transactions', [AdminTransactionController::class, 'index'])->name('transactions.index');
     Route::get('/transactions/export', [AdminTransactionController::class, 'export'])->name('transactions.export');
     Route::get('/transactions/{id}', [AdminTransactionController::class, 'show'])->whereNumber('id')->name('transactions.show');
