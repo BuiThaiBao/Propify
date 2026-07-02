@@ -2997,9 +2997,13 @@ function initializeMap() {
     "top-right",
   );
 
+  map.dragRotate.disable();
   map.scrollZoom.enable();
   map.doubleClickZoom.enable();
   map.touchZoomRotate.enable();
+
+  // Đổi cursor thành crosshair — chỉ rõ user đang chọn vị trí
+  map.getCanvas().style.cursor = 'crosshair';
 
   map.on("click", async (event) => {
     const { lat, lng } = event.lngLat;
