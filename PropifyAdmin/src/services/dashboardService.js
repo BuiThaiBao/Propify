@@ -1,7 +1,7 @@
 import api from './api'
 
 export default {
-  getStats() {
-    return api.get('/v1/admin/dashboard/stats')
+  getStats(params = {}) {
+    return api.get('/v1/admin/dashboard/stats', { params })
   },
 }
