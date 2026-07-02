@@ -3002,8 +3002,9 @@ function initializeMap() {
   map.doubleClickZoom.enable();
   map.touchZoomRotate.enable();
 
-  // Đổi cursor thành crosshair — chỉ rõ user đang chọn vị trí
-  map.getCanvas().style.cursor = 'crosshair';
+  // Đổi cursor thành icon pin thả — chỉ rõ user đang chọn vị trí
+  const pinCursor = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'%3E%3Cpath d='M14 0C6.268 0 0 6.268 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.268 21.732 0 14 0z' fill='%231E6BFE'/%3E%3Ccircle cx='14' cy='14' r='6' fill='%23fff'/%3E%3C/svg%3E") 14 36, crosshair`;
+  map.getCanvas().style.cursor = pinCursor;
 
   map.on("click", async (event) => {
     const { lat, lng } = event.lngLat;
