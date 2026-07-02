@@ -1699,6 +1699,7 @@ const mapMode = ref("standard");
 const isMap3dEnabled = ref(false);
 let map = null;
 let locationMarker = null;
+let reverseGeocodeTimeout = null;
 const POSTING_LOCATION_SOURCE_ID = "property";
 const POSTING_LOCATION_FEATURE_ID = "posting-location";
 const SATELLITE_LAYER_ID = "satellite-base";
@@ -3003,18 +3004,20 @@ function initializeMap() {
   map.doubleClickZoom.disable();  // disable zoom để double-click cũng chọn vị trí
   map.touchZoomRotate.enable();
 
-  // Click: chọn vị trí + ghim pin
+  // Click: chọn vị trí + ghim pin, debounce reverse geocode (tránh rate limit Nominatim)
   map.on("click", async (event) => {
     const { lat, lng } = event.lngLat;
     setMarkerPosition(lat, lng, 16);
-    await reverseGeocodeFromLatLng(lat, lng);
+    clearTimeout(reverseGeocodeTimeout);
+    reverseGeocodeTimeout = setTimeout(() => reverseGeocodeFromLatLng(lat, lng), 1000);
   });
 
   // Double-click: cũng chọn vị trí, không zoom
   map.on("dblclick", async (event) => {
     const { lat, lng } = event.lngLat;
     setMarkerPosition(lat, lng, 16);
-    await reverseGeocodeFromLatLng(lat, lng);
+    clearTimeout(reverseGeocodeTimeout);
+    reverseGeocodeTimeout = setTimeout(() => reverseGeocodeFromLatLng(lat, lng), 1000);
   });
 
   map.on("load", () => {
@@ -3317,22 +3320,25 @@ async function geocodeAddressToMap(address, zoom = 15) {
 
   try {
     locationSearching.value = true;
-    const params = new URLSearchParams({ q: address });
+    const maptilerKey = import.meta.env.VITE_MAPTILER_KEY;
+    const params = new URLSearchParams({ q: address, key: maptilerKey, language: 'vi', limit: '1' });
 
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/v1/geocoding/search?${params.toString()}`,
+      `https://api.maptiler.com/geocoding/${encodeURIComponent(address)}.json?${params.toString()}`,
     );
     if (!response.ok) return;
 
     const data = await response.json();
-    if (!Array.isArray(data) || data.length === 0) return;
+    if (!data?.features?.length) return;
 
-    const [result] = data;
-    const lat = Number(result.lat);
-    const lng = Number(result.lon);
+    const [result] = data.features;
+    const [lng, lat] = result.center || result.geometry?.coordinates || [];
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
     setMarkerPosition(lat, lng, zoom);
-    await reverseGeocodeFromLatLng(lat, lng);
+    locationSearchText.value = result.place_name || "";
+    await parseMaptilerAddress(result);
   } catch {
     // Silent fail to avoid interrupting the form flow.
   } finally {
@@ -3342,38 +3348,49 @@ async function geocodeAddressToMap(address, zoom = 15) {
 
 async function reverseGeocodeFromLatLng(lat, lng) {
   try {
-    const params = new URLSearchParams({
-      lat: String(lat),
-      lng: String(lng),
-    });
+    const maptilerKey = import.meta.env.VITE_MAPTILER_KEY;
+    const params = new URLSearchParams({ key: maptilerKey, language: 'vi' });
+
     const response = await fetch(
-      `${import.meta.env.VITE_API_URL}/v1/geocoding/reverse?${params.toString()}`,
+      `https://api.maptiler.com/geocoding/${lng},${lat}.json?${params.toString()}`,
     );
     if (!response.ok) return;
 
     const data = await response.json();
-    if (!data || data.error) return;
+    if (!data?.features?.length) return;
 
-    locationSearchText.value = data.display_name || "";
+    const [result] = data.features;
+    locationSearchText.value = result.place_name || "";
 
-    const road =
-      data.address?.road ||
-      data.address?.pedestrian ||
-      data.address?.residential ||
-      "";
-    if (road) {
-      form.streetCode = road;
-    }
-
-    const houseNumber = data.address?.house_number || "";
-    form.addressDetail = [houseNumber, road].filter(Boolean).join(" ").trim();
-
-    await syncAdministrativeCodesFromAddress(
-      data.address || {},
-      data.display_name || "",
-    );
+    await parseMaptilerAddress(result);
   } catch {
     // Ignore reverse geocode failures.
+  }
+}
+
+async function parseMaptilerAddress(feature) {
+  const context = feature.context ?? [];
+  const getContext = (idPrefix) => {
+    const entry = context.find((c) => c.id?.startsWith(idPrefix));
+    return entry?.text || "";
+  };
+
+  // MapTiler context: street, house_number, locality, place, region, country
+  const road = getContext("street") || getContext("locality");
+  const houseNumber = getContext("house_number");
+  if (road) {
+    form.streetCode = road;
+  }
+  form.addressDetail = [houseNumber, road].filter(Boolean).join(" ").trim();
+
+  // Sync province/ward từ tên
+  const region = getContext("region");
+  const place = getContext("place") || getContext("locality");
+  if (region) {
+    await syncAdministrativeCodesFromAddress(
+      { region, city: place || region },
+      feature.place_name || "",
+    );
   }
 }
 
