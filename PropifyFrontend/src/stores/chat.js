@@ -93,6 +93,7 @@ export const useChatStore = defineStore('chat', () => {
       try {
         const res = await chatService.getConversations();
         conversations.value = res.data.data ?? [];
+        sortConversations();
         conversations.value.forEach((conversation) => subscribeChannel(conversation.id));
         conversationsLoaded = true;
       } finally {
@@ -112,6 +113,7 @@ export const useChatStore = defineStore('chat', () => {
     if (!existing) {
       conversations.value.unshift(conversation);
       subscribeChannel(conversation.id);
+      sortConversations();
     }
 
     await openConversation(conversation);
@@ -123,6 +125,7 @@ export const useChatStore = defineStore('chat', () => {
     const conversation = res.data.data;
     conversations.value.unshift(conversation);
     subscribeChannel(conversation.id);
+    sortConversations();
     await openConversation(conversation);
     return conversation;
   }
@@ -461,6 +464,17 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  function sortConversations() {
+    conversations.value.sort((a, b) => {
+      const tA = a.last_message?.created_at;
+      const tB = b.last_message?.created_at;
+      if (!tA && !tB) return 0;
+      if (!tA) return 1;
+      if (!tB) return -1;
+      return tB.localeCompare(tA);
+    });
+  }
+
   function updateConversationLastMessage(conversationId, msg) {
     const conversation = conversations.value.find((item) => item.id === conversationId);
     if (!conversation) return;
@@ -474,11 +488,7 @@ export const useChatStore = defineStore('chat', () => {
       metadata: msg.metadata ?? null,
     };
 
-    const index = conversations.value.indexOf(conversation);
-    if (index > 0) {
-      conversations.value.splice(index, 1);
-      conversations.value.unshift(conversation);
-    }
+    sortConversations();
   }
 
   function reset() {
