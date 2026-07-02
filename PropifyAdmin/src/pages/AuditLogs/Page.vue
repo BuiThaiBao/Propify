@@ -275,8 +275,8 @@ function resetFilters() {
   align-items: center;
   gap: 8px;
   border-radius: 999px;
-  background: #eff6ff;
-  color: #2563eb;
+  background: #0284c7;
+  color: #fff;
   font-size: 13px;
   font-weight: 700;
   padding: 8px 12px;
@@ -312,16 +312,16 @@ function resetFilters() {
   cursor: pointer;
 }
 .quick-filter-button.active {
-  border-color: #2563eb;
-  background: #eff6ff;
-  color: #2563eb;
+  border-color: #0284c7;
+  background: #0284c7;
+  color: #fff;
 }
 .reset-button {
   border-radius: 12px;
 }
 .reset-button:hover,
 .quick-filter-button:hover {
-  border-color: #93c5fd;
+  border-color: #0284c7;
 }
 .search-wrap {
   position: relative;
@@ -350,7 +350,7 @@ function resetFilters() {
 }
 .search-input:focus,
 .filter-input:focus {
-  border-color: #3b82f6;
+  border-color: #0284c7;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 .table-wrap {
@@ -410,8 +410,8 @@ function resetFilters() {
 .action-badge {
   display: inline-flex;
   border-radius: 999px;
-  background: #eef2ff;
-  color: #4338ca;
+  background: #0284c7;
+  color: #fff;
   font-size: 12px;
   font-weight: 700;
   padding: 5px 10px;
