@@ -3,6 +3,7 @@
 namespace App\Repositories\Eloquent;
 
 use App\Models\Appointment;
+use App\Enums\UserStatus;
 use App\Models\Listing;
 use App\Models\ListingImage;
 use App\Models\ListingVerificationDocument;
@@ -144,6 +145,7 @@ final class EloquentListingRepository implements ListingRepository
                 'package:id,name,slug,badge,color,priority',
             ])
             ->where('listings.status', 'ACTIVE')
+            ->whereHas('owner', fn ($q) => $q->where('status', '!=', UserStatus::Banned))
             ->when($demandType, function ($query) use ($demandType) {
                 $query->where('listings.demand_type', $demandType);
             })
@@ -269,6 +271,7 @@ final class EloquentListingRepository implements ListingRepository
                 'images:id,listing_id,image_url,is_thumbnail',
             ])
             ->where('status', 'ACTIVE')
+            ->whereHas('owner', fn ($q) => $q->where('status', '!=', UserStatus::Banned))
             ->when($demandType, fn ($query) => $query->where('demand_type', $demandType))
             ->when($like, function ($query) use ($like, $normalizedKeyword, $searchField) {
                 if ($this->isSpecificPropertySearchField($searchField)) {
