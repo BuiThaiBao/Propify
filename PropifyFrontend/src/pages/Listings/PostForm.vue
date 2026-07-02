@@ -3000,11 +3000,17 @@ function initializeMap() {
 
   map.dragRotate.disable();
   map.scrollZoom.enable();
-  map.doubleClickZoom.disable();  // disable zoom để dùng double-click chọn vị trí
+  map.doubleClickZoom.disable();  // disable zoom để double-click cũng chọn vị trí
   map.touchZoomRotate.enable();
 
-  // Mặc định: icon bàn tay (grab) để kéo map
-  // Double-click: ghim pin, khôi phục cursor bàn tay để tiếp tục kéo map
+  // Click: chọn vị trí + ghim pin
+  map.on("click", async (event) => {
+    const { lat, lng } = event.lngLat;
+    setMarkerPosition(lat, lng, 16);
+    await reverseGeocodeFromLatLng(lat, lng);
+  });
+
+  // Double-click: cũng chọn vị trí, không zoom
   map.on("dblclick", async (event) => {
     const { lat, lng } = event.lngLat;
     setMarkerPosition(lat, lng, 16);
