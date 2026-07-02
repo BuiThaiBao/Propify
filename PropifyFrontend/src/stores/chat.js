@@ -298,6 +298,19 @@ export const useChatStore = defineStore('chat', () => {
         const conversation = conversations.value.find((item) => item.id === conversationId);
         if (conversation) conversation.unread_count = (conversation.unread_count ?? 0) + 1;
 
+        // Nếu là conversation đang active (popup đang ẩn), push message ngay
+        // để khi mở lại popup thấy tin nhắn mà không cần reload.
+        if (activeConversation.value?.id === conversationId) {
+          const exists = messages.value.some((m) => m.id === incomingMsg.id);
+          if (!exists) {
+            messages.value.push({ ...incomingMsg, _status: 'received' });
+            saveCache(conversationId);
+          }
+        } else {
+          // Conversation khác — xoá cache để lần mở sau fetch fresh từ API
+          messageCache.delete(conversationId);
+        }
+
         playNotificationSound();
 
         const senderName = incomingMsg.sender?.full_name ?? 'Ai đó';
