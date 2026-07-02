@@ -1698,6 +1698,7 @@ const mapElement = ref(null);
 const mapMode = ref("standard");
 const isMap3dEnabled = ref(false);
 let map = null;
+let locationMarker = null;
 const POSTING_LOCATION_SOURCE_ID = "property";
 const POSTING_LOCATION_FEATURE_ID = "posting-location";
 const SATELLITE_LAYER_ID = "satellite-base";
@@ -2999,14 +3000,12 @@ function initializeMap() {
 
   map.dragRotate.disable();
   map.scrollZoom.enable();
-  map.doubleClickZoom.enable();
+  map.doubleClickZoom.disable();  // disable zoom để dùng double-click chọn vị trí
   map.touchZoomRotate.enable();
 
-  // Đổi cursor thành icon pin thả — chỉ rõ user đang chọn vị trí
-  const pinCursor = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'%3E%3Cpath d='M14 0C6.268 0 0 6.268 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.268 21.732 0 14 0z' fill='%231E6BFE'/%3E%3Ccircle cx='14' cy='14' r='6' fill='%23fff'/%3E%3C/svg%3E") 14 36, crosshair`;
-  map.getCanvas().style.cursor = pinCursor;
-
-  map.on("click", async (event) => {
+  // Mặc định: icon bàn tay (grab) để kéo map
+  // Double-click: ghim pin, khôi phục cursor bàn tay để tiếp tục kéo map
+  map.on("dblclick", async (event) => {
     const { lat, lng } = event.lngLat;
     setMarkerPosition(lat, lng, 16);
     await reverseGeocodeFromLatLng(lat, lng);
@@ -3248,6 +3247,15 @@ function setMarkerPosition(lat, lng, zoom = 16) {
   form.lng = numericLng.toFixed(7);
 
   if (!map) return;
+
+  // Tạo DOM pin (maplibregl.Marker) — hiển thị ngay, không cần layer/style
+  if (locationMarker) locationMarker.remove();
+  const el = document.createElement('div');
+  el.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="28" height="36" viewBox="0 0 28 36"><path d="M14 0C6.268 0 0 6.268 0 14c0 10.5 14 22 14 22s14-11.5 14-22C28 6.268 21.732 0 14 0z" fill="#EF4444"/><circle cx="14" cy="14" r="6" fill="#fff"/></svg>`;
+  el.style.cursor = 'pointer';
+  locationMarker = new maplibregl.Marker({ element: el })
+    .setLngLat([numericLng, numericLat])
+    .addTo(map);
 
   const updateMarker = () => {
     map.getSource(POSTING_LOCATION_SOURCE_ID)?.setData({
@@ -4635,6 +4643,11 @@ function clearVerificationData() {
 function clearMapMarker() {
   form.lat = "";
   form.lng = "";
+
+  if (locationMarker) {
+    locationMarker.remove();
+    locationMarker = null;
+  }
 
   if (!map?.getSource(POSTING_LOCATION_SOURCE_ID)) return;
 
