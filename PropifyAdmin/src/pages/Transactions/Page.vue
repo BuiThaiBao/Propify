@@ -569,7 +569,7 @@ onMounted(() => {
 
 <style scoped>
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.filter-grid { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr auto; gap: 16px; }
 .filter-label { display: block; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); margin-bottom: 6px; }
 .form-input { width: 100%; height: 38px; padding: 0 12px; font-size: 13px; border: 1px solid hsl(var(--border)); border-radius: 8px; background-color: hsl(var(--card)); color: hsl(var(--foreground)); outline: none; box-sizing: border-box; }
 .form-input:focus { border-color: hsl(var(--primary)); box-shadow: 0 0 0 2px hsl(var(--primary) / 0.15); }
