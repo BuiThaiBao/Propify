@@ -38,4 +38,13 @@ final class AmenityController
             message: 'Cập nhật tiện ích thành công.',
         );
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $this->amenityService->delete($id);
+
+        return ApiResponse::success(
+            message: 'Xoá tiện ích thành công.',
+        );
+    }
 }

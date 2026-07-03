@@ -16,8 +16,10 @@ final class UpdateAmenityRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:500'],
             'icon' => ['nullable', 'string', 'max:255'],
             'order_index' => ['nullable', 'integer', 'min:0'],
+            'is_active' => ['nullable', 'boolean'],
         ];
     }
 
@@ -25,8 +27,10 @@ final class UpdateAmenityRequest extends FormRequest
     {
         return new UpdateAmenityDto(
             name: $this->validated('name'),
+            description: $this->validated('description'),
             icon: $this->validated('icon'),
             orderIndex: (int) ($this->validated('order_index') ?? 0),
+            isActive: (bool) ($this->validated('is_active') ?? true),
         );
     }
 }

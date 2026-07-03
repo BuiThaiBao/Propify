@@ -13,12 +13,15 @@ final class Attribute extends Model
     protected $fillable = [
         'group_id',
         'name',
+        'description',
         'icon',
         'order_index',
+        'is_active',
     ];
 
     protected $casts = [
         'order_index' => 'integer',
+        'is_active' => 'boolean',
     ];
 
     // ==================== Relationships ====================

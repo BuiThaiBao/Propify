@@ -10,7 +10,6 @@ import {
   Eye,
   EyeOff,
   Edit3,
-  Trash2,
 } from 'lucide-vue-next'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import { amenityService } from '@/services/amenityService'
@@ -282,10 +281,6 @@ function showToast(message, type = 'success') {
                       <Edit3 :size="14" />
                       Chỉnh sửa
                     </button>
-                    <button class="menu-item menu-item--danger">
-                      <Trash2 :size="14" />
-                      Xoá
-                    </button>
                   </div>
                 </Transition>
               </div>
@@ -530,7 +525,7 @@ function showToast(message, type = 'success') {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 16px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: var(--shadow-sm);
 }
 

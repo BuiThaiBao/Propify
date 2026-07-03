@@ -14,4 +14,6 @@ interface AmenityService
     public function create(CreateAmenityDto $dto): Attribute;
 
     public function update(int $id, UpdateAmenityDto $dto): Attribute;
+
+    public function delete(int $id): bool;
 }

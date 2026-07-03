@@ -254,6 +254,7 @@ Route::prefix('v1/amenities')->as('amenities.')->group(function () {
     Route::middleware('auth:api')->group(function () {
         Route::post('/', [AmenityController::class, 'store'])->name('store');
         Route::put('/{id}', [AmenityController::class, 'update'])->where('id', '[0-9]+')->name('update');
+        Route::delete('/{id}', [AmenityController::class, 'destroy'])->where('id', '[0-9]+')->name('destroy');
     });
 });
 
