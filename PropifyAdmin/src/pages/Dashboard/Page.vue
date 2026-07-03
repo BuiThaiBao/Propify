@@ -10,6 +10,8 @@ import dashboardService from '@/services/dashboardService'
 const loading = ref(true)
 const stats = ref(null)
 
+const selectedBarIndex = ref(null)
+
 const period = ref('year')
 const customFromDate = ref(formatDateInput(addDays(new Date(), -7)))
 const customToDate = ref(formatDateInput(new Date()))
@@ -99,6 +101,12 @@ const padR = 20
 const padT = 10
 const padB = 30
 
+const barWidth = computed(() => {
+  const count = getChartData().length || 1
+  const usableW = chartW - padL - padR
+  return Math.min(60, usableW / count * 0.5)
+})
+
 function getChartData() {
   return stats.value?.revenue_chart || []
 }
@@ -117,22 +125,6 @@ function getX(i) {
 function getY(v) {
   const maxRev = getMaxRev()
   return padT + (1 - v / maxRev) * (chartH - padT - padB)
-}
-
-function chartLinePath() {
-  const data = getChartData()
-  if (!data.length) return ''
-  return data
-    .map((d, i) => `${i === 0 ? 'M' : 'L'}${getX(i)},${getY(d.revenue)}`)
-    .join(' ')
-}
-
-function chartAreaPath() {
-  const data = getChartData()
-  if (!data.length) return ''
-  const line = chartLinePath()
-  const lastIdx = data.length - 1
-  return `${line} L${getX(lastIdx)},${chartH - padB} L${getX(0)},${chartH - padB} Z`
 }
 
 function yTicks() {
@@ -231,10 +223,9 @@ function yTicks() {
         <div class="rounded-xl border border-border/50 bg-card p-6 shadow-card">
           <div class="mb-6 flex items-start justify-between">
             <div>
-              <h2 class="m-0 mb-0.5 text-lg font-semibold text-foreground">
-                Doanh thu theo thời gian
+              <h2 class="m-0 text-[18px] font-bold text-foreground">
+                Doanh thu theo tháng
               </h2>
-              <p class="m-0 text-sm text-muted-foreground">{{ stats.label || 'Năm nay' }}</p>
             </div>
             <div
               v-if="stats.revenue.last_month > 0"
@@ -245,65 +236,76 @@ function yTicks() {
               {{ calcPercentageChange(stats.revenue.current_month, stats.revenue.last_month) }}
             </div>
           </div>
-          <div class="w-full">
+          <div class="relative w-full" style="padding-bottom: 50%;">
             <svg
               :viewBox="`0 0 ${chartW} ${chartH}`"
-              class="block h-[280px] w-full"
-              preserveAspectRatio="none"
+              class="absolute inset-0 block h-full w-full"
+              preserveAspectRatio="xMidYMid meet"
             >
               <defs>
-                <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stop-color="hsl(217,91%,60%)" stop-opacity="0.2" />
-                  <stop offset="95%" stop-color="hsl(217,91%,60%)" stop-opacity="0" />
+                <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#2563eb" stop-opacity="0.15" />
+                  <stop offset="100%" stop-color="#2563eb" stop-opacity="0" />
                 </linearGradient>
               </defs>
+
               <!-- Grid lines -->
-              <line
-                v-for="t in yTicks()"
-                :key="t"
-                :x1="padL"
-                :y1="getY(t)"
-                :x2="chartW - padR"
-                :y2="getY(t)"
-                stroke="hsl(214,20%,92%)"
-                stroke-dasharray="3 3"
-                stroke-width="1"
-              />
+              <g>
+                <line
+                  v-for="t in yTicks()"
+                  :key="'grid' + t"
+                  :x1="padL"
+                  :y1="getY(t)"
+                  :x2="chartW - padR"
+                  :y2="getY(t)"
+                  stroke="#f1f5f9"
+                  stroke-width="1"
+                />
+              </g>
+
               <!-- Y labels -->
-              <text
-                v-for="t in yTicks()"
-                :key="'y' + t"
-                :x="padL - 4"
-                :y="getY(t) + 4"
-                text-anchor="end"
-                font-size="11"
-                fill="hsl(215,16%,47%)"
-              >
-                {{ formatCurrency(t) }}
-              </text>
-              <!-- Area -->
-              <path :d="chartAreaPath()" fill="url(#dashGrad)" />
-              <!-- Line -->
-              <path
-                :d="chartLinePath()"
-                fill="none"
-                stroke="hsl(217,91%,60%)"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-              <!-- X labels -->
-              <text
+              <g class="axis-labels">
+                <text
+                  v-for="t in yTicks()"
+                  :key="'y' + t"
+                  :x="padL - 6"
+                  :y="getY(t) + 4"
+                  text-anchor="end"
+                  font-size="10"
+                  fill="#94a3b8"
+                >
+                  {{ formatCompactCurrency(t).replace('Trđ', 'Tr') }}
+                </text>
+              </g>
+
+              <!-- Bars -->
+              <g
                 v-for="(d, i) in getChartData()"
-                :key="'x' + i"
-                :x="getX(i)"
-                :y="chartH - 4"
-                text-anchor="middle"
-                font-size="11"
-                fill="hsl(215,16%,47%)"
+                :key="'bar' + i"
               >
-                {{ d.month }}
-              </text>
+                <rect
+                  :x="getX(i) - barWidth / 2"
+                  :y="getY(d.revenue)"
+                  :width="barWidth"
+                  :height="Math.max(chartH - padB - getY(d.revenue), d.revenue > 0 ? 4 : 0)"
+                  fill="hsl(217,91%,60%)"
+                  rx="6"
+                  ry="6"
+                  class="cursor-pointer transition-opacity hover:opacity-85"
+                >
+                  <title>{{ d.month }}: {{ formatCurrency(d.revenue) }}</title>
+                </rect>
+                <!-- X labels -->
+                <text
+                  :x="getX(i)"
+                  :y="chartH - 4"
+                  text-anchor="middle"
+                  font-size="10"
+                  fill="#94a3b8"
+                >
+                  {{ d.month }}
+                </text>
+              </g>
             </svg>
           </div>
         </div>

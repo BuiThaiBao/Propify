@@ -359,7 +359,7 @@ onMounted(loadRevenueStats)
       <div class="chart-card">
         <div class="chart-heading">
           <h2 class="chart-title">Doanh thu theo tháng</h2>
-          <p class="chart-subtitle">Chỉ tính giao dịch thành công trong {{ rangeLabel.toLowerCase() }}</p>
+          
         </div>
 
         <div class="chart-body">
