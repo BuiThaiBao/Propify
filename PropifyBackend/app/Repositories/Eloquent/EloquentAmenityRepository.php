@@ -51,4 +51,9 @@ final class EloquentAmenityRepository implements AmenityRepository
 
         return $amenity->fresh('group');
     }
+
+    public function delete(Attribute $amenity): bool
+    {
+        return $amenity->delete();
+    }
 }

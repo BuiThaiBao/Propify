@@ -12,8 +12,10 @@ final class AmenityResource extends JsonResource
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'description' => $this->description,
             'icon' => $this->icon,
             'order_index' => $this->order_index,
+            'is_active' => (bool) $this->is_active,
             'group' => $this->whenLoaded('group', fn () => [
                 'id' => $this->group->id,
                 'name' => $this->group->name,

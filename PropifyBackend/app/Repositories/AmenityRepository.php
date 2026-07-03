@@ -17,4 +17,6 @@ interface AmenityRepository
     public function findAmenityById(int $id): ?Attribute;
 
     public function update(Attribute $amenity, array $attributes): Attribute;
+
+    public function delete(Attribute $amenity): bool;
 }

@@ -128,7 +128,6 @@ function resetFilters() {
         </div>
       </template>
     </PageHeader>
-
     <section class="quick-filter-bar">
       <div class="quick-filter-group">
         <button
@@ -142,35 +141,53 @@ function resetFilters() {
           {{ filter.label }}
         </button>
       </div>
-
-      <button type="button" class="reset-button" @click="resetFilters">Reset bộ lọc</button>
     </section>
-
-    <section class="filter-panel">
-      <div class="search-wrap">
-        <Search :size="18" class="search-icon" />
-        <input
-          v-model.trim="filters.action"
-          class="search-input"
-          placeholder="Lọc theo action..."
-        />
+ <div class="filter-panel bg-card border border-border/50 rounded-xl p-5 shadow-card mb-6">
+    <div class="filter-grid">
+      <div class="filter-item">
+        <label class="filter-label">Tìm kiếm</label>
+        <div class="search-input-wrapper">
+          <Search :size="16" class="search-icon" />
+          <input
+            v-model.trim="filters.action"
+            class="form-input search-input"
+            placeholder="Lọc theo action..."
+          />
+        </div>
       </div>
-      <input v-model.trim="filters.actorId" class="filter-input" placeholder="Actor ID" />
-      <input
-        v-model.trim="filters.auditableType"
-        class="filter-input"
-        placeholder="Auditable type"
-      />
-      <input v-model.trim="filters.auditableId" class="filter-input" placeholder="Auditable ID" />
-      <input v-model="filters.fromDate" type="date" class="filter-input" aria-label="Từ ngày" />
-      <input v-model="filters.toDate" type="date" class="filter-input" aria-label="Đến ngày" />
-    </section>
 
-    <div v-if="loading && logs.length === 0" class="state-text">Đang tải dữ liệu...</div>
-    <div v-else-if="error" class="state-text state-error">{{ error }}</div>
-    <div v-else-if="logs.length === 0" class="state-text">Chưa có audit log phù hợp.</div>
+      <div class="filter-item">
+        <label class="filter-label">Actor ID</label>
+        <input v-model.trim="filters.actorId" class="form-input" placeholder="Actor ID" />
+      </div>
 
-    <div v-else class="table-wrap">
+      <div class="filter-item">
+        <label class="filter-label">Loại đối tượng</label>
+        <input v-model.trim="filters.auditableType" class="form-input" placeholder="Auditable type" />
+      </div>
+
+      <div class="filter-item">
+        <label class="filter-label">ID Đối tượng</label>
+        <input v-model.trim="filters.auditableId" class="form-input" placeholder="Auditable ID" />
+      </div>
+
+      <div class="filter-item">
+        <label class="filter-label">Từ ngày</label>
+        <input v-model="filters.fromDate" type="date" class="form-input" />
+      </div>
+
+      <div class="filter-item">
+        <label class="filter-label">Đến ngày</label>
+        <input v-model="filters.toDate" type="date" class="form-input" />
+      </div>
+
+      <div class="filter-item flex items-end">
+        <button class="btn-reset" @click="resetFilters">Xóa bộ lọc</button>
+      </div>
+    </div>
+    </div>
+
+    <div class="table-wrap">
       <div class="table-scroll">
         <table class="data-table">
           <thead>
@@ -183,6 +200,15 @@ function resetFilters() {
             </tr>
           </thead>
           <tbody>
+            <tr v-if="loading && logs.length === 0">
+              <td colspan="5" class="td text-center py-12 text-[#64748b]">Đang tải dữ liệu...</td>
+            </tr>
+            <tr v-else-if="error">
+              <td colspan="5" class="td text-center py-12 text-[#ef4444]">{{ error }}</td>
+            </tr>
+            <tr v-else-if="logs.length === 0">
+              <td colspan="5" class="td text-center py-12 text-[#64748b]">Chưa có audit log phù hợp.</td>
+            </tr>
             <tr
               v-for="log in logs"
               :key="log.id"
@@ -275,17 +301,11 @@ function resetFilters() {
   align-items: center;
   gap: 8px;
   border-radius: 999px;
-  background: #0284c7;
-  color: #fff;
+  background: #f0f9ff;
+  color: #0284c7;
   font-size: 13px;
   font-weight: 700;
   padding: 8px 12px;
-}
-.filter-panel {
-  display: grid;
-  grid-template-columns: minmax(260px, 1.4fr) repeat(5, minmax(140px, 0.6fr));
-  gap: 12px;
-  margin-bottom: 24px;
 }
 .quick-filter-bar {
   display: flex;
@@ -299,60 +319,35 @@ function resetFilters() {
   flex-wrap: wrap;
   gap: 8px;
 }
-.quick-filter-button,
-.reset-button {
+.quick-filter-button {
   height: 38px;
   border: 1px solid #e2e8f0;
   border-radius: 999px;
   background: #fff;
-  color: #334155;
+  color: #64748b;
   font-size: 13px;
   font-weight: 700;
   padding: 0 14px;
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
 }
 .quick-filter-button.active {
-  border-color: #0284c7;
-  background: #0284c7;
-  color: #fff;
+  border-color: #0ea5e9;
+  background: #f0f9ff;
+  color: #0284c7;
 }
-.reset-button {
-  border-radius: 12px;
-}
-.reset-button:hover,
-.quick-filter-button:hover {
-  border-color: #0284c7;
-}
-.search-wrap {
-  position: relative;
-}
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #64748b;
-}
-.search-input,
-.filter-input {
-  width: 100%;
-  height: 44px;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #fff;
-  color: #0f172a;
-  outline: none;
-  font-size: 14px;
-  padding: 0 14px;
-}
-.search-input {
-  padding-left: 44px;
-}
-.search-input:focus,
-.filter-input:focus {
-  border-color: #0284c7;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
-}
+
+.filter-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 1fr auto; gap: 16px; }
+.filter-label { display: block; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); margin-bottom: 6px; }
+.form-input { width: 100%; height: 38px; padding: 0 12px; font-size: 13px; border: 1px solid hsl(var(--border)); border-radius: 8px; background-color: hsl(var(--card)); color: hsl(var(--foreground)); outline: none; box-sizing: border-box; }
+.form-input:focus { border-color: hsl(var(--primary)); box-shadow: 0 0 0 2px hsl(var(--primary) / 0.15); }
+.search-input-wrapper { position: relative; display: flex; align-items: center; }
+.search-icon { position: absolute; left: 12px; color: hsl(var(--muted-foreground)); pointer-events: none; }
+.search-input { padding-left: 36px; }
+.btn-reset { height: 38px; padding: 0 16px; font-size: 13px; font-weight: 500; border: 1px solid #0ea5e9; border-radius: 8px; background-color: #f0f9ff; color: #0ea5e9; cursor: pointer; margin-top: auto; }
+@media (max-width: 1200px) { .filter-grid { grid-template-columns: repeat(4, 1fr); } .btn-reset { width: 100%; } }
+@media (max-width: 768px) { .filter-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px) { .filter-grid { grid-template-columns: 1fr; } }
 .table-wrap {
   overflow: hidden;
   border: 1px solid #e2e8f0;
@@ -410,8 +405,8 @@ function resetFilters() {
 .action-badge {
   display: inline-flex;
   border-radius: 999px;
-  background: #0284c7;
-  color: #fff;
+  background: #f0f9ff;
+  color: #0284c7;
   font-size: 12px;
   font-weight: 700;
   padding: 5px 10px;
@@ -485,7 +480,7 @@ function resetFilters() {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #0ea5e9;
   border-radius: 10px;
   background: #fff;
   cursor: pointer;

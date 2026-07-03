@@ -29,8 +29,10 @@ final class AmenityServiceImpl implements AmenityService
         return $this->amenityRepository->create([
             'group_id' => $group->id,
             'name' => $dto->name,
+            'description' => $dto->description,
             'icon' => $dto->icon,
             'order_index' => $dto->orderIndex,
+            'is_active' => $dto->isActive,
         ]);
     }
 
@@ -44,8 +46,20 @@ final class AmenityServiceImpl implements AmenityService
 
         return $this->amenityRepository->update($amenity, [
             'name' => $dto->name,
+            'description' => $dto->description,
             'icon' => $dto->icon,
             'order_index' => $dto->orderIndex,
+            'is_active' => $dto->isActive,
         ]);
+    }
+
+    public function delete(int $id): bool
+    {
+        $amenity = $this->amenityRepository->findAmenityById($id);
+        if (! $amenity) {
+            throw new BusinessException(ErrorCode::ResourceNotFound);
+        }
+
+        return $this->amenityRepository->delete($amenity);
     }
 }

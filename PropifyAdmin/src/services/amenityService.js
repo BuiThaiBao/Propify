@@ -13,6 +13,10 @@ export const amenityService = {
     return api.put(`/v1/amenities/${id}`, data)
   },
 
+  deleteAmenity(id) {
+    return api.delete(`/v1/amenities/${id}`)
+  },
+
   getListingAmenities(listingId) {
     return api.get(`/v1/listings/${listingId}/amenities`)
   },
