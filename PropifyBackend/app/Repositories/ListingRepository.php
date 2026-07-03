@@ -66,6 +66,7 @@ interface ListingRepository
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?int $packageId = null,
+        ?string $verificationStatus = null,
     ): LengthAwarePaginator;
 
     /**
@@ -79,6 +80,7 @@ interface ListingRepository
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?int $packageId = null,
+        ?string $verificationStatus = null,
     ): array;
 
     public function updateProperty(int $id, array $attributes): Property;

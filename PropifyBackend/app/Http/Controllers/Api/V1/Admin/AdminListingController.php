@@ -38,6 +38,7 @@ final class AdminListingController extends Controller
         $minPrice = $request->filled('min_price') ? (float) $request->input('min_price') : null;
         $maxPrice = $request->filled('max_price') ? (float) $request->input('max_price') : null;
         $packageId = $request->input('package_id');
+        $verificationStatus = $request->input('verification_status');
 
         $paginator = $this->listingService->getAllForAdmin(
             status: $status,
@@ -49,6 +50,7 @@ final class AdminListingController extends Controller
             minPrice: $minPrice,
             maxPrice: $maxPrice,
             packageId: is_numeric($packageId) ? (int) $packageId : null,
+            verificationStatus: $verificationStatus,
         );
         $statusCounts = $this->listingService->getAdminStatusCounts(
             demandType: $demandType,
@@ -58,6 +60,7 @@ final class AdminListingController extends Controller
             minPrice: $minPrice,
             maxPrice: $maxPrice,
             packageId: is_numeric($packageId) ? (int) $packageId : null,
+            verificationStatus: $verificationStatus,
         );
 
         return ApiResponse::success(

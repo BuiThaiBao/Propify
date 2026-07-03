@@ -19,6 +19,7 @@ const filterType = ref('all')
 const filterMinPrice = ref(null)
 const filterMaxPrice = ref(null)
 const filterPackageId = ref('all')
+const filterVerification = ref('all')
 const packages = ref([])
 const listings = ref([])
 const statusCounts = ref({
@@ -70,6 +71,7 @@ function buildParams() {
   if (filterMinPrice.value !== null && filterMinPrice.value !== '') params.min_price = filterMinPrice.value
   if (filterMaxPrice.value !== null && filterMaxPrice.value !== '') params.max_price = filterMaxPrice.value
   if (filterPackageId.value !== 'all') params.package_id = filterPackageId.value
+  if (filterVerification.value !== 'all') params.verification_status = filterVerification.value
 
   return params
 }
@@ -150,7 +152,7 @@ function goToPage(page) {
   fetchListings()
 }
 
-watch([filterStatus, filterType, filterMinPrice, filterMaxPrice, filterPackageId, searchField], () => {
+watch([filterStatus, filterType, filterMinPrice, filterMaxPrice, filterPackageId, filterVerification, searchField], () => {
   pagination.current_page = 1
   fetchListings()
 })
@@ -184,6 +186,7 @@ onMounted(async () => {
       v-model:min-price="filterMinPrice"
       v-model:max-price="filterMaxPrice"
       v-model:package-id="filterPackageId"
+      v-model:verification="filterVerification"
       :packages="packages"
       :status-counts="statusCounts"
       :status-options="listingStatusOptions"

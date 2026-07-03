@@ -223,6 +223,7 @@ final class ListingServiceImpl implements ListingService
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?int $packageId = null,
+        ?string $verificationStatus = null,
     ): LengthAwarePaginator {
         return $this->listingRepository->paginateAdmin(
             $status,
@@ -245,6 +246,7 @@ final class ListingServiceImpl implements ListingService
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?int $packageId = null,
+        ?string $verificationStatus = null,
     ): array {
         return $this->listingRepository->getAdminStatusCounts(
             $demandType,

@@ -10,6 +10,7 @@ const props = defineProps({
   minPrice: { type: [Number, String], default: null },
   maxPrice: { type: [Number, String], default: null },
   packageId: { type: [String, Number], default: 'all' },
+  verification: { type: String, default: 'all' },
   packages: { type: Array, default: () => [] },
   statusCounts: { type: Object, default: () => ({}) },
 })
@@ -22,6 +23,7 @@ const emit = defineEmits([
   'update:minPrice',
   'update:maxPrice',
   'update:packageId',
+  'update:verification',
 ])
 
 const PRICE_LIMIT = 75000000000
@@ -44,6 +46,15 @@ const statusOptions = [
   { value: 'approved', label: 'Tin đang đăng', dot: '#10b981' },
   { value: 'rejected', label: 'Từ chối', dot: '#ef4444' },
   { value: 'locked', label: 'Tin bị khóa', dot: '#ef4444' },
+]
+
+const verificationOptions = [
+  { value: 'all', label: 'Xác minh: Tất cả' },
+  { value: 'VERIFIED', label: 'Đã xác thực' },
+  { value: 'REQUESTED', label: 'Chờ xác thực' },
+  { value: 'REJECTED', label: 'Từ chối' },
+  { value: 'UNVERIFIED', label: 'Chưa xác thực' },
+  { value: 'NOT_REQUIRED', label: 'Không yêu cầu' },
 ]
 
 const openDropdown = ref(null)
@@ -253,6 +264,25 @@ onUnmounted(() => {
               class="select-option"
               :class="{ selected: String(packageId) === option.value }"
               @click="selectDropdown('update:packageId', option.value)"
+            >
+              {{ option.label }}
+            </button>
+          </div>
+        </div>
+
+        <div class="custom-select" :class="{ open: openDropdown === 'verification' }">
+          <button type="button" class="filter-trigger" @click="toggleDropdown('verification')">
+            <span>{{ selectedLabel(verificationOptions, verification) }}</span>
+            <ChevronDown :size="17" />
+          </button>
+          <div v-if="openDropdown === 'verification'" class="select-menu">
+            <button
+              v-for="option in verificationOptions"
+              :key="option.value"
+              type="button"
+              class="select-option"
+              :class="{ selected: verification === option.value }"
+              @click="selectDropdown('update:verification', option.value)"
             >
               {{ option.label }}
             </button>

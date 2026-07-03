@@ -65,6 +65,7 @@ interface ListingService
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?int $packageId = null,
+        ?string $verificationStatus = null,
     ): LengthAwarePaginator;
 
     /**
@@ -78,6 +79,7 @@ interface ListingService
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?int $packageId = null,
+        ?string $verificationStatus = null,
     ): array;
 
     public function changeStatusForAdmin(int $listingId, string $status, ?string $rejectionReason = null, ?int $adminUserId = null): Listing;

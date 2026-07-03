@@ -17,6 +17,7 @@ final class ListingFilterCriteria
         public readonly ?float $minPrice = null,
         public readonly ?float $maxPrice = null,
         public readonly ?int $packageId = null,
+        public readonly ?string $verificationStatus = null,
     ) {}
 
     public static function forAdmin(
@@ -28,6 +29,7 @@ final class ListingFilterCriteria
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?int $packageId = null,
+        ?string $verificationStatus = null,
     ): self {
         return new self(
             status: $status,
@@ -38,6 +40,7 @@ final class ListingFilterCriteria
             minPrice: $minPrice,
             maxPrice: $maxPrice,
             packageId: $packageId,
+            verificationStatus: $verificationStatus,
         );
     }
 }

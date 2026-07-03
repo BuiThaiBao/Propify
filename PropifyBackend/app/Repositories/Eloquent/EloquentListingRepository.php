@@ -198,9 +198,10 @@ final class EloquentListingRepository implements ListingRepository
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?int $packageId = null,
+        ?string $verificationStatus = null,
     ): LengthAwarePaginator {
         $criteria = ListingFilterCriteria::forAdmin(
-            $status, $demandType, $keyword, $searchField, $priceRange, $minPrice, $maxPrice, $packageId
+            $status, $demandType, $keyword, $searchField, $priceRange, $minPrice, $maxPrice, $packageId, $verificationStatus
         );
 
         return $this->adminBaseQuery($criteria)
@@ -231,9 +232,10 @@ final class EloquentListingRepository implements ListingRepository
         ?float $minPrice = null,
         ?float $maxPrice = null,
         ?int $packageId = null,
+        ?string $verificationStatus = null,
     ): array {
         $criteria = ListingFilterCriteria::forAdmin(
-            null, $demandType, $keyword, $searchField, $priceRange, $minPrice, $maxPrice, $packageId
+            null, $demandType, $keyword, $searchField, $priceRange, $minPrice, $maxPrice, $packageId, $verificationStatus
         );
 
         $counts = $this->adminBaseQuery($criteria)
@@ -336,6 +338,9 @@ final class EloquentListingRepository implements ListingRepository
         $query
             ->when($criteria->demandType && $criteria->demandType !== 'all', function ($q) use ($criteria) {
                 $q->where('demand_type', strtoupper($criteria->demandType));
+            })
+            ->when($criteria->verificationStatus && $criteria->verificationStatus !== 'all', function ($q) use ($criteria) {
+                $q->where('is_verified', strtoupper($criteria->verificationStatus));
             })
             ->when($criteria->packageId, function ($q) use ($criteria) {
                 $q->where('package_id', $criteria->packageId);
