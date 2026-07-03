@@ -51,12 +51,21 @@ export const useAuthStore = defineStore("auth", () => {
    * chỉ gọi /me nếu cache bị miss.
    */
   async function initAuth() {
-    const savedToken = getAccessToken();
+    let savedToken = getAccessToken();
     if (!savedToken) {
-      if (token.value) {
-        clearAuth();
+      try {
+        await authService.refreshToken(true);
+        savedToken = getAccessToken();
+      } catch (e) {
+        // Silent refresh failed -> genuinely logged out
       }
-      return;
+
+      if (!savedToken) {
+        if (token.value) {
+          clearAuth();
+        }
+        return;
+      }
     }
 
     if (roleFromToken(savedToken) === "ADMIN") {
