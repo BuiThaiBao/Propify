@@ -102,8 +102,8 @@ const authService = {
     });
   },
 
-  refreshToken() {
-    return api.post("/v1/auth/refresh");
+  refreshToken(silent = false) {
+    return api.post("/v1/auth/refresh", {}, { _silent: silent });
   },
 };
 

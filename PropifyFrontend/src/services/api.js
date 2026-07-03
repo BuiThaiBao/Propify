@@ -65,7 +65,9 @@ api.interceptors.response.use(
       originalRequest.url.includes("/refresh");
 
     if (isRefreshEndpoint) {
-      router.push({ name: "Home" });
+      if (!originalRequest._silent) {
+        router.push({ name: "Home" });
+      }
       return Promise.reject(error);
     }
 
