@@ -2,9 +2,11 @@
 
 namespace App\Support;
 
+use App\Models\Attribute;
+
 final class ListingPostingOptions
 {
-    public static function all(): array
+    public static function all(?array $dynamicAmenities = null): array
     {
         return [
             'demand_types' => [
@@ -61,7 +63,7 @@ final class ListingPostingOptions
                 ['value' => 'HANDWRITTEN', 'label' => 'Viết tay'],
             ],
             'quick_numbers' => [1, 2, 3, 4, 5],
-            'amenities' => [
+            'amenities' => $dynamicAmenities ?? [
                 ['value' => 'Sân chơi', 'label' => 'Sân chơi'],
                 ['value' => 'Bể bơi', 'label' => 'Bể bơi'],
                 ['value' => 'Sân vườn', 'label' => 'Sân vườn'],
@@ -205,7 +207,10 @@ final class ListingPostingOptions
                 ...array_column($options['property_types']['legacy'], 'value'),
             ])),
             'legal_paper_types' => array_column($options['legal_paper_types'], 'value'),
-            'amenities' => array_column($options['amenities'], 'value'),
+            'amenities' => Attribute::query()
+                ->whereHas('group', fn ($q) => $q->where('code', 'amenities'))
+                ->pluck('name')
+                ->toArray(),
             'directions' => array_column($options['directions'], 'value'),
             'furniture_statuses' => array_column($options['furniture_statuses'], 'value'),
             'poster_types' => array_column($options['poster_types'], 'value'),

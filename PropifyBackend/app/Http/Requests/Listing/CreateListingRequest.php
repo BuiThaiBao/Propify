@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Listing;
 
 use App\DTOs\Listing\CreateListingDto;
+use App\Models\Attribute;
 use App\Support\ListingPostingOptions;
 use App\Support\ListingVerificationStatusResolver;
 use Illuminate\Foundation\Http\FormRequest;
@@ -63,7 +64,12 @@ final class CreateListingRequest extends FormRequest
             'attribute_ids' => ['nullable', 'array'],
             'attribute_ids.*' => ['integer', 'exists:attributes,id'],
             'amenities' => ['nullable', 'array'],
-            'amenities.*' => ['string', 'max:100', Rule::in(ListingPostingOptions::values('amenities'))],
+            'amenities.*' => ['string', 'max:100', Rule::in(
+                Attribute::query()
+                    ->whereHas('group', fn ($q) => $q->where('code', 'amenities'))
+                    ->pluck('name')
+                    ->toArray()
+            )],
             'legal_paper_types' => ['nullable', 'array'],
             'legal_paper_types.*' => ['string', 'max:100', Rule::in(ListingPostingOptions::values('legal_paper_types'))],
             'public_info_agreed' => ['nullable', 'boolean'],
