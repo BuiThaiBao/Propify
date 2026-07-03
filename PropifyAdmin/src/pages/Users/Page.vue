@@ -1,10 +1,10 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import StatusBadge from '@/components/shared/StatusBadge.vue'
 import { userService } from '@/services/userService'
-import { DataTable, Pagination, Modal, ErrorState } from '@/components/crud'
+import { Pagination, Modal, ErrorState } from '@/components/crud'
 import {
   Search,
   Filter,
@@ -14,13 +14,48 @@ import {
   Phone,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Users,
   X,
+  MoreHorizontal,
 } from 'lucide-vue-next'
 
 const router = useRouter()
 
-// ─── Lock Reasons ─────────────────────────────────────────────────────────────
+const actionLoading = ref(false)
+
+// ─── Action Menu State ────────────────────────────────────────────────────────
+const activeMenuId = ref(null)
+const menuPosition = ref({ top: 0, left: 0 })
+
+function toggleMenu(user, event) {
+  if (activeMenuId.value === user.id) {
+    activeMenuId.value = null
+    return
+  }
+
+  const rect = event.currentTarget.getBoundingClientRect()
+  const menuWidth = 128
+  const left = Math.max(12, rect.left - menuWidth - 8)
+
+  menuPosition.value = {
+    top: rect.top,
+    left,
+  }
+  activeMenuId.value = user.id
+}
+
+function closeMenu() {
+  activeMenuId.value = null
+}
+
+function handleDocumentClick(event) {
+  if (!event.target.closest('.action-menu') && !event.target.closest('.more-btn')) {
+    closeMenu()
+  }
+}
+
+// ─── API & Data ───────────────────────────────────────────────────────────────
 const LOCK_REASONS = [
   { code: 1, label: 'Đăng tin giả mạo hoặc sai sự thật' },
   { code: 2, label: 'Lừa đảo, chiếm đoạt tài sản' },
@@ -59,8 +94,6 @@ const lockReasonError = ref('')
 // Unlock Modal refs
 const unlockModalOpen = ref(false)
 const unlockSelectedUserId = ref(null)
-
-const actionLoading = ref(false)
 
 // Search debounce
 let searchTimer = null
@@ -150,13 +183,9 @@ function goToPage(page) {
   fetchUsers()
 }
 
-function goToUserDetail(user) {
-  if (!user?.id) return
-  router.push({ name: 'UserDetail', params: { id: user.id } })
-}
-
 // ─── Lock / Unlock Modal Actions ────────────────────────────────────────────────
 function openToggleModal(user) {
+  closeMenu()
   if (user.status === 'locked') {
     unlockSelectedUserId.value = user.id
     unlockModalOpen.value = true
@@ -225,7 +254,18 @@ async function handleUnlockConfirm() {
   }
 }
 
-onMounted(fetchUsers)
+onMounted(() => {
+  fetchUsers()
+  document.addEventListener('click', handleDocumentClick)
+  window.addEventListener('resize', closeMenu)
+  window.addEventListener('scroll', closeMenu, true)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+  window.removeEventListener('resize', closeMenu)
+  window.removeEventListener('scroll', closeMenu, true)
+})
 </script>
 
 <template>
@@ -235,61 +275,59 @@ onMounted(fetchUsers)
       description="Quản lý người dùng và môi giới trên hệ thống"
     />
 
-    <div class="stats-bar">
-      <div class="stat-card">
-        <Users :size="18" class="stat-icon" />
-        <div>
-          <p class="stat-num">{{ total.toLocaleString() }}</p>
-          <p class="stat-label">Tổng tài khoản</p>
+    <div class="filter-main">
+      <div class="search-control">
+        <div class="search-input-wrap">
+          <input
+            v-model="search"
+            @input="onSearchInput"
+            type="text"
+            placeholder="Tìm kiếm theo tên, email, số điện thoại..."
+            class="search-input"
+            id="users-search"
+          />
+          <Search :size="22" class="search-icon" />
         </div>
       </div>
-      <div class="stat-card stat-google">
-        <svg class="google-logo-stat" viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">
-          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-        </svg>
-        <div>
-          <p class="stat-num stat-num-google">{{ googleCount }}</p>
-          <p class="stat-label">Tài khoản Google</p>
-        </div>
-      </div>
-      <div class="stat-card stat-email">
-        <Mail :size="18" class="stat-icon-email" />
-        <div>
-          <p class="stat-num">{{ emailCount }}</p>
-          <p class="stat-label">Tài khoản Email</p>
+      <div class="filter-selects">
+        <div class="custom-select">
+          <select v-model="roleFilter" @change="onFilterChange" class="filter-trigger" id="users-role-filter">
+            <option value="all">Tất cả vai trò</option>
+            <option value="user">Người dùng</option>
+            <option value="agent">Môi giới</option>
+          </select>
+          <ChevronDown :size="17" class="select-icon" />
         </div>
       </div>
     </div>
 
-    <!-- Filters -->
-    <div class="filter-bar">
-      <div class="filter-search">
-        <Search :size="16" class="search-icon" />
-        <input
-          v-model="search"
-          @input="onSearchInput"
-          type="text"
-          placeholder="Tìm kiếm theo tên, email, số điện thoại..."
-          class="filter-input"
-          id="users-search"
-        />
-      </div>
-      <div class="filter-right">
-        <Filter :size="16" color="hsl(215,16%,47%)" />
-        <select v-model="roleFilter" @change="onFilterChange" class="filter-select" id="users-role-filter">
-          <option value="all">Tất cả vai trò</option>
-          <option value="user">Người dùng</option>
-          <option value="agent">Môi giới</option>
-        </select>
-        <select v-model="authTypeFilter" @change="onFilterChange" class="filter-select" id="users-auth-filter">
-          <option value="all">Tất cả loại ĐN</option>
-          <option value="google">Google</option>
-          <option value="email">Email</option>
-        </select>
-      </div>
+    <div class="status-tabs">
+      <button
+        type="button"
+        class="status-tab"
+        :class="{ active: authTypeFilter === 'all' }"
+        @click="authTypeFilter = 'all'; currentPage = 1; fetchUsers()"
+      >
+        Tổng tài khoản <span class="status-count">{{ total.toLocaleString() }}</span>
+      </button>
+      <button
+        type="button"
+        class="status-tab"
+        :class="{ active: authTypeFilter === 'google' }"
+        @click="authTypeFilter = 'google'; currentPage = 1; fetchUsers()"
+      >
+        <span class="status-dot" style="background: #4285F4"></span>
+        Tài khoản Google <span class="status-count">{{ googleCount }}</span>
+      </button>
+      <button
+        type="button"
+        class="status-tab"
+        :class="{ active: authTypeFilter === 'email' }"
+        @click="authTypeFilter = 'email'; currentPage = 1; fetchUsers()"
+      >
+        <span class="status-dot" style="background: #10b981"></span>
+        Tài khoản Email <span class="status-count">{{ emailCount }}</span>
+      </button>
     </div>
 
     <!-- Error -->
@@ -301,76 +339,123 @@ onMounted(fetchUsers)
     />
 
     <!-- Table -->
-    <div class="bg-card border border-border/50 rounded-xl shadow-card overflow-hidden">
-      <DataTable
-        :columns="tableColumns"
-        :rows="normalizedUsers"
-        :loading="loading"
-        empty-text="Không tìm thấy tài khoản"
-        @row-click="goToUserDetail"
+    <div class="users-table-wrap">
+      <div class="users-table-scroll">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th class="col-user">Người dùng</th>
+              <th class="col-contact">Liên hệ</th>
+              <th class="col-auth">Đăng nhập</th>
+              <th class="col-role">Vai trò</th>
+              <th class="col-posts">Tin đăng</th>
+              <th class="sticky-right sticky-status col-status">Trạng thái</th>
+              <th class="sticky-right sticky-action action-cell"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="loading">
+              <td colspan="7" class="state-cell">Đang tải dữ liệu...</td>
+            </tr>
+            <tr v-else-if="error">
+              <td colspan="7" class="state-cell error-cell">{{ error }}</td>
+            </tr>
+            <tr v-else-if="normalizedUsers.length === 0">
+              <td colspan="7" class="state-cell">Không tìm thấy tài khoản</td>
+            </tr>
+            <tr
+              v-else
+              v-for="row in normalizedUsers"
+              :key="row.id"
+            >
+              <td>
+                <div class="flex items-center gap-3">
+                  <div class="relative shrink-0">
+                    <img v-if="row.avatarUrl" :src="row.avatarUrl" :alt="row.name" class="w-9 h-9 rounded-full object-cover border border-border" />
+                    <div v-else class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" :style="{ backgroundColor: row.avatarBg, color: row.avatarColor }">{{ row.initial }}</div>
+                    <span v-if="row.isGoogleAccount" class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white rounded-full border border-border flex items-center justify-center shadow-sm">
+                      <svg viewBox="0 0 24 24" width="10" height="10"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                    </span>
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-foreground m-0">{{ row.name }}</p>
+                    <p class="text-xs text-muted-foreground m-0">{{ row.joinDate }}</p>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <div class="flex flex-col gap-1">
+                  <p class="text-xs flex items-center gap-1 m-0"><Mail :size="12" class="text-muted-foreground shrink-0" /> {{ row.email }}</p>
+                  <p class="text-xs flex items-center gap-1 m-0"><Phone :size="12" class="text-muted-foreground shrink-0" /> {{ row.phone || '—' }}</p>
+                </div>
+              </td>
+              <td>
+                <span v-if="row.isGoogleAccount" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                  <svg viewBox="0 0 24 24" width="12" height="12"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                  Google
+                </span>
+                <span v-else class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                  <Mail :size="12" /> Email
+                </span>
+              </td>
+              <td>
+                <span class="inline-flex px-2 py-0.5 rounded text-xs font-semibold"
+                  :class="row.role === 'agent' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'">
+                  {{ row.roleLabel }}
+                </span>
+              </td>
+              <td>
+                {{ row.posts }}
+              </td>
+              <td class="sticky-right sticky-status col-status">
+                <StatusBadge :status="row.status === 'locked' ? 'locked' : 'approved'" :label="row.statusLabel" />
+              </td>
+              <td class="sticky-right sticky-action action-cell">
+                <button
+                  class="more-btn"
+                  :disabled="actionLoading"
+                  :aria-label="`Mở thao tác tài khoản ${row.id}`"
+                  @click.stop="toggleMenu(row, $event)"
+                >
+                  <MoreHorizontal :size="20" />
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div
+        v-if="activeMenuId"
+        class="action-menu"
+        :style="{ top: `${menuPosition.top}px`, left: `${menuPosition.left}px` }"
+        @click.stop
       >
-        <template #cell(userInfo)="{ row }">
-          <div class="flex items-center gap-3">
-            <div class="relative shrink-0">
-              <img v-if="row.avatarUrl" :src="row.avatarUrl" :alt="row.name" class="w-9 h-9 rounded-full object-cover border border-border" />
-              <div v-else class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold" :style="{ backgroundColor: row.avatarBg, color: row.avatarColor }">{{ row.initial }}</div>
-              <span v-if="row.isGoogleAccount" class="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-white rounded-full border border-border flex items-center justify-center shadow-sm">
-                <svg viewBox="0 0 24 24" width="10" height="10"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-              </span>
-            </div>
-            <div>
-              <p class="text-sm font-semibold text-foreground m-0">{{ row.name }}</p>
-              <p class="text-xs text-muted-foreground m-0">{{ row.joinDate }}</p>
-            </div>
-          </div>
-        </template>
-        <template #cell(contact)="{ row }">
-          <div class="flex flex-col gap-1">
-            <p class="text-xs flex items-center gap-1 m-0"><Mail :size="12" class="text-muted-foreground shrink-0" /> {{ row.email }}</p>
-            <p class="text-xs flex items-center gap-1 m-0"><Phone :size="12" class="text-muted-foreground shrink-0" /> {{ row.phone || '—' }}</p>
-          </div>
-        </template>
-        <template #cell(authType)="{ row }">
-          <span v-if="row.isGoogleAccount" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-            <svg viewBox="0 0 24 24" width="12" height="12"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-            Google
-          </span>
-          <span v-else class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
-            <Mail :size="12" /> Email
-          </span>
-        </template>
-        <template #cell(role)="{ row }">
-          <span class="inline-flex px-2 py-0.5 rounded text-xs font-semibold"
-            :class="row.role === 'agent' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'">
-            {{ row.roleLabel }}
-          </span>
-        </template>
-        <template #cell(status)="{ row }">
-          <StatusBadge :status="row.status === 'locked' ? 'locked' : 'approved'" :label="row.statusLabel" />
-        </template>
-        <template #actions="{ row }">
+        <template v-for="row in normalizedUsers" :key="row.id">
           <button
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer"
-            :class="row.status === 'locked'
-              ? 'bg-success/10 border-success/30 text-success hover:bg-success/20'
-              : 'bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20'"
-            @click.stop="openToggleModal(row._raw)"
+            v-show="activeMenuId === row.id"
+            class="action-menu-item"
+            :class="row.status === 'locked' ? 'approve-action' : 'lock-action'"
+            :disabled="actionLoading"
+            @click="openToggleModal(row._raw)"
           >
-            <component :is="row.status === 'locked' ? Unlock : Lock" :size="14" />
-            {{ row.status === 'locked' ? 'Mở khóa' : 'Khóa' }}
+            <component :is="row.status === 'locked' ? Unlock : Lock" :size="15" />
+            <span>{{ row.status === 'locked' ? 'Mở khóa' : 'Khóa' }}</span>
           </button>
         </template>
-      </DataTable>
+      </div>
 
-      <Pagination
-        v-if="total > 0"
-        :current-page="currentPage"
-        :last-page="lastPage"
-        :total="total"
-        :per-page="perPage"
-        :loading="loading"
-        @page-change="goToPage"
-      />
+      <div class="px-5 py-4 border-t border-[#e7edf5] bg-white">
+        <Pagination
+          v-if="total > 0"
+          :current-page="currentPage"
+          :last-page="lastPage"
+          :total="total"
+          :per-page="perPage"
+          :loading="loading"
+          @page-change="goToPage"
+        />
+      </div>
     </div>
 
     <!-- LOCK MODAL -->
@@ -432,12 +517,320 @@ onMounted(fetchUsers)
 
 <style scoped>
 .users-list-container { width: 100%; }
-.stats-bar { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
-.stat-card { display: flex; align-items: center; gap: 12px; background-color: hsl(var(--card)); border: 1px solid hsl(var(--border) / 0.5); border-radius: 12px; padding: 12px 18px; box-shadow: var(--shadow-card); min-width: 160px; }
-.filter-bar { background-color: hsl(var(--card)); border-radius: 12px; padding: 16px; box-shadow: var(--shadow-card); border: 1px solid hsl(var(--border) / 0.5); margin-bottom: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
-.filter-search { flex: 1; min-width: 240px; position: relative; }
-.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: hsl(var(--muted-foreground)); }
-.filter-input { width: 100%; padding: 8px 16px 8px 40px; background-color: hsl(var(--muted)); border: none; border-radius: 8px; font-size: 14px; color: hsl(var(--foreground)); outline: none; box-sizing: border-box; }
-.filter-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.filter-select { background-color: hsl(var(--muted)); font-size: 14px; border-radius: 8px; padding: 8px 12px; border: none; color: hsl(var(--foreground)); outline: none; cursor: pointer; }
+
+.filter-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #e8edf5;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+  margin-bottom: 16px;
+}
+
+.search-control {
+  min-width: 380px;
+  display: flex;
+  align-items: center;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  flex: 1;
+}
+
+.search-input-wrap {
+  min-width: 0;
+  flex: 1;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  height: 38px;
+  border: 0;
+  padding: 0 42px 0 12px;
+  color: #0f172a;
+  font-size: 13px;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: #94a3b8;
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: #172554;
+}
+
+.filter-selects {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.custom-select {
+  position: relative;
+  min-width: 158px;
+}
+
+.filter-trigger {
+  width: 100%;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 11px 0 13px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #fff;
+  color: #1e3a5f;
+  font-size: 13px;
+  line-height: 1.35;
+  cursor: pointer;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+  appearance: none;
+}
+
+.filter-trigger:hover {
+  border-color: #93c5fd;
+  background: #f8fbff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.select-icon {
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #172554;
+}
+
+.status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: 24px;
+}
+
+.status-tab {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  border: 1px solid #e7edf5;
+  border-radius: 999px;
+  background: #fff;
+  color: #64748b;
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+.status-tab.active {
+  border-color: #0ea5e9;
+  color: #0284c7;
+  background: #f0f9ff;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+}
+
+.status-count {
+  color: inherit;
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .filter-main {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search-control,
+  .custom-select,
+  .filter-selects {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    margin-left: 0;
+  }
+}
+
+.users-table-wrap {
+  background: #ffffff;
+  border: 1px solid #e7edf5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.users-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.users-table {
+  width: 100%;
+  min-width: 1000px;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: #1b365d;
+  font-size: 14px;
+}
+
+.users-table th,
+.users-table td {
+  min-height: 64px;
+  padding: 14px 12px;
+  border-bottom: 1px solid #f0f3f7;
+  background: #ffffff;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.users-table th {
+  height: 44px;
+  min-height: 44px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #f1f3f6;
+  color: #40536f;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.users-table tbody tr:nth-child(even) td {
+  background: #f7f8fa;
+}
+
+.users-table tbody tr:hover td {
+  background: #f1f6ff;
+}
+
+.sticky-right {
+  position: sticky;
+  z-index: 3;
+  box-shadow: -1px 0 0 #e8edf3;
+}
+
+.sticky-action {
+  right: 0;
+}
+
+.sticky-status {
+  right: 56px;
+}
+
+thead .sticky-right {
+  z-index: 8;
+}
+
+.col-user { width: 25%; }
+.col-contact { width: 25%; }
+.col-auth { width: 15%; }
+.col-role { width: 12%; }
+.col-posts { width: 8%; }
+.col-status {
+  width: 130px;
+  min-width: 130px;
+}
+
+.action-cell {
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  text-align: center !important;
+}
+
+.more-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #17365f;
+  cursor: pointer;
+}
+
+.more-btn:hover {
+  background: #e8eef7;
+}
+
+.more-btn:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.action-menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 128px;
+  overflow: hidden;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+}
+
+.action-menu-item {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  background: #ffffff;
+  color: #17365f;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.action-menu-item:hover:not(:disabled) {
+  background: #f4f7fb;
+}
+
+.action-menu-item:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.approve-action {
+  color: #059669;
+}
+
+.lock-action {
+  color: #475569;
+}
+
+.state-cell {
+  text-align: center !important;
+  color: #64748b;
+  padding: 40px !important;
+}
+
+.error-cell {
+  color: #ef4444;
+}
 </style>

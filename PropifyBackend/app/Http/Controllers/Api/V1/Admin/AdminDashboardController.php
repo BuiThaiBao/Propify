@@ -9,13 +9,27 @@ use App\Models\Transaction;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 final class AdminDashboardController extends Controller
 {
-    public function stats(): JsonResponse
+    public function stats(Request $request): JsonResponse
     {
+        $validated = $request->validate([
+            'period' => 'nullable|string|in:month,quarter,year,custom',
+            'from_date' => 'nullable|required_if:period,custom|date',
+            'to_date' => 'nullable|required_if:period,custom|date|after_or_equal:from_date',
+        ]);
+
+        $period = $validated['period'] ?? 'year';
+        [$fromDate, $toDate] = $this->resolveDateRange($validated);
+        $previousDays = $fromDate->diffInDays($toDate) + 1;
+        $previousToDate = $fromDate->copy()->subDay();
+        $previousFromDate = $previousToDate->copy()->subDays($previousDays - 1);
+
         $listingCounts = Listing::query()
+            ->whereBetween('created_at', [$fromDate->copy()->startOfDay(), $toDate->copy()->endOfDay()])
             ->selectRaw('status, COUNT(*) as count')
             ->groupBy('status')
             ->pluck('count', 'status');
@@ -26,37 +40,60 @@ final class AdminDashboardController extends Controller
         $pendingListings = (int) ($listingCounts['PENDING'] ?? 0);
         $lockedListings = (int) ($listingCounts['LOCKED'] ?? 0);
 
-        $totalUsers = User::where('role', '!=', 'ADMIN')->count();
-        $totalRevenue = (float) Transaction::where('status', 'SUCCESS')->sum('amount');
+        $totalUsers = User::where('role', '!=', 'ADMIN')
+            ->whereBetween('created_at', [$fromDate->copy()->startOfDay(), $toDate->copy()->endOfDay()])
+            ->count();
 
-        $currentMonth = Carbon::now();
-        $lastMonth = Carbon::now()->subMonth();
-
-        $currentMonthRevenue = (float) Transaction::where('status', 'SUCCESS')
-            ->whereYear('transaction_date', $currentMonth->year)
-            ->whereMonth('transaction_date', $currentMonth->month)
+        $currentRevenue = (float) Transaction::where('status', 'SUCCESS')
+            ->whereBetween('transaction_date', [$fromDate->copy()->startOfDay(), $toDate->copy()->endOfDay()])
+            ->sum('amount');
+            
+        $previousRevenue = (float) Transaction::where('status', 'SUCCESS')
+            ->whereBetween('transaction_date', [$previousFromDate->copy()->startOfDay(), $previousToDate->copy()->endOfDay()])
             ->sum('amount');
 
-        $lastMonthRevenue = (float) Transaction::where('status', 'SUCCESS')
-            ->whereYear('transaction_date', $lastMonth->year)
-            ->whereMonth('transaction_date', $lastMonth->month)
-            ->sum('amount');
+        $currentListings = Listing::whereBetween('created_at', [$fromDate->copy()->startOfDay(), $toDate->copy()->endOfDay()])->count();
+        $previousListings = Listing::whereBetween('created_at', [$previousFromDate->copy()->startOfDay(), $previousToDate->copy()->endOfDay()])->count();
 
-        $currentMonthListings = Listing::whereYear('created_at', $currentMonth->year)
-            ->whereMonth('created_at', $currentMonth->month)->count();
-        $lastMonthListings = Listing::whereYear('created_at', $lastMonth->year)
-            ->whereMonth('created_at', $lastMonth->month)->count();
-
-        $currentYear = Carbon::now()->year;
-        $monthlyRevenue = Transaction::where('status', 'SUCCESS')
-            ->whereYear('transaction_date', $currentYear)
-            ->selectRaw('MONTH(transaction_date) as month, SUM(amount) as revenue')
-            ->groupByRaw('MONTH(transaction_date)')
-            ->pluck('revenue', 'month');
-
+        // If period is month or custom and < 60 days, group by day, else group by month
+        $daysDiff = $fromDate->diffInDays($toDate);
         $revenueChart = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $revenueChart[] = ['month' => 'T'.$m, 'revenue' => (float) ($monthlyRevenue[$m] ?? 0)];
+        
+        if ($daysDiff <= 60) {
+            $dailyRevenueRows = Transaction::where('status', 'SUCCESS')
+                ->whereBetween('transaction_date', [$fromDate->copy()->startOfDay(), $toDate->copy()->endOfDay()])
+                ->selectRaw('DATE(transaction_date) as date, SUM(amount) as revenue')
+                ->groupByRaw('DATE(transaction_date)')
+                ->pluck('revenue', 'date');
+                
+            $cursor = $fromDate->copy();
+            while ($cursor <= $toDate) {
+                $dateStr = $cursor->toDateString();
+                $revenueChart[] = [
+                    'month' => $cursor->format('d/m'), 
+                    'revenue' => (float) ($dailyRevenueRows[$dateStr] ?? 0)
+                ];
+                $cursor->addDay();
+            }
+        } else {
+            $monthlyRevenueRows = Transaction::where('status', 'SUCCESS')
+                ->whereBetween('transaction_date', [$fromDate->copy()->startOfDay(), $toDate->copy()->endOfDay()])
+                ->selectRaw('YEAR(transaction_date) as year, MONTH(transaction_date) as month, SUM(amount) as revenue')
+                ->groupByRaw('YEAR(transaction_date), MONTH(transaction_date)')
+                ->get()
+                ->keyBy(fn ($row) => $row->year.'-'.$row->month);
+                
+            $cursor = $fromDate->copy()->startOfMonth();
+            $lastMonth = $toDate->copy()->startOfMonth();
+            while ($cursor <= $lastMonth) {
+                $key = $cursor->year.'-'.$cursor->month;
+                $row = $monthlyRevenueRows->get($key);
+                $revenueChart[] = [
+                    'month' => $cursor->year === $toDate->year ? 'T'.$cursor->month : 'T'.$cursor->month.'/'.$cursor->year,
+                    'revenue' => (float) ($row?->revenue ?? 0)
+                ];
+                $cursor->addMonth();
+            }
         }
 
         $recentActivities = AuditLog::with('actor:id,full_name,email')
@@ -70,12 +107,48 @@ final class AdminDashboardController extends Controller
             ]);
 
         return ApiResponse::success(data: [
+            'period' => $period,
+            'label' => $this->revenuePeriodLabel($period, $fromDate, $toDate),
             'listings' => ['total' => $totalListings, 'approved' => $approvedListings, 'rejected' => $rejectedListings, 'pending' => $pendingListings, 'locked' => $lockedListings],
             'users' => ['total' => $totalUsers],
-            'revenue' => ['total' => $totalRevenue, 'current_month' => $currentMonthRevenue, 'last_month' => $lastMonthRevenue],
-            'listings_change' => ['current_month' => $currentMonthListings, 'last_month' => $lastMonthListings],
+            'revenue' => ['total' => $currentRevenue, 'current_month' => $currentRevenue, 'last_month' => $previousRevenue], // Kept current_month/last_month for backwards compatibility
+            'listings_change' => ['current_month' => $currentListings, 'last_month' => $previousListings],
             'revenue_chart' => $revenueChart,
             'recent_activities' => $recentActivities,
         ], message: 'Lay thong ke dashboard thanh cong.');
+    }
+    
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function resolveDateRange(array $validated): array
+    {
+        $period = $validated['period'] ?? 'year';
+        $now = Carbon::now();
+
+        if ($period === 'custom') {
+            return [
+                Carbon::parse($validated['from_date'])->startOfDay(),
+                Carbon::parse($validated['to_date'])->endOfDay(),
+            ];
+        }
+
+        $fromDate = match ($period) {
+            'month' => $now->copy()->startOfMonth(),
+            'quarter' => $now->copy()->startOfQuarter(),
+            default => $now->copy()->startOfYear(),
+        };
+
+        return [$fromDate->startOfDay(), $now->copy()->endOfDay()];
+    }
+
+    private function revenuePeriodLabel(string $period, Carbon $fromDate, Carbon $toDate): string
+    {
+        return match ($period) {
+            'month' => 'Tháng này',
+            'quarter' => 'Quý này',
+            'custom' => $fromDate->format('d/m/Y').' - '.$toDate->format('d/m/Y'),
+            default => 'Năm nay',
+        };
     }
 }

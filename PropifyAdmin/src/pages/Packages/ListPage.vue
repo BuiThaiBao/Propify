@@ -279,9 +279,9 @@ function handleToggleActive(pkg) {
 }
 
 .status-tab-active {
-  border-color: #b8dcff;
-  background: #eef7ff;
-  color: #18a8e6;
+  border-color: #0ea5e9;
+  color: #0284c7;
+  background: #f0f9ff;
 }
 
 .status-dot {
@@ -299,7 +299,7 @@ function handleToggleActive(pkg) {
 }
 
 .status-tab-active strong {
-  color: #18a8e6;
+  color: #0284c7;
 }
 
 .state-text {

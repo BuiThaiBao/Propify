@@ -16,7 +16,7 @@ import {
 } from 'lucide-vue-next'
 import PageHeader from '@/components/shared/PageHeader.vue'
 import StatCard from '@/components/shared/StatCard.vue'
-import { DataTable, Pagination, Modal } from '@/components/crud'
+import { Pagination, Modal } from '@/components/crud'
 import { useTransactionApi } from '@/composables/useTransactionApi'
 import { usePackageApi } from '@/composables/usePackageApi'
 import {
@@ -49,8 +49,6 @@ const filters = ref({
   package_id: '',
   from_date: '',
   to_date: '',
-  min_amount: '',
-  max_amount: '',
 })
 
 // Danh sách các gói tin để hiển thị trong select filter
@@ -87,8 +85,6 @@ async function loadTransactions(page = 1) {
       package_id: filters.value.package_id || undefined,
       from_date: filters.value.from_date || undefined,
       to_date: filters.value.to_date || undefined,
-      min_amount: filters.value.min_amount || undefined,
-      max_amount: filters.value.max_amount || undefined,
     }
 
     const res = await fetchTransactions(params)
@@ -111,8 +107,6 @@ function resetFilters() {
     package_id: '',
     from_date: '',
     to_date: '',
-    min_amount: '',
-    max_amount: '',
   }
   searchDebounced.value = ''
   loadTransactions(1)
@@ -137,8 +131,6 @@ watch(
     () => filters.value.package_id,
     () => filters.value.from_date,
     () => filters.value.to_date,
-    () => filters.value.min_amount,
-    () => filters.value.max_amount,
   ],
   () => {
     loadTransactions(1)
@@ -211,8 +203,6 @@ async function handleExport(format) {
       package_id: filters.value.package_id || undefined,
       from_date: filters.value.from_date || undefined,
       to_date: filters.value.to_date || undefined,
-      min_amount: filters.value.min_amount || undefined,
-      max_amount: filters.value.max_amount || undefined,
     }
     await exportReport(format, params)
   } catch (err) {
@@ -220,16 +210,6 @@ async function handleExport(format) {
   }
 }
 
-const tableColumns = [
-  { key: 'code', label: 'Mã Giao Dịch', width: '130px' },
-  { key: 'customer', label: 'Khách Hàng', width: '20%', nowrap: false },
-  { key: 'package', label: 'Gói Tin', width: '15%' },
-  { key: 'amount', label: 'Số Tiền', width: '12%' },
-  { key: 'paymentMethod', label: 'Phương Thức', width: '110px' },
-  { key: 'transactionDate', label: 'Ngày Giao Dịch', width: '15%' },
-  { key: 'status', label: 'Trạng Thái', width: '12%' },
-  { key: 'note', label: 'Ghi Chú Kế Toán', width: '20%', nowrap: false },
-]
 
 const normalizedTxs = computed(() =>
   transactions.value.map((tx) => ({
@@ -377,29 +357,6 @@ onMounted(() => {
           <input id="filter-to-date" v-model="filters.to_date" type="date" class="form-input" />
         </div>
 
-        <!-- Số tiền từ -->
-        <div class="filter-item">
-          <label for="filter-min-amount" class="filter-label">Số tiền tối thiểu</label>
-          <input
-            id="filter-min-amount"
-            v-model="filters.min_amount"
-            type="number"
-            placeholder="VND"
-            class="form-input"
-          />
-        </div>
-
-        <!-- Số tiền đến -->
-        <div class="filter-item">
-          <label for="filter-max-amount" class="filter-label">Số tiền tối đa</label>
-          <input
-            id="filter-max-amount"
-            v-model="filters.max_amount"
-            type="number"
-            placeholder="VND"
-            class="form-input"
-          />
-        </div>
 
         <!-- Nút Reset -->
         <div class="filter-item flex items-end">
@@ -409,72 +366,97 @@ onMounted(() => {
     </div>
 
     <!-- Data table -->
-    <div class="bg-card border border-border/50 rounded-xl shadow-card overflow-hidden">
-      <DataTable
-        :columns="tableColumns"
-        :rows="normalizedTxs"
-        :loading="loading"
-        loading-text="Đang tải lịch sử giao dịch..."
-        empty-text="Không tìm thấy giao dịch nào"
-      >
-        <template #cell(code)="{ row }">
-          <div class="flex items-center gap-1.5">
-            <span class="font-semibold text-foreground font-mono text-xs">#{{ row.id }}</span>
-            <button
-              v-if="row.vnp_txn_ref"
-              class="inline-flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:bg-muted cursor-pointer border-none"
-              title="Copy mã tham chiếu"
-              @click="copyToClipboard(row.vnp_txn_ref, row.id)"
+    <div class="tx-table-wrap">
+      <div class="tx-table-scroll">
+        <table class="tx-table">
+          <thead>
+            <tr>
+              <th class="col-code">Mã Giao Dịch</th>
+              <th class="col-customer">Khách Hàng</th>
+              <th class="col-package">Gói Tin</th>
+              <th class="col-amount">Số Tiền</th>
+              <th class="col-method">Phương Thức</th>
+              <th class="col-date">Ngày Giao Dịch</th>
+              <th class="sticky-right col-status">Trạng Thái</th>
+              <th class="sticky-right sticky-action action-cell"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="loading">
+              <td colspan="9" class="state-cell">Đang tải lịch sử giao dịch...</td>
+            </tr>
+            <tr v-else-if="error">
+              <td colspan="9" class="state-cell error-cell">{{ error }}</td>
+            </tr>
+            <tr v-else-if="normalizedTxs.length === 0">
+              <td colspan="9" class="state-cell">Không tìm thấy giao dịch nào</td>
+            </tr>
+            <tr
+              v-else
+              v-for="row in normalizedTxs"
+              :key="row.id"
             >
-              <Check v-if="copiedId === row.id" :size="12" class="text-success" />
-              <Copy v-else :size="12" />
-            </button>
-          </div>
-          <div v-if="row.vnp_txn_ref" class="text-[10px] text-muted-foreground mt-0.5">Ref: {{ row.vnp_txn_ref }}</div>
-        </template>
-        <template #cell(customer)="{ row }">
-          <div class="font-medium text-foreground text-sm">{{ row.full_name }}</div>
-          <div class="text-xs text-muted-foreground mt-0.5">{{ row.phone }} | {{ row.email }}</div>
-        </template>
-        <template #cell(package)="{ row }">
-          <span class="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded" :class="getPackageBadgeClass(row.packageSlug)">
-            {{ row.packageName }}
-          </span>
-          <div class="text-[10px] text-muted-foreground mt-1">Thời hạn: {{ row.durationDays }} ngày</div>
-        </template>
-        <template #cell(amount)="{ value }">
-          <span class="font-semibold text-foreground text-sm">{{ value }}</span>
-        </template>
-        <template #cell(status)="{ row }">
-          <span class="px-2 py-0.5 rounded text-xs font-semibold"
-            :class="{
-              'bg-success/10 text-success': row.status === 'SUCCESS',
-              'bg-warning/10 text-warning': row.status === 'PENDING',
-              'bg-destructive/10 text-destructive': row.status === 'FAILED',
-              'bg-muted text-muted-foreground': row.status === 'EXPIRED',
-            }"
-          >{{ row.statusLabel }}</span>
-        </template>
-        <template #cell(note)="{ row }">
-          <div class="text-xs text-muted-foreground max-w-[200px] truncate" :title="row.latestNote">{{ row.latestNote || '-' }}</div>
-          <div v-if="row.latestNoteAuthor" class="text-[10px] text-muted-foreground/75 mt-0.5">Bởi {{ row.latestNoteAuthor }}</div>
-        </template>
-        <template #actions="{ row }">
-          <button class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition cursor-pointer border-none" @click="openDetail(row.id)" title="Xem chi tiết & đối soát">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
-          </button>
-        </template>
-      </DataTable>
+              <td>
+                <div class="flex items-center gap-1.5">
+                  <span class="font-semibold text-foreground font-mono text-xs">{{ row.code }}</span>
+                  <button
+                    v-if="row.vnp_txn_ref"
+                    class="inline-flex items-center justify-center w-5 h-5 rounded text-muted-foreground hover:bg-muted cursor-pointer border-none"
+                    title="Copy mã tham chiếu"
+                    @click="copyToClipboard(row.vnp_txn_ref, row.id)"
+                  >
+                    <Check v-if="copiedId === row.id" :size="12" class="text-success" />
+                    <Copy v-else :size="12" />
+                  </button>
+                </div>
+               
+              </td>
+              <td>
+                <div class="font-medium text-foreground text-sm">{{ row.full_name }}</div>
+                <div class="text-xs text-muted-foreground mt-0.5">{{ row.phone }} | {{ row.email }}</div>
+              </td>
+              <td>
+                <span class="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded" :class="getPackageBadgeClass(row.packageSlug)">
+                  {{ row.packageName }}
+                </span>
+                <div class="text-[10px] text-muted-foreground mt-1">Thời hạn: {{ row.durationDays }} ngày</div>
+              </td>
+              <td>
+                <span class="font-semibold text-foreground text-sm">{{ row.amount }}</span>
+              </td>
+              <td>{{ row.paymentMethod }}</td>
+              <td>{{ row.transactionDate }}</td>
+              <td class="sticky-right col-status">
+                <span class="px-2 py-0.5 rounded text-xs font-semibold"
+                  :class="{
+                    'bg-success/10 text-success': row.status === 'SUCCESS',
+                    'bg-warning/10 text-warning': row.status === 'PENDING',
+                    'bg-destructive/10 text-destructive': row.status === 'FAILED',
+                    'bg-muted text-muted-foreground': row.status === 'EXPIRED',
+                  }"
+                >{{ row.statusLabel }}</span>
+              </td>
+              <td class="sticky-right sticky-action action-cell">
+                <button class="more-btn" @click="openDetail(row.id)" title="Xem chi tiết & đối soát">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
-      <Pagination
-        v-if="meta.total > 0"
-        :current-page="meta.current_page"
-        :last-page="meta.last_page"
-        :total="meta.total"
-        :per-page="meta.per_page"
-        :loading="loading"
-        @page-change="loadTransactions"
-      />
+      <div class="px-5 py-4 border-t border-[#e7edf5] bg-white">
+        <Pagination
+          v-if="meta.total > 0"
+          :current-page="meta.current_page"
+          :last-page="meta.last_page"
+          :total="meta.total"
+          :per-page="meta.per_page"
+          :loading="loading"
+          @page-change="loadTransactions"
+        />
+      </div>
     </div>
 
     <!-- Detail Modal -->
@@ -587,7 +569,7 @@ onMounted(() => {
 
 <style scoped>
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.filter-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.filter-grid { display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr auto; gap: 16px; }
 .filter-label { display: block; font-size: 12px; font-weight: 600; color: hsl(var(--muted-foreground)); margin-bottom: 6px; }
 .form-input { width: 100%; height: 38px; padding: 0 12px; font-size: 13px; border: 1px solid hsl(var(--border)); border-radius: 8px; background-color: hsl(var(--card)); color: hsl(var(--foreground)); outline: none; box-sizing: border-box; }
 .form-input:focus { border-color: hsl(var(--primary)); box-shadow: 0 0 0 2px hsl(var(--primary) / 0.15); }
@@ -598,4 +580,120 @@ onMounted(() => {
 .btn-export { display: flex; align-items: center; gap: 8px; padding: 9px 16px; font-size: 13px; font-weight: 600; border: 1px solid hsl(var(--border)); border-radius: 8px; background-color: hsl(var(--card)); color: hsl(var(--foreground)); cursor: pointer; }
 @media (max-width: 1024px) { .stats-grid { grid-template-columns: 1fr; } .filter-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px) { .filter-grid { grid-template-columns: 1fr; } }
+
+.tx-table-wrap {
+  background: #ffffff;
+  border: 1px solid #e7edf5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tx-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+.tx-table {
+  width: 100%;
+  min-width: 1200px;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: #1b365d;
+  font-size: 14px;
+}
+
+.tx-table th,
+.tx-table td {
+  min-height: 64px;
+  padding: 14px 12px;
+  border-bottom: 1px solid #f0f3f7;
+  background: #ffffff;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.tx-table th {
+  height: 44px;
+  min-height: 44px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #f1f3f6;
+  color: #40536f;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tx-table tbody tr:nth-child(even) td {
+  background: #f7f8fa;
+}
+
+.tx-table tbody tr:hover td {
+  background: #f1f6ff;
+}
+
+.action-cell {
+  width: 56px;
+  min-width: 56px;
+  max-width: 56px;
+  text-align: center !important;
+}
+
+.state-cell {
+  text-align: center !important;
+  color: #64748b;
+  padding: 40px !important;
+}
+
+.error-cell {
+  color: #ef4444;
+}
+
+.sticky-right {
+  position: sticky;
+  z-index: 3;
+  box-shadow: -1px 0 0 #e8edf3;
+}
+
+.sticky-action {
+  right: 0;
+}
+
+.col-status {
+  width: 130px;
+  min-width: 130px;
+  right: 56px;
+}
+
+thead .sticky-right {
+  z-index: 8;
+}
+
+.more-btn {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #17365f;
+  cursor: pointer;
+}
+
+.more-btn:hover {
+  background: #e8eef7;
+}
+
+.col-code { width: 130px; }
+.col-customer { width: 20%; }
+.col-package { width: 15%; }
+.col-amount { width: 12%; }
+.col-method { width: 110px; }
+.col-date { width: 15%; }
+.col-note { width: 20%; }
 </style>
+
