@@ -119,9 +119,10 @@ const padT = 10
 const padB = 30
 
 const barWidth = computed(() => {
-  const count = getChartData().length || 1
+  const count = Math.max(getChartData().length, 1)
   const usableW = chartW - padL - padR
-  return Math.min(60, usableW / count * 0.5)
+  const slotWidth = usableW / count
+  return Math.min(60, Math.floor(slotWidth * 0.55))
 })
 
 function getChartData() {
@@ -133,10 +134,11 @@ function getMaxRev() {
   return Math.max(...data.map((d) => d.revenue), 1)
 }
 
-function getX(i) {
-  const len = getChartData().length
-  if (len <= 1) return padL
-  return padL + (i / (len - 1)) * (chartW - padL - padR)
+function getX(index) {
+  const count = Math.max(getChartData().length, 1)
+  const usableW = chartW - padL - padR
+  const slotWidth = usableW / count
+  return padL + slotWidth * index + slotWidth / 2
 }
 
 function getY(v) {
