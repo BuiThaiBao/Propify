@@ -85,8 +85,8 @@ const normalizedPosts = computed(() =>
     address: post.property?.address_detail || post.property?.project_name || '--',
     statusKey: mapAdminListingStatusKey(post.status),
     statusLabel: mapStatusLabel(post.status),
-    verificationKey: post.is_verified ? 'approved' : 'locked',
-    verificationLabel: post.is_verified ? 'Đã xác thực' : 'Chưa xác thực',
+    verificationKey: mapVerificationKey(post.is_verified),
+    verificationLabel: mapVerificationLabel(post.is_verified),
     createdAtText: formatAdminDateTime(post.created_at),
     submittedAtText: formatAdminDateTime(post.submitted_at),
     publishedAtText: formatAdminDateTime(post.published_at),
@@ -114,6 +114,28 @@ function mapStatusLabel(status) {
   return (
     props.statusOptions.find((option) => option.value === status)?.label || status || 'Chờ duyệt'
   )
+}
+
+function mapVerificationKey(status) {
+  switch (status) {
+    case 'VERIFIED': return 'approved'
+    case 'REQUESTED': return 'pending'
+    case 'REJECTED': return 'rejected'
+    case 'NOT_REQUIRED': return 'locked'
+    case 'UNVERIFIED': return 'locked'
+    default: return 'locked'
+  }
+}
+
+function mapVerificationLabel(status) {
+  switch (status) {
+    case 'VERIFIED': return 'Đã xác thực'
+    case 'REQUESTED': return 'Chờ xác thực'
+    case 'REJECTED': return 'Từ chối'
+    case 'NOT_REQUIRED': return 'Không yêu cầu'
+    case 'UNVERIFIED': return 'Chưa xác thực'
+    default: return 'Chưa xác thực'
+  }
 }
 
 function adminStatusLabel(status) {
