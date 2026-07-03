@@ -128,10 +128,8 @@ const isRentListing = computed(() => post.value?.demand_type === 'RENT')
 
 const statusKey = computed(() => mapAdminListingStatusKey(post.value?.status))
 const statusLabel = computed(() => mapStatusLabel(post.value?.status))
-const verificationKey = computed(() => (post.value?.is_verified ? 'approved' : 'locked'))
-const verificationLabel = computed(() =>
-  post.value?.is_verified ? 'Đã xác thực' : 'Chưa xác thực',
-)
+const verificationKey = computed(() => mapVerificationKey(post.value?.is_verified))
+const verificationLabel = computed(() => mapVerificationLabel(post.value?.is_verified))
 const canShowVerificationActions = computed(() => {
   return isSaleListing.value && post.value?.status === 'ACTIVE' && docs.value.length > 0
 })
@@ -229,6 +227,28 @@ function mapStatusLabel(status) {
     status ||
     'Chờ duyệt'
   )
+}
+
+function mapVerificationKey(status) {
+  switch (status) {
+    case 'VERIFIED': return 'approved'
+    case 'REQUESTED': return 'pending'
+    case 'REJECTED': return 'rejected'
+    case 'NOT_REQUIRED': return 'locked'
+    case 'UNVERIFIED': return 'locked'
+    default: return 'locked'
+  }
+}
+
+function mapVerificationLabel(status) {
+  switch (status) {
+    case 'VERIFIED': return 'Đã xác thực'
+    case 'REQUESTED': return 'Chờ xác thực'
+    case 'REJECTED': return 'Từ chối'
+    case 'NOT_REQUIRED': return 'Không yêu cầu'
+    case 'UNVERIFIED': return 'Chưa xác thực'
+    default: return 'Chưa xác thực'
+  }
 }
 
 function adminStatusLabel(status) {
@@ -931,7 +951,7 @@ onBeforeUnmount(() => {
                 <Ban :size="15" /> Từ chối
               </button>
               <button
-                v-if="!post.is_verified"
+                v-if="post.is_verified !== 'VERIFIED'"
                 class="primary-action"
                 :disabled="actionLoading"
                 @click="confirmVerificationChange(true)"
