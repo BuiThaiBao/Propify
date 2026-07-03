@@ -187,11 +187,7 @@ function resetFilters() {
     </div>
     </div>
 
-    <div v-if="loading && logs.length === 0" class="state-text">Đang tải dữ liệu...</div>
-    <div v-else-if="error" class="state-text state-error">{{ error }}</div>
-    <div v-else-if="logs.length === 0" class="state-text">Chưa có audit log phù hợp.</div>
-
-    <div v-else class="table-wrap">
+    <div class="table-wrap">
       <div class="table-scroll">
         <table class="data-table">
           <thead>
@@ -204,6 +200,15 @@ function resetFilters() {
             </tr>
           </thead>
           <tbody>
+            <tr v-if="loading && logs.length === 0">
+              <td colspan="5" class="td text-center py-12 text-[#64748b]">Đang tải dữ liệu...</td>
+            </tr>
+            <tr v-else-if="error">
+              <td colspan="5" class="td text-center py-12 text-[#ef4444]">{{ error }}</td>
+            </tr>
+            <tr v-else-if="logs.length === 0">
+              <td colspan="5" class="td text-center py-12 text-[#64748b]">Chưa có audit log phù hợp.</td>
+            </tr>
             <tr
               v-for="log in logs"
               :key="log.id"

@@ -8,7 +8,15 @@ import { formatCompactCurrency, formatTransactionAmount } from '@/utils/transact
 import dashboardService from '@/services/dashboardService'
 
 const loading = ref(true)
-const stats = ref(null)
+const error = ref(null)
+const stats = ref({
+  label: '',
+  listings: { total: 0, approved: 0, pending: 0, rejected: 0, locked: 0 },
+  listings_change: { current_month: 0, last_month: 0 },
+  revenue: { total: 0, current_month: 0, last_month: 0 },
+  revenue_chart: [],
+  recent_activities: []
+})
 
 const selectedBarIndex = ref(null)
 
@@ -69,9 +77,18 @@ async function loadData() {
       period: period.value,
       ...selectedRange.value,
     })
-    stats.value = res.data?.data || null
-  } catch (e) {
-    console.error('Failed to load dashboard stats', e)
+    stats.value = res.data?.data || {
+      label: '',
+      listings: { total: 0, approved: 0, pending: 0, rejected: 0, locked: 0 },
+      listings_change: { current_month: 0, last_month: 0 },
+      revenue: { total: 0, current_month: 0, last_month: 0 },
+      revenue_chart: [],
+      recent_activities: []
+    }
+    error.value = null
+  } catch (err) {
+    console.error('Failed to load dashboard stats:', err)
+    error.value = 'Không thể tải dữ liệu dashboard. Vui lòng thử lại sau.'
   } finally {
     loading.value = false
   }
@@ -143,11 +160,11 @@ function yTicks() {
   <div>
     <PageHeader title="Dashboard" description="Tổng quan hệ thống Propify" />
 
-    <div v-if="loading" class="flex items-center justify-center py-20 text-muted-foreground">
-      Đang tải dữ liệu...
+    <div v-if="error" class="py-20 text-center text-destructive">
+      {{ error }}
     </div>
 
-    <template v-else-if="stats">
+    <template v-else>
       <section class="dashboard-toolbar">
         <div class="toolbar-left">
           <div class="period-segment" aria-label="Bộ lọc thời gian">
@@ -336,10 +353,6 @@ function yTicks() {
         </div>
       </div>
     </template>
-
-    <div v-else class="py-20 text-center text-muted-foreground">
-      Không thể tải dữ liệu dashboard. Vui lòng thử lại sau.
-    </div>
   </div>
 </template>
 
