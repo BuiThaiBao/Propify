@@ -55,45 +55,24 @@ final class AdminDashboardController extends Controller
         $currentListings = Listing::whereBetween('created_at', [$fromDate->copy()->startOfDay(), $toDate->copy()->endOfDay()])->count();
         $previousListings = Listing::whereBetween('created_at', [$previousFromDate->copy()->startOfDay(), $previousToDate->copy()->endOfDay()])->count();
 
-        // If period is month or custom and < 60 days, group by day, else group by month
-        $daysDiff = $fromDate->diffInDays($toDate);
         $revenueChart = [];
-        
-        if ($daysDiff <= 60) {
-            $dailyRevenueRows = Transaction::where('status', 'SUCCESS')
-                ->whereBetween('transaction_date', [$fromDate->copy()->startOfDay(), $toDate->copy()->endOfDay()])
-                ->selectRaw('DATE(transaction_date) as date, SUM(amount) as revenue')
-                ->groupByRaw('DATE(transaction_date)')
-                ->pluck('revenue', 'date');
-                
-            $cursor = $fromDate->copy();
-            while ($cursor <= $toDate) {
-                $dateStr = $cursor->toDateString();
-                $revenueChart[] = [
-                    'month' => $cursor->format('d/m'), 
-                    'revenue' => (float) ($dailyRevenueRows[$dateStr] ?? 0)
-                ];
-                $cursor->addDay();
-            }
-        } else {
-            $monthlyRevenueRows = Transaction::where('status', 'SUCCESS')
-                ->whereBetween('transaction_date', [$fromDate->copy()->startOfDay(), $toDate->copy()->endOfDay()])
-                ->selectRaw('YEAR(transaction_date) as year, MONTH(transaction_date) as month, SUM(amount) as revenue')
-                ->groupByRaw('YEAR(transaction_date), MONTH(transaction_date)')
-                ->get()
-                ->keyBy(fn ($row) => $row->year.'-'.$row->month);
-                
-            $cursor = $fromDate->copy()->startOfMonth();
-            $lastMonth = $toDate->copy()->startOfMonth();
-            while ($cursor <= $lastMonth) {
-                $key = $cursor->year.'-'.$cursor->month;
-                $row = $monthlyRevenueRows->get($key);
-                $revenueChart[] = [
-                    'month' => $cursor->year === $toDate->year ? 'T'.$cursor->month : 'T'.$cursor->month.'/'.$cursor->year,
-                    'revenue' => (float) ($row?->revenue ?? 0)
-                ];
-                $cursor->addMonth();
-            }
+        $monthlyRevenueRows = Transaction::where('status', 'SUCCESS')
+            ->whereBetween('transaction_date', [$fromDate->copy()->startOfDay(), $toDate->copy()->endOfDay()])
+            ->selectRaw('YEAR(transaction_date) as year, MONTH(transaction_date) as month, SUM(amount) as revenue')
+            ->groupByRaw('YEAR(transaction_date), MONTH(transaction_date)')
+            ->get()
+            ->keyBy(fn ($row) => $row->year.'-'.$row->month);
+            
+        $cursor = $fromDate->copy()->startOfMonth();
+        $lastMonth = $toDate->copy()->startOfMonth();
+        while ($cursor <= $lastMonth) {
+            $key = $cursor->year.'-'.$cursor->month;
+            $row = $monthlyRevenueRows->get($key);
+            $revenueChart[] = [
+                'month' => $cursor->year === $toDate->year ? 'T'.$cursor->month : 'T'.$cursor->month.'/'.$cursor->year,
+                'revenue' => (float) ($row?->revenue ?? 0)
+            ];
+            $cursor->addMonth();
         }
 
         $recentActivities = AuditLog::with('actor:id,full_name,email')
