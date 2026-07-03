@@ -131,7 +131,8 @@ const statusLabel = computed(() => mapStatusLabel(post.value?.status))
 const verificationKey = computed(() => mapVerificationKey(post.value?.is_verified))
 const verificationLabel = computed(() => mapVerificationLabel(post.value?.is_verified))
 const canShowVerificationActions = computed(() => {
-  return isSaleListing.value && post.value?.status === 'ACTIVE' && docs.value.length > 0
+  const isPending = ['REQUESTED', 'UNVERIFIED'].includes(post.value?.is_verified)
+  return isSaleListing.value && post.value?.status === 'ACTIVE' && docs.value.length > 0 && isPending
 })
 const mapSrc = computed(() => {
   const lat = property.value?.lat
@@ -951,7 +952,6 @@ onBeforeUnmount(() => {
                 <Ban :size="15" /> Từ chối
               </button>
               <button
-                v-if="post.is_verified !== 'VERIFIED'"
                 class="primary-action"
                 :disabled="actionLoading"
                 @click="confirmVerificationChange(true)"
