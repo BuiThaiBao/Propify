@@ -15,7 +15,7 @@ final class ListingPostingOptionsController
 
     public function __invoke(): JsonResponse
     {
-        $amenities = $this->amenityRepository->all()
+        $amenities = $this->amenityRepository->getActiveAmenities()
             ->map(fn ($attribute) => [
                 'value' => $attribute->name,
                 'label' => $attribute->name,

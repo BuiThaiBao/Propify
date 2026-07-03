@@ -31,6 +31,17 @@ final class EloquentAmenityRepository implements AmenityRepository
             ->get();
     }
 
+    public function getActiveAmenities(): Collection
+    {
+        return Attribute::query()
+            ->with('group')
+            ->whereHas('group', fn ($query) => $query->where('code', 'amenities'))
+            ->where('is_active', true)
+            ->orderBy('order_index')
+            ->orderBy('name')
+            ->get();
+    }
+
     public function create(array $attributes): Attribute
     {
         return Attribute::query()->create($attributes)->load('group');

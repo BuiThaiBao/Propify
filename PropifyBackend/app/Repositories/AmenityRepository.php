@@ -12,6 +12,8 @@ interface AmenityRepository
 
     public function all(): Collection;
 
+    public function getActiveAmenities(): Collection;
+
     public function create(array $attributes): Attribute;
 
     public function findAmenityById(int $id): ?Attribute;
