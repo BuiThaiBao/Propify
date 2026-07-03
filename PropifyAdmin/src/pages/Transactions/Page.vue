@@ -576,7 +576,7 @@ onMounted(() => {
 .search-input-wrapper { position: relative; display: flex; align-items: center; }
 .search-icon { position: absolute; left: 12px; color: hsl(var(--muted-foreground)); pointer-events: none; }
 .search-input { padding-left: 36px; }
-.btn-reset { height: 38px; padding: 0 16px; font-size: 13px; font-weight: 500; border: 1px solid hsl(var(--border)); border-radius: 8px; background-color: hsl(var(--muted)); color: hsl(var(--foreground)); cursor: pointer; }
+.btn-reset { height: 38px; padding: 0 16px; font-size: 13px; font-weight: 500; border: 1px solid #0ea5e9; border-radius: 8px; background-color: #f0f9ff; color: #0ea5e9; cursor: pointer; margin-top: auto; }
 .btn-export { display: flex; align-items: center; gap: 8px; padding: 9px 16px; font-size: 13px; font-weight: 600; border: 1px solid hsl(var(--border)); border-radius: 8px; background-color: hsl(var(--card)); color: hsl(var(--foreground)); cursor: pointer; }
 @media (max-width: 1024px) { .stats-grid { grid-template-columns: 1fr; } .filter-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 640px) { .filter-grid { grid-template-columns: 1fr; } }
