@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   Building2,
   LogOut,
+  Package,
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -24,6 +25,7 @@ const menuItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Quản lý tin đăng', url: '/posts', icon: FileText },
   { title: 'Quản lý tài khoản', url: '/users', icon: Users },
+  { title: 'Gói tin', url: '/packages', icon: Package },
   { title: 'Audit logs', url: '/audit-logs', icon: History },
   { title: 'Lịch sử giao dịch', url: '/transactions', icon: Receipt },
   { title: 'Tiện ích hệ thống', url: '/utilities', icon: Settings },
