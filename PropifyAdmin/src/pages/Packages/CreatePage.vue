@@ -103,20 +103,6 @@
         <div class="form-card-body">
           <div class="field-grid field-grid--3">
             <div class="field">
-              <label class="field-label" for="pkg-quota">Lượt hiển thị/ngày <span class="required">*</span></label>
-              <input
-                id="pkg-quota"
-                v-model.number="form.daily_quota"
-                type="number"
-                min="0"
-                class="field-input"
-                :class="{ 'field-input--error': errors.daily_quota }"
-                placeholder="100"
-              />
-              <span v-if="errors.daily_quota" class="field-error">{{ errors.daily_quota }}</span>
-              <span v-else class="field-hint">Số lần tin đăng được phân phối mỗi ngày</span>
-            </div>
-            <div class="field">
               <label class="field-label" for="pkg-priority">Tầng ưu tiên <span class="required">*</span></label>
               <input
                 id="pkg-priority"

@@ -218,7 +218,6 @@ function getPriorityLabel(priority) {
             <th>Giá / ngày</th>
             <th>Thời hạn</th>
             <th>Ưu tiên</th>
-            <th>Quota / ngày</th>
             <th>Trạng thái</th>
             <th>Thao tác</th>
           </tr>
@@ -262,11 +261,6 @@ function getPriorityLabel(priority) {
                 {{ getPriorityLabel(pkg.priority).label }}
               </span>
               <span class="meta-text ml-1">({{ pkg.priority }})</span>
-            </td>
-
-            <!-- Quota -->
-            <td>
-              <span class="meta-text">{{ Number(pkg.daily_quota || 0).toLocaleString('vi-VN') }} lượt</span>
             </td>
 
             <!-- Status -->
