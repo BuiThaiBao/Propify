@@ -75,7 +75,7 @@
               </p>
               <ul class="mt-2 list-disc pl-4 text-[11px] text-slate-500">
                 <li>Hỗ trợ jpg, jpeg, png. Tối đa 10 ảnh.</li>
-                <li>Kích thước mỗi ảnh tối đa 30MB, video tối đa 100MB.</li>
+                <li>Kích thước mỗi ảnh tối đa 3MB, video tối đa 10MB.</li>
               </ul>
 
               <div v-if="imagePreviews.length" class="mt-3">
@@ -3626,8 +3626,8 @@ function onImagesChange(event) {
   if (newFiles.length === 0) return;
 
   const validExtensions = ["image/jpeg", "image/png", "image/jpg"];
-  const MAX_IMAGE_SIZE = 30 * 1024 * 1024;
-
+  const MAX_IMAGE_SIZE = 3 * 1024 * 1024;
+  
   const validNewFiles = [];
   for (const file of newFiles) {
     if (!validExtensions.includes(file.type)) {
@@ -3637,7 +3637,7 @@ function onImagesChange(event) {
     }
 
     if (file.size > MAX_IMAGE_SIZE) {
-      imageUploadError.value = "Dung lượng ảnh vượt quá 30MB";
+      imageUploadError.value = "Dung lượng ảnh vượt quá 3MB";
       pushToast("File không hợp lệ đã bị loại bỏ", "warning");
       continue;
     }
