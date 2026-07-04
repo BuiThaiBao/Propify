@@ -43,8 +43,24 @@ const routes = [
         component: () => import('@/pages/Posts/DetailPage.vue'),
       },
       {
-        path: 'packages/:pathMatch(.*)*',
-        redirect: { name: 'Revenue' },
+        path: 'packages',
+        name: 'Packages',
+        component: () => import('@/pages/Packages/ListPage.vue'),
+      },
+      {
+        path: 'packages/create',
+        name: 'PackageCreate',
+        component: () => import('@/pages/Packages/CreatePage.vue'),
+      },
+      {
+        path: 'packages/:id/edit',
+        name: 'PackageEdit',
+        component: () => import('@/pages/Packages/EditPage.vue'),
+      },
+      {
+        path: 'packages/:id',
+        name: 'PackageDetail',
+        component: () => import('@/pages/Packages/DetailPage.vue'),
       },
       {
         path: 'users',
