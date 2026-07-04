@@ -79,7 +79,6 @@ const inputRef = ref(null);
 const emojiOpen = ref(false);
 const fileInputRef = ref(null);
 const uploading = ref(false);
-const pendingFile = ref(null);
 
 let typingTimer = null;
 
@@ -95,11 +94,7 @@ function onFileChange(event) {
     return;
   }
 
-  const isImage = file.type.startsWith('image/');
-  const prefix = isImage ? '🖼️ ' : '📎 ';
-  inputText.value = `${prefix}${file.name}`;
-  pendingFile.value = file;
-  nextTick(() => inputRef.value?.focus());
+  uploadAndSend(file);
 }
 
 const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB
@@ -115,8 +110,6 @@ async function uploadAndSend(file) {
     const { public_url, file_name, file_size, mime_type } = res || {};
     const meta = { file_name: file_name || file.name, file_size: file_size || file.size, mime_type: mime_type || file.type };
     emit('send', public_url || `file:${file_name || file.name}`, type, meta);
-    inputText.value = '';
-    resetHeight();
   } catch (err) {
     emit('file-error', err?.message || 'Upload file thất bại');
   } finally {
@@ -131,12 +124,6 @@ function onAttach() {
 }
 
 function handleSubmit() {
-  if (pendingFile.value) {
-    uploadAndSend(pendingFile.value);
-    pendingFile.value = null;
-    return;
-  }
-
   const text = inputText.value.trim();
   if (!text || props.disabled) return;
   emit('send', text);
