@@ -25,6 +25,17 @@ last-updated: 2026-11-13
 
 ## Triển khai và kiểm thử
 
+### Kiểm tra auto-deploy sau khi push
+
+Trong GitHub, mở **Settings → Webhooks**, chọn webhook triển khai và kiểm tra **Active** cùng sự kiện **Just the push event**. Sau khi push commit mới lên `main`, mở **Recent Deliveries** để xem sự kiện `push` và mã HTTP trả về.
+
+Trên server, đối chiếu commit đang chạy với commit đã push và xem kết quả build, migration trong log:
+
+```bash
+git -C /var/www/Propify rev-parse --short HEAD
+tail -n 50 /var/www/Propify/deploy.log
+```
+
 ### Chạy local với Docker
 
 Mở Docker Desktop. Chạy từ thư mục gốc:
