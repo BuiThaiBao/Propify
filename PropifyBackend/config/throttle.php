@@ -11,6 +11,5 @@ return [
         'geocoding' => '30,1',
     ],
     'payment' => [
-        'vnpay_return' => '10,1',
     ],
 ];

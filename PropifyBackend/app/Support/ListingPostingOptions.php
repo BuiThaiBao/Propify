@@ -161,6 +161,7 @@ final class ListingPostingOptions
                 ['value' => 'listing', 'label' => 'Tin đăng'],
             ],
             'transaction_payment_methods' => [
+                ['value' => 'SEPAY', 'label' => 'SePay'],
                 ['value' => 'VNPAY', 'label' => 'VNPay'],
                 ['value' => 'MOMO', 'label' => 'MoMo'],
                 ['value' => 'SIMULATED', 'label' => 'Mô phỏng'],

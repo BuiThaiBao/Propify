@@ -28,7 +28,8 @@ use App\Http\Controllers\Api\V1\Notification\NotificationController;
 use App\Http\Controllers\Api\V1\Package\PackageController;
 use App\Http\Controllers\Api\V1\Package\PackageDurationOptionController;
 use App\Http\Controllers\Api\V1\Package\PackagePricingController;
-use App\Http\Controllers\Api\V1\Payment\VnpayReturnController;
+use App\Http\Controllers\Api\V1\Payment\SepayIpnController;
+use App\Http\Controllers\Api\V1\Payment\SepayWebhookController;
 use App\Http\Controllers\Api\V1\Project\ProjectSearchController;
 use App\Http\Controllers\Api\V1\User\UserController;
 use App\Http\Controllers\Api\V1\User\UserTransactionController;
@@ -203,9 +204,10 @@ Route::prefix('v1/geocoding')->as('geocoding.')->middleware('throttle:30,1')->gr
     Route::get('/search', [GeocodingController::class, 'search'])->name('search');
 });
 
-Route::get('v1/payments/vnpay/return', VnpayReturnController::class)
-    ->middleware('throttle:10,1')
-    ->name('payments.vnpay.return');
+Route::post('v1/payments/sepay/webhook', SepayWebhookController::class)
+    ->name('payments.sepay.webhook');
+Route::post('v1/payments/sepay/ipn', SepayIpnController::class)
+    ->name('payments.sepay.ipn');
 
 Route::prefix('v1/listings')->as('listings.')->group(function () {
     Route::get('/', [ListingController::class, 'index'])->name('index');
@@ -241,6 +243,9 @@ Route::prefix('v1/listings')->as('listings.')->group(function () {
         Route::post('/{id}/upgrade', [ListingUpgradeController::class, 'upgrade'])
             ->where('id', '[0-9]+')
             ->name('upgrade');
+        Route::get('/{id}/upgrade/{transactionId}', [ListingUpgradeController::class, 'paymentStatus'])
+            ->whereNumber(['id', 'transactionId'])
+            ->name('upgrade.status');
     });
 });
 

@@ -88,7 +88,7 @@ interface ListingService
 
     public function upgradeListing(User $user, int $listingId, int $packageId, int $durationDays): Listing;
 
-    public function createUpgradePayment(User $user, int $listingId, int $packageId, int $durationDays, string $clientIp): string;
+    public function createUpgradePayment(User $user, int $listingId, int $packageId, int $durationDays): array;
 
     public function completePaidUpgrade(Transaction $transaction): Listing;
 }

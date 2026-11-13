@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 # Chạy composer install mỗi khi container khởi động
 composer install --prefer-dist --no-interaction
 

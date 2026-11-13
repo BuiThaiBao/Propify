@@ -13,11 +13,11 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-final class VnpayReturnTest extends TestCase
+final class SepayWebhookTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_vnpay_return_successful_payment_upgrades_package_and_logs(): void
+    public function test_only_a_matching_signed_incoming_event_completes_an_upgrade_once(): void
     {
         // 1. Setup User, Package, Listing
         $user = User::create([
@@ -78,53 +78,54 @@ final class VnpayReturnTest extends TestCase
             'package_id' => $package->id,
             'amount' => 250000,
             'duration_days' => 30,
-            'payment_method' => 'VNPAY',
+            'payment_method' => 'SEPAY',
             'status' => 'PENDING',
             'transaction_date' => now(),
             'expires_at' => now()->addDay(),
-            'vnp_txn_ref' => 'PFY'.'999', // Will mock this
         ]);
 
-        // 3. Setup VNPAY config and build parameters
-        config(['vnpay.hash_secret' => 'testsecret']);
+        config([
+            'sepay.webhook_secret' => 'sepay-test-secret',
+            'sepay.test_account' => '0000000001',
+            'sepay.test_va' => 'SBSEPAYEXAMPLE12345',
+        ]);
 
-        $params = [
-            'vnp_TxnRef' => 'PFY'.$transaction->id,
-            'vnp_TransactionNo' => '123456',
-            'vnp_BankCode' => 'NCB',
-            'vnp_ResponseCode' => '00',
-            'vnp_TransactionStatus' => '00',
-            'vnp_PayDate' => '20260604231828',
+        $event = [
+            'id' => 12345,
+            'accountNumber' => '0000000001',
+            'subAccount' => 'SBSEPAYEXAMPLE12345',
+            'transferType' => 'in',
+            'transferAmount' => 250000,
+            'content' => 'SPY'.$transaction->id,
         ];
 
-        // Sort parameters by key as VNPAY does
-        ksort($params);
+        $this->postJson('/api/v1/payments/sepay/webhook', $event)->assertUnauthorized();
+        $this->deliver(array_replace($event, ['transferAmount' => 249999]));
+        $this->deliver(array_replace($event, ['subAccount' => 'SBSEPAYOTHER']));
+        $this->assertSame('PENDING', $transaction->fresh()->status);
 
-        // Build query string
-        $query = http_build_query($params, '', '&', PHP_QUERY_RFC1738);
+        $this->deliver($event);
+        $transaction->refresh();
+        $this->assertSame('SUCCESS', $transaction->status);
+        $this->assertSame(12345, (int) $transaction->sepay_event_id);
+        $expiresAt = $listing->fresh()->package_expires_at;
+        $this->assertNotNull($expiresAt);
 
-        // Calculate secure hash
-        $secureHash = hash_hmac('sha512', $query, 'testsecret');
+        $this->deliver($event);
+        $this->assertEquals($expiresAt, $listing->fresh()->package_expires_at);
+    }
 
-        // Add secure hash to parameters
-        $params['vnp_SecureHash'] = $secureHash;
+    private function deliver(array $event): void
+    {
+        $timestamp = (string) now()->timestamp;
+        $body = json_encode($event, JSON_THROW_ON_ERROR);
+        $signature = hash_hmac('sha256', $timestamp.'.'.$body, 'sepay-test-secret');
 
-        // 4. Hit return route with simulated query parameters
-        $response = $this->get('/api/v1/payments/vnpay/return?'.http_build_query($params));
-
-        // 5. Assert redirection html response and database states
-        $response->assertOk();
-        $this->assertStringContainsString('Thanh toan VNPAY thanh cong', $response->content());
-
-        $this->assertDatabaseHas('transactions', [
-            'id' => $transaction->id,
-            'status' => 'SUCCESS',
-            'vnp_transaction_no' => '123456',
-        ]);
-
-        $this->assertDatabaseHas('listings', [
-            'id' => $listing->id,
-            'package_id' => $package->id,
-        ]);
+        $this->call('POST', '/api/v1/payments/sepay/webhook', server: [
+            'CONTENT_TYPE' => 'application/json',
+            'HTTP_ACCEPT' => 'application/json',
+            'HTTP_X_SEPAY_TIMESTAMP' => $timestamp,
+            'HTTP_X_SEPAY_SIGNATURE' => 'sha256='.$signature,
+        ], content: $body)->assertOk()->assertExactJson(['success' => true]);
     }
 }

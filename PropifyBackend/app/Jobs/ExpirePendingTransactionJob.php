@@ -33,6 +33,6 @@ final class ExpirePendingTransactionJob implements ShouldQueue
             return;
         }
 
-        $transaction->update(['status' => 'EXPIRED']);
+        Transaction::whereKey($transaction->id)->where('status', 'PENDING')->update(['status' => 'EXPIRED']);
     }
 }

@@ -67,6 +67,10 @@ const listingService = {
     });
   },
 
+  getUpgradePaymentStatus(listingId, transactionId) {
+    return api.get(`/v1/listings/${listingId}/upgrade/${transactionId}`);
+  },
+
   /**
    * Tạo nhiều khung giờ hẹn cùng lúc (bulk create).
    * @param {number} listingId

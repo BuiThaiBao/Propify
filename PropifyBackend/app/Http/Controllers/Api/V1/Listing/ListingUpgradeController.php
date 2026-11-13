@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1\Listing;
 
 use App\Helpers\ApiResponse;
 use App\Http\Requests\Listing\UpgradeListingRequest;
+use App\Models\Transaction;
 use App\Services\Listing\ListingService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 final class ListingUpgradeController
 {
@@ -13,22 +15,34 @@ final class ListingUpgradeController
         private readonly ListingService $listingService,
     ) {}
 
-    /**
-     * Create a VNPAY payment URL for a listing package upgrade.
-     */
     public function upgrade(UpgradeListingRequest $request, int $id): JsonResponse
     {
-        $paymentUrl = $this->listingService->createUpgradePayment(
+        $payment = $this->listingService->createUpgradePayment(
             user: $request->user(),
             listingId: $id,
             packageId: (int) $request->validated('package_id'),
             durationDays: (int) $request->validated('duration_days'),
-            clientIp: $request->ip() ?? '127.0.0.1',
         );
 
         return ApiResponse::success(
-            data: ['payment_url' => $paymentUrl],
-            message: 'Tao lien ket thanh toan VNPAY thanh cong.'
+            data: $payment,
+            message: 'Đã tạo yêu cầu thanh toán.'
         );
+    }
+
+    public function paymentStatus(Request $request, int $id, int $transactionId): JsonResponse
+    {
+        $transaction = Transaction::query()
+            ->where('listing_id', $id)
+            ->where('user_id', $request->user()->id)
+            ->whereIn('payment_method', ['SEPAY', 'SEPAY_GATEWAY'])
+            ->findOrFail($transactionId);
+
+        $status = $transaction->status;
+        if ($status === 'PENDING' && ! $transaction->expires_at?->isFuture()) {
+            $status = 'EXPIRED';
+        }
+
+        return ApiResponse::success(data: ['status' => $status]);
     }
 }

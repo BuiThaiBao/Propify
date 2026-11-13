@@ -2225,7 +2225,7 @@
                       {{ item.duration_days }} ngày
                     </td>
                     <td class="px-4 py-4 text-slate-500 whitespace-nowrap">
-                      {{ item.payment_method || "VNPay" }}
+                      {{ item.payment_method || "—" }}
                     </td>
                     <td class="px-4 py-4 text-slate-500 whitespace-nowrap">
                       {{

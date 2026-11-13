@@ -48,6 +48,12 @@ const routes = [
     component: () => import("@/pages/Rent/index.vue"),
   },
   {
+    path: "/payment/sepay-result",
+    name: "SepayResult",
+    component: () => import("@/pages/Payment/SepayResult.vue"),
+    meta: { requiresAuth: true },
+  },
+  {
     path: "/profile",
     name: "Profile",
     component: () => import("@/pages/Profile/index.vue"),
@@ -86,12 +92,6 @@ const routes = [
     path: "/pricing",
     name: "Pricing",
     component: () => import("@/pages/Pricing/index.vue"),
-  },
-  {
-    path: "/payment/vnpay-result",
-    name: "VnpayResult",
-    component: () => import("@/pages/Payment/VnpayResult.vue"),
-    meta: { requiresAuth: true },
   },
 ];
 

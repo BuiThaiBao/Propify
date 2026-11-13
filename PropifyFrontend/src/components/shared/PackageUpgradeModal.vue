@@ -134,7 +134,6 @@
     <Transition name="modal-fade">
       <div v-if="confirmVisible" class="confirm-overlay" @click.self="closeConfirm">
         <div class="confirm-card">
-          <div class="confirm-icon">V</div>
           <h3 class="confirm-title">Xác nhận thanh toán</h3>
           <p class="confirm-message">
             Bạn có chắc muốn {{ confirmActionLabel }} gói
@@ -154,6 +153,7 @@
               {{ upgrading ? 'Đang tạo thanh toán...' : 'Thanh toán' }}
             </button>
           </div>
+
         </div>
       </div>
     </Transition>
@@ -270,13 +270,24 @@ async function confirmUpgrade() {
       packageId: pendingPkg.value.id,
       durationDays: selectedPricing.value.duration_days,
     });
-    const paymentUrl = response?.data?.data?.payment_url;
-
-    if (!paymentUrl) {
-      throw new Error('Không nhận được liên kết thanh toán VNPAY.');
+    const payment = response?.data?.data;
+    if (!payment?.fields || payment.checkout_url !== 'https://pay-sandbox.sepay.vn/v1/checkout/init') {
+      throw new Error('Không nhận được thông tin thanh toán SePay.');
     }
 
-    window.location.href = paymentUrl;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = payment.checkout_url;
+    form.hidden = true;
+    for (const [name, value] of Object.entries(payment.fields)) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = value;
+      form.append(input);
+    }
+    document.body.append(form);
+    form.submit();
   } catch (err) {
     paymentError.value = err?.response?.data?.message || err?.message || 'Thao tác thất bại. Vui lòng thử lại.';
   } finally {

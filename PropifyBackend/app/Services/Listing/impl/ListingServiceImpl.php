@@ -331,7 +331,7 @@ final class ListingServiceImpl implements ListingService
         return $listing;
     }
 
-    public function createUpgradePayment(User $user, int $listingId, int $packageId, int $durationDays, string $clientIp): string
+    public function createUpgradePayment(User $user, int $listingId, int $packageId, int $durationDays): array
     {
         [$listing, $newPackage, $pricing, $context] = $this->prepareUpgrade($user, $listingId, $packageId, $durationDays);
 
@@ -341,7 +341,6 @@ final class ListingServiceImpl implements ListingService
             newPackage: $newPackage,
             durationDays: $durationDays,
             amount: (float) $pricing->price,
-            clientIp: $clientIp,
         );
     }
 
